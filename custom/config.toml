@@ -12,7 +12,7 @@
 # ve commit/push/merge/deploy mekanik olarak engellenir.
 # Canlı bir kayıt akışı (IR → SP → S → QR/PR) üretilene kadar SOFT bırakın;
 # aksi halde her commit/push bloklanır. Hard'a geçmek için değeri "hard" yapın.
-# Okuyucu: {metodoloji-root}/hooks/engine/bmad-hooks.py (_load_hook_enforcement).
+# Okuyucu: {metodoloji-root}/hooks/engine/main.py (_load_hook_enforcement).
 [hooks]
 quality_gate = "soft"   # "soft" (varsayılan) | "hard"
 deploy_guard = "soft"   # "soft" (varsayılan) | "hard"

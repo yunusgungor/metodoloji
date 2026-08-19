@@ -109,10 +109,16 @@ else
     PROBLEMS=$((PROBLEMS + 1))
 fi
 rm -f /tmp/meth-selfcheck.$$.log
-if "$PY" "$PLUGIN_ROOT/hooks/engine/bmad-hooks.py" --selfcheck >/tmp/meth-hooks.$$.log 2>&1; then
-    echo "[OK]   hook motoru --selfcheck geçti (çift-runtime: claude + openhands profilleri)"
+if echo '{}' | "$PY" "$PLUGIN_ROOT/hooks/engine/main.py" guard --runtime=openhands >/tmp/meth-hooks.$$.log 2>&1; then
+    if grep -q '"decision"' /tmp/meth-hooks.$$.log; then
+        echo "[OK]   hook motoru çalışıyor (main.py guard → karar döndü)"
+    else
+        echo "[HATA] hook motoru karar döndürmedi:"
+        sed 's/^/       /' /tmp/meth-hooks.$$.log
+        PROBLEMS=$((PROBLEMS + 1))
+    fi
 else
-    echo "[HATA] hook motoru --selfcheck başarısız:"
+    echo "[HATA] hook motoru guard testi başarısız:"
     sed 's/^/       /' /tmp/meth-hooks.$$.log
     PROBLEMS=$((PROBLEMS + 1))
 fi
@@ -420,24 +426,28 @@ if [ "$DOCCHECKED" -eq 0 ]; then
 fi
 PROBLEMS=$((PROBLEMS + DOCPROBLEMS))
 
-echo "== 5) Engine drift denetimi (plugin motoru == repo canonical) =="
-# Plugin motoru, metodoloji reposundaki .claude/helpers/bmad-hooks.py'nin birebir
-# kopyası olmalı (tek doğruluk kaynağı). Repo erişilebilir değilse denetim atlanır.
-CANONICAL=""
-for cand in "$PROJECT_ROOT/.claude/helpers/bmad-hooks.py" \
-            "$(dirname "$PLUGIN_ROOT")/.claude/helpers/bmad-hooks.py" \
-            "$PLUGIN_ROOT/../../.claude/helpers/bmad-hooks.py"; do
-    if [ -f "$cand" ]; then CANONICAL="$cand"; break; fi
+echo "== 5) Engine bütünlük denetimi (modüler motor: main.py + modules/) =="
+# Canonical bu repo'nun hooks/engine/ ağacıdır; plugin kopyası repo ile aynı
+# olmalı. Drift = eksik/bozuk engine dosyası (eski tek-dosya bmad-hooks.py yok).
+ENGINE_OK=1
+for f in main.py memlog.py resolve_customization.py modules/__init__.py \
+         modules/config.py modules/utils.py modules/archive.py modules/bash_targets.py \
+         modules/guard.py modules/audit.py modules/stop.py; do
+    if [ ! -f "$PLUGIN_ROOT/hooks/engine/$f" ]; then
+        echo "[HATA] engine dosyası eksik: hooks/engine/$f"
+        ENGINE_OK=0
+    fi
 done
-if [ -z "$CANONICAL" ]; then
-    echo "[OK]   repo canonical erişilemez (kurulu plugin) — drift denetimi atlandı"
-elif cmp -s "$CANONICAL" "$PLUGIN_ROOT/hooks/engine/bmad-hooks.py"; then
-    echo "[OK]   plugin motoru repo canonical ile özdeş ($CANONICAL)"
+if [ "$ENGINE_OK" -eq 1 ]; then
+    if "$PY" -c "import sys; sys.path.insert(0, '$PLUGIN_ROOT/hooks/engine'); import main; print('import-ok')" >/tmp/meth-engine.$$.log 2>&1; then
+        echo "[OK]   modüler motor eksiksiz ve import edilebilir (main.py + modules/)"
+    else
+        echo "[HATA] modüler motor import testi başarısız:"
+        sed 's/^/       /' /tmp/meth-engine.$$.log
+        PROBLEMS=$((PROBLEMS + 1))
+    fi
+    rm -f /tmp/meth-engine.$$.log
 else
-    echo "[HATA] plugin motoru repo canonical'dan sapmış:"
-    echo "       canonical: $CANONICAL"
-    echo "       plugin:    $PLUGIN_ROOT/hooks/engine/bmad-hooks.py"
-    echo "       (cp ile senkronla; tek doğruluk kaynağı .claude/helpers/bmad-hooks.py)"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 

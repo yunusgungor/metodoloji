@@ -14,7 +14,7 @@ from .bash_targets import extract_bash_targets
 
 # Import gate script
 if GATE_DIR is None:
-    sys.stderr.write("bmad-hooks: gate script not found — fail-closed\n")
+    sys.stderr.write("metodoloji-hooks: gate script not found — fail-closed\n")
     sys.exit(2)
 
 if str(GATE_DIR) not in sys.path:

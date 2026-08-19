@@ -47,7 +47,7 @@ hooks/engine/
 │   ├── guard.py         # PreToolUse mantığı
 │   ├── audit.py         # PostToolUse denetim izi
 │   └── stop.py          # Stop mantığı
-└── bmad-hooks.py        # Eski tek-dosya motor (geriye dönük uyumluluk)
+└── resolve_customization.py  # Skill TOML deep_merge köprü çözücüsü
 ```
 
 ## Sağlık kontrolü
@@ -59,14 +59,10 @@ sh commands/check-plugin.sh --negtest  # negatif test: KÖPRÜ boz → yakala �
 
 ## Doğruluk kaynağı ve drift
 
-Hook motorunun canonical kopyası metodoloji reposunda `.claude/helpers/bmad-hooks.py`'dir.
-Plugin'deki `hooks/engine/bmad-hooks.py` bu dosyayla birebir aynı olmalı — `check-plugin.sh`
-§5 drift'i denetler. Değişiklik her zaman canonical'da yapılır, sonra kopyalanır:
-
-```sh
-python3 .claude/helpers/bmad-hooks.py --selfcheck && \
-cp .claude/helpers/bmad-hooks.py openhands/metodoloji/hooks/engine/bmad-hooks.py
-```
+Hook motorunun canonical kopyası bu repo'nun `hooks/engine/` ağacıdır (modüler motor:
+`main.py` + `modules/`). Kurulu plugin kopyası repo ile aynı olmalı — `check-plugin.sh`
+§5 bütünlüğü denetler. Değişiklik her zaman repoda yapılır, kurulu plugin `git pull`
+ile güncellenir (eski tek-dosya `bmad-hooks.py` kaldırılmıştır; referans vermeyin).
 
 ## Hard gate
 
