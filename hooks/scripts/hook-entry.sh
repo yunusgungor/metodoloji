@@ -1,13 +1,13 @@
 #!/bin/sh
-# hook-entry.sh — tek çözümleme noktası: engine'i bul, python'a ver, politikayı uygula.
-# Kullanım: sh hook-entry.sh <guard|quality|deploy|stop|audit>
-# Politikalar (Claude parity):
-#   guard/stop     fail-closed  (engine yoksa deny + exit 2)
-#   quality/deploy fail-open    (engine yoksa sessiz geç)
+# hook-entry.sh — single resolution point: find engine, pass to python, apply policy.
+# Usage: sh hook-entry.sh <guard|quality|deploy|stop|audit>
+# Policies (Claude parity):
+#   guard/stop     fail-closed  (engine missing → deny + exit 2)
+#   quality/deploy fail-open    (engine missing → silent pass)
 #   audit          fail-open
 SELF=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 PLUGIN_ROOT=$(CDPATH= cd -- "$SELF/../.." && pwd)
-ENGINE="$PLUGIN_ROOT/hooks/engine/bmad-hooks.py"
+ENGINE="$PLUGIN_ROOT/hooks/engine/main.py"
 MODE="$1"
 
 PY=
@@ -29,13 +29,8 @@ if [ -z "$PY" ] || [ ! -f "$ENGINE" ]; then
     _fail
 fi
 
-case "$MODE" in
-    guard)   SUB=guard ;;
-    quality) SUB=quality-gate ;;
-    deploy)  SUB=deploy-guard ;;
-    stop)    SUB=stop ;;
-    audit)   SUB=audit ;;
-    *)       _fail ;;
-esac
+# Set hook type environment variable
+export HOOK_TYPE="$MODE"
 
-exec "$PY" "$ENGINE" "$SUB" --runtime=openhands
+# Read stdin and pass to engine
+exec "$PY" "$ENGINE" --runtime=openhands

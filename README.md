@@ -9,7 +9,8 @@ mekanik kapılar (guard/stop/quality/deploy) + kayıt zinciri (E → IR → SP �
 |---|---|
 | `skills/` | 124 BMAD skill'i (native gövde) + `metodoloji-manifesto` (çekirdek sözleşme) |
 | `custom/` | 74 köprü TOML (`activation_steps_append` → native çıktıları metodoloji kaydına bağlar) + `config.toml` (soft/hard) |
-| `hooks/` | PreToolUse/PostToolUse/Stop/SessionStart hook'ları; `hooks/engine/bmad-hooks.py` tek doğruluk kaynağının çift-runtime (claude/openhands) kopyası |
+| `hooks/` | PreToolUse/PostToolUse/Stop/SessionStart hook'ları; modüler motor yapısı |
+| `hooks/engine/` | Python motoru: `main.py` (giriş), `modules/` (guard, audit, stop, utils, config) |
 | `bmad/` | eski `_bmad/` modül verisi (bmm, cis, gds, wds, tea, core, bmb) |
 | `templates/` | IR/SP/QR/PR/S/E/README/tech-debt kayıt şablonları |
 | `commands/` | `/metodoloji:init`, `/metodoloji:kapi-kur`, `/metodoloji:dogrula`, `/metodoloji:denetim` |
@@ -31,6 +32,23 @@ veya yerel: `Plugin.load("<repo>/openhands/metodoloji")`.
 - `{project-root}` — hedef proje kökü (kayıtlar burada)
 - `{metodoloji-root}` — bu plugin'in kökü (kuruluysa `~/.openhands/plugins/installed/metodoloji`,
   bootstrap ile `.metodoloji/plugin` senkronu)
+
+## Modüler Motor Yapısı
+
+```
+hooks/engine/
+├── main.py              # Ana giriş noktası
+├── modules/
+│   ├── __init__.py      # Modül ihracatları
+│   ├── config.py        # Sabit yapılandırma
+│   ├── utils.py         # Yardımcı fonksiyonlar
+│   ├── archive.py       # Arşiv işleme (tar/zip)
+│   ├── bash_targets.py  # Bash komut hedef tespiti
+│   ├── guard.py         # PreToolUse mantığı
+│   ├── audit.py         # PostToolUse denetim izi
+│   └── stop.py          # Stop mantığı
+└── bmad-hooks.py        # Eski tek-dosya motor (geriye dönük uyumluluk)
+```
 
 ## Sağlık kontrolü
 
