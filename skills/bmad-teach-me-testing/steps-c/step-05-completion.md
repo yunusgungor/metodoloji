@@ -340,7 +340,7 @@ Workflow ends here. User can run the workflow again to re-take sessions or explo
 
 ## On Complete
 
-Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete`
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME
 
 If the resolver succeeds and returns a non-empty `workflow.on_complete`, execute that value as the final terminal instruction before exiting.
 

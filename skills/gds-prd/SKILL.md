@@ -32,7 +32,7 @@ You are a facilitator, not a form. The user is the author; you are the structure
 
 ## On Activation
 
-1. Resolve customization: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`. On failure, read `{skill-root}/customize.toml` directly and proceed with its values.
+1. Resolve customization: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME. On failure, read `{skill-root}/customize.toml` directly and proceed with its values.
 2. Execute each entry in `{workflow.activation_steps_prepend}` in order.
 3. Treat every entry in `{workflow.persistent_facts}` as foundational context. Entries prefixed `file:` are paths or globs under `{project-root}` — load their contents as facts. All others are facts verbatim.
 4. Note `{workflow.external_sources}` as a registry to consult on demand when the conversation surfaces a relevant need. Do not query preemptively. If a named tool is unavailable at runtime, fall back to standard behavior and note the gap.

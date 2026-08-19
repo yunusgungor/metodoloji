@@ -38,7 +38,7 @@ triggers: ["gds-sprint-status", "/gds-sprint-status", "check sprint status"]
 
 ### Step 1: Resolve the Workflow Block
 
-Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME
 
 **If the script fails**, resolve the `workflow` block yourself by reading these three files in base → team → user order and applying the same structural merge rules as the resolver:
 
@@ -229,7 +229,7 @@ If the command targets a story, set `story_key={{next_story_id}}` when prompted.
     <action>Exit workflow</action>
   </check>
 
-<action>Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — if the resolved value is non-empty, follow it as the final terminal instruction before exiting.</action>
+<action>Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME — if the resolved value is non-empty, follow it as the final terminal instruction before exiting.</action>
 </step>
 
 <!-- ========================= -->
@@ -253,7 +253,7 @@ If the command targets a story, set `story_key={{next_story_id}}` when prompted.
   <template-output>risks = {{risks}}</template-output>
   <action>Return to caller</action>
 
-<action>Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — if the resolved value is non-empty, follow it as the final terminal instruction before exiting.</action>
+<action>Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME — if the resolved value is non-empty, follow it as the final terminal instruction before exiting.</action>
 </step>
 
 <!-- ========================= -->
@@ -301,7 +301,7 @@ If the command targets a story, set `story_key={{next_story_id}}` when prompted.
 
 <template-output>is_valid = true</template-output>
 <template-output>message = "sprint-status.yaml valid: metadata complete, all statuses recognized"</template-output>
-<action>Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — if the resolved value is non-empty, follow it as the final terminal instruction before exiting.</action>
+<action>Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME — if the resolved value is non-empty, follow it as the final terminal instruction before exiting.</action>
 </step>
 
 </workflow>

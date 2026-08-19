@@ -37,8 +37,8 @@ The **memlog** (`.memlog.md`) is the run's working memory: every decision, const
 
 Writes go through the shared script (don't read the file back except on resume):
 
-- `uv run {metodoloji-root}/hooks/engine/memlog.py init --workspace {doc_workspace} --field scope="…" --field purpose="…" --field altitude="…"`
-- `uv run {metodoloji-root}/hooks/engine/memlog.py append --workspace {doc_workspace} --type <decision|constraint|version|assumption|question|direction|event> --text "…"`
+- `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {doc_workspace} --field scope="…" --field purpose="…" --field altitude="…"`
+- `python3 {metodoloji-root}/hooks/engine/memlog.py append --workspace {doc_workspace} --type <decision|constraint|version|assumption|question|direction|event> --text "…"`
 
 ## Resolution rules
 
@@ -51,7 +51,7 @@ Writes go through the shared script (don't read the file back except on resume):
 
 **Forwarded activation:** if a caller (e.g. the `bmad-create-architecture` shim) invoked you with a stated intent and pre-resolved customization fields, honor them verbatim — skip your own intent inference, use the supplied values for those named fields, and resolve only the remaining fields from your own `customize.toml`.
 
-1. Resolve customization: `uv run {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` (on failure read `{skill-root}/customize.toml`, use defaults). Run `{workflow.activation_steps_prepend}`, then `{workflow.activation_steps_append}`. Hold `{workflow.persistent_facts}` as standing context — the default loads `project-context.md`, load-bearing for brownfield — and consult `{workflow.external_sources}` on demand.
+1. Resolve customization: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME (on failure read `{skill-root}/customize.toml`, use defaults). Run `{workflow.activation_steps_prepend}`, then `{workflow.activation_steps_append}`. Hold `{workflow.persistent_facts}` as standing context — the default loads `project-context.md`, load-bearing for brownfield — and consult `{workflow.external_sources}` on demand.
 2. Load `{metodoloji-root}/bmad/bmm/config.yaml` (+ `config.user.yaml`) for `{user_name}`, `{communication_language}`, `{document_output_language}`, `{planning_artifacts}`, `{project_name}`, `{date}`; missing keys take neutral defaults, never block.
 3. Headless (no interactive user) → follow `references/headless.md` for the whole run. Otherwise greet `{user_name}` in `{communication_language}`. Detect the intent from the conversation and input — **create** (the default), **update** an existing spine, or **validate** one (see those sections). If the real ask is requirements / UX / a capability contract / epic breakdown / an agent, invoke the `bmad-prd`, `bmad-ux`, `bmad-spec`, `bmad-create-epics-and-stories`, or `bmad-workflow-builder` (if the BMad Builder module is installed) skill instead.
 4. If a run folder for this target already exists under `{workflow.spine_output_path}`, offer to resume from its memlog rather than restart.

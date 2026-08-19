@@ -477,7 +477,7 @@ Comprehensive market research workflow complete. User may:
 
 ## On Complete
 
-Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete`
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME
 
 If the resolved `workflow.on_complete` is non-empty, follow it as the final terminal instruction before exiting.
 

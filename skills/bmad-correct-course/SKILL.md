@@ -21,7 +21,7 @@ triggers: ["bmad-correct-course", "/bmad-correct-course", "correct-course", "cor
 
 ### Step 1: Resolve the Workflow Block
 
-Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME
 
 **If the script fails**, resolve the `workflow` block yourself by reading these three files in base → team → user order and applying the same structural merge rules as the resolver:
 
@@ -296,7 +296,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
 <action>Report workflow completion to user with personalized message: "Correct Course workflow complete, {user_name}!"</action>
 <action>Remind user of success criteria and next steps for Developer agent</action>
-<action>Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — if the resolved value is non-empty, follow it as the final terminal instruction before exiting.</action>
+<action>Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME — if the resolved value is non-empty, follow it as the final terminal instruction before exiting.</action>
 </step>
 
 </workflow>

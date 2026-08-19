@@ -78,6 +78,6 @@ purpose: "Token-efficient context for downstream PRD creation"
 
 This is the terminal stage. If the user wants to revise, loop back to the relevant stage. Otherwise, the workflow is done.
 
-Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete`
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME
 
 If the resolved `workflow.on_complete` is non-empty, follow it as the final terminal instruction before exiting.

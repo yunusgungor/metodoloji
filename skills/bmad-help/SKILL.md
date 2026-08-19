@@ -30,7 +30,7 @@ When this skill completes, the user should:
 ## Data Sources
 
 - **Catalog**: `{metodoloji-root}/bmad/_config/bmad-help.csv` — assembled manifest of all installed module skills
-- **Config**: Run `uv run --python 3.11 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root}` and use the merged JSON to resolve `output-location` variables and read `core.communication_language` and `modules.bmm.project_knowledge`. The resolver merges `bmad/config.toml`, `bmad/config.user.toml`, `bmad/custom/config.toml`, and `bmad/custom/config.user.toml` in that order.
+- **Config**: Run `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root}` and use the merged JSON to resolve `output-location` variables and read `core.communication_language` and `modules.bmm.project_knowledge`. The resolver merges `bmad/config.toml`, `bmad/config.user.toml`, `bmad/custom/config.toml`, and `bmad/custom/config.user.toml` in that order.
 - **Artifacts**: Files matching `outputs` patterns at resolved `output-location` paths reveal which steps are possibly completed; their content may also provide grounding context for recommendations
 - **Project knowledge**: If `project_knowledge` resolves to an existing path, read it for grounding context. Never fabricate project-specific details.
 - **Module docs**: Rows with `_meta` in the `skill` column carry a URL or path in `output-location` pointing to the module's documentation (e.g., llms.txt). Fetch and use these to answer general questions about that module.

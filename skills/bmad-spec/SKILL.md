@@ -19,7 +19,7 @@ Multiple skills may call to update the same spec over time.
 
 ## On Activation
 
-1. Resolve customization: `uv run {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`. On failure, read `{skill-root}/customize.toml` directly.
+1. Resolve customization: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME. On failure, read `{skill-root}/customize.toml` directly.
 2. Run `{workflow.activation_steps_prepend}`. Treat `{workflow.persistent_facts}` as foundational context (`file:` entries are loaded).
 3. Load `{metodoloji-root}/bmad/core/config.yaml` (and `config.user.yaml` if present), root level and `bmm` section. Resolve `{user_name}`, `{communication_language}`, `{document_output_language}`, `{planning_artifacts}`, `{project_name}`, `{date}`.
 4. Detect mode. **Headless** when any of: no TTY, programmatic caller (another skill or non-interactive runner), or the first message pre-supplies all inputs and asks for an artifact path back. **Interactive** otherwise. In interactive mode, greet by `{user_name}` in `{communication_language}`, stay in that language, and mention that `bmad-party-mode` and `bmad-advanced-elicitation` are available for deeper exploration on any field.
@@ -58,8 +58,8 @@ Deriving the contract from a living log instead of editing the contract in place
 
 Writes go through the shared script — `{metodoloji-root}/hooks/engine/memlog.py`, the same location as `resolve_customization.py` (atomic; never read it back except to resume):
 
-- `uv run {metodoloji-root}/hooks/engine/memlog.py init --workspace {spec-folder} --field topic="<what is being specced>"` — once, at create.
-- `uv run {metodoloji-root}/hooks/engine/memlog.py append --workspace {spec-folder} --type <decision|constraint|capability|assumption|question|direction|note|event> --text "<one-line gist, reason included>"` — as each lands.
+- `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {spec-folder} --field topic="<what is being specced>"` — once, at create.
+- `python3 {metodoloji-root}/hooks/engine/memlog.py append --workspace {spec-folder} --type <decision|constraint|capability|assumption|question|direction|note|event> --text "<one-line gist, reason included>"` — as each lands.
 - Terminal moments (a validation verdict, "spec finalized") are `--type event` entries; the memlog carries no status field.
 
 ## The Operation

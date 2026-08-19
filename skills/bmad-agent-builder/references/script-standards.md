@@ -35,7 +35,7 @@ Only pull in external dependencies when the stdlib genuinely cannot do the job (
 Every Python script MUST include a PEP 723 metadata block. For scripts with external dependencies, use the `uv run` shebang:
 
 ```python
-#!/usr/bin/env -S uv run --script
+#!/usr/bin/env -S python3 --script
 # /// script
 # requires-python = ">=3.10"
 # dependencies = ["pyyaml>=6.0", "jsonschema>=4.0"]
@@ -57,13 +57,13 @@ For scripts using only the standard library, use a plain Python shebang but stil
 - Always include `requires-python`
 - List all external dependencies with version constraints
 - Never use `requirements.txt`, `pip install`, or expect global package installs
-- The shebang is a Unix convenience — cross-platform invocation relies on `uv run scripts/foo.py`, not direct shebang execution
+- The shebang is a Unix convenience — cross-platform invocation relies on `python3 scripts/foo.py`, not direct shebang execution
 
 ## Invocation in SKILL.md
 
 How a built skill's SKILL.md should reference its scripts (bare path from the skill root, per the path conventions):
 
-- **All scripts:** `uv run scripts/foo.py {args}` — consistent invocation regardless of whether the script has external dependencies
+- **All scripts:** `python3 scripts/foo.py {args}` — consistent invocation regardless of whether the script has external dependencies
 
 `uv run` reads the PEP 723 metadata, silently caches dependencies in an isolated environment, and runs the script — no user prompt, no global install. Like `npx` for Python.
 
@@ -76,7 +76,7 @@ Skills may run in environments where Python or `uv` is unavailable (e.g., claude
 In SKILL.md, frame script steps as outcomes, not just commands:
 
 - Good: "Validate path conventions (run `scripts/scan-paths.py --help` for details)"
-- Avoid: "Execute `uv run scripts/scan-paths.py`" with no context about what it does
+- Avoid: "Execute `python3 scripts/scan-paths.py`" with no context about what it does
 
 ## Script Interface Standards
 

@@ -20,6 +20,17 @@ Bu skill, taşınan BMAD metodolojisinin **çekirdek sözleşmesidir**. Ayrınt�
 
 Herhangi bir skill metninde bu değişkenleri gördüğünde yukarıdaki anlamlarla çöz.
 
+## OpenHands araç çağrısı sözleşmesi (kritik)
+
+Bu plugin OpenHands üzerinde çalışır — araç şemaları Claude Code'dan farklıdır:
+
+- `terminal` aracı **yalnızca** `command` parametresi alır. `description` gibi ek
+  parametre EKLEME — OpenHands `extra_forbidden` hatasıyla reddeder.
+- `file_editor` aracı için `path`, `content` ve `action` alanları dışında parametre geçme.
+- Script çağrılarında `uv run` yerine `python3` tercih et (uv her ortamda yok).
+- Bir komutun ne yaptığını açıklamak istersen bunu **düz metinle** söyle, araç
+  parametresi olarak değil.
+
 ## Kayıt zinciri (tek doğruluk zinciri)
 
 ```

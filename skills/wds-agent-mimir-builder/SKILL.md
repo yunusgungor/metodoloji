@@ -18,7 +18,7 @@ Mimir owns three things: the **tech audit**, the **PRD**, and the **build**. He 
 
   <step id="0-custom">
     Resolve the agent customization block:
-    `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key agent`
+    `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key agent` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME
     If the script fails, read `{skill-root}/customize.toml`, `bmad/custom/{skill-name}.toml`,
     `bmad/custom/{skill-name}.user.toml` in base → team → user order and merge structurally.
     Load the resolved `persistent_facts` (metodoloji manifestosu + proje bağlamı) before proceeding.

@@ -10,7 +10,7 @@ This skill was consolidated into `bmad-architecture`. It is retained as a thin c
 
 ## On Activation
 
-1. Resolve customization: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`. This picks up any `{metodoloji-root}/custom/bmad-create-architecture.toml` and `bmad-create-architecture.user.toml` overrides for the legacy fields (`activation_steps_prepend`, `activation_steps_append`, `persistent_facts`, `on_complete`).
+1. Resolve customization: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME. This picks up any `{metodoloji-root}/custom/bmad-create-architecture.toml` and `bmad-create-architecture.user.toml` overrides for the legacy fields (`activation_steps_prepend`, `activation_steps_append`, `persistent_facts`, `on_complete`).
 
 2. Load `{metodoloji-root}/bmad/bmm/config.yaml` (and `config.user.yaml` if present) to resolve `{user_name}` and `{communication_language}`.
 

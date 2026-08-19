@@ -55,7 +55,7 @@
 
 ## Doğrulama (bmad-customize Step 6)
 
-- `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`
+- `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME
 - Kapı betiği: `python3 scripts/run_experiment.py` kendi `__main__` doğrulamasıyla test edilir
   (PASS ve FAIL yolları, assert tabanlı).
 

@@ -26,7 +26,7 @@ To HALT with a final status and optional blocking condition:
    Status: <final status>
    Blocking condition: <blocking condition, if any>
    ```
-3. Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete`
+3. Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME
 4. If the resolved `workflow.on_complete` is non-empty, follow it as the final instruction before exiting.
 5. Stop the workflow.
 
@@ -58,7 +58,7 @@ A specification is "Ready for Development" when:
 
 ### Step 1: Resolve the Workflow Block
 
-Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME
 
 **If the script fails**, resolve the `workflow` block yourself by reading these three files in base → team → user order and applying the same structural merge rules as the resolver:
 
