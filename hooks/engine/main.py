@@ -33,6 +33,10 @@ def main():
     # Check command line arguments
     if len(sys.argv) > 1:
         hook_type = sys.argv[1]
+        # Check for --runtime argument
+        for arg in sys.argv[2:]:
+            if arg.startswith("--runtime="):
+                os.environ["METODOLOJI_RUNTIME"] = arg.split("=", 1)[1]
 
     # Execute appropriate handler
     if hook_type == "guard":

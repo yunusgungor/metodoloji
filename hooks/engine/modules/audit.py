@@ -22,8 +22,8 @@ def audit(json_in: dict) -> dict:
         "output_summary": str(tool_output)[:500] if tool_output else None,
     }
 
-    # Get log file path
-    log_path = pathlib.Path(log_file())
+    # Get log file path (use absolute path)
+    log_path = pathlib.Path(log_file()).absolute()
 
     # Ensure log directory exists
     log_path.parent.mkdir(parents=True, exist_ok=True)
