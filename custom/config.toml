@@ -1,0 +1,18 @@
+# Team / enterprise overrides for bmad/config.toml.
+# Committed to the repo — applies to every developer on the project.
+# Tables deep-merge over base config; keyed entries merge by key.
+# Example: override an agent descriptor, or add a new agent.
+#
+# [agents.bmad-agent-pm]
+# description = "Prefers short, bulleted PRDs over narrative drafts."
+
+# --- Hook enforcement modu (Faz 2 hard gate) ---
+# quality-gate ve deploy-guard hook'ları varsayılan olarak SOFT (ask) çalışır —
+# sorun varsa kullanıcıya sorar ama devam edebilir. "hard" yapılırsa deny döner
+# ve commit/push/merge/deploy mekanik olarak engellenir.
+# Canlı bir kayıt akışı (IR → SP → S → QR/PR) üretilene kadar SOFT bırakın;
+# aksi halde her commit/push bloklanır. Hard'a geçmek için değeri "hard" yapın.
+# Okuyucu: {metodoloji-root}/hooks/engine/bmad-hooks.py (_load_hook_enforcement).
+[hooks]
+quality_gate = "soft"   # "soft" (varsayılan) | "hard"
+deploy_guard = "soft"   # "soft" (varsayılan) | "hard"

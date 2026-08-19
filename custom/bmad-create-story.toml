@@ -1,0 +1,18 @@
+# Team overrides for bmad-create-story — Research methodology (Mod C: uygulamaya hazır story dosyası).
+# A story is the unit handed to the Kod phase. It must trace to an approved experiment and may
+# not invent measurements for its acceptance criteria.
+# This workflow is directly invocable (/bmad-create-story), independent of the analyst agent.
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{project-root}/docs/bmad/development-methodology.md",
+]
+activation_steps_prepend = [
+  "Confirm the methodology manifesto is loaded: read {project-root}/docs/bmad/research-methodology.md if present. If it is missing, stop and tell the user this workflow requires it.",
+]
+activation_steps_append = [
+  "Link every story to its experiment record under docs/experiments/ whose status is ONAYLANDI. If a story's acceptance criteria imply a falsifiable claim without a measured, approved experiment, mark that criterion as a hypothesis awaiting experiment — do not assert it as fact.",
+  "KÖPRÜ: Native story dosyasini ({implementation_artifacts}/<story-key>.md) urettikten sonra, docs/bmad/dev-skill-to-methodology-bridge.md dokümanindaki §2.3 kuralina gore docs/development/stories/S-<sira>.md metodoloji kaydini olustur. docs/development/_template_S.md sablonunu kopyala, native story'den alanlari Turkce etiketlerle doldur (Tarih, Durum: backlog|sprint|in-progress|review|done|blocked, Story basligi, Epic, Acceptance criteria, Dosya listesi, Sprint referansi). Native story dosyasina 'Metodoloji kaydi: docs/development/stories/S-<sira>.md' referansini ekle. Durum alani izinli degerlerden olmali ve Tarih alani olmali (scripts/check-methodology.sh §6 bunu denetler). Bu, BMED native akisini bozmaz; yanina metodoloji kaydini ekler ve kayit zincirini (SP → S → implementasyon) kurar."
+]

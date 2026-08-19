@@ -1,0 +1,8 @@
+{
+  "name": "metodoloji",
+  "version": "1.0.0",
+  "description": "BMAD metodolojisi: kayıt zinciri (E→IR→SP→S→QR→PR), hard gate ve 124 skill köprüsü",
+  "author": "yunusgungor",
+  "license": "MIT",
+  "repository": "https://github.com/yunusgungor/metodoloji"
+}

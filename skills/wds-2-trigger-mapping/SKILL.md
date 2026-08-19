@@ -1,0 +1,14 @@
+---
+name: wds-2-trigger-mapping
+description: "Map business goals to user psychology through structured workshops"
+triggers: ["wds-2-trigger-mapping", "/wds-2-trigger-mapping"]
+---
+
+## Metodoloji
+
+Bu yuzey arastirma metodolojisine baglidir: `docs/bmad/research-methodology.md` — Mod B+C (nitel/tasarim) — tetik haritalama; R-id/D-id kaydi.
+Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayini ister
+(run_experiment.py --verify + guard-code.sh). Uydurma kanit/olcum sahtekarliktir.
+
+
+Follow the instructions in ./workflow.md.

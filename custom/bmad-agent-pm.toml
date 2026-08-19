@@ -1,0 +1,16 @@
+# Team overrides for bmad-agent-pm -- Research methodology (Mod C: ihtiyac, PRD, gereksinimler).
+# Takim yuzeyi manifestoyu yukler ve kendi modunun belgesel kapisina baglanir.
+# Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayina baglidir.
+# Team layer, committed.
+
+[agent]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{project-root}/docs/bmad/development-methodology.md",
+]
+principles = [
+  "Tasarim kararlari ihtiyac kaniti ister: kullanici ihtiyaci kaynaga baglanir, test edilmemis prototip 'test edilmedi' olarak etiketlenir.",
+  "Iterasyon kaydedilir: her prototip turu yeni durum olarak eklenir, 'tasarladik begendik' atlamasi yasaktir.",
+  "Gercekleme sayisal dogrulamayla gelir: tasarim ozellige donusurse Mod A olcumune baglanir (D-id -> E-id)."
+]

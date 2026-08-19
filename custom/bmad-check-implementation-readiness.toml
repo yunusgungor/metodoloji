@@ -1,0 +1,16 @@
+# Team overrides for bmad-check-implementation-readiness -- Research methodology (Mod C: PRD/UX/mimari tamlik dogrulamasi).
+# Takim yuzeyi manifestoyu yukler ve kendi modunun belgesel kapisina baglanir.
+# Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayina baglidir.
+# Team layer, committed.
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{project-root}/docs/bmad/development-methodology.md",
+]
+activation_steps_append = [
+  "Bu calismayi baslatmadan once metodoloji manifestosundaki (docs/bmad/research-methodology.md) ilgili modun kapi kurallarini dogrula: uretilcek ciktinin kanit turu ve kayit formati.",
+  "Calismayi bitirmeden once kaydin eksiksiz oldugunu dogrula: Turkce alan etiketleri, karar gerekcesi, belirsizlik itirafi. Belgesel karar kod yazma izni degildir.",
+  "KÖPRÜ: Native implementation-readiness raporunu (_bmad-output/planning-artifacts/implementation-readiness-report-*.md) urettikten sonra, docs/bmad/dev-skill-to-methodology-bridge.md dokümanindaki §2.1 kuralina gore docs/development/IR-<sira>.md metodoloji kaydini olustur. docs/development/_template_IR.md sablonunu kopyala, native rapordan alanlari Turkce etiketlerle doldur (Tarih, Durum: HAZIR|EKSIK, Arastirma girdileri, Tasarim belgeleri, Basari kriterleri, Teknik bagimliliklar, Risk degerlendirmesi, Eksikler, Karar, Sonraki adim). Native rapora 'Metodoloji kaydi: docs/development/IR-<sira>.md' referansini ekle. Karar alani HAZIR veya EKSIK olmali ve Tarih alani olmali (scripts/check-methodology.sh §6 bunu denetler). Bu, BMAD native akisini bozmaz; yanina metodoloji kaydini ekler ve kayit zincirini (E → IR → SP) kurar."
+]

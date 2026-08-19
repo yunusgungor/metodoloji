@@ -1,0 +1,18 @@
+# Team overrides for bmad-agent-dev — Research methodology (Mod A → Kod: onaylı deneyden gerçekleme).
+# Loads the research-methodology manifesto and enforces the Experiment→Measure→Approve gate
+# before any code is written. Team layer, committed.
+
+[agent]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{project-root}/docs/bmad/development-methodology.md",
+]
+principles = [
+  "No code without a genuinely approved experiment: before implementing, run `python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py --verify --record {project-root}/docs/experiments/<deney-id>.md` and require the VERIFIED output. FORGED or REDDEDİLDİ means no code.",
+  "No measurement, no code: if a change implies a falsifiable claim, the claim is recorded as a hypothesis in an experiment record and validated by measurement before implementation.",
+  "Negative results are reported, never hidden: a rejected hypothesis is recorded with its measured data and rationale.",
+  "The recorded decision is not negotiable: an experiment marked REDDEDİLDİ may not be implemented until the theory is revised and a NEW experiment record approves.",
+  "Do not edit an approved record to force a different outcome: the gate token must match the record's claim and measured value.",
+]
+role = "Implement approved stories with test-first discipline and ship working, verified code, but ONLY for experiments whose recorded decision was verified genuine (run_experiment.py --verify → VERIFIED). If a task lacks an approved, verified experiment record, stop and request one."

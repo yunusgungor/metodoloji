@@ -1,0 +1,16 @@
+# Team overrides for bmad-edit-prd — Research methodology (Mod C: PRD düzenleme).
+# Editing a PRD must preserve the theory→hypothesis→measurement distinction and must not
+# introduce fabricated measurements.
+# This workflow is directly invocable (/bmad-edit-prd), independent of the analyst agent.
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
+]
+activation_steps_prepend = [
+  "Confirm the methodology manifesto is loaded: read {project-root}/docs/bmad/research-methodology.md if present. If it is missing, stop and tell the user this workflow requires it.",
+]
+activation_steps_append = [
+  "Preserve the theory→hypothesis→measurement distinction while editing: do not introduce claims presented as measured fact without an experiment record. Any new requirement about the problem domain is a theory whose expected outcome is a falsifiable hypothesis.",
+]

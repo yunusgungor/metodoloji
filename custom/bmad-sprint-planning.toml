@@ -1,0 +1,16 @@
+# Team overrides for bmad-sprint-planning -- Research methodology (Mod D: sprint yonetimi).
+# Takim yuzeyi manifestoyu yukler ve kendi modunun belgesel kapisina baglanir.
+# Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayina baglidir.
+# Team layer, committed.
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{project-root}/docs/bmad/development-methodology.md",
+]
+activation_steps_append = [
+  "Bu calismayi baslatmadan once metodoloji manifestosundaki (docs/bmad/research-methodology.md) ilgili modun kapi kurallarini dogrula: uretilcek ciktinin kanit turu ve kayit formati.",
+  "Calismayi bitirmeden once kaydin eksiksiz oldugunu dogrula: Turkce alan etiketleri, karar gerekcesi, belirsizlik itirafi. Belgesel karar kod yazma izni degildir.",
+  "KÖPRÜ: Native sprint-status.yaml ciktisini (_bmad-output/implementation-artifacts/sprint-status.yaml) urettikten sonra, docs/bmad/dev-skill-to-methodology-bridge.md dokümanindaki §2.2 kuralina gore docs/development/SP-<sira>.md metodoloji kaydini olustur. docs/development/_template_SP.md sablonunu kopyala, YAML'den alanlari Turkce etiketlerle doldur (Tarih, Durum: planlandi|devam ediyor|tamamlandi|iptal, Sprint hedefi, Story'ler S-id listesi, Bagimliliklar, Teknik borc). Native YAML'e '# Metodoloji kaydi: docs/development/SP-<sira>.md' yorum referansini ekle. Durum alani izinli degerlerden olmali ve Tarih alani olmali (scripts/check-methodology.sh §6 bunu denetler). Bu, BMED native akisini bozmaz; yanina metodoloji kaydini ekler ve kayit zincirini (IR → SP → S) kurar."
+]

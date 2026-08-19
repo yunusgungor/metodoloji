@@ -1,0 +1,14 @@
+{
+  "name": "yunusgungor-metodoloji",
+  "owner": {
+    "name": "yunusgungor"
+  },
+  "plugins": [
+    {
+      "name": "metodoloji",
+      "source": "./",
+      "description": "BMAD metodolojisi: kayıt zinciri, hard gate, 124 skill köprüsü",
+      "version": "1.0.0"
+    }
+  ]
+}

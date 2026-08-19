@@ -1,0 +1,15 @@
+# Team overrides for bmad-agent-builder -- Research methodology (meta: yeni yetenek uretimi -- manifestoyu miras alir).
+# Takim yuzeyi manifestoyu yukler ve kendi modunun belgesel kapisina baglanir.
+# Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayina baglidir.
+# Team layer, committed.
+
+[agent]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
+]
+principles = [
+  "Uretilen yeni yuzeyler manifestoyu miras alir: metodoloji kapsami disinda yuzey uretilmez.",
+  "Uretilen yuzeyin kablolamasi uctur: persistent_facts (ozellestirme hatti) veya SKILL.md isaretcisi.",
+  "Kod her durumda Mod A mekanik onayini ister (guard-code.sh + --verify); uretici yuzeyler de bundan muaftir degildir."
+]

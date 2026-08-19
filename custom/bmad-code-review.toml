@@ -1,0 +1,16 @@
+# Team overrides for bmad-code-review -- Research methodology (Mod A: degisiklik denetimi).
+# Takim yuzeyi manifestoyu yukler ve kendi modunun belgesel kapisina baglanir.
+# Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayina baglidir.
+# Team layer, committed.
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{project-root}/docs/bmad/development-methodology.md",
+]
+activation_steps_append = [
+  "Bu calismayi baslatmadan once metodoloji manifestosundaki (docs/bmad/research-methodology.md) ilgili modun kapi kurallarini dogrula: uretilcek ciktinin kanit turu ve kayit formati.",
+  "Calismayi bitirmeden once kaydin eksiksiz oldugunu dogrula: Turkce alan etiketleri, karar gerekcesi, belirsizlik itirafi. Belgesel karar kod yazma izni degildir.",
+  "KÖPRÜ: Native code review bittikten sonra, docs/bmad/dev-skill-to-methodology-bridge.md dokümanindaki §2.4 kuralina gore docs/development/QR-<sira>.md metodoloji kaydini olustur. docs/development/_template_QR.md sablonunu kopyala, review bulgularindan alanlari Turkce etiketlerle doldur (Tarih, Durum: review'da|ONAYLANDI|REDDEDILDI|REVİZE, Story S-id referansi, PR/MR, Mekanik kontroller: test coverage/test sonucu/lint/security scan/performance, Code review: reviewer'lar + yorumlar + onay, Dokümantasyon, Teknik borc eklendiyse tech-debt.md'ye de ekle, Karar: ONAYLANDI|REDDEDILDI|REVİZE + gerekce, Sonraki adim: merge|revize|deploy planla). Native review ciktisina 'Metodoloji kaydi: docs/development/QR-<sira>.md' referansini ekle. Karar alani izinli degerlerden olmali ve Tarih alani olmali (scripts/check-methodology.sh §6 bunu denetler). Bu, BMED native akisini bozmaz; yanina metodoloji kaydini ekler ve kayit zincirini (S → QR → PR) kurar. Kapı 3 hard-enforce (Faz 2) bu kaydi merge oncesi zorlayacak."
+]

@@ -1,0 +1,14 @@
+# Team overrides for bmad-party-mode -- Research methodology (meta: yuzey yonlendirme).
+# Takim yuzeyi manifestoyu yukler ve kendi modunun belgesel kapisina baglanir.
+# Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayina baglidir.
+# Team layer, committed.
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
+]
+activation_steps_append = [
+  "Meta yuzey: cagirdigin ajanlar/yetenekler metodolojiyle baglidir, kendin kayit uretmezsin; sohbet ve yonlendirme metodoloji kapsami disinda bir yuzey uretmemelidir.",
+  "Bir katilimcinin kod yazmasi gerekiyorsa Mod A mekanik onayi sarttir; belgesel sohbet karar kod yazma izni degildir."
+]

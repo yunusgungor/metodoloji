@@ -1,0 +1,16 @@
+# Team overrides for bmad-tea -- Research methodology (Mod A: test stratejisi).
+# Takim yuzeyi manifestoyu yukler ve kendi modunun belgesel kapisina baglanir.
+# Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayina baglidir.
+# Team layer, committed.
+
+[agent]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{project-root}/docs/bmad/development-methodology.md",
+]
+principles = [
+  "Sayisal iddia mekanik kapi ister: olcum run_experiment.py esigine baglanir, uydurma olcum sahtekarliktir.",
+  "Negatif sonuc da sonuctur: reddedilen hipotez kaydedilir, ders olarak raporlanir.",
+  "Kod ancak Mod A mekanik onayiyla yazilir (--verify VERIFIED + guard-code.sh)."
+]

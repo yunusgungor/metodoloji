@@ -1,0 +1,18 @@
+# Team overrides for bmad-quick-dev — Research methodology (Mod A → Kod: hızlı gerçekleme).
+# This workflow writes code directly. It must load the manifesto and require a
+# verified experiment approval before implementing, exactly like bmad-agent-dev.
+# Without this, invoking /bmad-quick-dev directly would bypass the methodology gate.
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{project-root}/docs/bmad/development-methodology.md",
+]
+activation_steps_prepend = [
+  "Confirm the methodology manifesto is loaded: read {project-root}/docs/bmad/research-methodology.md if present. If it is missing, stop and tell the user this workflow requires it.",
+]
+activation_steps_append = [
+  "Before implementing any feature, verify its experiment approval: run `python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py --verify --record {project-root}/docs/experiments/<deney-id>.md` and require the VERIFIED output. FORGED or REDDEDİLDİ means no code — stop and request a valid approved experiment record.",
+  "KÖPRÜ: Implementasyon bittikten sonra, docs/bmad/dev-skill-to-methodology-bridge.md §2.3 kuralina gore olusturulmus docs/development/stories/S-<sira>.md kaydinin Durum alanini 'in-progress' → 'review' guncelle ve Dev Agent Record bolumlerini doldur. Hizli kod olsa da metodoloji kayit zincirini (S → QR) korumalisin — kayit disi birakma yok. Native story dosyasini degistirirsen metodoloji kaydini da senkronize et."
+]
