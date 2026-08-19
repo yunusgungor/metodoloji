@@ -487,6 +487,10 @@ if qg == "hard" or dg == "hard":
         problems.append("hard mod aktif ama docs/development/ gerçek kaydı yok "
                         "(IR-/SP-/QR-/PR-) — her commit/push/deploy bloklanır; "
                         "soft'a çevir veya önce kayıt üret")
+print("  not: OpenHands runtime'da quality/deploy hook'ları BAĞLI DEĞİL (hooks.json:")
+print("       SessionStart/PreToolUse/PostToolUse/Stop -> bootstrap/guard/audit/stop).")
+print("       quality_gate/deploy_guard değerleri yalnızca Claude runtime'da anlamlıydı;")
+print("       OpenHands'te guard ve stop fail-closed çalışır (deney onaysız kod yazımı DENY).")
 if problems:
     for p in problems:
         print("  MISS: %s" % p)
@@ -494,7 +498,7 @@ if problems:
 sys.exit(0)
 PY
 if [ $? -eq 0 ]; then
-    echo "[OK]   hard gate modu geçerli (soft varsayılan, config-gated)"
+    echo "[OK]   hard gate modu geçerli (config soft; guard/stop fail-closed aktif)"
 else
     echo "[UYARI] hard gate modu sorunu (yukarı bak)"
     PROBLEMS=$((PROBLEMS + 1))

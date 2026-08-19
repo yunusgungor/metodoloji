@@ -17,8 +17,7 @@ Plugin'in kendi bütünlüğünü ve hedef projedeki kayıt disiplinini mekanik 
    (`/metodoloji:dogrula` mantığı).
 
 4. Hook yapılandırması: `custom/config.toml [hooks]` quality_gate/deploy_guard değerlerini
-   oku (soft/hard). Hard mod yalnızca ilk gerçek IR/SP/QR/PR kayıtları üretildikten sonra
-   açılmalıdır.
+   oku (soft/hard; OpenHands'te bağlı hook değil — guard/stop fail-closed çalışır).
 
 5. Sonuç raporu: PASS/FAIL listesi + düzeltme önerileri. Negatif test gerektiren bir sorun
    bulursan (ör. KÖPRÜ çözülemiyor) betiğin boz→yakala→geri yükle çıktısını göster.
