@@ -27,16 +27,16 @@ def main():
         print(json.dumps({"decision": "allow"}))
         return
 
-    # Determine hook type from environment or arguments
+    # Determine hook type from environment or arguments.
+    # hook-entry.sh passes the mode via HOOK_TYPE env (invocation:
+    #   python3 main.py --runtime=openhands  → sys.argv[1] is a FLAG, not a mode).
+    # Direct calls may also pass the mode positionally:  main.py guard --runtime=openhands
     hook_type = os.environ.get("HOOK_TYPE", "")
-
-    # Check command line arguments
-    if len(sys.argv) > 1:
-        hook_type = sys.argv[1]
-        # Check for --runtime argument
-        for arg in sys.argv[2:]:
-            if arg.startswith("--runtime="):
-                os.environ["METODOLOJI_RUNTIME"] = arg.split("=", 1)[1]
+    for arg in sys.argv[1:]:
+        if arg.startswith("--runtime="):
+            os.environ["METODOLOJI_RUNTIME"] = arg.split("=", 1)[1]
+        elif not arg.startswith("-"):
+            hook_type = arg
 
     # Execute appropriate handler
     if hook_type == "guard":
