@@ -23,9 +23,8 @@ GATE_DIR = _first_existing([
 
 # Log file location
 def log_file() -> str:
-    if RUNTIME == "openhands":
-        return ".metodoloji/logs/hook-audit.log"
-    return ".claude/logs/hook-audit.log"
+    # OpenHands plugin olarak her zaman .metodoloji/logs/ kullan
+    return ".metodoloji/logs/hook-audit.log"
 
 # Code classification
 NON_CODE_EXTS = {
@@ -58,7 +57,7 @@ EXEC_CONFIG_NAME = re.compile(
 
 # Free zones
 FREE_PREFIXES = (
-    ".claude/", "_bmad/", "scratch/", "graft/", ".git/", "tmp/", "temp/",
+    "_bmad/", "scratch/", "graft/", ".git/", "tmp/", "temp/",
     "openhands/", ".metodoloji/"
 )
 
