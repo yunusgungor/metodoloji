@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "E=\"\"; for D in \"$METODOLOJI_HOME\" \"$OPENHANDS_PROJECT_DIR/.metodoloji/plugin\" \"$HOME/.openhands/plugins/installed/metodoloji\"; do if [ -n \"$D\" ] && [ -f \"$D/hooks/scripts/bootstrap.sh\" ]; then E=\"$D\"; break; fi; done; if [ -n \"$E\" ]; then exec sh \"$E/hooks/scripts/bootstrap.sh\"; fi; exit 0",
+            "command": "sh $HOME/.openhands/plugins/installed/metodoloji/hooks/scripts/bootstrap.sh",
             "timeout": 30
           }
         ]
@@ -17,17 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "E=\"\"; for D in \"$METODOLOJI_HOME\" \"$OPENHANDS_PROJECT_DIR/.metodoloji/plugin\" \"$HOME/.openhands/plugins/installed/metodoloji\"; do if [ -n \"$D\" ] && [ -f \"$D/hooks/scripts/hook-entry.sh\" ]; then E=\"$D\"; break; fi; done; if [ -z \"$E\" ]; then printf '%s\\n' '{\"decision\":\"deny\",\"reason\":\"Metodoloji plugin bulunamadı — guard fail-closed.\"; }'; exit 2; fi; exec sh \"$E/hooks/scripts/hook-entry.sh\" guard",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "E=\"\"; for D in \"$METODOLOJI_HOME\" \"$OPENHANDS_PROJECT_DIR/.metodoloji/plugin\" \"$HOME/.openhands/plugins/installed/metodoloji\"; do if [ -n \"$D\" ] && [ -f \"$D/hooks/scripts/hook-entry.sh\" ]; then E=\"$D\"; break; fi; done; [ -z \"$E\" ] && exit 0; exec sh \"$E/hooks/scripts/hook-entry.sh\" quality",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "E=\"\"; for D in \"$METODOLOJI_HOME\" \"$OPENHANDS_PROJECT_DIR/.metodoloji/plugin\" \"$HOME/.openhands/plugins/installed/metodoloji\"; do if [ -n \"$D\" ] && [ -f \"$D/hooks/scripts/hook-entry.sh\" ]; then E=\"$D\"; break; fi; done; [ -z \"$E\" ] && exit 0; exec sh \"$E/hooks/scripts/hook-entry.sh\" deploy",
+            "command": "sh $HOME/.openhands/plugins/installed/metodoloji/hooks/scripts/hook-entry.sh guard",
             "timeout": 10
           }
         ]
@@ -39,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "E=\"\"; for D in \"$METODOLOJI_HOME\" \"$OPENHANDS_PROJECT_DIR/.metodoloji/plugin\" \"$HOME/.openhands/plugins/installed/metodoloji\"; do if [ -n \"$D\" ] && [ -f \"$D/hooks/scripts/hook-entry.sh\" ]; then E=\"$D\"; break; fi; done; [ -z \"$E\" ] && exit 0; exec sh \"$E/hooks/scripts/hook-entry.sh\" audit",
+            "command": "sh $HOME/.openhands/plugins/installed/metodoloji/hooks/scripts/hook-entry.sh audit",
             "timeout": 5,
             "async": true
           }
@@ -51,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "E=\"\"; for D in \"$METODOLOJI_HOME\" \"$OPENHANDS_PROJECT_DIR/.metodoloji/plugin\" \"$HOME/.openhands/plugins/installed/metodoloji\"; do if [ -n \"$D\" ] && [ -f \"$D/hooks/scripts/hook-entry.sh\" ]; then E=\"$D\"; break; fi; done; if [ -z \"$E\" ]; then printf '%s\\n' '{\"decision\":\"deny\",\"reason\":\"Metodoloji plugin bulunamadı — stop fail-closed.\"}' ; exit 2; fi; exec sh \"$E/hooks/scripts/hook-entry.sh\" stop",
+            "command": "sh $HOME/.openhands/plugins/installed/metodoloji/hooks/scripts/hook-entry.sh stop",
             "timeout": 15
           }
         ]
