@@ -1,0 +1,12 @@
+# Eval Runner - Team overrides
+# Değerlendirme çalıştırıcısı: test ve ölçüm
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+]
+activation_steps_append = [
+  "Değerlendirme senaryolarını oluştur",
+  "Testleri çalıştır",
+  "Sonuçları analiz et"
+]

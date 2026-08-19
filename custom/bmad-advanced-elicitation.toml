@@ -1,0 +1,13 @@
+# Advanced Elicitation - Team overrides
+# İleri düzey çıkarma: derin eleştiri ve yeniden düşünme
+
+[agent]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+]
+principles = [
+  "Derin eleştiri: mevcut çıktıyı yeniden değerlendir",
+  "İlkeler yaklaşımı: temel varsayışları sorgula",
+  "Kırmızı takım: karşıt perspektiflerden değerlendir",
+]
+role = "Mevcut çıktıyı derinlemesine eleştir ve yeniden şekillendir"

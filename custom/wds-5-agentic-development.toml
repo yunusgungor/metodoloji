@@ -1,0 +1,13 @@
+# WDS 5: Agentic Development - Team overrides
+# Ajanlı geliştirme: otomatik kod üretimi
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/architecture.md",
+]
+activation_steps_append = [
+  "Geliştirme ortamını hazırla",
+  "Test senaryolarını oluştur",
+  "Kod incelemesi yap"
+]

@@ -1,0 +1,12 @@
+# Shard Document - Team overrides
+# Belge parçalama: büyük belgeleri böl
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+]
+activation_steps_append = [
+  "Belge yapısını analiz et",
+  "Parçalama noktalarını belirle",
+  "Parçaları oluştur"
+]

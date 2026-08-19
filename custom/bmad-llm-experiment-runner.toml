@@ -1,0 +1,12 @@
+# LLM Experiment Runner - Team overrides
+# LLM deney çalıştırıcısı: yapay zeka deneyleri
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+]
+activation_steps_append = [
+  "Deney hipotezini oluştur",
+  "Deney parametrelerini ayarla",
+  "Deney sonuçlarını analiz et"
+]

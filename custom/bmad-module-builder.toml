@@ -1,0 +1,12 @@
+# Module Builder - Team overrides
+# Modül oluşturucu: yeniden kullanılabilir modüller
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+]
+activation_steps_append = [
+  "Modül gereksinimlerini tanımla",
+  "Modül yapısını oluştur",
+  "Test ve doğrulama yap"
+]

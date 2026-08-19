@@ -1,0 +1,12 @@
+# WDS 6: Asset Generation - Team overrides
+# Varlık üretimi: görsel ve medya varlıkları
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+]
+activation_steps_append = [
+  "Varlık gereksinimlerini listele",
+  "Tasarım şablonlarını oluştur",
+  "Kalite kontrolü yap"
+]

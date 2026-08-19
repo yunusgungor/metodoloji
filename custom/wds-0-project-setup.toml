@@ -1,0 +1,12 @@
+# WDS 0: Project Setup - Team overrides
+# Proje kurulumu: başlangıç yapılandırması ve bağımlılıklar
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+]
+activation_steps_append = [
+  "Proje dizin yapısını oluştur",
+  "Bağımlılıkları kur",
+  "Versiyon kontrolünü başlat"
+]

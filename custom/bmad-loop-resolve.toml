@@ -1,0 +1,12 @@
+# Loop Resolve - Team overrides
+# Döngü çözme: tekrarlayan sorunlar
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+]
+activation_steps_append = [
+  "Sorunu tanımla",
+  "Kök nedeni bul",
+  "Çözüm uygula"
+]

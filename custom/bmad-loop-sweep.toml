@@ -1,0 +1,12 @@
+# Loop Sweep - Team overrides
+# Döngü temizleme: bekleyen işlemler
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+]
+activation_steps_append = [
+  "Bekleyen işlemleri listele",
+  "Öncelik sırasına koy",
+  "Tamamlanmamış işlemleri tamamla"
+]

@@ -1,0 +1,13 @@
+# WDS 0: Alignment Signoff - Team overrides
+# Onay processi: proje hedefleri ve kapsamı müşteri ile doğrulama
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
+]
+activation_steps_append = [
+  "Proje hedeflerini ve kapsamını müşteri ile doğrula",
+  "Anlaşma sağlanan noktaları dokümante et",
+  "İmza/onaay al"
+]

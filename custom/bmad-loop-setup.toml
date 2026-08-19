@@ -1,0 +1,12 @@
+# Loop Setup - Team overrides
+# Döngü kurulumu: otomatik işlemler
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+]
+activation_steps_append = [
+  "Döngü parametrelerini ayarla",
+  "Tetikleme koşullarını tanımla",
+  "İzleme mekanizmasını kur"
+]
