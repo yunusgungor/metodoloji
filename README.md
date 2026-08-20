@@ -66,15 +66,19 @@ ile güncellenir (eski tek-dosya `bmad-hooks.py` kaldırılmıştır; referans v
 
 ## Hard gate
 
-OpenHands runtime'da denetim zinciri üç uçtan çalışır (hooks.json):
-**guard** (PreToolUse) ve **stop** (Stop) fail-closed — onaylı deney kaydı (E→IR→SP→S→QR/PR)
-olmadan kod yazımı ve oturum kapanışı `deny` döner; **audit** (PostToolUse) her tool çağrısını
-`.metodoloji/logs/hook-audit.log`'a yazar.
+OpenHands runtime'da denetim zinciri **beş** hook noktasından çalışır (hooks.json):
+
+| Hook | Mod | Matcher | Eşik | Davranış |
+|------|-----|---------|------|----------|
+| **guard** | PreToolUse | file_editor, terminal | — | Deney onaysız kod yazımı → DENY (fail-closed) |
+| **quality** | PreToolUse | terminal | — | `git commit` QR'siz story varsa → DENY (fail-closed) |
+| **deploy** | PreToolUse | terminal | — | Deploy komutu + QR/PR eksikse → DENY (fail-closed) |
+| **stop** | Stop | — | — | Tamamlanmamış story/onaysız kod → DENY (fail-closed) |
+| **audit** | PostToolUse | file_editor, terminal | — | Her çağrıyı log'a yazar (fail-open) |
 
 `custom/config.toml [hooks]` altındaki `quality_gate`/`deploy_guard` (`"soft"` varsayılan |
-`"hard"`) değerleri OpenHands'te **bağlı hook olmadığı için** yalnızca bilgi amaçlıdır —
-Claude runtime kalıntısıdır; hard moda geçmek OpenHands'te ekstra mekanik bloklama
-getirmez (guard/stop zaten fail-closed).
+`"hard"`) değerleri artık hook seviyesinde zorlanır: guard/stop kalitesiz commit/deploy'i
+mekanik olarak engeller.
 
 ## Durum
 

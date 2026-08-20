@@ -12,7 +12,7 @@ import sys
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from modules.guard import guard
+from modules.guard import guard, quality, deploy
 from modules.audit import audit
 from modules.stop import stop
 
@@ -41,6 +41,10 @@ def main():
     # Execute appropriate handler
     if hook_type == "guard":
         result = guard(json_in)
+    elif hook_type == "quality":
+        result = quality(json_in)
+    elif hook_type == "deploy":
+        result = deploy(json_in)
     elif hook_type == "audit":
         result = audit(json_in)
     elif hook_type == "stop":

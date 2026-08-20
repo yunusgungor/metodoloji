@@ -123,6 +123,36 @@ else
     PROBLEMS=$((PROBLEMS + 1))
 fi
 rm -f /tmp/meth-hooks.$$.log
+# quality hook testi (PreToolUse — terminalmatcher)
+if echo '{}' | "$PY" "$PLUGIN_ROOT/hooks/engine/main.py" quality --runtime=openhands >/tmp/meth-quality.$$.log 2>&1; then
+    if grep -q '"decision"' /tmp/meth-quality.$$.log; then
+        echo "[OK]   hook motoru çalışıyor (main.py quality → karar döndü)"
+    else
+        echo "[HATA] hook motoru quality karar döndürmedi:"
+        sed 's/^/       /' /tmp/meth-quality.$$.log
+        PROBLEMS=$((PROBLEMS + 1))
+    fi
+else
+    echo "[HATA] hook motoru quality testi başarısız:"
+    sed 's/^/       /' /tmp/meth-quality.$$.log
+    PROBLEMS=$((PROBLEMS + 1))
+fi
+rm -f /tmp/meth-quality.$$.log
+# deploy hook testi (PreToolUse — terminalmatcher)
+if echo '{}' | "$PY" "$PLUGIN_ROOT/hooks/engine/main.py" deploy --runtime=openhands >/tmp/meth-deploy.$$.log 2>&1; then
+    if grep -q '"decision"' /tmp/meth-deploy.$$.log; then
+        echo "[OK]   hook motoru çalışıyor (main.py deploy → karar döndü)"
+    else
+        echo "[HATA] hook motoru deploy karar döndürmedi:"
+        sed 's/^/       /' /tmp/meth-deploy.$$.log
+        PROBLEMS=$((PROBLEMS + 1))
+    fi
+else
+    echo "[HATA] hook motoru deploy testi başarısız:"
+    sed 's/^/       /' /tmp/meth-deploy.$$.log
+    PROBLEMS=$((PROBLEMS + 1))
+fi
+rm -f /tmp/meth-deploy.$$.log
 
 echo "== 2) Manifesto tüm yüzeylere + köprü (native→kayıt) kablolanmış mı =="
 "$PY" - <<'PY'
@@ -487,10 +517,10 @@ if qg == "hard" or dg == "hard":
         problems.append("hard mod aktif ama docs/development/ gerçek kaydı yok "
                         "(IR-/SP-/QR-/PR-) — her commit/push/deploy bloklanır; "
                         "soft'a çevir veya önce kayıt üret")
-print("  not: OpenHands runtime'da quality/deploy hook'ları BAĞLI DEĞİL (hooks.json:")
-print("       SessionStart/PreToolUse/PostToolUse/Stop -> bootstrap/guard/audit/stop).")
-print("       quality_gate/deploy_guard değerleri yalnızca Claude runtime'da anlamlıydı;")
-print("       OpenHands'te guard ve stop fail-closed çalışır (deney onaysız kod yazımı DENY).")
+print("  not: OpenHands runtime'da quality/deploy hook'ları AKTİFTİR (hooks.json:")
+print("       PreToolUse -> guard/quality/deploy, Stop -> stop, PostToolUse -> audit).")
+print("       quality_gate/deploy_guard değerleri artık hook seviyesinde zorlanır;")
+print("       quality: git commit QR'sizse DENY; deploy: PR'sız/QR'sız deploy DENY.")
 if problems:
     for p in problems:
         print("  MISS: %s" % p)

@@ -474,3 +474,203 @@ def guard(json_in: dict) -> dict:
                 pass  # Best-effort — don't block on parse errors
 
     return {"decision": "allow"}
+
+
+# --- Quality Gate (PreToolUse, terminal) ---
+
+def _is_git_commit(command: str) -> bool:
+    """True if command is a git commit (or git commit -am, etc.)."""
+    return bool(re.search(r"\bgit\b.*\bcommit\b", command))
+
+
+def _extract_story_key_from_content(content: str) -> str:
+    """Extract story key from file content — matches 'S-XXX' in title or 'N-N-slug' pattern."""
+    # Try '# Story: S-XXX' header first (handles space variations around colon)
+    m = re.search(r"#\s+Story\s*:\s*(\S+)", content, re.IGNORECASE)
+    if m:
+        return m.group(1)
+    # Try '# Story S-XXX' (no colon)
+    m = re.search(r"#\s+Story\s+(\S+)", content, re.IGNORECASE)
+    if m:
+        return m.group(1)
+    return ""
+
+
+def _find_done_stories_without_qr(root: str) -> list[str]:
+    """Find stories with Status: done that lack a QR record.
+
+    Returns list of story keys (e.g. '1-2-user-auth' or 'S-001') missing QR.
+    """
+    stories_dir = pathlib.Path(root) / "docs" / "development" / "stories"
+    qr_dir = pathlib.Path(root) / "docs" / "quality"
+    if not stories_dir.is_dir():
+        return []
+
+    # Collect all QR content to search for story references
+    qr_content = ""
+    if qr_dir.is_dir():
+        for qr_file in qr_dir.glob("QR-*.md"):
+            try:
+                qr_content += qr_file.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                pass
+
+    # Regex: matches 'Status: done', '- **Status:** done', etc.
+    _DONE_RE = re.compile(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(done)", re.IGNORECASE | re.MULTILINE)
+
+    missing: list[str] = []
+    for story_file in stories_dir.glob("S-*.md"):
+        try:
+            content = story_file.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        status_match = _DONE_RE.search(content)
+        if not status_match:
+            continue
+        # Extract story key from content (title) or filename
+        story_key = _extract_story_key_from_content(content)
+        if not story_key:
+            # Fallback: extract from filename (S-NNN → try content for N-N-slug)
+            key_match = re.search(r"(\d+-\d+-[a-z][a-z0-9-]+)", content, re.IGNORECASE)
+            if key_match:
+                story_key = key_match.group(1)
+        if not story_key:
+            # Last resort: use filename without extension
+            story_key = story_file.stem
+        if story_key not in qr_content:
+            missing.append(story_key)
+    return missing
+
+
+def quality(json_in: dict) -> dict:
+    """Quality gate: block git commit if done stories lack QR records.
+
+    This is the Kapi 3 enforcement — stories marked 'done' must have a
+    corresponding Quality Record (QR) in docs/quality/.
+    """
+    tool_name = json_in.get("tool_name", "")
+    if tool_name != "terminal":
+        return {"decision": "allow"}
+
+    command = json_in.get("tool_input", {}).get("command", "")
+    if not _is_git_commit(command):
+        return {"decision": "allow"}
+
+    root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
+    root = os.path.abspath(root)
+
+    missing = _find_done_stories_without_qr(root)
+    if missing:
+        return {
+            "decision": "deny",
+            "reason": (
+                f"git commit blocked: {len(missing)} story(s) marked 'done' lack Quality Record (QR). "
+                f"Stories: {', '.join(missing)}. "
+                f"Create QR with: python3 scripts/create-qr-record.py --story docs/development/stories/S-XXX.md"
+            ),
+        }
+
+    return {"decision": "allow"}
+
+
+# --- Deploy Gate (PreToolUse, terminal) ---
+
+_DEPLOY_CMD_RE = re.compile(
+    r"(?i)(?:"
+    r"\bterraform\s+(?:apply|destroy|plan)\b|"
+    r"\bkubectl\s+(?:apply|rollout|deploy)\b|"
+    r"\bdocker\s+(?:compose\s+)?(?:up|deploy)\b|"
+    r"\bansible\s+(?:playbook|deploy)\b|"
+    r"\bgit\s+push\s+(?:origin|upstream)\s+(?:main|master|production|prod)\b|"
+    r"\b部署\b|"
+    r"\bdeploy\b"
+    r")"
+)
+
+
+def _find_done_stories_without_pr(root: str) -> list[str]:
+    """Find stories with Status: done that lack a PR record.
+
+    Returns list of story keys missing PR.
+    """
+    stories_dir = pathlib.Path(root) / "docs" / "development" / "stories"
+    if not stories_dir.is_dir():
+        return []
+
+    # Collect all PR content
+    pr_content = ""
+    dev_dir = pathlib.Path(root) / "docs" / "development"
+    if dev_dir.is_dir():
+        for pr_file in dev_dir.glob("PR-*.md"):
+            try:
+                pr_content += pr_file.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                pass
+
+    # Regex: matches 'Status: done', '- **Status:** done', etc.
+    _DONE_RE = re.compile(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(done)", re.IGNORECASE | re.MULTILINE)
+
+    missing: list[str] = []
+    for story_file in stories_dir.glob("S-*.md"):
+        try:
+            content = story_file.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        status_match = _DONE_RE.search(content)
+        if not status_match:
+            continue
+        # Extract story key from content (title) or filename
+        story_key = _extract_story_key_from_content(content)
+        if not story_key:
+            key_match = re.search(r"(\d+-\d+-[a-z][a-z0-9-]+)", content, re.IGNORECASE)
+            if key_match:
+                story_key = key_match.group(1)
+        if not story_key:
+            story_key = story_file.stem
+        if story_key not in pr_content:
+            missing.append(story_key)
+    return missing
+
+
+def deploy(json_in: dict) -> dict:
+    """Deploy gate: block deployment if done stories lack QR or PR records.
+
+    This is the Kapi 4 enforcement — stories marked 'done' must have both
+    a Quality Record (QR) and a Production Readiness (PR) record.
+    """
+    tool_name = json_in.get("tool_name", "")
+    if tool_name != "terminal":
+        return {"decision": "allow"}
+
+    command = json_in.get("tool_input", {}).get("command", "")
+    if not command or not _DEPLOY_CMD_RE.search(command):
+        return {"decision": "allow"}
+
+    root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
+    root = os.path.abspath(root)
+
+    # Check QR (Kapi 3)
+    missing_qr = _find_done_stories_without_qr(root)
+    if missing_qr:
+        return {
+            "decision": "deny",
+            "reason": (
+                f"Deploy blocked: {len(missing_qr)} story(s) lack Quality Record (QR). "
+                f"Stories: {', '.join(missing_qr)}. "
+                f"Create QR first, then PR."
+            ),
+        }
+
+    # Check PR (Kapi 4)
+    missing_pr = _find_done_stories_without_pr(root)
+    if missing_pr:
+        return {
+            "decision": "deny",
+            "reason": (
+                f"Deploy blocked: {len(missing_pr)} story(s) lack Production Readiness (PR) record. "
+                f"Stories: {', '.join(missing_pr)}. "
+                f"Create PR record before deploying."
+            ),
+        }
+
+    return {"decision": "allow"}
