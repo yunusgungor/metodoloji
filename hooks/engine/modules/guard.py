@@ -60,7 +60,8 @@ def verify_record(rec: str) -> tuple[int, str]:
         return 1, ""
 
 
-_STORY_RE = re.compile(r"\b\d+-\d+-[a-z][a-z0-9-]*\.md\b", re.IGNORECASE)
+# Matches native story files (1-2-user-auth.md) AND methodology story records (S-001.md)
+_STORY_RE = re.compile(r"(?:\b\d+-\d+-[a-z][a-z0-9-]*\.md\b|\bS-\d+\.md\b)", re.IGNORECASE)
 
 
 def _parse_experiment_refs(content: str) -> list[dict]:
@@ -431,41 +432,9 @@ def guard(json_in: dict) -> dict:
     for target in targets:
         rel = rel_to_root(root, target)
 
-        # Free zone — no approval needed
-        if is_free(rel):
-            continue
-
-        # Check if it's a code target
-        if not is_code_target(rel):
-            continue
-
-        # Check for secret references in file content (for free zones)
-        if any(rel.startswith(zone) for zone in _AGENT_ZONES):
-            try:
-                content = ""
-                if tool_name == "file_editor":
-                    content = str(tool_input.get("content", ""))
-                elif tool_name == "notebook_editor":
-                    content = _notebook_content_to_text(tool_input.get("content", []))
-                if _KEY_ACCESS_IN_CONTENT.search(content):
-                    return {
-                        "decision": "deny",
-                        "reason": f"Secret access pattern detected in {rel} — blocked."
-                    }
-            except Exception:
-                pass
-
-        # Find approved record
-        approved, detail = find_approved(rel)
-        if not approved:
-            return {
-                "decision": "deny",
-                "reason": f"No approved experiment record for {rel}: {detail}. "
-                          f"Create a hypothesis, measure, and get approval with "
-                          f"run_experiment.py --record docs/experiments/E-XXX.md --run <cmd>"
-            }
-
-        # Story file validation: check experiment_refs + AC metadata + Task↔AC + DoD
+        # --- Story file validation (runs BEFORE free/code checks) ---
+        # Story files (S-NNN.md or N-N-slug.md) need metadata validation
+        # regardless of being in a free zone or non-code target.
         if _STORY_RE.search(rel):
             try:
                 story_content = ""
@@ -505,6 +474,45 @@ def guard(json_in: dict) -> dict:
                         }
             except Exception:
                 pass  # Best-effort — don't block on parse errors
+            # Story validation passed — continue to next target
+            # (story files don't need experiment approval check)
+            continue
+
+        # --- Non-story files: free zone and code target checks ---
+
+        # Free zone — no approval needed
+        if is_free(rel):
+            continue
+
+        # Check if it's a code target
+        if not is_code_target(rel):
+            continue
+
+        # Check for secret references in file content (for free zones)
+        if any(rel.startswith(zone) for zone in _AGENT_ZONES):
+            try:
+                content = ""
+                if tool_name == "file_editor":
+                    content = str(tool_input.get("content", ""))
+                elif tool_name == "notebook_editor":
+                    content = _notebook_content_to_text(tool_input.get("content", []))
+                if _KEY_ACCESS_IN_CONTENT.search(content):
+                    return {
+                        "decision": "deny",
+                        "reason": f"Secret access pattern detected in {rel} — blocked."
+                    }
+            except Exception:
+                pass
+
+        # Find approved record
+        approved, detail = find_approved(rel)
+        if not approved:
+            return {
+                "decision": "deny",
+                "reason": f"No approved experiment record for {rel}: {detail}. "
+                          f"Create a hypothesis, measure, and get approval with "
+                          f"run_experiment.py --record docs/experiments/E-XXX.md --run <cmd>"
+            }
 
     return {"decision": "allow"}
 
