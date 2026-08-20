@@ -61,8 +61,8 @@ E (deney kaydı)  →  IR (hazırlık)  →  SP (sprint planı)  →  S (story) 
 - **guard** (PreToolUse, `file_editor|terminal`): korunan bölgeye kod yazımı, kapsamı eşleşen
   VERIFIED deney kaydı yoksa **deny**. Serbest bölgeler: `scratch/`, `.metodoloji/`, plugin kökü.
 - **stop** (PreToolUse/Stop): kapsamsız korunmuş kod varken bitişe izin vermez (exit 2).
-- **quality** (PreToolUse, terminal): `git commit` QR'sizse soft=uyarı / hard=deny.
-- **deploy** (PreToolUse, terminal): rollback'siz PR ile deploy (terraform/kubectl/...) soft=uyarı / hard=deny.
+- **quality** (PreToolUse, terminal): `git commit` IR/QR/SP'siz story varsa **deny** (fail-closed).
+- **deploy** (PreToolUse, terminal): IR/QR/SP/PR eksik story ile deploy (terraform/kubectl/...) **deny** (fail-closed).
 - **audit** (PostToolUse): `.metodoloji/logs/hook-audit.log` denetim izi.
 
 ## Kapı anahtarı
@@ -74,5 +74,5 @@ Anahtarı okumak/kopyalamak yasaktır — guard her izi engeller.
 ## Dürüstlük kuralları
 
 - Sonuç çarpıtılmaz: REDDEDİLDİ kaydı ONAYLANDI'ya çevrilmez; FORGED token kapıyı açmaz.
-- Kayıt zinciri atlanmaz: QR'siz commit, PR'sız deploy, E'siz kod — kapı ihlali sayılır.
+- Kayıt zinciri atlanmaz: IR'siz/QR'siz/SP'siz commit, IR'siz/QR'siz/SP'siz/PR'sız deploy, E'siz kod — kapı ihlali sayılır.
 - Keşif kodu istiyorsan `scratch/` altında yaz; korunan bölgeye geçerken Mod A onayı gerekir.

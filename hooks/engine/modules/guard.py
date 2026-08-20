@@ -269,33 +269,45 @@ def _validate_story_metadata(content: str) -> tuple[bool, str]:
 
 # --- Methodology Chain Validation ---
 
-def _validate_methodology_chain(content: str, rel_path: str) -> tuple[bool, str]:
+def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> tuple[bool, str]:
     """Validate that the methodology chain is intact for a story file.
 
     Checks:
     - If story status is 'done', QR record must exist
     - If story status is 'review', methodology record must exist
-    - If story has experiment_refs, experiment records must exist
+    - If story references SP-XXX, SP record must exist
 
     Returns (is_valid, reason).
     """
     issues = []
+    if not root:
+        root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
+    root = os.path.abspath(root)
 
-    # Extract story status
-    status_match = re.search(r"^Status:\s*(.+)$", content, re.MULTILINE)
+    # Extract story status (handles: 'Status: done', '- **Status:** done', etc.)
+    _STATUS_RE = re.compile(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(.+)", re.IGNORECASE | re.MULTILINE)
+    status_match = _STATUS_RE.search(content)
     if not status_match:
         return True, ""  # No status = not a story file
     status = status_match.group(1).strip().lower()
 
-    # Extract story key from filename
-    key_match = re.search(r"(\d+-\d+-[a-z][a-z0-9-]+)", rel_path, re.IGNORECASE)
-    if not key_match:
+    # Extract story key from content (title) or filename
+    story_key = _extract_story_key_from_content(content)
+    if not story_key:
+        key_match = re.search(r"(\d+-\d+-[a-z][a-z0-9-]+)", content, re.IGNORECASE)
+        if key_match:
+            story_key = key_match.group(1)
+    if not story_key:
+        # Fallback: extract from filename
+        key_match = re.search(r"(\d+-\d+-[a-z][a-z0-9-]+)", rel_path, re.IGNORECASE)
+        if key_match:
+            story_key = key_match.group(1)
+    if not story_key:
         return True, ""
-    story_key = key_match.group(1)
 
     # Check 1: If status is 'done', QR record must exist
     if status == "done":
-        qr_dir = pathlib.Path("docs/quality")
+        qr_dir = pathlib.Path(root) / "docs" / "quality"
         if qr_dir.is_dir():
             # Look for QR record that references this story
             found_qr = False
@@ -315,7 +327,7 @@ def _validate_methodology_chain(content: str, rel_path: str) -> tuple[bool, str]
 
     # Check 2: If status is 'review', methodology record must exist
     if status in ("review", "done"):
-        meth_dir = pathlib.Path("docs/development/stories")
+        meth_dir = pathlib.Path(root) / "docs" / "development" / "stories"
         if meth_dir.is_dir():
             found_meth = False
             for meth_file in meth_dir.glob("S-*.md"):
@@ -330,6 +342,27 @@ def _validate_methodology_chain(content: str, rel_path: str) -> tuple[bool, str]
                 issues.append(
                     f"Story status is '{status}' but no methodology record found for {story_key}. "
                     f"Run: python3 scripts/create-methodology-record.py --story {rel_path}"
+                )
+
+    # Check 3: If story references SP-XXX, SP record must exist
+    sprint_match = re.search(r"\bSP-(\d+)\b", content, re.IGNORECASE)
+    if sprint_match:
+        sp_id = sprint_match.group(0)  # e.g. SP-001
+        dev_dir = pathlib.Path(root) / "docs" / "development"
+        if dev_dir.is_dir():
+            found_sp = False
+            for sp_file in dev_dir.glob("SP-*.md"):
+                try:
+                    sp_content = sp_file.read_text(encoding="utf-8", errors="replace")
+                    if story_key in sp_content or sp_id in sp_content:
+                        found_sp = True
+                        break
+                except OSError:
+                    pass
+            if not found_sp:
+                issues.append(
+                    f"Story references {sp_id} but no SP record found for {story_key}. "
+                    f"Run bmad-sprint-planning to create SP record."
                 )
 
     if issues:
@@ -463,8 +496,8 @@ def guard(json_in: dict) -> dict:
                             "decision": "deny",
                             "reason": f"Story metadata validation failed for {rel}: {reason}"
                         }
-                    # 3. Validate methodology chain (QR for done, methodology record for review/done)
-                    valid, reason = _validate_methodology_chain(story_content, rel)
+                    # 3. Validate methodology chain (QR for done, methodology record for review/done, SP if referenced)
+                    valid, reason = _validate_methodology_chain(story_content, rel, root)
                     if not valid:
                         return {
                             "decision": "deny",
@@ -542,11 +575,105 @@ def _find_done_stories_without_qr(root: str) -> list[str]:
     return missing
 
 
-def quality(json_in: dict) -> dict:
-    """Quality gate: block git commit if done stories lack QR records.
+def _find_done_stories_without_sp(root: str) -> list[str]:
+    """Find stories with Status: done that reference an SP but lack SP record.
 
-    This is the Kapi 3 enforcement — stories marked 'done' must have a
-    corresponding Quality Record (QR) in docs/quality/.
+    Returns list of story keys missing SP.
+    """
+    stories_dir = pathlib.Path(root) / "docs" / "development" / "stories"
+    dev_dir = pathlib.Path(root) / "docs" / "development"
+    if not stories_dir.is_dir():
+        return []
+
+    # Collect all SP content
+    sp_content = ""
+    if dev_dir.is_dir():
+        for sp_file in dev_dir.glob("SP-*.md"):
+            try:
+                sp_content += sp_file.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                pass
+
+    _DONE_RE = re.compile(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(done)", re.IGNORECASE | re.MULTILINE)
+
+    missing: list[str] = []
+    for story_file in stories_dir.glob("S-*.md"):
+        try:
+            content = story_file.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        status_match = _DONE_RE.search(content)
+        if not status_match:
+            continue
+        # Check if story references an SP record
+        sp_ref = re.search(r"\bSP-(\d+)\b", content, re.IGNORECASE)
+        if not sp_ref:
+            continue  # No SP reference = not checked
+        story_key = _extract_story_key_from_content(content)
+        if not story_key:
+            key_match = re.search(r"(\d+-\d+-[a-z][a-z0-9-]+)", content, re.IGNORECASE)
+            if key_match:
+                story_key = key_match.group(1)
+        if not story_key:
+            story_key = story_file.stem
+        if story_key not in sp_content and sp_ref.group(0) not in sp_content:
+            missing.append(story_key)
+    return missing
+
+
+def _find_done_stories_without_ir(root: str) -> list[str]:
+    """Find done stories when no IR record exists (Kapi 1 gate bypassed).
+
+    IR is a project-level readiness record — if ANY done stories exist but
+    NO IR records exist in docs/development/, the readiness gate was skipped.
+    Returns list of story keys if IR is missing, empty list if IR exists.
+    """
+    stories_dir = pathlib.Path(root) / "docs" / "development" / "stories"
+    dev_dir = pathlib.Path(root) / "docs" / "development"
+    if not stories_dir.is_dir():
+        return []
+
+    # Check if ANY IR record exists
+    has_ir = False
+    if dev_dir.is_dir():
+        for ir_file in dev_dir.glob("IR-*.md"):
+            if ir_file.name.startswith("_"):
+                continue
+            has_ir = True
+            break
+    if has_ir:
+        return []  # IR gate was evaluated — OK
+
+    # No IR records exist — check if there are done stories
+    _DONE_RE = re.compile(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(done)", re.IGNORECASE | re.MULTILINE)
+
+    missing: list[str] = []
+    for story_file in stories_dir.glob("S-*.md"):
+        try:
+            content = story_file.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        status_match = _DONE_RE.search(content)
+        if not status_match:
+            continue
+        story_key = _extract_story_key_from_content(content)
+        if not story_key:
+            key_match = re.search(r"(\d+-\d+-[a-z][a-z0-9-]+)", content, re.IGNORECASE)
+            if key_match:
+                story_key = key_match.group(1)
+        if not story_key:
+            story_key = story_file.stem
+        missing.append(story_key)
+    return missing
+
+
+def quality(json_in: dict) -> dict:
+    """Quality gate: block git commit if done stories lack IR, QR, or SP records.
+
+    This is the Kapi 1+2+3 enforcement — stories marked 'done' must have:
+    - An Implementation Readiness record (IR) in docs/development/ (Kapi 1)
+    - A corresponding Quality Record (QR) in docs/quality/ (Kapi 3)
+    - A Sprint Planning record (SP) in docs/development/ (if story references SP, Kapi 2)
     """
     tool_name = json_in.get("tool_name", "")
     if tool_name != "terminal":
@@ -559,14 +686,39 @@ def quality(json_in: dict) -> dict:
     root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
     root = os.path.abspath(root)
 
-    missing = _find_done_stories_without_qr(root)
-    if missing:
+    # Check IR (Kapi 1 — project-level readiness)
+    missing_ir = _find_done_stories_without_ir(root)
+    if missing_ir:
         return {
             "decision": "deny",
             "reason": (
-                f"git commit blocked: {len(missing)} story(s) marked 'done' lack Quality Record (QR). "
-                f"Stories: {', '.join(missing)}. "
+                f"git commit blocked: {len(missing_ir)} done story(s) exist but no Implementation Readiness (IR) record. "
+                f"Stories: {', '.join(missing_ir)}. "
+                f"Run bmad-check-implementation-readiness to create IR record."
+            ),
+        }
+
+    # Check QR (Kapi 3)
+    missing_qr = _find_done_stories_without_qr(root)
+    if missing_qr:
+        return {
+            "decision": "deny",
+            "reason": (
+                f"git commit blocked: {len(missing_qr)} story(s) marked 'done' lack Quality Record (QR). "
+                f"Stories: {', '.join(missing_qr)}. "
                 f"Create QR with: python3 scripts/create-qr-record.py --story docs/development/stories/S-XXX.md"
+            ),
+        }
+
+    # Check SP (Kapi 2)
+    missing_sp = _find_done_stories_without_sp(root)
+    if missing_sp:
+        return {
+            "decision": "deny",
+            "reason": (
+                f"git commit blocked: {len(missing_sp)} story(s) reference SP but lack Sprint Planning record. "
+                f"Stories: {', '.join(missing_sp)}. "
+                f"Run bmad-sprint-planning to create SP record."
             ),
         }
 
@@ -633,10 +785,13 @@ def _find_done_stories_without_pr(root: str) -> list[str]:
 
 
 def deploy(json_in: dict) -> dict:
-    """Deploy gate: block deployment if done stories lack QR or PR records.
+    """Deploy gate: block deployment if done stories lack IR, QR, SP, or PR records.
 
-    This is the Kapi 4 enforcement — stories marked 'done' must have both
-    a Quality Record (QR) and a Production Readiness (PR) record.
+    This is the Kapi 1+2+3+4 enforcement — stories marked 'done' must have:
+    - An Implementation Readiness record (IR) in docs/development/ (Kapi 1)
+    - A Sprint Planning record (SP) in docs/development/ (if story references SP, Kapi 2)
+    - A Quality Record (QR) in docs/quality/ (Kapi 3)
+    - A Production Readiness (PR) record in docs/development/ (Kapi 4)
     """
     tool_name = json_in.get("tool_name", "")
     if tool_name != "terminal":
@@ -649,6 +804,18 @@ def deploy(json_in: dict) -> dict:
     root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
     root = os.path.abspath(root)
 
+    # Check IR (Kapi 1 — project-level readiness)
+    missing_ir = _find_done_stories_without_ir(root)
+    if missing_ir:
+        return {
+            "decision": "deny",
+            "reason": (
+                f"Deploy blocked: {len(missing_ir)} done story(s) exist but no Implementation Readiness (IR) record. "
+                f"Stories: {', '.join(missing_ir)}. "
+                f"Run bmad-check-implementation-readiness to create IR record."
+            ),
+        }
+
     # Check QR (Kapi 3)
     missing_qr = _find_done_stories_without_qr(root)
     if missing_qr:
@@ -658,6 +825,18 @@ def deploy(json_in: dict) -> dict:
                 f"Deploy blocked: {len(missing_qr)} story(s) lack Quality Record (QR). "
                 f"Stories: {', '.join(missing_qr)}. "
                 f"Create QR first, then PR."
+            ),
+        }
+
+    # Check SP (Kapi 2)
+    missing_sp = _find_done_stories_without_sp(root)
+    if missing_sp:
+        return {
+            "decision": "deny",
+            "reason": (
+                f"Deploy blocked: {len(missing_sp)} story(s) reference SP but lack Sprint Planning record. "
+                f"Stories: {', '.join(missing_sp)}. "
+                f"Run bmad-sprint-planning to create SP record."
             ),
         }
 

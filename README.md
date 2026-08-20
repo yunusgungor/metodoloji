@@ -71,8 +71,8 @@ OpenHands runtime'da denetim zinciri **beş** hook noktasından çalışır (hoo
 | Hook | Mod | Matcher | Eşik | Davranış |
 |------|-----|---------|------|----------|
 | **guard** | PreToolUse | file_editor, terminal | — | Deney onaysız kod yazımı → DENY (fail-closed) |
-| **quality** | PreToolUse | terminal | — | `git commit` QR'siz story varsa → DENY (fail-closed) |
-| **deploy** | PreToolUse | terminal | — | Deploy komutu + QR/PR eksikse → DENY (fail-closed) |
+| **quality** | PreToolUse | terminal | — | `git commit` IR/QR/SP'siz story varsa → DENY (fail-closed) |
+| **deploy** | PreToolUse | terminal | — | Deploy komutu + IR/QR/SP/PR eksikse → DENY (fail-closed) |
 | **stop** | Stop | — | — | Tamamlanmamış story/onaysız kod → DENY (fail-closed) |
 | **audit** | PostToolUse | file_editor, terminal | — | Her çağrıyı log'a yazar (fail-open) |
 

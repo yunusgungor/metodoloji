@@ -520,7 +520,7 @@ if qg == "hard" or dg == "hard":
 print("  not: OpenHands runtime'da quality/deploy hook'ları AKTİFTİR (hooks.json:")
 print("       PreToolUse -> guard/quality/deploy, Stop -> stop, PostToolUse -> audit).")
 print("       quality_gate/deploy_guard değerleri artık hook seviyesinde zorlanır;")
-print("       quality: git commit QR'sizse DENY; deploy: PR'sız/QR'sız deploy DENY.")
+print("       quality: git commit IR'siz/QR'siz/SP'sizse DENY; deploy: IR'siz/QR'siz/SP'siz/PR'sız deploy DENY.")
 if problems:
     for p in problems:
         print("  MISS: %s" % p)
