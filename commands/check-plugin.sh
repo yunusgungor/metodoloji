@@ -379,6 +379,10 @@ TOML_SKILLS = [
     "bmad-testarch-atdd", "bmad-testarch-automate", "bmad-testarch-ci",
     "bmad-testarch-framework", "bmad-testarch-nfr", "bmad-testarch-test-design",
     "bmad-testarch-test-review", "bmad-testarch-trace",
+    "gds-dev-story", "gds-quick-dev", "gds-code-review",
+    "gds-check-implementation-readiness", "gds-sprint-planning", "gds-create-story",
+    "gds-test-automate", "gds-test-design", "gds-test-framework",
+    "gds-test-review", "gds-e2e-scaffold", "gds-performance-test", "gds-playtest-plan",
 ]
 missing = []
 checked = 0
@@ -394,7 +398,7 @@ for name in TOML_SKILLS:
             capture_output=True, text=True, encoding="utf-8", timeout=15)
         d = json.loads(r.stdout)
         asa = d.get("workflow.activation_steps_append", [])
-        if not any("KÖPRÜ" in s for s in asa):
+        if not any("KÖPRÜ" in s or "KOPRU" in s for s in asa):
             missing.append("%s (KÖPRÜ merge sonucunda yok — custom toml append çalışmıyor)" % name)
     except Exception as e:
         missing.append("%s (resolve hatası: %s)" % (name, str(e)[:60]))
@@ -421,6 +425,9 @@ KOPRU_SKILLS = [
     "bmad-check-implementation-readiness", "bmad-sprint-planning",
     "bmad-create-story", "bmad-code-review",
     "bmad-dev-story", "bmad-quick-dev", "bmad-dev-auto",
+    "gds-check-implementation-readiness", "gds-sprint-planning",
+    "gds-create-story", "gds-code-review",
+    "gds-dev-story", "gds-quick-dev",
 ]
 missing = []
 checked = 0

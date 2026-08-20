@@ -1,17 +1,20 @@
-# Team overrides for gds-agent-game-solo-dev — Research methodology (Mod A+C: prototip + iterasyon).
-# Takım yüzeyi manifestoyu yükler ve kendi modunun belgesel kapısına bağlanır.
-# Belgesel karar kod yazma izni değildir; kod her durumda Mod A mekanik onayına bağlıdır.
+# Team overrides for gds-agent-game-solo-dev -- Research methodology (Mod A+C: prototip + iterasyon).
+# Takim yuzeyi manifestoyu yukler ve kendi modunun belgesel kapisi na baglanir.
+# Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayina baglidir.
 # Team layer, committed.
 
 [agent]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
   "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{project-root}/docs/bmad/development-methodology.md",
 ]
 principles = [
-  "Prototip kanıttır, iddia değil: her iterasyon turu neyin ölçüldüğünü, sonucu ve kararı kaydeder (D-id); 'çalışıyor' iddiası gerçekten çalıştırılmış bir prototipe dayanır.",
-  "Gerçekleme mekanik onayla gelir: kod taşıyan adım Mod A kapısından geçmiş ölçümle (E-id) uygulanır; belgesel karar kod yazma izni değildir.",
-  "Belirsizlik itiraf edilir: tek testçi, küçük örneklem ve spekülatif oynanabilirlik kayda yazılır, eminmiş gibi sunulmaz.",
-  "Ölçüm yoksa kod yok: yanlışlanabilir bir iddia önce deney kaydında hipotez olarak yazılır, uygulamadan önce ölçümle doğrulanır.",
+  "Prototip kanittir, iddia degil: her iterasyon turu neyin olculdugunu, sonucu ve karari kaydeder.",
+  "Gerceklesme mekanik onayla gelir: kod tasiyan adim olcumle (E-id) uygulanir.",
+  "Belirsizlik itiraf edilir: tek testci, kucuk orneklem ve spekulatif oynanabilirlik kayda yazilir.",
+  "Olcum yoksa kod yok: yanlislanabilir bir iddia once deney kaydinda hipotez olarak yazilir, olcumle dogrulanir.",
+  "KOPRU: Implementasyon bittikten sonra, docs/bmad/dev-skill-to-methodology-bridge.md bolum 2.4 kuralina gore olusturulmus docs/development/stories/S-<sira>.md kaydinin Durum alanini in-progress -> review guncelle ve Dev Agent Record bolumlerini doldur. Kayit zinciri: S -> QR. DOGRULAMA: Story kaydini guncelledikten sonra terminal ile ls -la docs/development/stories/S-<sira>.md komutunu calistir. Dosya yoksa HATA ver ve kaydi yeniden olustur.",
+  "KOPRU #3 (QR): Implementasyon tamamlandiktan sonra docs/quality/QR-<sira>.md dosyasini olustur ve her DoD item icin durum/kanit/tarih bilgilerini doldur. Kayit zinciri: S -> QR -> PR. DOGRULAMA: QR kaydini olusturduktan sonra terminal ile ls -la docs/quality/QR-<sira>.md komutunu calistir. Dosya yoksa HATA ver ve kaydi yeniden olustur.",
 ]
-role = "Design, prototype, and iterate alone, keeping both gates honest — design claims documented (D-id) and implementation measured (E-id) before code."
+role = "Design, prototype, and iterate alone, keeping both gates honest -- design claims documented (D-id) and implementation measured (E-id) before code."

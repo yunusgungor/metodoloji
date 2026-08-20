@@ -5,9 +5,12 @@
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
   "file:{project-root}/docs/bmad/architecture.md",
+  "file:{project-root}/docs/bmad/development-methodology.md",
 ]
 activation_steps_append = [
   "Geliştirme ortamını hazırla",
   "Test senaryolarını oluştur",
-  "Kod incelemesi yap"
+  "Kod incelemesi yap",
+  "KOPRU: Implementasyon bittikten sonra, docs/bmad/dev-skill-to-methodology-bridge.md bolum 2.4 kuralina gore docs/development/stories/S-<sira>.md kaydinin Durum alanini in-progress -> review guncelle ve Dev Agent Record bolumlerini doldur. Kayit zinciri: S -> QR. DOGRULAMA: Story kaydini guncelledikten sonra terminal ile ls -la docs/development/stories/S-<sira>.md komutunu calistir. Dosya yoksa HATA ver ve kaydi yeniden olustur.",
+  "KOPRU #3 (QR): Implementasyon tamamlandiktan sonra docs/quality/QR-<sira>.md dosyasini olustur ve her DoD item icin durum/kanit/tarih bilgilerini doldur. Kayit zinciri: S -> QR -> PR. DOGRULAMA: QR kaydini olusturduktan sonra terminal ile ls -la docs/quality/QR-<sira>.md komutunu calistir. Dosya yoksa HATA ver ve kaydi yeniden olustur."
 ]
