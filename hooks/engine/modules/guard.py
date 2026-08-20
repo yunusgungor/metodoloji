@@ -371,11 +371,13 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
     return True, ""
 
 
-def find_approved(target: str, recs_dir: str | None = None) -> tuple[bool, str]:
+def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> tuple[bool, str]:
     """Find a VERIFIED record whose scope matches target."""
     target_rel = norm_path(target).lstrip("/")
+    if not root:
+        root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
     recs_dir = recs_dir or "docs/experiments"
-    base = pathlib.Path(recs_dir)
+    base = pathlib.Path(root) / recs_dir
     if not base.is_dir():
         return False, "docs/experiments/ not found"
     key_missing = False
@@ -505,7 +507,7 @@ def guard(json_in: dict) -> dict:
                 pass
 
         # Find approved record
-        approved, detail = find_approved(rel)
+        approved, detail = find_approved(rel, root=root)
         if not approved:
             return {
                 "decision": "deny",
