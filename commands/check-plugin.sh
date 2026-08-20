@@ -411,6 +411,49 @@ else
     PROBLEMS=$((PROBLEMS + 1))
 fi
 
+echo "== 2c) KÖPRÜ DOGRULAMA talimatları mevcut mu =="
+"$PY" - <<'PY'
+import json, os, subprocess, sys
+from pathlib import Path
+PLUGIN = Path(os.environ.get("PLUGIN_ROOT") or ".")
+RESOLVER = PLUGIN / "hooks" / "engine" / "resolve_customization.py"
+KOPRU_SKILLS = [
+    "bmad-check-implementation-readiness", "bmad-sprint-planning",
+    "bmad-create-story", "bmad-code-review",
+    "bmad-dev-story", "bmad-quick-dev", "bmad-dev-auto",
+]
+missing = []
+checked = 0
+for name in KOPRU_SKILLS:
+    skill_dir = PLUGIN / "skills" / name
+    if not skill_dir.is_dir():
+        continue
+    checked += 1
+    try:
+        r = subprocess.run(
+            [sys.executable, str(RESOLVER), "-s", str(skill_dir),
+             "-k", "workflow.activation_steps_append"],
+            capture_output=True, text=True, encoding="utf-8", timeout=15)
+        d = json.loads(r.stdout)
+        asa = d.get("workflow.activation_steps_append", [])
+        has_verify = any("DOGRULAMA" in s for s in asa)
+        if not has_verify:
+            missing.append("%s (KÖPRÜ'de DOGRULAMA yok — LLM kaydı atlayabilir)" % name)
+    except Exception as e:
+        missing.append("%s (resolve hatası: %s)" % (name, str(e)[:60]))
+print("  denetlenen KÖPRÜ skill: %d" % checked)
+for m in missing:
+    print("  MISS: %s" % m)
+print("  problems: %d" % len(missing))
+raise SystemExit(1 if missing else 0)
+PY
+if [ $? -eq 0 ]; then
+    echo "[OK]   KÖPRÜ DOGRULAMA talimatları mevcut (LLM otomatik doğrulayacak)"
+else
+    echo "[UYARI] KÖPRÜ DOGRULAMA eksik (yukarı bak)"
+    PROBLEMS=$((PROBLEMS + 1))
+fi
+
 echo "== 3) Onaylı deney envanteri (guard kod önü açtı mı) =="
 FOUND=0
 for rec in "$PROJECT_ROOT"/docs/experiments/*.md; do
