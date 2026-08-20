@@ -32,15 +32,15 @@
 ### Plugin Ne Yapar?
 
 `metodoloji`, **BMAD (Build Methodology for Agent-Driven development)** metodolojisinin
-OpenHands SDK plugin karşılığıdır. 125 skill + 74 köprü TOML + mekanik kapılar +
-kayıt zinciri ile donatılmıştır.
+OpenHands SDK plugin karşılığıdır. 124 skill + 119 köprü TOML (33 KÖPRÜ aktif) +
+mekanik kapılar + kayıt zinciri ile donatılmıştır.
 
 Temel işlevleri:
 
 | Parça | İşlev |
 |-------|-------|
 | `skills/` | 124 BMAD skill'i (native gövde) + `metodoloji-manifesto` (çekirdek sözleşme) |
-| `custom/` | 74 köprü TOML (`activation_steps_append` → native çıktıları metodoloji kaydına bağlar) + `config.toml` (soft/hard) |
+| `custom/` | 119 köprü TOML (33 KÖPRÜ ile aktif: `activation_steps_append`/`principles` → native çıktıları metodoloji kaydına bağlar) + `config.toml` (soft/hard) |
 | `hooks/` | PreToolUse / PostToolUse / Stop / SessionStart hook'ları; modüler motor yapısı |
 | `hooks/engine/` | Python motoru: `main.py` (giriş), `modules/` (guard, audit, stop, utils, config) |
 | `bmad/` | Modül verisi (bmm, cis, gds, wds, tea, core, bmb) |
@@ -504,7 +504,12 @@ Plugin, OpenHands runtime'da **6 hook noktası** kullanır:
 **Davranış:**
 - Kod hedefi + serbest bölge dışı → onaylı deney kaydı arar
 - Onaylı deney yok → `DENY` (kod yazımı engellenir)
-- Story dosyası ise → ek validasyonlar (experiment_refs, AC metadata, Task↔AC, DoD)
+- Story dosyası (`S-NNN.md` veya `N-N-slug.md`) ise → ek validasyonlar:
+  - `experiment_refs` → referanslanan deney kayıtları ONAYLANDI mı?
+  - AC metadata → tüm alanlar dolu mu?
+  - Task↔AC eşleşme → her görev bir AC'ye bağlı mı?
+  - DoD yapısı → tanımlayıcılar mevcut mu?
+  - Metodoloji zinciri → SP referansı varsa SP kaydı var mı?
 - Gate key erişimi tespit edilirse → `DENY` (güvenlik ihlali)
 
 **Kod hedefi sınıflandırması:**
@@ -543,10 +548,12 @@ Plugin, OpenHands runtime'da **6 hook noktası** kullanır:
 **Davranış:**
 - Terminal komutu `git commit` içermiyor mu? → `allow` (hızlı çıkış)
 - `git commit` ise → zincir kontrolü yapar:
-  1. Done story'ler var ama hiç IR kaydı yok mu? → `DENY` (Kapı 1)
-  2. `Status: done` olan story'lerin QR kaydı var mı? → Yoksa `DENY` (Kapı 3)
-  3. `Status: done` olan story'ler SP referansı içeriyor mu? İçeriyorsa SP kaydı var mı? → Yoksa `DENY` (Kapı 2)
+  1. Done story'ler var ama hiç IR kaydı yok mu? → `DENY` (Kapı 1 — hazırlık)
+  2. `Status: done` olan story'lerin QR kaydı var mı? → Yoksa `DENY` (Kapı 3 — kalite)
+  3. `Status: done` olan story'ler SP referansı içeriyor mu? İçeriyorsa SP kaydı var mı? → Yoksa `DENY` (Kapı 2 — sprint)
 - Tüm kontroller geçerse → `allow`
+
+**Kontrol sırası:** IR (proje-seviyesi) → QR (story-seviyesi) → SP (story-seviyesi)
 
 **Örnek engelleme (QR eksik):**
 ```
@@ -567,11 +574,13 @@ Stories: 1-2-user-auth. Run bmad-sprint-planning to create SP record.
 **Davranış:**
 - Deploy komutu tespit edilmedi → `allow`
 - Deploy komutu var → zincir kontrolü yapar:
-  1. Done story'ler var ama hiç IR kaydı yok mu? → `DENY` (Kapı 1)
-  2. QR eksik story varsa → `DENY` (Kapı 3)
-  3. SP eksik story varsa → `DENY` (Kapı 2)
-  4. PR eksik story varsa → `DENY` (Kapı 4)
+  1. Done story'ler var ama hiç IR kaydı yok mu? → `DENY` (Kapı 1 — hazırlık)
+  2. QR eksik story varsa → `DENY` (Kapı 3 — kalite)
+  3. SP eksik story varsa → `DENY` (Kapı 2 — sprint)
+  4. PR eksik story varsa → `DENY` (Kapı 4 — üretim)
 - Tüm kontroller geçerse → `allow`
+
+**Kontrol sırası:** IR → QR → SP → PR (zincirin tüm halkaları)
 
 **Tanınan deploy komutları:** `terraform apply`, `kubectl apply`, `docker compose up`, `git push origin main/master/production`, `ansible playbook` + `deploy` anahtar kelimesi
 
@@ -645,17 +654,32 @@ Her skill için üç katmanda özelleştirme yapılır (en yüksek öncelikten e
 
 ### 7.2. Köprü TOML Yapısı
 
-Her köprü TOML'da `activation_steps_append` alanı bulunur:
+Her köprü TOML'da `activation_steps_append` (workflow) veya `principles` (agent)
+alanında KÖPRÜ talimatı bulunur. 33 skill'de KÖPRÜ aktiftir:
 
+**Üretici KÖPRÜ (kayıt oluşturan — 17 skill):**
 ```toml
 # custom/bmad-dev-story.toml
 [workflow]
 activation_steps_append = [
-  "## KÖPRÜ: Native çıktı → metodoloji kaydı",
-  "Story dosyası doğrudan docs/development/stories/ altına yazılır.",
-  "Ayrıca metodoloji S-NNN.md kaydı da oluşturulur."
+  "KÖPRÜ: Implementasyon bittikten sonra docs/development/stories/S-<sira>.md kaydini guncelle...",
+  "KÖPRÜ #3 (QR): QR kaydi olustur: docs/quality/QR-<sira>.md...",
+  "DOGRULAMA: Kaydi olusturduktan sonra 'ls -la' ile dosya varligini dogrula."
 ]
 ```
+
+**Besleyici KÖPRÜ (mevcut kaydı güncelleyen — 16 skill):**
+```toml
+# custom/bmad-testarch-automate.toml
+[workflow]
+activation_steps_append = [
+  "KÖPRÜ: Test sonuclarini QR-<sira>.md kaydinin Mekanik kontroller bolumune ekle..."
+]
+```
+
+**DOGRULAMA:** Üretici KÖPRÜ'lerde `DOGRULAMA` adımı bulunur. LLM her kayıt
+oluşturduğunda `ls -la` ile dosyanın varlığını doğrular. Bu, KÖPRÜ'nün atlanmasını
+önleyen otomatik bir kontrol katmanıdır.
 
 ### 7.3. Köprü Çözümü (resolve_customization.py)
 
@@ -870,7 +894,8 @@ sh commands/check-plugin.sh
 | §0 | Kapı anahtarı kurulu mu | `--init-secret` |
 | §1 | Hook motoru selfcheck | `--selfcheck` |
 | §2 | Manifesto + köprü kablolası | TOML parse + consume kontrolü |
-| §2b | Köprü runtime görünür mü | `resolve_customization` deep_merge |
+| §2b | Köprü runtime görünür mü (29 skill) | `resolve_customization` deep_merge |
+| §2c | Köprü DOGRULAMA talimatı mevcut mu (13 skill) | KÖPRÜ içinde DOGRULAMA arama |
 | §3 | Onaylı deney envanteri | `--verify` ile her E kaydı |
 | §4 | Belgesel kayıt eksiksizliği | `--validate` ile B/C/D kayıtları |
 | §5 | Engine drift denetimi | Tüm engine dosyaları mevcut mu? |
@@ -887,6 +912,21 @@ Bu test:
 1. `custom/bmad-dev-story.toml`'dan KÖPRÜ satırını geçici olarak kaldırır
 2. §2b mantığının MISS tespit ettiğini doğrular
 3. Custom TOML'ı orijinaline geri yükler
+
+### 12.3. KÖPRÜ Dağılımı
+
+**Üretici KÖPRÜ (17 skill) — kayıt oluşturan:**
+- `bmad-dev-story`, `bmad-quick-dev`, `bmad-dev-auto`, `bmad-agent-dev`
+- `bmad-code-review`, `bmad-create-story`, `bmad-sprint-planning`, `bmad-check-implementation-readiness`
+- `gds-dev-story`, `gds-quick-dev`, `gds-code-review`, `gds-create-story`
+- `gds-sprint-planning`, `gds-check-implementation-readiness`
+- `gds-agent-game-dev`, `gds-agent-game-solo-dev`, `wds-5-agentic-development`
+
+**Besleyici KÖPRÜ (16 skill) — mevcut QR'a veri besleyen:**
+- `bmad-testarch-*` (atdd, automate, ci, framework, nfr, test-design, test-review, trace)
+- `bmad-qa-generate-e2e-tests`
+- `gds-test-*` (automate, design, framework, review)
+- `gds-e2e-scaffold`, `gds-performance-test`, `gds-playtest-plan`
 
 ### 12.3. Manuel Doğrulama
 
@@ -1010,10 +1050,14 @@ cat bmad-output/implementation-artifacts/sprint-status.yaml
 
 ### S: `quality_gate` / `deploy_guard` soft/hard modu ne işe yarar?
 
-**C:** OpenHands runtime'da bu değerler **yalnızca bilgi amaçlıdır**.
-Guard ve stop hook'ları zaten fail-closed çalışır (deney onaysız kod yazımı DENY).
-Bu değerler Claude runtime kalıntısıdır; hard moda geçmek OpenHands'te ekstra
-mekanik bloklama getirmez.
+**C:** OpenHands runtime'da bu değerler **artık hook seviyesinde zorlanır**:
+- `quality` hook'u: `git commit`'te IR/QR/SP eksikse DENY (fail-closed)
+- `deploy` hook'u: deploy komutlarında IR/QR/SP/PR eksikse DENY (fail-closed)
+- `guard` hook'u: kod yazarken deney onayı + story metadata doğrulaması (fail-closed)
+- `stop` hook'u: oturum kapanışında in-progress story kontrolü (fail-closed)
+
+`quality_gate`/`deploy_guard` config değerleri artık hook seviyesindeki
+bu mekanik zorlamanın üstündedir.
 
 ### S: `scratch/` dizininde deney olmadan kod yazabilir miyim?
 
@@ -1056,8 +1100,10 @@ git pull
 | Terim | Tanım |
 |-------|-------|
 | **BMAD** | Build Methodology for Agent-Driven development |
-| **Guard** | PreToolUse hook'u — kod yazımını engelleyen mekanik kapı |
-| **Audit** | PostToolUse hook'u — her tool çağrısını loglayan denetim izi |
+| **Guard** | PreToolUse hook'u — kod yazımını engelleyen mekanik kapı (deney + story metadata) |
+| **Quality** | PreToolUse hook'u — `git commit`'te IR/QR/SP zincirini zorlayan kapı |
+| **Deploy** | PreToolUse hook'u — deploy komutlarında IR/QR/SP/PR zincirini zorlayan kapı |
+| **Audit** | PostToolUse hook'u — her tool çağrısını loglayan denetim izi + KÖPRÜ uyarısı |
 | **Stop** | Stop hook'u — oturum kapanışını engelleyen mekanik kapı |
 | **KÖPRÜ** | Native skill çıktısını metodoloji kaydına bağlayan TOML adımı |
 | **Gate Key** | HMAC doğrulaması için kullanılan makine-yerel anahtar |
@@ -1069,7 +1115,7 @@ git pull
 | **Drift** | Plugin kurulu kopyası ile repo canonical arasındaki fark |
 | **Deep Merge** | TOML tablolarını递归 olarak birleştirme |
 | **Memlog** | Calışma hafızası loglama aracı (.memlog.md) |
-| **Metodoloji Zinciri** | E → IR → SP → S → QR → PR halka yapısı |
+| **Metodoloji Zinciri** | E → IR → SP → S → QR → PR halka yapısı — her halka mekanik olarak zorlanır |
 | **Mod A** | Sayısal/empirik deney modu (kod üretiminin tek yolu) |
 | **Mod B** | Nitel araştırma modu |
 | **Mod C** | Tasarım modu |
