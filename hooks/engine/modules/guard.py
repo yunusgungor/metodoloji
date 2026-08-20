@@ -7,6 +7,7 @@ import os
 import pathlib
 import re
 import sys
+from typing import Optional
 
 from .config import GATE_DIR, _BMD_DIR, _KEY_ACCESS_IN_CONTENT, _AGENT_ZONES
 from .utils import is_code_target, is_free, norm_path, rel_to_root, repo_root
@@ -57,6 +58,283 @@ def verify_record(rec: str) -> tuple[int, str]:
         return rc, gate.record_scope(rec)
     except Exception:
         return 1, ""
+
+
+_STORY_RE = re.compile(r"\b\d+-\d+-[a-z][a-z0-9-]*\.md\b", re.IGNORECASE)
+
+
+def _parse_experiment_refs(content: str) -> list[dict]:
+    """Extract experiment_refs from YAML frontmatter of a story file.
+
+    Returns a list of dicts with keys: id, scope, status.
+    Returns empty list if no experiment_refs found or parsing fails.
+    """
+    # Look for YAML frontmatter between --- delimiters
+    fm_match = re.match(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
+    if not fm_match:
+        return []
+    frontmatter = fm_match.group(1)
+
+    # Find experiment_refs block — simple line-by-line parse
+    refs: list[dict] = []
+    in_refs = False
+    current: dict = {}
+    for line in frontmatter.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("experiment_refs"):
+            in_refs = True
+            continue
+        if in_refs:
+            if stripped.startswith("- "):
+                if current:
+                    refs.append(current)
+                current = {}
+                inner = stripped[2:].strip()
+                # Handle inline: - id: E-001
+                kv = inner.split(":", 1)
+                if len(kv) == 2:
+                    current[kv[0].strip()] = kv[1].strip()
+            elif ":" in stripped and current:
+                kv = stripped.split(":", 1)
+                current[kv[0].strip()] = kv[1].strip()
+            elif stripped and not stripped.startswith("-") and not ":" in stripped:
+                # End of experiment_refs block
+                break
+    if current:
+        refs.append(current)
+    return refs
+
+
+def _validate_story_experiment_refs(content: str) -> tuple[bool, str]:
+    """Validate that all experiment_refs in a story file point to approved records.
+
+    Returns (is_valid, reason).
+    """
+    refs = _parse_experiment_refs(content)
+    if not refs:
+        # No experiment_refs — not a story with metadata, allow
+        return True, ""
+
+    recs_dir = pathlib.Path("docs/experiments")
+    if not recs_dir.is_dir():
+        return False, "experiment_refs found but docs/experiments/ directory missing"
+
+    for ref in refs:
+        exp_id = ref.get("id", "")
+        status = ref.get("status", "")
+        if not exp_id:
+            continue
+        if status in ("BEKLİYOR", "REDDEDİLDİ", "PENDING", "REJECTED"):
+            return False, (
+                f"Experiment {exp_id} has status '{status}' — "
+                f"ACs linked to this experiment cannot be implemented. "
+                f"Mark linked ACs as [HYPOTHESIS] or get experiment approval first."
+            )
+        # Check if the experiment record exists and is verified
+        exp_file = recs_dir / f"{exp_id}.md"
+        if not exp_file.exists():
+            return False, (
+                f"Experiment record {exp_id}.md not found in docs/experiments/. "
+                f"Create the experiment record before implementing linked ACs."
+            )
+        rc, _ = verify_record(str(exp_file))
+        if rc != 0:
+            return False, (
+                f"Experiment record {exp_id} is not verified (rc={rc}). "
+                f"Run run_experiment.py --verify --record {exp_file} first."
+            )
+    return True, ""
+
+
+# --- AC Metadata Validation ---
+
+_AC_ID_RE = re.compile(r"\[AC-(\d+)\]")
+_TASK_AC_RE = re.compile(r"AC:\s*(AC-\d+)")
+_DOD_ID_RE = re.compile(r"\[?DoD-(\d+)\]?")
+_HYPOTHESIS_RE = re.compile(r"\[HYPOTHESIS\]")
+_EXPERIMENT_FIELD_RE = re.compile(r"Experiment:\s*(E-\d+|—|-)")
+_MEASURED_FIELD_RE = re.compile(r"Measured:\s*(true|false)", re.IGNORECASE)
+_TYPE_FIELD_RE = re.compile(r"Type:\s*(agent-verifiable|user-evaluable|hybrid)", re.IGNORECASE)
+_VERIFY_FIELD_RE = re.compile(r"Verify:\s*(.+)")
+
+
+def _parse_ac_metadata(content: str) -> list[dict]:
+    """Parse Acceptance Criteria section and extract AC metadata.
+
+    Returns list of dicts with keys: id, experiment, type, measured, verify, is_hypothesis.
+    """
+    acs = []
+    # Find Acceptance Criteria section
+    ac_match = re.search(r"##\s+Acceptance\s+Criteria\s*\n(.*?)(?=\n##\s|\Z)", content, re.DOTALL | re.IGNORECASE)
+    if not ac_match:
+        return acs
+    ac_section = ac_match.group(1)
+
+    # Split by AC identifiers
+    ac_blocks = re.split(r"(?=\[AC-\d+\])", ac_section)
+    for block in ac_blocks:
+        id_match = _AC_ID_RE.search(block)
+        if not id_match:
+            continue
+        ac_id = f"AC-{id_match.group(1)}"
+        experiment_m = _EXPERIMENT_FIELD_RE.search(block)
+        type_m = _TYPE_FIELD_RE.search(block)
+        measured_m = _MEASURED_FIELD_RE.search(block)
+        verify_m = _VERIFY_FIELD_RE.search(block)
+        is_hypothesis = bool(_HYPOTHESIS_RE.search(block))
+
+        acs.append({
+            "id": ac_id,
+            "experiment": experiment_m.group(1) if experiment_m else "",
+            "type": type_m.group(1) if type_m else "",
+            "measured": measured_m.group(1).lower() if measured_m else "",
+            "verify": verify_m.group(1).strip() if verify_m else "",
+            "is_hypothesis": is_hypothesis,
+        })
+    return acs
+
+
+def _parse_task_ac_refs(content: str) -> list[dict]:
+    """Parse Technical Tasks section and extract AC references.
+
+    Returns list of dicts with keys: task_text, ac_refs (list of AC IDs).
+    """
+    tasks = []
+    # Find Technical Tasks section
+    tt_match = re.search(r"##\s+Technical\s+Tasks\s*\n(.*?)(?=\n##\s|\Z)", content, re.DOTALL | re.IGNORECASE)
+    if not tt_match:
+        return tasks
+    tt_section = tt_match.group(1)
+
+    for line in tt_section.splitlines():
+        # Only capture top-level tasks (not indented subtasks)
+        if line.startswith("- [ ]") or line.startswith("- [x]"):
+            ac_refs = _TASK_AC_RE.findall(line)
+            tasks.append({
+                "task_text": line.strip(),
+                "ac_refs": ac_refs,
+            })
+    return tasks
+
+
+def _validate_story_metadata(content: str) -> tuple[bool, str]:
+    """Validate AC metadata, Task↔AC mapping, and DoD structure.
+
+    Returns (is_valid, reason).
+    """
+    issues = []
+
+    # 1. Validate AC metadata
+    acs = _parse_ac_metadata(content)
+    for ac in acs:
+        if not ac["experiment"]:
+            issues.append(f"{ac['id']}: missing Experiment field")
+        elif ac["experiment"] in ("—", "-") and not ac["is_hypothesis"]:
+            issues.append(f"{ac['id']}: Experiment=— but no [HYPOTHESIS] tag")
+        if not ac["type"]:
+            issues.append(f"{ac['id']}: missing Type field")
+        if not ac["measured"]:
+            issues.append(f"{ac['id']}: missing Measured field")
+        if not ac["verify"]:
+            issues.append(f"{ac['id']}: missing Verify field")
+
+    # 2. Validate Task↔AC mapping
+    tasks = _parse_task_ac_refs(content)
+    ac_ids = {ac["id"] for ac in acs}
+    for task in tasks:
+        if not task["ac_refs"]:
+            issues.append(f"Task without AC reference: {task['task_text'][:60]}...")
+        else:
+            for ref in task["ac_refs"]:
+                if ref not in ac_ids:
+                    issues.append(f"Task references non-existent {ref}: {task['task_text'][:60]}...")
+
+    # 3. Validate DoD structure
+    dod_match = re.search(r"##\s+Definition\s+of\s+Done\s*\n(.*?)(?=\n##\s|\Z)", content, re.DOTALL | re.IGNORECASE)
+    if dod_match:
+        dod_section = dod_match.group(1)
+        for line in dod_section.splitlines():
+            line = line.strip()
+            if line.startswith("- [ ]") or line.startswith("- [x]"):
+                if not _DOD_ID_RE.search(line):
+                    issues.append(f"DoD item without identifier: {line[:60]}...")
+                if not _VERIFY_FIELD_RE.search(line) and "Verify:" not in line:
+                    # Check next lines for Verify field
+                    pass
+
+    if issues:
+        return False, "; ".join(issues[:5])  # Limit to 5 issues
+    return True, ""
+
+
+# --- Methodology Chain Validation ---
+
+def _validate_methodology_chain(content: str, rel_path: str) -> tuple[bool, str]:
+    """Validate that the methodology chain is intact for a story file.
+
+    Checks:
+    - If story status is 'done', QR record must exist
+    - If story status is 'review', methodology record must exist
+    - If story has experiment_refs, experiment records must exist
+
+    Returns (is_valid, reason).
+    """
+    issues = []
+
+    # Extract story status
+    status_match = re.search(r"^Status:\s*(.+)$", content, re.MULTILINE)
+    if not status_match:
+        return True, ""  # No status = not a story file
+    status = status_match.group(1).strip().lower()
+
+    # Extract story key from filename
+    key_match = re.search(r"(\d+-\d+-[a-z][a-z0-9-]+)", rel_path, re.IGNORECASE)
+    if not key_match:
+        return True, ""
+    story_key = key_match.group(1)
+
+    # Check 1: If status is 'done', QR record must exist
+    if status == "done":
+        qr_dir = pathlib.Path("docs/quality")
+        if qr_dir.is_dir():
+            # Look for QR record that references this story
+            found_qr = False
+            for qr_file in qr_dir.glob("QR-*.md"):
+                try:
+                    qr_content = qr_file.read_text(encoding="utf-8", errors="replace")
+                    if story_key in qr_content:
+                        found_qr = True
+                        break
+                except OSError:
+                    pass
+            if not found_qr:
+                issues.append(
+                    f"Story status is 'done' but no QR record found for {story_key}. "
+                    f"Run: python3 scripts/create-qr-record.py --story {rel_path}"
+                )
+
+    # Check 2: If status is 'review', methodology record must exist
+    if status in ("review", "done"):
+        meth_dir = pathlib.Path("docs/development/stories")
+        if meth_dir.is_dir():
+            found_meth = False
+            for meth_file in meth_dir.glob("S-*.md"):
+                try:
+                    meth_content = meth_file.read_text(encoding="utf-8", errors="replace")
+                    if story_key in meth_content:
+                        found_meth = True
+                        break
+                except OSError:
+                    pass
+            if not found_meth:
+                issues.append(
+                    f"Story status is '{status}' but no methodology record found for {story_key}. "
+                    f"Run: python3 scripts/create-methodology-record.py --story {rel_path}"
+                )
+
+    if issues:
+        return False, "; ".join(issues[:3])
+    return True, ""
 
 
 def find_approved(target: str, recs_dir: str | None = None) -> tuple[bool, str]:
@@ -153,5 +431,46 @@ def guard(json_in: dict) -> dict:
                           f"Create a hypothesis, measure, and get approval with "
                           f"run_experiment.py --record docs/experiments/E-XXX.md --run <cmd>"
             }
+
+        # Story file validation: check experiment_refs + AC metadata + Task↔AC + DoD
+        if _STORY_RE.search(rel):
+            try:
+                story_content = ""
+                if tool_name == "file_editor":
+                    story_content = str(tool_input.get("content", ""))
+                    # If content is empty, try reading from disk
+                    if not story_content.strip():
+                        target_path = pathlib.Path(target)
+                        if target_path.is_file():
+                            story_content = target_path.read_text(encoding="utf-8", errors="replace")
+                elif tool_name == "terminal":
+                    # For terminal commands that create story files, skip AC check
+                    # (the file doesn't exist yet)
+                    pass
+
+                if story_content:
+                    # 1. Validate experiment_refs in frontmatter
+                    valid, reason = _validate_story_experiment_refs(story_content)
+                    if not valid:
+                        return {
+                            "decision": "deny",
+                            "reason": f"Story experiment validation failed for {rel}: {reason}"
+                        }
+                    # 2. Validate AC metadata + Task↔AC + DoD structure
+                    valid, reason = _validate_story_metadata(story_content)
+                    if not valid:
+                        return {
+                            "decision": "deny",
+                            "reason": f"Story metadata validation failed for {rel}: {reason}"
+                        }
+                    # 3. Validate methodology chain (QR for done, methodology record for review/done)
+                    valid, reason = _validate_methodology_chain(story_content, rel)
+                    if not valid:
+                        return {
+                            "decision": "deny",
+                            "reason": f"Methodology chain validation failed for {rel}: {reason}"
+                        }
+            except Exception:
+                pass  # Best-effort — don't block on parse errors
 
     return {"decision": "allow"}

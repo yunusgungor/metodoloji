@@ -26,7 +26,26 @@ failed_layers: '' # set at runtime: comma-separated list of layers that failed o
      > {diff_output}
 
    - **Acceptance Auditor** (only if `{review_mode}` = `"full"`) — prompt:
-     > You are an Acceptance Auditor. Review the provided diff against `{spec_file}` and any loaded context docs. Check for: violations of acceptance criteria, deviations from spec intent, missing implementation of specified behavior, contradictions between spec constraints and actual code. Output findings as a Markdown list. Each finding: one-line title, which AC/constraint it violates, and evidence from the diff.
+     > You are an Acceptance Auditor. Review the provided diff against `{spec_file}` and any loaded context docs. Check for:
+     >
+     > 1. **AC Compliance**: violations of acceptance criteria, deviations from spec intent, missing implementation of specified behavior
+     > 2. **AC Metadata Validation**: for each AC in the spec:
+     >    - Has [AC-XXX] identifier
+     >    - Has Experiment reference (E-XXX or —)
+     >    - Has Type (agent-verifiable/user-evaluable/hybrid)
+     >    - Has Measured field (true/false)
+     >    - Has Verify field (verification method)
+     >    - If Experiment=— or Measured=false, has [HYPOTHESIS] tag
+     > 3. **Task↔AC Traceability**: every Technical Task references at least one AC (AC: AC-XXX)
+     > 4. **DoD Compliance**: every Definition of Done item has:
+     >    - DoD identifier (DoD-XXX)
+     >    - AC reference if AC-related
+     >    - Verify field (verification method)
+     >    - Evidence field
+     > 5. **QR Completeness**: Quality Record section has results for all DoD items
+     > 6. **Contradictions**: between spec constraints and actual code
+     >
+     > Output findings as a Markdown list. Each finding: one-line title, category (AC/Metadata/Task/DoD/QR), which AC/constraint it violates, severity (High/Med/Low), and evidence from the diff.
      >
      > Diff:
      > {diff_output}

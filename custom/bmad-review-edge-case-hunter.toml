@@ -1,9 +1,10 @@
 # Edge Case Hunter - Team overrides
-# Uç durum avcısı: beklenmedik senaryolar
+# Uç durum avcısı: beklenmedik senaryolar (Mod A: kod denetimi)
 
 [agent]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
 ]
 principles = [
   "Uç durumları ara: beklenmedik senaryoları bul",

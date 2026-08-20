@@ -1,11 +1,13 @@
 # Loop Resolve - Team overrides
-# Döngü çözme: tekrarlayan sorunlar
+# Döngü çözme: tekrarlayan sorunlar (Mod A: kod denetimi)
 
 [workflow]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
 ]
 activation_steps_append = [
+  "Bu calismayi baslatmadan once metodoloji manifestosundaki (docs/bmad/research-methodology.md) ilgili modun kapi kurallarini dogrula: uretilcek ciktinin kanit turu ve kayit formati.",
   "Sorunu tanımla",
   "Kök nedeni bul",
   "Çözüm uygula"

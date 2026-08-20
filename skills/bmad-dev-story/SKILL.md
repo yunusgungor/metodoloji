@@ -193,7 +193,37 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
     <anchor id="task_check" />
 
-    <action>Parse sections: Story, Acceptance Criteria, Tasks/Subtasks, Dev Notes, Dev Agent Record, File List, Change Log, Status</action>
+    <action>Parse sections: Story, Acceptance Criteria, Technical Tasks, Definition of Done, Dev Notes, Dev Agent Record, File List, Change Log, Quality Record, Status</action>
+
+    <!-- AC METADATA VALIDATION -->
+    <critical>Validate Acceptance Criteria metadata at load time</critical>
+    <action>For each AC in Acceptance Criteria section, verify:</action>
+    - AC identifier exists and is unique ([AC-XXX] format)
+    - Experiment field is present (E-XXX or —)
+    - Type field is present (agent-verifiable | user-evaluable | hybrid)
+    - Measured field is present (true | false)
+    - Verify field is present (verification method)
+    - If Experiment is — or Measured is false, AC must have [HYPOTHESIS] tag
+    <action>Report AC metadata validation results to user</action>
+    <action if="any AC is missing required metadata">HALT: "AC metadata incomplete — fix before implementing"</action>
+
+    <!-- TASK ↔ AC MAPPING VALIDATION -->
+    <critical>Validate Technical Tasks have AC references</critical>
+    <action>For each Task in Technical Tasks section, verify:</action>
+    - Task has AC reference (AC: AC-XXX format)
+    - Referenced AC exists in Acceptance Criteria section
+    - No orphan tasks (tasks without AC reference)
+    <action>Report Task↔AC mapping results to user</action>
+    <action if="any task is missing AC reference">WARN: "Task without AC reference — add (AC: AC-XXX) before completing"</action>
+
+    <!-- DOD ↔ AC MAPPING VALIDATION -->
+    <critical>Validate Definition of Done items have AC references and verification criteria</critical>
+    <action>For each DoD item in Definition of Done section, verify:</action>
+    - DoD identifier exists (DoD-XXX format)
+    - If AC-related, has AC reference (AC: AC-XXX)
+    - Verify field is present (verification method)
+    - Evidence field is present (or — if pending)
+    <action>Report DoD validation results to user</action>
 
     <action>Load comprehensive context from story file's Dev Notes section</action>
     <action>Extract developer guidance from Dev Notes: architecture requirements, previous learnings, technical specifications</action>
@@ -353,7 +383,30 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
     <action>Run all existing tests to ensure no regressions</action>
     <action>Run the new tests to verify implementation correctness</action>
     <action>Run linting and code quality checks if configured in project</action>
-    <action>Validate implementation meets ALL story acceptance criteria; enforce quantitative thresholds explicitly</action>
+
+    <!-- AC DYNAMIC VALIDATION -->
+    <critical>Validate each AC using its defined verification method</critical>
+    <action>For each AC with Type=agent-verifiable, execute the Verify method defined in the AC metadata:</action>
+    - curl: Run curl command and check response
+    - puppeteer: Run Puppeteer test and check element
+    - lighthouse: Run Lighthouse and check score thresholds
+    - test: Run test suite and check pass/fail
+    - command: Run specified command and check output
+    <action>For each AC with Type=hybrid, execute the agent-verifiable part and flag user-evaluable parts for manual review</action>
+    <action>For each AC with Type=user-evaluable, flag for manual user review</action>
+    <action>Update AC Measured field: set to true if verification passes, false if fails</action>
+    <action>Record verification results in Dev Agent Record → Debug Log</action>
+    <action if="any agent-verifiable AC fails verification">STOP and fix before continuing</action>
+
+    <!-- DOD DYNAMIC VALIDATION -->
+    <critical>Validate Definition of Done items</critical>
+    <action>For each DoD item, check if verification method is executable:</action>
+    - If Verify = automated test: run the test and record result
+    - If Verify = manual: flag for user review
+    - If Verify = curl/puppeteer/lighthouse: execute and record result
+    <action>Update DoD item status: [x] if passes, [ ] if fails</action>
+    <action>Record DoD validation results in Dev Agent Record</action>
+
     <action if="regression tests fail">STOP and fix before continuing - identify breaking changes immediately</action>
     <action if="new tests fail">STOP and fix before continuing - ensure implementation correctness</action>
   </step>
@@ -419,7 +472,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
     <!-- Enhanced Definition of Done Validation -->
     <action>Validate definition-of-done checklist with essential requirements:
       - All tasks/subtasks marked complete with [x]
-      - Implementation satisfies every Acceptance Criterion
+      - ALL Acceptance Criteria verified (Measured=true for agent-verifiable ACs)
       - Unit tests for core functionality added/updated
       - Integration tests for component interactions added when required
       - End-to-end tests for critical flows added when story demands them
@@ -430,6 +483,22 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
       - Change Log includes summary of changes
       - Only permitted story sections were modified
     </action>
+
+    <!-- QR RECORD CREATION -->
+    <critical>Create Quality Record (QR) after all DoD items are validated</critical>
+    <action>Create docs/quality/QR-{{sira}}.md with:</action>
+    - Story reference: {{story_key}}
+    - Story file path
+    - Date: {{date}}
+    - QR Status: pass | fail | partial
+    - DoD validation results (table: DoD Item | Durum | Kanit | Tarih)
+    - AC verification results (table: AC | Durum | Method | Evidence)
+    - Test output summary
+    - File list
+    - Change log summary
+    <action>Update story file Quality Record section with QR results</action>
+    <action>Update story file Quality Record table: mark each DoD item as ✅ passed or ❌ failed with evidence</action>
+    <action>Update QR Summary in story file: Total, Passed, Failed counts, QR Record Path</action>
 
     <!-- Mark story ready for review - sprint status conditional -->
     <check if="{sprint_status} file exists AND {{current_sprint_status}} != 'no-sprint-tracking'">

@@ -45,12 +45,6 @@ def main():
         result = audit(json_in)
     elif hook_type == "stop":
         result = stop(json_in)
-    elif hook_type == "quality":
-        # Quality gate - soft mode by default
-        result = {"decision": "allow"}
-    elif hook_type == "deploy":
-        # Deploy guard - soft mode by default
-        result = {"decision": "allow"}
     else:
         # Unknown hook type - allow
         result = {"decision": "allow"}

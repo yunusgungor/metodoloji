@@ -1,11 +1,14 @@
 # Loop Setup - Team overrides
-# Döngü kurulumu: otomatik işlemler
+# Döngü kurulumu: otomatik işlemler (Mod A+D: kod + yönetim)
 
 [workflow]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{project-root}/docs/bmad/development-methodology.md",
 ]
 activation_steps_append = [
+  "Bu calismayi baslatmadan once metodoloji manifestosundaki (docs/bmad/research-methodology.md) ilgili modun kapi kurallarini dogrula: uretilcek ciktinin kanit turu ve kayit formati.",
   "Döngü parametrelerini ayarla",
   "Tetikleme koşullarını tanımla",
   "İzleme mekanizmasını kur"

@@ -1,9 +1,10 @@
 # Adversarial Review - Team overrides
-# Düşmanca inceleme: kritik değerlendirme
+# Düşmanca inceleme: kritik değerlendirme (Mod A: kod denetimi)
 
 [agent]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
 ]
 principles = [
   "Kritik göz: zayıf noktaları bul",

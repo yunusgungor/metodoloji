@@ -1,11 +1,14 @@
 # LLM Experiment Runner - Team overrides
 # LLM deney çalıştırıcısı: yapay zeka deneyleri
+# Mod A'ya bağlı: deney döngüsü research-methodology'yi takip eder
 
 [workflow]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/bmad/research-methodology.md",
 ]
 activation_steps_append = [
+  "Bu calismayi baslatmadan once metodoloji manifestosundaki (docs/bmad/research-methodology.md) ilgili modun kapi kurallarini dogrula: uretilcek ciktinin kanit turu ve kayit formati.",
   "Deney hipotezini oluştur",
   "Deney parametrelerini ayarla",
   "Deney sonuçlarını analiz et"
