@@ -103,8 +103,11 @@ def audit(json_in: dict) -> dict:
     if warnings:
         record["methodology_warnings"] = warnings
 
-    # Get log file path (use absolute path)
-    log_path = pathlib.Path(log_file()).absolute()
+    # Get log file path anchored to the project root, not the process cwd
+    # (cwd may differ under OpenHands; guard/quality/deploy resolve scopes
+    # via OPENHANDS_PROJECT_DIR, so audit must too).
+    root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
+    log_path = pathlib.Path(root).absolute() / log_file()
 
     # Ensure log directory exists
     log_path.parent.mkdir(parents=True, exist_ok=True)
