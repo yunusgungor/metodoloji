@@ -65,6 +65,19 @@ E (deney kaydı)  →  IR (hazırlık)  →  SP (sprint planı)  →  S (story) 
 - **deploy** (PreToolUse, terminal): IR/QR/SP/PR eksik story ile deploy (terraform/kubectl/...) **deny** (fail-closed).
 - **audit** (PostToolUse): `.metodoloji/logs/hook-audit.log` denetim izi.
 
+## Yönlendirme disiplini (SkillOpt tuned — canlı kurallar)
+
+İşin doğal sonraki adımı başka bir skill'in konusuysa kullanıcıyı o skill'e
+yönlendir. Kurallar (tuning sonucu — `tuning/results/2026-08-23_kilo-step37/best_skill.md`):
+
+- Araştırma/deney (E) hazırlığından sonra: `bmad-agent-analyst`
+- Story (S) onayından sonra: `bmad-agent-dev`
+- Gereksinim netleşince: `bmad-create-prd`
+- Mimari gerekiyorsa: `bmad-create-architecture`
+- Story hazırsa: `bmad-create-story`
+
+Yönlendirmede tek birincil skill öner; alternatifleri iletişim mesajında an.
+
 ## Kapı anahtarı
 
 `~/.bmad/gate-key` (0600, makine-yerel; asla commit edilmez). Yoksa:
