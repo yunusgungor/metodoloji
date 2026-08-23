@@ -1,0 +1,49 @@
+# SkillOpt config — metodoloji süreç-rehberi eğitimi.
+# Kullanım: tuning/scripts/install_into_skillopt.sh çalıştıktan sonra
+# SkillOpt kökünden:  python scripts/train.py --config configs/metodoloji/default.yaml
+_base_: ../_base_/default.yaml
+
+model:
+  reasoning_effort: medium
+  # target = rollout'ları yapan agent modeli, optimizer = skill'i düzenleyen model.
+  # Farklı sağlayıcılar için: --backend / --optimizer_model / --target_model flag'leri.
+
+train:
+  num_epochs: 3
+  batch_size: 10
+  accumulation: 1
+  train_size: 0          # split'ten türet (train/ = 10 senaryo)
+
+gradient:
+  minibatch_size: 4
+  merge_batch_size: 4
+  analyst_workers: 8
+  failure_only: false
+
+optimizer:
+  learning_rate: 3        # adım başına maks. edit — küçük veri setinde muhafazakâr
+  min_learning_rate: 1
+  lr_scheduler: cosine
+  skill_update_mode: patch
+  use_slow_update: true
+  use_meta_skill: true
+
+evaluation:
+  use_gate: true
+  gate_metric: mixed       # hard (zorunlu kontroller) + soft (bileşik kalite)
+  gate_mixed_weight: 0.7   # soft'a ağırlık ver: hard katıdır, soft ayrımlaştırır
+  sel_env_num: 0
+  test_env_num: 0
+  eval_test: true
+
+env:
+  name: metodoloji
+  skill_init: skillopt/envs/metodoloji/skills/initial.md
+  split_mode: split_dir
+  split_dir: data/metodoloji_split
+  data_path: ""
+  split_output_dir: ""
+  exec_timeout: 300
+  max_completion_tokens: 8192
+  workers: 8
+  limit: 0

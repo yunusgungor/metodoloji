@@ -1,0 +1,1 @@
+"""Metodoloji SkillOpt environment paketi."""

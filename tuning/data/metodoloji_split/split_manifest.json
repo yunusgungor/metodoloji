@@ -1,0 +1,17 @@
+{
+  "source": "hand-authored process scenarios (v1)",
+  "split_mode": "manual",
+  "counts": {
+    "train": 10,
+    "val": 5,
+    "test": 5
+  },
+  "task_types": [
+    "research_mod_a",
+    "research_mod_bcd",
+    "dev_chain",
+    "routing",
+    "honesty_guard",
+    "communication"
+  ]
+}
