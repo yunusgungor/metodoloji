@@ -26,6 +26,8 @@ bağlamı ve bir kullanıcı isteği verilecek. Görevin, isteği metodolojiye u
 ```
 
 - `tip` ∈ E, IR, SP, S, QR, PR — zincir sırasına uygun üret (E → IR → SP → S → QR → PR).
+- Geliştirme isteğinde IR ve SP kayıtlarını **tek yanıtta, ikisini de** üret;
+  önceki kayıt mevcutsa (ör. E onaylı) doğrudan IR ile başla.
 - Kayıt gövdelerinde ilgili şablonun alan etiketlerini birebir kullan
   (ör. E için `Teori`, `Hipotez`, `Ölçüm metrikleri`, `Deney tasarımı`, `Kod kapsamı`;
   IR için `Durum`, `Araştırma girdileri`, `Başarı kriterleri`, `Risk değerlendirmesi`, `Karar`).
