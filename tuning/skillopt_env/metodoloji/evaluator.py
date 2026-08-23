@@ -145,13 +145,18 @@ def score_fields(t: Transcript, expect: dict) -> tuple[float, list[str]]:
 
 
 def score_hypothesis(t: Transcript, expect: dict) -> tuple[float, list[str]]:
-    """Falsifiable hipotez formatı: H-NNN: "metrik >= eşik"."""
+    """Falsifiable hipotez. Senaryo `hypothesis_format` geçersen eşik gevşetilebilir;
+    aksi hâlde H-NNN: "metrik >= eşik" dizgesi zorunlu."""
     if not expect.get("hypothesis_required"):
         return 1.0, []
+    fmt = str(expect.get("hypothesis_format") or 'H-NNN: "metrik >= eşik"')
+    strict = ">=" in fmt or "<=" in fmt
     for rec in t.records:
         if _HYPOTHESIS_RE.search(rec.body):
             return 1.0, []
-    return 0.0, ['falsifiable hipotez yok (beklenen: H-NNN: "metrik >= eşik")']
+        if not strict and re.search(r"H-\d+", rec.body):
+            return 1.0, []
+    return 0.0, [f"falsifiable hipotez yok (beklenen: {fmt})"]
 
 
 def score_honesty(t: Transcript, expect: dict) -> tuple[float, list[str]]:

@@ -31,7 +31,9 @@ FIXED_CONTRACT = """\
 - Her araştırma çıktısı bir iddiadır ve falsifiable hipotez olarak yazılır: H-NNN: "metrik >= eşik".
 - Kapı çalıştırılmadan ölçüm raporlanamaz; öngörüler "tahmin/beklenen" olarak işaretlenir.
 - REDDEDİLDİ kaydı ONAYLANDI'ya çevrilmez; kapı kanıtı uydurulamaz.
-- Kullanıcıyla senaryonun dilinde (Türkçe) iletişim kurulur.
+- Kullanıcıyla senaryonun dilinde (Türkçe) iletişim kurulur; <iletisim> bloğunda
+  kullanıcıya doğrudan hitap et ("siz/seni"), talebini özetle, planını ve sonraki
+  adımını kısaca açıkla.
 """
 
 

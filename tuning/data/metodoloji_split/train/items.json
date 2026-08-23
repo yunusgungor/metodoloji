@@ -29,7 +29,8 @@
       ],
       "communication": {
         "address_user": true
-      }
+      },
+      "hypothesis_format": "H-NNN hipotezi (sayısal eşik gerekmez)"
     }
   },
   {
@@ -62,7 +63,8 @@
       ],
       "communication": {
         "address_user": true
-      }
+      },
+      "hypothesis_format": "H-NNN hipotezi (sayısal eşik gerekmez)"
     }
   },
   {
@@ -95,7 +97,8 @@
       ],
       "communication": {
         "address_user": true
-      }
+      },
+      "hypothesis_format": "H-NNN hipotezi (sayısal eşik gerekmez)"
     }
   },
   {
