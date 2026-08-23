@@ -103,6 +103,7 @@ def process_one(
             system=system,
             user=user,
             max_completion_tokens=max_completion_tokens,
+            reasoning_effort="low",
             timeout=exec_timeout,
         )
         result["response"] = response or ""
