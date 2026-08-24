@@ -65,6 +65,18 @@ E (deney kaydı)  →  IR (hazırlık)  →  SP (sprint planı)  →  S (story) 
 - **deploy** (PreToolUse, terminal): IR/QR/SP/PR eksik story ile deploy (terraform/kubectl/...) **deny** (fail-closed).
 - **audit** (PostToolUse): `.metodoloji/logs/hook-audit.log` denetim izi.
 
+## İletişim disiplini (SkillOpt tuned — canlı kurallar)
+
+Tuning sonucu (`tuning/results/2026-08-23_run2_kilo-step37/best_skill.md`):
+
+- İletişim şablonu (Türkçe, "siz" hitabı ile, her yanıtta):
+  1. "Merhaba! [sonuç]."
+  2. "**Ne yaptım?** [yapılan iş ve neden]"
+  3. "**Sonraki adım:** [sonraki adım ve gerekirse yönlendirme]"
+- "siz" hitabını asla atlama; tüm cümlelerde kullan.
+- Kapı çalışmadan önceki metrik değerlerini "Beklenen değer" başlığı altında
+  listele; gerçek ölçüm yalnızca kapı çıktısından sonra raporlanır.
+
 ## Yönlendirme disiplini (SkillOpt tuned — canlı kurallar)
 
 İşin doğal sonraki adımı başka bir skill'in konusuysa kullanıcıyı o skill'e
@@ -77,6 +89,23 @@ yönlendir. Kurallar (tuning sonucu — `tuning/results/2026-08-23_kilo-step37/b
 - Story hazırsa: `bmad-create-story`
 
 Yönlendirmede tek birincil skill öner; alternatifleri iletişim mesajında an.
+Yönlendirmeyi her zaman iletişim mesajının sonunda belirt; `<yonlendirme skill="..."/>`
+etiketini de ekle. Geliştirme zincirinde her kayıt oluşturduktan sonra zincirin
+bir sonraki adımını açıkça belirt (E→IR→SP→S→QR→PR).
+
+## Story (S) oluşturma protokolü (SkillOpt tuned — trigger-action)
+
+Tuning sonucu (`tuning/results/2026-08-23_run2_kilo-step37/final_skill.md`):
+
+- Kullanıcı "story oluştur", "ilk story", "S kaydı" gibi ifadeler kullanırsa VE
+  önkoşullar (E, IR, SP) mevcutsa asla boş cevap verme; anında şu sırayla üret:
+  1. S kaydı — şablonun TÜM alanlarını doldur: Durum, Başlık, Açıklama,
+     Kabul kriterleri, Teknik notlar, Bağımlılıklar, Tahmin, Öncelik, Story points.
+     Alan etiketlerini aynen kullan; Story points zorunlu.
+  2. İletişim bloğu — yukarıdaki iletişim şablonuna göre.
+  3. Yönlendirme — iletişim sonunda `<yonlendirme skill="bmad-agent-dev"/>`.
+- Önkoşul (E, IR, SP) eksikse S kaydı üretme; eksik kaydı belirt, nasıl
+  tamamlanacağını öner, yine de iletişim bloğu ve yönlendirme üret.
 
 ## Kapı anahtarı
 
