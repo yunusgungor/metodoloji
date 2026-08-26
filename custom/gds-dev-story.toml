@@ -10,6 +10,7 @@ persistent_facts = [
   "file:{project-root}/docs/bmad/development-methodology.md",
 ]
 activation_steps_append = [
+  "Before implementing any story, verify its experiment approval: run `python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py --verify --record {project-root}/docs/experiments/<deney-id>.md` and require the VERIFIED output. FORGED or REDDEDİLDİ means no code — stop and request a valid approved experiment record.",
   "Bu calismayi baslatmadan once metodoloji manifestosundaki (docs/bmad/research-methodology.md) ilgili modun kapi kurallarini dogrula: uretilcek ciktinin kanit turu ve kayit formati.",
   "Calismayi bitirmeden once kaydin eksiksiz oldugunu dogrula: Turkce alan etiketleri, karar gerekcesi, belirsizlik itirafi. Belgesel karar kod yazma izni degildir.",
   "KÖPRÜ: Implementasyon bittikten sonra, docs/bmad/dev-skill-to-methodology-bridge.md §2.4 kuralina gore olusturulmus docs/development/stories/S-<sira>.md kaydinin Durum alanini 'in-progress' → 'review' guncelle ve Dev Agent Record (Debug Log, Completion Notes, File List, Change Log) bolumlerini doldur. Experiment Refs alanına uygulanan deney sonuçlarını ekle. Bu kayit, siradaki adim olan code review'in QR kaydina giden halkasidir (kayit zinciri: S → QR). Native story dosyasini degistirirsen metodoloji kaydini da ayni guncellemeyi yansitacak sekilde senkronize et.",

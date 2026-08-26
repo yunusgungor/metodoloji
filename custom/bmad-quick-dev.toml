@@ -14,5 +14,6 @@ activation_steps_prepend = [
 ]
 activation_steps_append = [
   "Before implementing any feature, verify its experiment approval: run `python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py --verify --record {project-root}/docs/experiments/<deney-id>.md` and require the VERIFIED output. FORGED or REDDEDİLDİ means no code — stop and request a valid approved experiment record.",
+  "TASK↔AC DİNAMİK DOĞRULAMA: Her Technical Task'ta (AC: AC-XXX) referansı olup olmadığını kontrol et. Eksik referans varsa implementasyon öncesi kullanıcıya bildir ve düzeltilmesini sağla.",
   "KÖPRÜ: Implementasyon bittikten sonra, docs/bmad/dev-skill-to-methodology-bridge.md §2.3 kuralina gore olusturulmus docs/development/stories/S-<sira>.md kaydinin Durum alanini 'in-progress' → 'review' guncelle ve Dev Agent Record bolumlerini doldur. Hizli kod olsa da metodoloji kayit zincirini (S → QR) korumalisin — kayit disi birakma yok. Native story dosyasini degistirirsen metodoloji kaydini da senkronize et. DOGRULAMA: Story kaydini guncelledikten sonra terminal ile 'ls -la docs/development/stories/S-<sira>.md' komutunu calistir. Dosya yoksa HATA ver ve kaydi yeniden olustur."
 ]
