@@ -5,6 +5,12 @@
 
 **Son güncelleme:** 2026-08-26
 
+> **2026-08-26 — SkillOpt-tech-debt entegrasyonu tamamlandı.** 12 commit (957e5c2..8f2eb93) ile
+> tüm 6 manifestodaki borç ödendi (TD-001/002/003/010/011/012), SkillOpt `techdebt` task
+> kategorisi eklendi (6/6 benchmark), `commands/check-techdebt.sh` envanteri 5 bölümde
+> mekanik denetliyor, baseline.json repoda (66/66), 151 test PASS, 3/3 negtest. Aktif
+> borç: **0**. Bir sonraki borç döngüsü yeni P3 kayıtlarıyla başlayacak.
+
 ---
 
 ## Aktif Teknik Borçlar
