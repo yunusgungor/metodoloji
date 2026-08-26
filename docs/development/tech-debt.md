@@ -3,7 +3,7 @@
 > Bu dosya, projede birikmiş teknik borçları ve geri ödeme planını takip eder.
 > Her sprint'te teknik borç için time-box ayrılmalıdır.
 
-**Son güncelleme:** 2026-08-19
+**Son güncelleme:** 2026-08-26
 
 ---
 
@@ -41,6 +41,7 @@
 |----|-------|-------|-------------------|--------|-------|
 | TD-010 | Tüm Python script'lerinde Windows UTF-8 bozulması (cp1254) | `subprocess.run(..., text=True)` çağrılarına `encoding="utf-8", errors="replace"` eklendi (14 dosya, 19 çağrı) | 2026-08-19 | — | — |
 | TD-011 | `check-methodology.sh` §2b köprü denetimi false-positive (KÖPRÜ merge "yok" sanılıyordu) | §2b subprocess'ine `encoding="utf-8"` eklendi; `DURUM: SAĞLIKLI` | 2026-08-19 | — | — |
+| TD-012 | SkillOpt API anahtarı kaynak kodunda hard-coded (`sk-*` setdefault fallback'leri) — güvenlik borcu + deterministik eğitimi bozuyor | 4 adım: (1) `.env.example` şablonu + `.gitignore` `.env` koruması, (2) `optimization/train.py` + `cli.py` + `envs/bmad/adapter.py` setdefault fallback'leri kaldırıldı, (3) `train._require_llm_env()` ile `--benchmark` dışı yollarda eksik env hata verir, (4) `check-plugin.sh §6a` 4 alt-kontrol + 3 aşamalı `--negtest` eklendi | 2026-08-26 | — | cf679ea |
 
 ---
 
