@@ -755,6 +755,18 @@ else
 fi
 PROBLEMS=$((PROBLEMS + ENVPROBLEMS))
 
+echo "== 6b) Tech-debt envanteri bütünlüğü (drift/ID/P0/orphan) =="
+if [ -x "$SELF/check-techdebt.sh" ]; then
+    sh "$SELF/check-techdebt.sh"
+    TDEXIT=$?
+    if [ "$TDEXIT" -ne 0 ]; then
+        PROBLEMS=$((PROBLEMS + 1))
+    fi
+else
+    echo "[UYARI] $SELF/check-techdebt.sh bulunamadı veya çalıştırılamaz — §6b atlandı"
+    PROBLEMS=$((PROBLEMS + 1))
+fi
+
 echo
 if [ "$PROBLEMS" -eq 0 ]; then
     echo "DURUM: SAĞLIKLI (tüm kontroller geçti)"
