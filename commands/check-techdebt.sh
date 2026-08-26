@@ -193,8 +193,12 @@ echo "== 5) Orphan TODO [TD-XXX] envanter dışında referans yok mu =="
 # TODO comment standardı: "# TODO: [TD-XXX]" veya "<!-- TODO: [TD-XXX]"
 # Envanterdeki tüm ID'ler
 ALL_IDS=$(printf '%s\n%s\n' "$ACTIVE_IDS" "$PAID_IDS" | sort -u | grep -v '^$' || true)
-# TODO'larda geçen ID'ler
-TODO_IDS=$(grep -rhoE 'TODO:[[:space:]]*\[TD-[0-9]+\]' "$PLUGIN_ROOT/optimization/" "$PLUGIN_ROOT/custom/" 2>/dev/null \
+# TODO'larda geçen ID'ler (derleme artifact'leri ve scratch dizinleri dışlanır)
+TODO_IDS=$(grep -rhoE --binary-files=without-match \
+    'TODO:[[:space:]]*\[TD-[0-9]+\]' \
+    --exclude-dir=__pycache__ --exclude='*.pyc' \
+    --exclude-dir=_generated_splits --exclude-dir=.metodoloji \
+    "$PLUGIN_ROOT/optimization/" "$PLUGIN_ROOT/custom/" 2>/dev/null \
     | sed -E 's/.*\[(TD-[0-9]+)\].*/\1/' | sort -u)
 if [ -z "$TODO_IDS" ]; then
     echo "[OK]   TODO comment taranan dizinlerde yok (optimization/, custom/)"

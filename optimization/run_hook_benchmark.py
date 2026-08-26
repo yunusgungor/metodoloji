@@ -30,7 +30,7 @@ from envs.bmad.rollout import _run_hook
 
 def main():
     parser = argparse.ArgumentParser(description="Deterministic BMAD hook benchmark")
-    parser.add_argument("--type", type=str, help="Filter by task type (guard, quality, deploy, stop, audit, bridge, chain)")
+    parser.add_argument("--type", type=str, help="Filter by task type (guard, quality, deploy, stop, audit, bridge, chain, techdebt)")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--data", type=str, default="optimization/benchmarks/data/all_tasks.jsonl", help="Benchmark data path")
     args = parser.parse_args()

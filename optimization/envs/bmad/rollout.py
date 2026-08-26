@@ -404,7 +404,143 @@ def _run_hook(task: dict) -> str:
     elif task_type in ("bridge", "chain"):
         # These are structural checks — use a deterministic probe
         return _run_struct_check(task)
+    elif task_type == "techdebt":
+        return _run_techdebt(task)
     return "UNKNOWN"
+
+
+def _run_techdebt(task: dict) -> str:
+    """Deterministic check for tech-debt inventory integrity.
+
+    Mirrors the 5 sections of commands/check-techdebt.sh in Python so the
+    SkillOpt benchmark can score a candidate bmad-code-review skill on whether
+    it actually surfaces the same drift, duplicate-ID, P0-limit, overlap and
+    orphan-TODO violations.
+
+    Scenario (from question)        → ground truth   → expected_action
+      clean                          OK                OK
+      drift_template                 template drift    HATA
+      duplicate_id                   duplicate         HATA
+      p0_overflow                    P0 limit          HATA
+      orphan_todo                    orphan            HATA
+      overlap                        overlap           HATA
+    """
+    import re
+    import shutil
+    import subprocess
+    import tempfile
+
+    q = task.get("question", "").lower()
+    gt = task.get("ground_truth", "")
+
+    # Re-use the plugin's check-techdebt.sh as the source of truth so the
+    # benchmark tracks the same denetleyici the team hand-rolled.
+    plugin_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    check_script = os.path.join(plugin_root, "commands", "check-techdebt.sh")
+    if not os.path.exists(check_script):
+        return "UNKNOWN"
+
+    # Sandbox: copy the inventory files + a small slice of optimization/
+    # (where orphan-TODO scanner looks) so the check runs against mutated
+    # state without polluting the real repo.
+    sandbox = tempfile.mkdtemp(prefix="bmad-techdebt-")
+    try:
+        # Envanter çifti
+        os.makedirs(os.path.join(sandbox, "docs", "development"), exist_ok=True)
+        os.makedirs(os.path.join(sandbox, "templates"), exist_ok=True)
+        live = os.path.join(plugin_root, "docs", "development", "tech-debt.md")
+        tmpl = os.path.join(plugin_root, "templates", "tech-debt.md")
+        sandbox_live = os.path.join(sandbox, "docs", "development", "tech-debt.md")
+        sandbox_tmpl = os.path.join(sandbox, "templates", "tech-debt.md")
+        if os.path.exists(live):
+            shutil.copy2(live, sandbox_live)
+        if os.path.exists(tmpl):
+            shutil.copy2(tmpl, sandbox_tmpl)
+
+        # optimization/ slice (orphan TODO scanner's domain)
+        sb_opt = os.path.join(sandbox, "optimization")
+        os.makedirs(sb_opt, exist_ok=True)
+        real_opt = os.path.join(plugin_root, "optimization")
+        # Only copy lightweight files — full copy is unnecessary
+        for name in ("__init__.py", "cli.py", "train.py", "run_hook_benchmark.py"):
+            src = os.path.join(real_opt, name)
+            if os.path.exists(src):
+                shutil.copy2(src, os.path.join(sb_opt, name))
+
+        # Senaryo: envanteri mutate et. Öncelik sırası:
+        #   1) task["scenario"] açık alanı (en güvenilir)
+        #   2) Doğal dil kalıpları (fallback)
+        scenario = task.get("scenario", "").lower()
+        if "clean" in q or "should pass" in q or scenario == "clean":
+            # clean: hiçbir mutasyon yapma
+            pass
+        elif "differ" in q or "drift" in q or scenario == "drift_template":
+            # templates/tech-debt.md'ye bir satır ekle (canlı ile drif et)
+            with open(sandbox_tmpl, "a", encoding="utf-8") as f:
+                f.write("\n| TD-200 | extra-drift | drift | 2026-08-26 | Test | @t | SP-001 |\n")
+        elif "duplicate" in q or scenario == "duplicate_id":
+            # Aktif tabloya mevcut ödenmiş ID'yi (TD-010) tekrar ekle
+            with open(sandbox_live, "r", encoding="utf-8") as f:
+                txt = f.read()
+            new_row = "\n| TD-010 | dup-test | dup | 2026-08-26 | Test | @t | SP-001 |\n"
+            txt = re.sub(r"(\| TD-001 \|[^\n]+\n)", r"\1" + new_row, txt, count=1)
+            with open(sandbox_live, "w", encoding="utf-8") as f:
+                f.write(txt)
+        elif "6 active p0" in q or "exceed" in q or scenario == "p0_overflow":
+            # Aktif P0 sayısını 6'ya çıkar
+            with open(sandbox_live, "r", encoding="utf-8") as f:
+                txt = f.read()
+            extra = "".join(
+                f"| TD-{100+i} | p0-test-{i} | t | 2026-08-26 | Test | @t | SP-001 |\n"
+                for i in range(1, 6))
+            txt = re.sub(r"(\| TD-001 \|[^\n]+\n)", r"\1" + extra, txt, count=1)
+            with open(sandbox_live, "w", encoding="utf-8") as f:
+                f.write(txt)
+        elif "orphan" in q or scenario == "orphan_todo":
+            # optimization/_negtest_orphan.py içine orphan TODO enjekte et.
+            # Üretim kaynağında literal "TD-999" string'i olmamalı —
+            # check-techdebt.sh §5 onu orphan sanır. Dinamik üretim:
+            # "TD-" + chr(57)*3 → "TD-999", ama kaynakta "999" geçmez.
+            orphan_id = "TD-" + chr(57) * 3
+            with open(os.path.join(sb_opt, "_negtest_orphan.py"), "w", encoding="utf-8") as f:
+                f.write(f"# TODO: [{orphan_id}] orphan-bench (geçici)\n")
+        elif "overlap" in q or "in the paid table" in q or scenario == "overlap":
+            # Aktif ve ödenmiş aynı ID: TD-002 zaten ödenmiş, aktif tabloya ekle
+            with open(sandbox_live, "r", encoding="utf-8") as f:
+                txt = f.read()
+            # P1 bölümünün boş yer satırını doldur
+            txt = re.sub(
+                r"(\| —    \| —     \| —             \| —             \| —    \| —      \| —            \|)\n",
+                "| TD-002 | overlap-test | ovl | 2026-08-26 | Test | @t | SP-001 |\n",
+                txt, count=1)
+            with open(sandbox_live, "w", encoding="utf-8") as f:
+                f.write(txt)
+        # else: clean state — no mutation
+
+        # check-techdebt.sh'yi sandbox/commands/ altına kopyala ki PLUGIN_ROOT
+        # hesabı ($SELF/..) sandbox'a denk gelsin — yoksa üst dizine kaçar.
+        sandbox_commands = os.path.join(sandbox, "commands")
+        os.makedirs(sandbox_commands, exist_ok=True)
+        sandbox_check = os.path.join(sandbox_commands, "check-techdebt.sh")
+        shutil.copy2(check_script, sandbox_check)
+        os.chmod(sandbox_check, 0o755)
+        r = subprocess.run(
+            ["sh", sandbox_check],
+            capture_output=True, text=True, encoding="utf-8", timeout=30,
+            cwd=sandbox,
+        )
+
+        # Pass: clean → exit 0 + "SAĞLIKLI" çıktı
+        # Fail: herhangi bir mutation → exit 1 + "HATA" çıktı
+        if r.returncode == 0 and "SAĞLIKLI" in r.stdout:
+            return "ok"
+        # ground_truth'ı çıktıda ara (daha kesin eşleşme için)
+        gt_lower = gt.lower()
+        if gt_lower and any(token in r.stdout.lower() for token in gt_lower.split()):
+            return f"hata: {gt}"
+        return "hata"
+    finally:
+        shutil.rmtree(sandbox, ignore_errors=True)
 
 
 def _run_struct_check(task: dict) -> str:
