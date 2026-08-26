@@ -19,7 +19,7 @@
 
 | ID | Tanım | Neden Eklendi | Ekleme Tarihi | Etki | Sahibi | Hedef Sprint |
 |----|-------|---------------|---------------|------|--------|--------------|
-| TD-002 | Monitör false-positive: `tech-debt.md` şablon placeholder'ları gerçek borç sanılıyor | Şablon satırları (TD-001..004) hâlâ dolu → `sprint-status.sh`/`tech-debt-monitor.sh` "4 aktif borç, P0:1" gösteriyordu | 2026-08-19 | Güvenlik | @yunusgungor | SP-001 |
+| —    | —     | —             | —             | —    | —      | —            |
 
 ### Orta Öncelik (P2)
 
@@ -42,6 +42,7 @@
 | TD-010 | Tüm Python script'lerinde Windows UTF-8 bozulması (cp1254) | `subprocess.run(..., text=True)` çağrılarına `encoding="utf-8", errors="replace"` eklendi (14 dosya, 19 çağrı) | 2026-08-19 | — | — |
 | TD-011 | `check-methodology.sh` §2b köprü denetimi false-positive (KÖPRÜ merge "yok" sanılıyordu) | §2b subprocess'ine `encoding="utf-8"` eklendi; `DURUM: SAĞLIKLI` | 2026-08-19 | — | — |
 | TD-012 | SkillOpt API anahtarı kaynak kodunda hard-coded (`sk-*` setdefault fallback'leri) — güvenlik borcu + deterministik eğitimi bozuyor | 4 adım: (1) `.env.example` şablonu + `.gitignore` `.env` koruması, (2) `optimization/train.py` + `cli.py` + `envs/bmad/adapter.py` setdefault fallback'leri kaldırıldı, (3) `train._require_llm_env()` ile `--benchmark` dışı yollarda eksik env hata verir, (4) `check-plugin.sh §6a` 4 alt-kontrol + 3 aşamalı `--negtest` eklendi | 2026-08-26 | — | cf679ea |
+| TD-002 | Monitör false-positive: `tech-debt.md` şablon placeholder'ları gerçek borç sanılıyordu (`sprint-status.sh`/`tech-debt-monitor.sh` "4 aktif borç, P0:1" gösteriyordu) | `commands/check-techdebt.sh` 5 bölüm: (1) şablon/canlı özdeşlik, (2) aktif ID benzersiz + sıralı, (3) P0 hard limit (<=5), (4) aktif/ödenmiş çakışma yok, (5) orphan TODO; 3 aşamalı `--negtest`; `check-plugin.sh §6b` olarak entegre | 2026-08-26 | — | 1de54b1 |
 
 ---
 
