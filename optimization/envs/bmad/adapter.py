@@ -60,7 +60,12 @@ class BmadAdapter(EnvAdapter):
         super().setup(cfg)
         self.dataloader.setup(cfg)
 
-        # Configure openai_compatible backend if not already set
+        # Configure openai_compatible backend if not already set.
+        # API key + model hard-coded fallback içermez: ya os.environ'dan, ya
+        # config dict'ten (bmad_default.yaml → model.target / api_key alanları)
+        # gelmeli. Üçü de boşsa "yapılandırma eksik" hatası ver — güvenlik
+        # borcu oluşturma (TD-012). BASE_URL için default localhost:20128 lokal
+        # geliştirme içindir ve gizli değildir.
         if not os.environ.get("REFLACT_MODEL_BACKEND"):
             os.environ["REFLACT_MODEL_BACKEND"] = "openai_compatible"
         if not os.environ.get("OPENAI_COMPATIBLE_BASE_URL"):
@@ -68,13 +73,23 @@ class BmadAdapter(EnvAdapter):
                 "openai_compatible_base_url", "http://localhost:20128/v1"
             )
         if not os.environ.get("OPENAI_COMPATIBLE_API_KEY"):
-            os.environ["OPENAI_COMPATIBLE_API_KEY"] = cfg.get(
-                "openai_compatible_api_key", "sk-fc61075fae8dc7ba-0hru3s-21c10785"
-            )
+            api_key = cfg.get("openai_compatible_api_key", "")
+            if not api_key:
+                raise RuntimeError(
+                    "[BmadAdapter] OPENAI_COMPATIBLE_API_KEY bulunamadı. "
+                    "Kaynak: os.environ veya cfg['openai_compatible_api_key']. "
+                    "bkz: .env.example"
+                )
+            os.environ["OPENAI_COMPATIBLE_API_KEY"] = api_key
         if not os.environ.get("OPENAI_COMPATIBLE_MODEL"):
-            os.environ["OPENAI_COMPATIBLE_MODEL"] = cfg.get(
-                "target_model", "kgw/kilo-auto/free"
-            )
+            model = cfg.get("target_model", "")
+            if not model:
+                raise RuntimeError(
+                    "[BmadAdapter] OPENAI_COMPATIBLE_MODEL bulunamadı. "
+                    "Kaynak: os.environ veya cfg['target_model']. "
+                    "bkz: .env.example"
+                )
+            os.environ["OPENAI_COMPATIBLE_MODEL"] = model
 
     def get_dataloader(self):
         return self.dataloader

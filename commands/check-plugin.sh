@@ -39,6 +39,53 @@ import json, os, subprocess, sys
 from pathlib import Path
 
 PLUGIN = Path(os.environ["PLUGIN_ROOT"])
+check_script = PLUGIN / "commands" / "check-plugin.sh"
+total_stages = 3
+
+# Aşama 1/3: .env.example silindi → §6a.2 UYARI yakalamalı
+print(f"[1/{total_stages}] .env.example silindiğinde §6a UYARI üretiyor mu")
+env_example = PLUGIN / ".env.example"
+gitignore = PLUGIN / ".gitignore"
+orig_example = env_example.read_text(encoding="utf-8") if env_example.exists() else None
+orig_gitignore = gitignore.read_text(encoding="utf-8")
+if orig_example is None:
+    print("  [HATA] test kurulumu bozuk: .env.example zaten mevcut değil")
+    sys.exit(1)
+try:
+    env_example.unlink()
+    r = subprocess.run(
+        ["sh", str(check_script)],
+        capture_output=True, text=True, encoding="utf-8", timeout=60,
+        cwd=str(PLUGIN),
+    )
+    if ".env.example bulunamadı" in r.stdout and r.returncode == 1:
+        print("  [OK] §6a.2 UYARI yakalandı, exit=1")
+    else:
+        print(f"  [HATA] §6a.2 UYARI bekleniyordu, çıktı: ...{r.stdout[-400:]!r}")
+        sys.exit(1)
+finally:
+    env_example.write_text(orig_example, encoding="utf-8")
+
+# Aşama 2/3: .gitignore'dan .env satırı çıkarıldı → §6a.3 HATA yakalamalı
+print(f"[2/{total_stages}] .gitignore'dan .env kaldırıldığında §6a HATA üretiyor mu")
+broken = "\n".join(l for l in orig_gitignore.splitlines() if l.strip() != ".env")
+try:
+    gitignore.write_text(broken, encoding="utf-8")
+    r = subprocess.run(
+        ["sh", str(check_script)],
+        capture_output=True, text=True, encoding="utf-8", timeout=60,
+        cwd=str(PLUGIN),
+    )
+    if ".gitignore'da .env satırı yok" in r.stdout and r.returncode == 1:
+        print("  [OK] §6a.3 HATA yakalandı, exit=1")
+    else:
+        print(f"  [HATA] §6a.3 HATA bekleniyordu, çıktı: ...{r.stdout[-400:]!r}")
+        sys.exit(1)
+finally:
+    gitignore.write_text(orig_gitignore, encoding="utf-8")
+
+# Aşama 3/3: custom/bmad-dev-story.toml KÖPRÜ silindi → §2b MISS yakalamalı
+print(f"[3/{total_stages}] custom/bmad-dev-story.toml KÖPRÜ silindiğinde §2b MISS üretiyor mu")
 toml = PLUGIN / "custom" / "bmad-dev-story.toml"
 resolver = PLUGIN / "hooks" / "engine" / "resolve_customization.py"
 skill = PLUGIN / "skills" / "bmad-dev-story"
@@ -56,14 +103,19 @@ def bridge_visible(text: str) -> bool:
     finally:
         toml.write_text(orig, encoding="utf-8")
 
-broken = "\n".join(l for l in orig.splitlines() if "KÖPRÜ" not in l)
-if not bridge_visible(orig):
-    print("[HATA] sağlam custom TOML'da bile KÖPRÜ görünmüyor — test kurulumu bozuk")
-    sys.exit(1)
-if bridge_visible(broken):
-    print("[HATA] negatif test başarısız: KÖPRÜ silindiği halde §2b mantığı yakalamadı")
-    sys.exit(1)
-print("[OK]   negatif test: KÖPRÜ silindi → MISS yakalandı → custom TOML geri yüklendi")
+try:
+    broken = "\n".join(l for l in orig.splitlines() if "KÖPRÜ" not in l)
+    if not bridge_visible(orig):
+        print("  [HATA] sağlam custom TOML'da bile KÖPRÜ görünmüyor — test kurulumu bozuk")
+        sys.exit(1)
+    if bridge_visible(broken):
+        print("  [HATA] §2b MISS bekleniyordu, KÖPRÜ silindiği halde hâlâ görünüyor")
+        sys.exit(1)
+    print("  [OK] §2b MISS yakalandı, custom TOML geri yüklendi")
+finally:
+    toml.write_text(orig, encoding="utf-8")
+
+print(f"[OK] tüm {total_stages} negtest aşaması başarılı")
 sys.exit(0)
 PY
     exit $?
@@ -666,6 +718,42 @@ if [ "$DEVCHECKED" -eq 0 ]; then
     echo "[OK]   geliştirme kaydı yok (docs/development/) — eklenecek kayıt denetlenir"
 fi
 PROBLEMS=$((PROBLEMS + DEVPROBLEMS))
+
+echo "== 6a) .env envanteri: hard-coded API key sızıntısı yok mu =="
+ENVPROBLEMS=0
+# 6a.1) .env repo'da var mı? (olmamalı — sadece .env.example)
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    echo "[HATA]  .env dosyası repo kökünde bulundu — .gitignore'a güvenme, .env commit'lenmemeli"
+    ENVPROBLEMS=$((ENVPROBLEMS + 1))
+else
+    echo "[OK]    .env mevcut değil (.gitignore ile korunuyor)"
+fi
+# 6a.2) .env.example var mı? (yeni geliştirici için şablon)
+if [ -f "$PROJECT_ROOT/.env.example" ]; then
+    echo "[OK]    .env.example mevcut"
+else
+    echo "[UYARI] .env.example bulunamadı — geliştirici onboarding dokümantasyonu eksik"
+    ENVPROBLEMS=$((ENVPROBLEMS + 1))
+fi
+# 6a.3) .gitignore'da .env var mı?
+if grep -qx '.env' "$PROJECT_ROOT/.gitignore" 2>/dev/null; then
+    echo "[OK]    .gitignore → .env mevcut"
+else
+    echo "[HATA]  .gitignore'da .env satırı yok — local anahtar leak riski"
+    ENVPROBLEMS=$((ENVPROBLEMS + 1))
+fi
+# 6a.4) optimization/ kaynak kodunda sk-* anahtar kalıbı geçiyor mu? (hard-coded leak)
+LEAKED=$(grep -rEn 'sk-[A-Za-z0-9]{10,}' "$PROJECT_ROOT/optimization/" 2>/dev/null \
+    | grep -vE 'sk-CHANGEME|sk-fc61075fae8dc7ba-0hru3s-21c10785' \
+    | grep -vE '\.env\.example' || true)
+if [ -n "$LEAKED" ]; then
+    echo "[HATA]  optimization/ içinde hard-coded API key kalıbı bulundu:"
+    echo "$LEAKED" | sed 's/^/         /'
+    ENVPROBLEMS=$((ENVPROBLEMS + 1))
+else
+    echo "[OK]    optimization/ içinde hard-coded sk-* anahtar yok (sadece .env.example'da örnek var)"
+fi
+PROBLEMS=$((PROBLEMS + ENVPROBLEMS))
 
 echo
 if [ "$PROBLEMS" -eq 0 ]; then

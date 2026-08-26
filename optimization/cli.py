@@ -22,11 +22,12 @@ OPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(OPT_DIR))
 
-# Configure openai_compatible backend BEFORE any skillopt imports
+# Configure openai_compatible backend BEFORE any skillopt imports.
+# API anahtarı ve model adı setdefault YAPILMAZ — güvenlik + deterministik eğitim
+# gereği: bu değerler .env'den (os.environ) gelmeli, kod içinde hard-coded olmamalı.
+# Eğitim/optimize komutları train._require_llm_env() ile zorunlu env'leri denetler.
 os.environ.setdefault("REFLACT_MODEL_BACKEND", "openai_compatible")
 os.environ.setdefault("OPENAI_COMPATIBLE_BASE_URL", "http://localhost:20128/v1")
-os.environ.setdefault("OPENAI_COMPATIBLE_API_KEY", "sk-fc61075fae8dc7ba-0hru3s-21c10785")
-os.environ.setdefault("OPENAI_COMPATIBLE_MODEL", "kgw/kilo-auto/free")
 
 
 HOOK_CHAIN_SKILLS = [
@@ -77,7 +78,10 @@ def cmd_benchmark(args):
 
 def cmd_optimize(args):
     """Run SkillOpt training."""
-    from train import run_training, DEFAULT_CONFIG
+    from train import run_training, DEFAULT_CONFIG, _require_llm_env
+
+    # Eğitim LLM çağırır → API anahtarı + model zorunlu.
+    _require_llm_env()
 
     cfg = dict(DEFAULT_CONFIG)
     if args.epochs:

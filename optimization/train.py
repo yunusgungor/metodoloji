@@ -22,11 +22,31 @@ sys.path.insert(0, str(PROJECT_ROOT))
 OPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(OPT_DIR))
 
-# Configure openai_compatible backend BEFORE any skillopt imports
+# Configure openai_compatible backend BEFORE any skillopt imports.
+# Bu değerler artık hard-coded DEĞİL — sadece local geliştirmede hızlı bootstrap
+# için default. Gerçek değerler .env'den (os.environ) gelir. Eğitim komutları
+# `_require_llm_env()` ile zorunlu env'lerin dolu olduğunu denetler.
 os.environ.setdefault("REFLACT_MODEL_BACKEND", "openai_compatible")
 os.environ.setdefault("OPENAI_COMPATIBLE_BASE_URL", "http://localhost:20128/v1")
-os.environ.setdefault("OPENAI_COMPATIBLE_API_KEY", "sk-fc61075fae8dc7ba-0hru3s-21c10785")
-os.environ.setdefault("OPENAI_COMPATIBLE_MODEL", "kgw/kilo-auto/free")
+# OPENAI_COMPATIBLE_API_KEY ve OPENAI_COMPATIBLE_MODEL setdefault YAPILMAZ —
+# güvenlik: anahtar repo dışında kalmalı, model .env/.yaml'da bilinçli seçilmeli.
+
+REQUIRED_LLM_ENV = ("OPENAI_COMPATIBLE_API_KEY", "OPENAI_COMPATIBLE_MODEL")
+
+
+def _require_llm_env() -> None:
+    """Eğitim/optimize çağrılarından önce zorunlu env'lerin varlığını denetle.
+
+    API anahtarı setdefault ile asla koyulmaz: bu hem güvenlik borcudur (TD-012)
+    hem de deterministik eğitimi bozar (anahtar değişirse sonuç değişir).
+    """
+    missing = [k for k in REQUIRED_LLM_ENV if not os.environ.get(k)]
+    if missing:
+        raise SystemExit(
+            f"[HATA] Eksik env değişkenleri: {', '.join(missing)}\n"
+            f"  Çözüm: cp .env.example .env && değerleri doldur\n"
+            f"  Veya:  export OPENAI_COMPATIBLE_API_KEY=... OPENAI_COMPATIBLE_MODEL=..."
+        )
 
 
 # Hook-chain skills to optimize in order
@@ -186,6 +206,11 @@ def main():
     parser.add_argument("--seed", type=int, default=None, help="Random seed")
     parser.add_argument("--force-accept", action="store_true", help="Disable gate, accept all candidates")
     args = parser.parse_args()
+
+    # Eğitim/optimize için LLM env'leri zorunlu. --benchmark sadece eval yapar
+    # (LLM çağırmaz) → o yolda denetleme yapma.
+    if not args.benchmark:
+        _require_llm_env()
 
     cfg = dict(DEFAULT_CONFIG)
     if args.epochs is not None:

@@ -3,3 +3,4 @@ __pycache__/
 .metodoloji/logs/
 _generated_splits/
 optimization/output/
+.env
