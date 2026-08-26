@@ -26,7 +26,7 @@ sys.path.insert(0, str(OPT_DIR))
 os.environ.setdefault("REFLACT_MODEL_BACKEND", "openai_compatible")
 os.environ.setdefault("OPENAI_COMPATIBLE_BASE_URL", "http://localhost:20128/v1")
 os.environ.setdefault("OPENAI_COMPATIBLE_API_KEY", "sk-2d3c99a72a01cbcc-smtwcf-24b76850")
-os.environ.setdefault("OPENAI_COMPATIBLE_MODEL", "oc/mimo-v2.5-free")
+os.environ.setdefault("OPENAI_COMPATIBLE_MODEL", "crof/deepseek-v4-flash-0731")
 
 
 # Hook-chain skills to optimize in order
@@ -41,8 +41,8 @@ HOOK_CHAIN_SKILLS = [
 
 DEFAULT_CONFIG = {
     "model_backend": "openai_compatible",
-    "optimizer_model": "oc/mimo-v2.5-free",
-    "target_model": "oc/mimo-v2.5-free",
+    "optimizer_model": "crof/deepseek-v4-flash-0731",
+    "target_model": "crof/deepseek-v4-flash-0731",
     "optimizer_backend": "openai_compatible",
     "target_backend": "openai_compatible",
     "num_epochs": 3,
@@ -61,6 +61,7 @@ DEFAULT_CONFIG = {
     "use_gate": True,
     "gate_metric": "hard",
     "sel_env_num": 15,
+    "test_env_num": 0,
     "eval_test": True,
     "split_mode": "ratio",
     "split_ratio": "2:1:7",

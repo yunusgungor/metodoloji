@@ -16,7 +16,7 @@ if not os.environ.get("OPENAI_COMPATIBLE_BASE_URL"):
 if not os.environ.get("OPENAI_COMPATIBLE_API_KEY"):
     os.environ["OPENAI_COMPATIBLE_API_KEY"] = "sk-2d3c99a72a01cbcc-smtwcf-24b76850"
 if not os.environ.get("OPENAI_COMPATIBLE_MODEL"):
-    os.environ["OPENAI_COMPATIBLE_MODEL"] = "oc/mimo-v2.5-free"
+    os.environ["OPENAI_COMPATIBLE_MODEL"] = "crof/deepseek-v4-flash-0731"
 set_backend("openai_compatible")
 
 from .evaluator import evaluate_task

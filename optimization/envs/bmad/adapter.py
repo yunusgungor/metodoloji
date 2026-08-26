@@ -73,7 +73,7 @@ class BmadAdapter(EnvAdapter):
             )
         if not os.environ.get("OPENAI_COMPATIBLE_MODEL"):
             os.environ["OPENAI_COMPATIBLE_MODEL"] = cfg.get(
-                "target_model", "oc/mimo-v2.5-free"
+                "target_model", "crof/deepseek-v4-flash-0731"
             )
 
     def get_dataloader(self):

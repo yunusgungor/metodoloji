@@ -26,7 +26,7 @@ sys.path.insert(0, str(OPT_DIR))
 os.environ.setdefault("REFLACT_MODEL_BACKEND", "openai_compatible")
 os.environ.setdefault("OPENAI_COMPATIBLE_BASE_URL", "http://localhost:20128/v1")
 os.environ.setdefault("OPENAI_COMPATIBLE_API_KEY", "sk-2d3c99a72a01cbcc-smtwcf-24b76850")
-os.environ.setdefault("OPENAI_COMPATIBLE_MODEL", "oc/mimo-v2.5-free")
+os.environ.setdefault("OPENAI_COMPATIBLE_MODEL", "crof/deepseek-v4-flash-0731")
 
 
 HOOK_CHAIN_SKILLS = [
