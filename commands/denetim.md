@@ -8,16 +8,23 @@ Plugin'in kendi bütünlüğünü ve hedef projedeki kayıt disiplinini mekanik 
    ```sh
    sh {metodoloji-root}/commands/check-plugin.sh
    ```
-   (0 sorun = SAĞLIKLI)
+   (0 sorun = SAĞLIKLI; §5c custom/ statik kalite denetimi bu betiğin
+   içinde §5c olarak çalışır — ayrıca çalıştırmaya gerek yok)
 
-2. Kayıt zinciri durumu: `{project-root}/docs/experiments/` ve `{project-root}/docs/development/`
+2. Custom/ köprü TOML'leri (yalnız denetim istenirse): §0–§7'yi ayrıntılı
+   görmek için `commands/check-custom.sh` çalıştırılabilir. `check-plugin.sh`
+   §5c zaten aynı bölümleri çalıştırır; bu adım yalnızca custom/ odaklı
+   rapor istendiğinde kullanılır.
+
+3. Kayıt zinciri durumu: `{project-root}/docs/experiments/` ve `{project-root}/docs/development/`
    altındaki kayıtları listele; zincir halkası eksiklerini belirt (ör. S var QR yok).
 
-3. Onaylı deney envanteri: her E kaydında `--verify` çalıştırıp VERIFIED/FORGED dağılımını raporla
+4. Onaylı deney envanteri: her E kaydında `--verify` çalıştırıp VERIFIED/FORGED dağılımını raporla
    (`/metodoloji:dogrula` mantığı).
 
-4. Hook yapılandırması: `custom/config.toml [hooks]` quality_gate/deploy_guard değerlerini
+5. Hook yapılandırması: `custom/config.toml [hooks]` quality_gate/deploy_guard değerlerini
    oku (soft/hard; OpenHands'te bağlı hook değil — guard/stop fail-closed çalışır).
 
-5. Sonuç raporu: PASS/FAIL listesi + düzeltme önerileri. Negatif test gerektiren bir sorun
-   bulursan (ör. KÖPRÜ çözülemiyor) betiğin boz→yakala→geri yükle çıktısını göster.
+6. Sonuç raporu: PASS/FAIL listesi + düzeltme önerileri. Negatif test gerektiren bir sorun
+   bulursan (ör. KÖPRÜ çözülemiyor) betiğin boz→yakala→geri yükle çıktısını göster;
+   `check-custom.sh --negtest` ile custom/ drift denetiminin canlı olduğunu kanıtla.
