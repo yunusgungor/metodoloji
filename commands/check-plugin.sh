@@ -519,7 +519,17 @@ for f in main.py memlog.py resolve_customization.py modules/__init__.py \
     fi
 done
 if [ "$ENGINE_OK" -eq 1 ]; then
-    if "$PY" -c "import sys; sys.path.insert(0, '$PLUGIN_ROOT/hooks/engine'); import main; print('import-ok')" >/tmp/meth-engine.$$.log 2>&1; then
+    if "$PY" -c "
+import py_compile, os, sys
+engine=os.path.normpath(sys.argv[1])
+files=['main.py','memlog.py','resolve_customization.py',
+       'modules/__init__.py','modules/config.py','modules/utils.py',
+       'modules/archive.py','modules/bash_targets.py','modules/guard.py',
+       'modules/audit.py','modules/stop.py']
+for f in files:
+    py_compile.compile(os.path.join(engine, f), doraise=True)
+print('import-ok')
+" "$PLUGIN_ROOT/hooks/engine" >/tmp/meth-engine.$$.log 2>&1; then
         echo "[OK]   modüler motor eksiksiz ve import edilebilir (main.py + modules/)"
     else
         echo "[HATA] modüler motor import testi başarısız:"

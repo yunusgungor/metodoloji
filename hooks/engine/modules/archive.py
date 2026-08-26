@@ -78,6 +78,14 @@ class LimitReader(io.RawIOBase):
             finally:
                 super().close()
 
+    def __del__(self) -> None:
+        # Safety net: if caller forgets to close, ensure the underlying file is released
+        if not self.closed:
+            try:
+                self._raw.close()
+            except Exception:
+                pass
+
 
 def conservative_dest(dest: str) -> list[str]:
     """Conservative target for unreadable/limit-exceeded archive — DIRECTORY with trailing /."""
@@ -90,7 +98,8 @@ def archive_fileobj(path: str) -> io.RawIOBase:
     """Open archive from disk; reject if too large, limit reads."""
     if os.path.getsize(path) > ARCHIVE_MAX_FILE:
         raise ArchiveLimitError("archive file too large")
-    return LimitReader(open(path, "rb"), ARCHIVE_MAX_COMPRESSED)  # type: ignore[arg-type]
+    fh = open(path, "rb")
+    return LimitReader(fh, ARCHIVE_MAX_COMPRESSED)  # type: ignore[arg-type]
 
 
 def targets_from_tar(args: list[str]) -> list[str]:

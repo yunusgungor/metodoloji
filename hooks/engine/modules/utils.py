@@ -57,6 +57,19 @@ def is_code_target(path: str) -> bool:
     return True
 
 
+def extract_story_key_from_content(content: str) -> str:
+    """Extract story key from file content — matches 'S-XXX' in title or 'N-N-slug' pattern."""
+    # Try '# Story: S-XXX' header first (handles space variations around colon)
+    m = re.search(r"#\s+Story\s*:\s*(\S+)", content, re.IGNORECASE)
+    if m:
+        return m.group(1)
+    # Try '# Story S-XXX' (no colon)
+    m = re.search(r"#\s+Story\s+(\S+)", content, re.IGNORECASE)
+    if m:
+        return m.group(1)
+    return ""
+
+
 def repo_root(json_in: dict) -> str:
     """Get repository root from environment or JSON input."""
     root = (

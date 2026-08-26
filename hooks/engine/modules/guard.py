@@ -9,18 +9,31 @@ import re
 import sys
 from typing import Optional
 
-from .config import GATE_DIR, _BMD_DIR, _KEY_ACCESS_IN_CONTENT, _AGENT_ZONES
-from .utils import is_code_target, is_free, norm_path, rel_to_root, repo_root
+from .config import GATE_DIR, _BMD_DIR, _KEY_ACCESS_IN_CONTENT, _AGENT_ZONES, _DONE_RE
+from .utils import is_code_target, is_free, norm_path, rel_to_root, repo_root, extract_story_key_from_content
 from .bash_targets import extract_bash_targets
 
-# Import gate script
-if GATE_DIR is None:
-    sys.stderr.write("metodoloji-hooks: gate script not found — fail-closed\n")
-    sys.exit(2)
+# Import gate script — deferred: sys.exit at module level kills the entire process
+# (including audit which doesn't need the gate). Instead, gate is loaded lazily
+# and guard/quality/deploy fail-closed at call time if it's missing.
+gate = None
 
-if str(GATE_DIR) not in sys.path:
-    sys.path.insert(0, str(GATE_DIR))
-import run_experiment as gate  # noqa: E402
+def _load_gate():
+    global gate
+    if gate is not None:
+        return True
+    if GATE_DIR is None:
+        sys.stderr.write("metodoloji-hooks: gate script not found — fail-closed\n")
+        return False
+    if str(GATE_DIR) not in sys.path:
+        sys.path.insert(0, str(GATE_DIR))
+    try:
+        import run_experiment as _gate  # noqa: E402
+        gate = _gate
+        return True
+    except ImportError as exc:
+        sys.stderr.write(f"metodoloji-hooks: gate import failed — {exc}\n")
+        return False
 
 
 def _secret_ref(s: str) -> bool:
@@ -52,6 +65,8 @@ def _notebook_content_to_text(content) -> str:
 
 def verify_record(rec: str) -> tuple[int, str]:
     """Run gate verify on a record; return (rc, scope)."""
+    if not _load_gate():
+        return 1, ""
     try:
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             rc = gate.verify(rec)
@@ -293,7 +308,7 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
     status = status_match.group(1).strip().lower()
 
     # Extract story key from content (title) or filename
-    story_key = _extract_story_key_from_content(content)
+    story_key = extract_story_key_from_content(content)
     if not story_key:
         key_match = re.search(r"(\d+-\d+-[a-z][a-z0-9-]+)", content, re.IGNORECASE)
         if key_match:
@@ -373,6 +388,8 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
 
 def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> tuple[bool, str]:
     """Find a VERIFIED record whose scope matches target."""
+    if not _load_gate():
+        return False, "gate script not available"
     target_rel = norm_path(target).lstrip("/")
     if not root:
         root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
@@ -474,8 +491,8 @@ def guard(json_in: dict) -> dict:
                             "decision": "deny",
                             "reason": f"Methodology chain validation failed for {rel}: {reason}"
                         }
-            except Exception:
-                pass  # Best-effort — don't block on parse errors
+            except Exception as exc:
+                sys.stderr.write(f"metodoloji: story validation error for {rel}: {exc}\n")
             # Story validation passed — continue to next target
             # (story files don't need experiment approval check)
             continue
@@ -503,8 +520,8 @@ def guard(json_in: dict) -> dict:
                         "decision": "deny",
                         "reason": f"Secret access pattern detected in {rel} — blocked."
                     }
-            except Exception:
-                pass
+            except Exception as exc:
+                sys.stderr.write(f"metodoloji: secret check error for {rel}: {exc}\n")
 
         # Find approved record
         approved, detail = find_approved(rel, root=root)
@@ -526,19 +543,6 @@ def _is_git_commit(command: str) -> bool:
     return bool(re.search(r"\bgit\b.*\bcommit\b", command))
 
 
-def _extract_story_key_from_content(content: str) -> str:
-    """Extract story key from file content — matches 'S-XXX' in title or 'N-N-slug' pattern."""
-    # Try '# Story: S-XXX' header first (handles space variations around colon)
-    m = re.search(r"#\s+Story\s*:\s*(\S+)", content, re.IGNORECASE)
-    if m:
-        return m.group(1)
-    # Try '# Story S-XXX' (no colon)
-    m = re.search(r"#\s+Story\s+(\S+)", content, re.IGNORECASE)
-    if m:
-        return m.group(1)
-    return ""
-
-
 def _find_done_stories_without_qr(root: str) -> list[str]:
     """Find stories with Status: done that lack a QR record.
 
@@ -558,9 +562,6 @@ def _find_done_stories_without_qr(root: str) -> list[str]:
             except OSError:
                 pass
 
-    # Regex: matches 'Status: done', '- **Status:** done', etc.
-    _DONE_RE = re.compile(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(done)", re.IGNORECASE | re.MULTILINE)
-
     missing: list[str] = []
     for story_file in stories_dir.glob("S-*.md"):
         try:
@@ -571,7 +572,7 @@ def _find_done_stories_without_qr(root: str) -> list[str]:
         if not status_match:
             continue
         # Extract story key from content (title) or filename
-        story_key = _extract_story_key_from_content(content)
+        story_key = extract_story_key_from_content(content)
         if not story_key:
             # Fallback: extract from filename (S-NNN → try content for N-N-slug)
             key_match = re.search(r"(\d+-\d+-[a-z][a-z0-9-]+)", content, re.IGNORECASE)
@@ -604,8 +605,6 @@ def _find_done_stories_without_sp(root: str) -> list[str]:
             except OSError:
                 pass
 
-    _DONE_RE = re.compile(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(done)", re.IGNORECASE | re.MULTILINE)
-
     missing: list[str] = []
     for story_file in stories_dir.glob("S-*.md"):
         try:
@@ -619,7 +618,7 @@ def _find_done_stories_without_sp(root: str) -> list[str]:
         sp_ref = re.search(r"\bSP-(\d+)\b", content, re.IGNORECASE)
         if not sp_ref:
             continue  # No SP reference = not checked
-        story_key = _extract_story_key_from_content(content)
+        story_key = extract_story_key_from_content(content)
         if not story_key:
             key_match = re.search(r"(\d+-\d+-[a-z][a-z0-9-]+)", content, re.IGNORECASE)
             if key_match:
@@ -655,8 +654,6 @@ def _find_done_stories_without_ir(root: str) -> list[str]:
         return []  # IR gate was evaluated — OK
 
     # No IR records exist — check if there are done stories
-    _DONE_RE = re.compile(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(done)", re.IGNORECASE | re.MULTILINE)
-
     missing: list[str] = []
     for story_file in stories_dir.glob("S-*.md"):
         try:
@@ -666,7 +663,7 @@ def _find_done_stories_without_ir(root: str) -> list[str]:
         status_match = _DONE_RE.search(content)
         if not status_match:
             continue
-        story_key = _extract_story_key_from_content(content)
+        story_key = extract_story_key_from_content(content)
         if not story_key:
             key_match = re.search(r"(\d+-\d+-[a-z][a-z0-9-]+)", content, re.IGNORECASE)
             if key_match:
@@ -769,9 +766,6 @@ def _find_done_stories_without_pr(root: str) -> list[str]:
             except OSError:
                 pass
 
-    # Regex: matches 'Status: done', '- **Status:** done', etc.
-    _DONE_RE = re.compile(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(done)", re.IGNORECASE | re.MULTILINE)
-
     missing: list[str] = []
     for story_file in stories_dir.glob("S-*.md"):
         try:
@@ -782,7 +776,7 @@ def _find_done_stories_without_pr(root: str) -> list[str]:
         if not status_match:
             continue
         # Extract story key from content (title) or filename
-        story_key = _extract_story_key_from_content(content)
+        story_key = extract_story_key_from_content(content)
         if not story_key:
             key_match = re.search(r"(\d+-\d+-[a-z][a-z0-9-]+)", content, re.IGNORECASE)
             if key_match:

@@ -5,9 +5,16 @@ import os
 import pathlib
 import re
 
-from .config import GATE_DIR, RUNTIME
+from .config import GATE_DIR, RUNTIME, _DONE_RE
 from .guard import find_approved
-from .utils import is_free
+from .utils import is_free, norm_path
+
+# ponytail: directory-level prune — skip known-non-code dirs entirely
+_CODE_SUFFIXES = frozenset({".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".go", ".rs"})
+_SKIP_DIRS = frozenset({
+    ".git", "__pycache__", "node_modules", ".metodoloji", "scratch",
+    "tmp", "temp", "docs", "templates", "commands", ".plugin", "bmad",
+})
 
 
 def _check_story_status(root: str) -> tuple[bool, str]:
@@ -45,15 +52,16 @@ def stop(json_in: dict) -> dict:
     if should_block:
         return {"decision": "deny", "reason": reason}
 
-    # 2. Check for unapproved code changes
-    for p in pathlib.Path(root).rglob("*"):
-        if p.is_file() and p.suffix in (".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".go", ".rs"):
-            rel = str(p.relative_to(root))
-            # Skip free zones (scratch/, .metodoloji/, plugin root, tmp/, temp/...):
-            # the manifesto declares these exempt from experiment approval. Also skip
-            # git-ignored files: only tracked (or new) source in protected areas is
-            # meant to block stop. guard.py already applies is_free()/is_code_target()
-            # to writes; this keeps stop consistent with it.
+    # 2. Check for unapproved code changes (directory-level prune for speed)
+    for dirpath, dirnames, filenames in os.walk(root):
+        # Prune known non-code directories in-place
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+        for fname in filenames:
+            ext = pathlib.PurePosixPath(fname).suffix.lower()
+            if ext not in _CODE_SUFFIXES:
+                continue
+            full = pathlib.Path(dirpath) / fname
+            rel = norm_path(str(full.relative_to(root)))
             if is_free(rel):
                 continue
             approved, _ = find_approved(rel)

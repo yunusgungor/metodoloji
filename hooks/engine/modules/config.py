@@ -21,6 +21,9 @@ GATE_DIR = _first_existing([
     _HERE.parent.parent / "skills" / "bmad-research-experiment" / "scripts",
 ])
 
+# Shared story status regex (DRY: used by guard, stop, audit)
+_DONE_RE = re.compile(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(done)", re.IGNORECASE | re.MULTILINE)
+
 # Log file location
 def log_file() -> str:
     # OpenHands plugin olarak her zaman .metodoloji/logs/ kullan
