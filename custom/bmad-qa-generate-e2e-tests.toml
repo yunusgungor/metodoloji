@@ -14,5 +14,5 @@ activation_steps_prepend = [
 ]
 activation_steps_append = [
   "Tie every E2E test to an experiment record under docs/experiments/: the test asserts a falsifiable hypothesis (H-id) with a threshold. Do not fabricate expected values to make a test pass — a test that cannot fail is not a measurement.",
-  "KÖPRÜ: Bu skill bagimsiz bir metodoloji kaydi uretmez; E2E test sonuclarini bmad-code-review'in urettigi docs/development/QR-<sira>.md kaydinin 'Mekanik kontroller' bolumune ekler (docs/bmad/dev-skill-to-methodology-bridge.md §1.1 ve §3.1 Faz 3). Eger bagli bir QR kaydi yoksa (bmad-code-review onceden calismadiysa), once onu calistirmayi soyle; bulgulari QR'a besle, ayri kayit acma. Bulgu varsa ilgili QR kaydini guncelle ve native test ciktisina 'Metodoloji kaydi: docs/development/QR-<sira>.md' referansini ekle."
+  "KÖPRÜ: Bu skill bagimsiz bir metodoloji kaydi uretmez; E2E test sonuclarini bmad-code-review'in urettigi docs/development/QR-<sira>.md kaydinin 'Mekanik kontroller' bolumune ekler (docs/bmad/dev-skill-to-methodology-bridge.md §1 ve §3.1 Faz 3). Eger bagli bir QR kaydi yoksa (bmad-code-review onceden calismadiysa), once onu calistirmayi soyle; bulgulari QR'a besle, ayri kayit acma. Bulgu varsa ilgili QR kaydini guncelle ve native test ciktisina 'Metodoloji kaydi: docs/development/QR-<sira>.md' referansini ekle."
 ]
