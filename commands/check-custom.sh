@@ -17,8 +17,8 @@
 #
 # Kullanım:  sh commands/check-custom.sh
 #            sh commands/check-custom.sh --negtest
-#            (yalnızca negatif test: §3 hard-gate + §7 bridge drift → MISS
-#             yakala → geri yükle)
+#            (yalnızca negatif test: §3 hard-gate + §7 bridge drift (2/2:
+#             §N.N sil, bolum N.N enjekte) → MISS yakala → geri yükle)
 # Çıkış:     her satırın başında [OK] / [UYARI] / [HATA]; sonunda genel durum.
 set -u
 
@@ -134,7 +134,39 @@ if "### §2.3" in broken_bridge or "§2.3" in broken_bridge:
 if not has_bridge_drift_error(broken_bridge):
     print("[HATA] negatif test 2 başarısız: §2.3 bridge'den silindiği halde §7 mantığı yakalamadı")
     sys.exit(1)
-print("[OK]   negatif test 2/2: bridge §2.3 silindi → §7 MISS yakalandı → bridge geri yüklendi")
+print("[OK]   negatif test 2/3: bridge §2.3 silindi → §7 MISS yakalandı → bridge geri yüklendi")
+
+# ---- Test 3: §7 bolum N.N kalıbı ----
+# bmad-testarch-atdd.toml'a "bolum 99.99" enjekte et — bridge'de olmayan
+# bir bölüm, §7 "bolum" kalıbını da yakalamalı.
+test_toml = PLUGIN / "custom" / "bmad-testarch-atdd.toml"
+orig_test_toml = test_toml.read_text(encoding="utf-8")
+
+def has_bolum_drift_error(text: str) -> bool:
+    test_toml.write_text(text, encoding="utf-8")
+    try:
+        r = subprocess.run(
+            ["sh", str(PLUGIN / "commands" / "check-custom.sh")],
+            capture_output=True, text=True, encoding="utf-8", timeout=30)
+        out = r.stdout
+        for line in out.splitlines():
+            if "bmad-testarch-atdd" in line and "bridge'de olmayan" in line:
+                return True
+        return False
+    finally:
+        test_toml.write_text(orig_test_toml, encoding="utf-8")
+
+if has_bolum_drift_error(orig_test_toml):
+    print("[HATA] sağlam testarch TOML'da bile bolum drift hatası görünüyor — test kurulumu bozuk")
+    sys.exit(1)
+
+# Yorum satırı olarak enjekte et ki TOML semantiği bozulmasın. Testarch
+# dosyası zaten bridge referansı taşıdığı için §7 onu denetliyor.
+broken_toml = orig_test_toml + "\n# drift test: bolum 99.99\n"
+if not has_bolum_drift_error(broken_toml):
+    print("[HATA] negatif test 3 başarısız: 'bolum 99.99' enjekte edildiği halde §7 mantığı yakalamadı")
+    sys.exit(1)
+print("[OK]   negatif test 3/3: 'bolum 99.99' enjekte edildi → §7 MISS yakalandı → testarch TOML geri yüklendi")
 sys.exit(0)
 PY
     exit $?
@@ -529,7 +561,7 @@ fi
 
 echo "== 7) Köprü belge §N.N referans drift denetimi =="
 # dev-skill-to-methodology-bridge referansı taşıyan custom/*.toml dosyalarında
-# kullanılan §N.N bölüm referansları bridge.md'de gerçekten var olmalı.
+# kullanılan §N.N (veya "bolum N.N" kalıbı) bridge.md'de gerçekten var olmalı.
 # Bu, bridge belgesi güncellendiğinde custom/'un drift'ini yakalar (silinen/
 # yeniden adlandırılan bölümlerden doğan yanlış referansları).
 "$PY" - <<'PY'
@@ -550,6 +582,15 @@ with open(BRIDGE, encoding="utf-8") as f:
     for m in re.finditer(r'^(?:##|###) §([0-9]+(?:\.[0-9]+[a-z]?)?)', f.read(), re.M):
         bridge_secs.add(m.group(1))
 
+# Her dosyada iki kalıbı yakala: "§N.N" ve "bolum/bölüm N.N" (büyük-küçük
+# harf duyarsız). İkinci kalıp, § öneki unutulmuş yanlış yazımları yakalar
+# (örn. "bolum 1.1 ve 3.1 Faz 3" — 7 gds-* test dosyasında görüldü).
+SECTION_RE = re.compile(
+    r'(?:§([0-9]+(?:\.[0-9]+[a-z]?)?)'
+    r'|(?:bol[uü]m)\s+([0-9]+(?:\.[0-9]+[a-z]?)?))',
+    re.IGNORECASE,
+)
+
 problems = []
 checked = 0
 for path in sorted(glob.glob(os.path.join(PLUGIN, "custom", "*.toml"))):
@@ -567,8 +608,10 @@ for path in sorted(glob.glob(os.path.join(PLUGIN, "custom", "*.toml"))):
         continue
     checked += 1
     refs = set()
-    for m in re.finditer(r'§([0-9]+(?:\.[0-9]+[a-z]?)?)', text):
-        refs.add(m.group(1))
+    for m in SECTION_RE.finditer(text):
+        sec = m.group(1) or m.group(2)
+        if sec:
+            refs.add(sec)
     unknown = sorted(refs - bridge_secs)
     if unknown:
         problems.append("%s: bridge'de olmayan §N.N → %s (yazım hatası veya "
