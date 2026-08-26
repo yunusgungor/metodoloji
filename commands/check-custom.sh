@@ -17,7 +17,7 @@
 #
 # Kullanım:  sh commands/check-custom.sh
 #            sh commands/check-custom.sh --negtest
-#            (yalnızca negatif test: hard-gate anahtar kelimesini sil → §3 MISS
+#            (yalnızca negatif test: §3 hard-gate + §7 bridge drift → MISS
 #             yakala → geri yükle)
 # Çıkış:     her satırın başında [OK] / [UYARI] / [HATA]; sonunda genel durum.
 set -u
@@ -25,9 +25,12 @@ set -u
 PROBLEMS=0
 
 if [ "${1:-}" = "--negtest" ]; then
-    # Negatif test: bmad-dev-story.toml içinden hard-gate anahtar kelimelerini
-    # (ONAYLANDI / REDDEDİLDİ / FORGED / VERIFIED) geçici kaldır, §3 mantığının
-    # MISS ürettiğini doğrula, dosyayı geri yükle.
+    # Negatif test 1: §3 hard-gate — bmad-dev-story.toml'dan hard-gate
+    # anahtar kelimelerini (ONAYLANDI / REDDEDİLDİ / FORGED / VERIFIED) geçici
+    # kaldır, §3 mantığının MISS ürettiğini doğrula, dosyayı geri yükle.
+    # Negatif test 2: §7 bridge drift — bridge.md'den "### §2.3" başlığını
+    # geçici kaldır, custom/ dosyalarındaki §2.3 referanslarından dolayı §7
+    # mantığının MISS ürettiğini doğrula, bridge'i geri yükle.
     SELF=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
     PLUGIN_ROOT=$(CDPATH= cd -- "$SELF/.." && pwd)
     PY=
@@ -44,46 +47,94 @@ from pathlib import Path
 
 PLUGIN = Path(os.environ["PLUGIN_ROOT"])
 toml = PLUGIN / "custom" / "bmad-dev-story.toml"
-orig = toml.read_text(encoding="utf-8")
-
+bridge = PLUGIN / "docs" / "bmad" / "dev-skill-to-methodology-bridge.md"
 KEYWORDS = ("ONAYLANDI", "REDDEDİLDİ", "FORGED", "VERIFIED")
 
+orig_toml = toml.read_text(encoding="utf-8")
+orig_bridge = bridge.read_text(encoding="utf-8")
+
+# ---- Test 1: §3 hard-gate ----
 def has_dev_story_gate_error(text: str) -> bool:
-    """Check-custom.sh çıktısında bmad-dev-story hard-gate hatası var mı?"""
     toml.write_text(text, encoding="utf-8")
     try:
         r = subprocess.run(
             ["sh", str(PLUGIN / "commands" / "check-custom.sh")],
             capture_output=True, text=True, encoding="utf-8", timeout=30)
         out = r.stdout
-        # §3 hard-gate hatası: "bmad-dev-story" + "hard-gate" geçen bir satır.
         for line in out.splitlines():
             if "bmad-dev-story" in line and "hard-gate" in line:
                 return True
         return False
     finally:
-        toml.write_text(orig, encoding="utf-8")
+        toml.write_text(orig_toml, encoding="utf-8")
 
-# Sağlam hal: hard-gate hatası OLMAMALI.
-if has_dev_story_gate_error(orig):
+if has_dev_story_gate_error(orig_toml):
     print("[HATA] sağlam custom TOML'da bile hard-gate hatası görünüyor — test kurulumu bozuk")
     sys.exit(1)
 
-# Anahtar kelimeler içeren satırları sil.
-broken = "\n".join(
-    l for l in orig.splitlines()
+broken_toml = "\n".join(
+    l for l in orig_toml.splitlines()
     if not any(k in l for k in KEYWORDS)
 )
-removed = orig.count("ONAYLANDI") + orig.count("REDDEDİLDİ") + orig.count("FORGED") + orig.count("VERIFIED")
-removed_after = broken.count("ONAYLANDI") + broken.count("REDDEDİLDİ") + broken.count("FORGED") + broken.count("VERIFIED")
+removed = (orig_toml.count("ONAYLANDI") + orig_toml.count("REDDEDİLDİ")
+           + orig_toml.count("FORGED") + orig_toml.count("VERIFIED"))
+removed_after = (broken_toml.count("ONAYLANDI") + broken_toml.count("REDDEDİLDİ")
+                 + broken_toml.count("FORGED") + broken_toml.count("VERIFIED"))
 if removed == removed_after or removed == 0:
     print("[HATA] anahtar kelimeler bulunamadı veya temizlenemedi — test kurulumu bozuk")
     sys.exit(1)
 
-if not has_dev_story_gate_error(broken):
-    print("[HATA] negatif test başarısız: hard-gate silindiği halde §3 mantığı yakalamadı")
+if not has_dev_story_gate_error(broken_toml):
+    print("[HATA] negatif test 1 başarısız: hard-gate silindiği halde §3 mantığı yakalamadı")
     sys.exit(1)
-print("[OK]   negatif test: hard-gate anahtar kelimeleri silindi → §3 MISS yakalandı → custom TOML geri yüklendi")
+print("[OK]   negatif test 1/2: hard-gate anahtar kelimeleri silindi → §3 MISS yakalandı")
+
+# ---- Test 2: §7 bridge drift ----
+def has_bridge_drift_error(bridge_text: str) -> bool:
+    """§7 drift: bridge'den §2.3 kaldırıldığında custom/ dosyalarındaki §2.3
+    referanslarından dolayı 'köprü §N.N drift' UYARI satırı çıkmalı."""
+    bridge.write_text(bridge_text, encoding="utf-8")
+    try:
+        r = subprocess.run(
+            ["sh", str(PLUGIN / "commands" / "check-custom.sh")],
+            capture_output=True, text=True, encoding="utf-8", timeout=30)
+        out = r.stdout
+        for line in out.splitlines():
+            if "köprü §N.N drift" in line or "bridge'de olmayan" in line:
+                return True
+        return False
+    finally:
+        bridge.write_text(orig_bridge, encoding="utf-8")
+
+if has_bridge_drift_error(orig_bridge):
+    print("[HATA] sağlam bridge'de bile drift hatası görünüyor — test kurulumu bozuk")
+    sys.exit(1)
+
+# bridge'den "### §2.3" bloğunu satır-bazlı sil: başlık satırından sonraki
+# `### ` veya `## ` başlığına kadar. Drift testinin minimum müdahalesi.
+def remove_section_23(text: str) -> str:
+    lines = text.splitlines(keepends=True)
+    out = []
+    skip = False
+    for line in lines:
+        if line.startswith("### §2.3"):
+            skip = True
+            continue
+        if skip and (line.startswith("### ") or line.startswith("## ")):
+            skip = False
+        if not skip:
+            out.append(line)
+    return "".join(out)
+
+broken_bridge = remove_section_23(orig_bridge)
+if "### §2.3" in broken_bridge or "§2.3" in broken_bridge:
+    print("[HATA] bridge'den §2.3 silinemedi — başlık farklı veya eşleşmedi")
+    sys.exit(1)
+
+if not has_bridge_drift_error(broken_bridge):
+    print("[HATA] negatif test 2 başarısız: §2.3 bridge'den silindiği halde §7 mantığı yakalamadı")
+    sys.exit(1)
+print("[OK]   negatif test 2/2: bridge §2.3 silindi → §7 MISS yakalandı → bridge geri yüklendi")
 sys.exit(0)
 PY
     exit $?
