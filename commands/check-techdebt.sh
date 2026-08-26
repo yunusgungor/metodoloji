@@ -54,7 +54,7 @@ orig = td.read_text(encoding="utf-8")
 print(f"[1/{total_stages}] aktif tabloya duplicate TD-010 eklenince §4 çakışma yakalıyor mu")
 # Aktif tabloya TD-010 satırı ekleyelim (P0 olarak), ödenmiş tabloda zaten var.
 broken = re.sub(
-    r"(\| TD-001 \|[^\n]+\n)",
+    r"(\| TD-003 \|[^\n]+\n)",
     r"\1| TD-010 | duplicate-test | test | 2026-08-26 | Test | @test | SP-001 |\n",
     orig, count=1)
 td.write_text(broken, encoding="utf-8")
@@ -70,14 +70,29 @@ finally:
 
 # Aşama 2/3: Aktif P0 sayısı 6'ya çıkarıldığında §3 hard limit devreye giriyor mu?
 print(f"[2/{total_stages}] P0 sayısı 6 olduğunda §3 hard limit devreye giriyor mu")
+# P0 bölümünün "—    | —" placeholder satırını bul ve 5 yeni P0 satırı ekle.
+# Eğer TD-001 gibi gerçek bir P0 satırı varsa ondan sonra ekler; yoksa
+# placeholder'dan sonra ekler.
 broken = re.sub(
-    r"(\| TD-001 \|[^\n]+\n)",
-    r"\1| TD-101 | P0-test-2 | t | 2026-08-26 | Test | @t | SP-001 |\n"
-    r"| TD-102 | P0-test-3 | t | 2026-08-26 | Test | @t | SP-001 |\n"
-    r"| TD-103 | P0-test-4 | t | 2026-08-26 | Test | @t | SP-001 |\n"
-    r"| TD-104 | P0-test-5 | t | 2026-08-26 | Test | @t | SP-001 |\n"
-    r"| TD-105 | P0-test-6 | t | 2026-08-26 | Test | @t | SP-001 |\n",
+    r"(\| —    \| —     \| —             \| —             \| —    \| —      \| —            \|\n)",
+    r"\1| TD-101 | P0-test-1 | t | 2026-08-26 | Test | @t | SP-001 |\n"
+    r"| TD-102 | P0-test-2 | t | 2026-08-26 | Test | @t | SP-001 |\n"
+    r"| TD-103 | P0-test-3 | t | 2026-08-26 | Test | @t | SP-001 |\n"
+    r"| TD-104 | P0-test-4 | t | 2026-08-26 | Test | @t | SP-001 |\n"
+    r"| TD-105 | P0-test-5 | t | 2026-08-26 | Test | @t | SP-001 |\n"
+    r"| TD-106 | P0-test-6 | t | 2026-08-26 | Test | @t | SP-001 |\n",
     orig, count=1)
+# Eğer placeholder yoksa, TD-001 satırından sonra ekle (eski davranış).
+if "P0-test-1" not in broken:
+    broken = re.sub(
+        r"(\| TD-001 \|[^\n]+\n)",
+        r"\1| TD-101 | P0-test-1 | t | 2026-08-26 | Test | @t | SP-001 |\n"
+        r"| TD-102 | P0-test-2 | t | 2026-08-26 | Test | @t | SP-001 |\n"
+        r"| TD-103 | P0-test-3 | t | 2026-08-26 | Test | @t | SP-001 |\n"
+        r"| TD-104 | P0-test-4 | t | 2026-08-26 | Test | @t | SP-001 |\n"
+        r"| TD-105 | P0-test-5 | t | 2026-08-26 | Test | @t | SP-001 |\n"
+        r"| TD-106 | P0-test-6 | t | 2026-08-26 | Test | @t | SP-001 |\n",
+        orig, count=1)
 td.write_text(broken, encoding="utf-8")
 try:
     r = run_check()

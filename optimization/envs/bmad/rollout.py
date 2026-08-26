@@ -479,13 +479,20 @@ def _run_techdebt(task: dict) -> str:
             with open(sandbox_tmpl, "a", encoding="utf-8") as f:
                 f.write("\n| TD-200 | extra-drift | drift | 2026-08-26 | Test | @t | SP-001 |\n")
         elif "duplicate" in q or scenario == "duplicate_id":
-            # Aktif tabloya mevcut ödenmiş ID'yi (TD-010) tekrar ekle
+            # Aktif tabloya mevcut ödenmiş ID'yi (TD-010) tekrar ekle.
+            # Önce P0 placeholder satırını dene; yoksa TD-003 (P2) satırından sonra.
             with open(sandbox_live, "r", encoding="utf-8") as f:
                 txt = f.read()
             new_row = "\n| TD-010 | dup-test | dup | 2026-08-26 | Test | @t | SP-001 |\n"
-            txt = re.sub(r"(\| TD-001 \|[^\n]+\n)", r"\1" + new_row, txt, count=1)
+            new_txt = re.sub(
+                r"(\| —    \| —     \| —             \| —             \| —    \| —      \| —            \|\n)",
+                r"\1" + new_row, txt, count=1)
+            if "TD-010 | dup-test" not in new_txt:
+                new_txt = re.sub(r"(\| TD-003 \|[^\n]+\n)", r"\1" + new_row, txt, count=1)
+            if "TD-010 | dup-test" not in new_txt:
+                new_txt = re.sub(r"(\| TD-001 \|[^\n]+\n)", r"\1" + new_row, txt, count=1)
             with open(sandbox_live, "w", encoding="utf-8") as f:
-                f.write(txt)
+                f.write(new_txt)
         elif "6 active p0" in q or "exceed" in q or scenario == "p0_overflow":
             # Aktif P0 sayısını 6'ya çıkar
             with open(sandbox_live, "r", encoding="utf-8") as f:
@@ -493,9 +500,15 @@ def _run_techdebt(task: dict) -> str:
             extra = "".join(
                 f"| TD-{100+i} | p0-test-{i} | t | 2026-08-26 | Test | @t | SP-001 |\n"
                 for i in range(1, 6))
-            txt = re.sub(r"(\| TD-001 \|[^\n]+\n)", r"\1" + extra, txt, count=1)
+            new_txt = re.sub(
+                r"(\| —    \| —     \| —             \| —             \| —    \| —      \| —            \|\n)",
+                r"\1" + extra, txt, count=1)
+            if "p0-test-1" not in new_txt:
+                new_txt = re.sub(r"(\| TD-003 \|[^\n]+\n)", r"\1" + extra, txt, count=1)
+            if "p0-test-1" not in new_txt:
+                new_txt = re.sub(r"(\| TD-001 \|[^\n]+\n)", r"\1" + extra, txt, count=1)
             with open(sandbox_live, "w", encoding="utf-8") as f:
-                f.write(txt)
+                f.write(new_txt)
         elif "orphan" in q or scenario == "orphan_todo":
             # optimization/_negtest_orphan.py içine orphan TODO enjekte et.
             # Üretim kaynağında literal "TD-999" string'i olmamalı —
