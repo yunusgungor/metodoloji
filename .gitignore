@@ -2,5 +2,12 @@ __pycache__/
 *.pyc
 .metodoloji/logs/
 _generated_splits/
-optimization/output/
+# optimization/output/ genel olarak ignore; baseline.json + README + config.json
+# için satırlı istisna aşağıda.
+optimization/output/*
+!optimization/output/README.md
+!optimization/output/baseline.json
+!optimization/output/*/config.json
+# baseline.py'nin her koşuda yeniden ürettiği geçici veri
+optimization/benchmarks/data/_baseline_combined.jsonl
 .env
