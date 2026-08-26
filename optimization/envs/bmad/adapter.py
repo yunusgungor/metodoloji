@@ -5,6 +5,8 @@ Each benchmark task tests a specific methodology rule (guard, quality, deploy, e
 """
 from __future__ import annotations
 
+import os
+
 from skillopt.datasets.base import BatchSpec
 from skillopt.envs.base import EnvAdapter
 
@@ -57,6 +59,22 @@ class BmadAdapter(EnvAdapter):
     def setup(self, cfg: dict) -> None:
         super().setup(cfg)
         self.dataloader.setup(cfg)
+
+        # Configure openai_compatible backend if not already set
+        if not os.environ.get("REFLACT_MODEL_BACKEND"):
+            os.environ["REFLACT_MODEL_BACKEND"] = "openai_compatible"
+        if not os.environ.get("OPENAI_COMPATIBLE_BASE_URL"):
+            os.environ["OPENAI_COMPATIBLE_BASE_URL"] = cfg.get(
+                "openai_compatible_base_url", "http://localhost:20128/v1"
+            )
+        if not os.environ.get("OPENAI_COMPATIBLE_API_KEY"):
+            os.environ["OPENAI_COMPATIBLE_API_KEY"] = cfg.get(
+                "openai_compatible_api_key", "sk-2d3c99a72a01cbcc-smtwcf-24b76850"
+            )
+        if not os.environ.get("OPENAI_COMPATIBLE_MODEL"):
+            os.environ["OPENAI_COMPATIBLE_MODEL"] = cfg.get(
+                "target_model", "oc/mimo-v2.5-free"
+            )
 
     def get_dataloader(self):
         return self.dataloader

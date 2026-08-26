@@ -22,6 +22,12 @@ sys.path.insert(0, str(PROJECT_ROOT))
 OPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(OPT_DIR))
 
+# Configure openai_compatible backend BEFORE any skillopt imports
+os.environ.setdefault("REFLACT_MODEL_BACKEND", "openai_compatible")
+os.environ.setdefault("OPENAI_COMPATIBLE_BASE_URL", "http://localhost:20128/v1")
+os.environ.setdefault("OPENAI_COMPATIBLE_API_KEY", "sk-2d3c99a72a01cbcc-smtwcf-24b76850")
+os.environ.setdefault("OPENAI_COMPATIBLE_MODEL", "oc/mimo-v2.5-free")
+
 
 # Hook-chain skills to optimize in order
 HOOK_CHAIN_SKILLS = [
@@ -132,6 +138,7 @@ def run_benchmark(skill_name: str, cfg: dict) -> dict:
         workers=cfg.get("workers", 4),
         max_completion_tokens=cfg.get("max_completion_tokens", 4096),
     )
+    adapter.setup(cfg)
 
     # Load initial skill
     skill_content = load_skill_content(skill_name)

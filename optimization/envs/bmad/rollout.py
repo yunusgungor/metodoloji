@@ -6,7 +6,18 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from skillopt.model import chat_target
+from skillopt.model import chat_target, set_backend
+
+# Ensure openai_compatible backend is configured
+if not os.environ.get("REFLACT_MODEL_BACKEND"):
+    os.environ["REFLACT_MODEL_BACKEND"] = "openai_compatible"
+if not os.environ.get("OPENAI_COMPATIBLE_BASE_URL"):
+    os.environ["OPENAI_COMPATIBLE_BASE_URL"] = "http://localhost:20128/v1"
+if not os.environ.get("OPENAI_COMPATIBLE_API_KEY"):
+    os.environ["OPENAI_COMPATIBLE_API_KEY"] = "sk-2d3c99a72a01cbcc-smtwcf-24b76850"
+if not os.environ.get("OPENAI_COMPATIBLE_MODEL"):
+    os.environ["OPENAI_COMPATIBLE_MODEL"] = "oc/mimo-v2.5-free"
+set_backend("openai_compatible")
 
 from .evaluator import evaluate_task
 
@@ -41,12 +52,15 @@ def _process_one(
     # Call the target model
     t0 = time.time()
     try:
-        response = chat_target(
+        raw = chat_target(
             system=system_prompt,
             user=question,
             max_completion_tokens=max_completion_tokens,
-            temperature=0.0,
         )
+        # chat_target returns (content, usage_dict) tuple
+        response = raw[0] if isinstance(raw, tuple) else raw
+        if response is None:
+            response = ""
         elapsed = time.time() - t0
     except Exception as e:
         elapsed = time.time() - t0
@@ -154,17 +168,12 @@ def run_batch(
                 try:
                     rec = json.loads(line)
                     completed_ids.add(str(rec.get("id", "")))
+                    results.append(rec)
                 except json.JSONDecodeError:
                     pass
 
     pending = [item for item in items if str(item.get("id", "")) not in completed_ids]
     if not pending:
-        # Load all from results
-        with open(completed_path, encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    results.append(json.loads(line))
         return results
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
