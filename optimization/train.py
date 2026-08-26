@@ -25,8 +25,8 @@ sys.path.insert(0, str(OPT_DIR))
 # Configure openai_compatible backend BEFORE any skillopt imports
 os.environ.setdefault("REFLACT_MODEL_BACKEND", "openai_compatible")
 os.environ.setdefault("OPENAI_COMPATIBLE_BASE_URL", "http://localhost:20128/v1")
-os.environ.setdefault("OPENAI_COMPATIBLE_API_KEY", "sk-2d3c99a72a01cbcc-smtwcf-24b76850")
-os.environ.setdefault("OPENAI_COMPATIBLE_MODEL", "crof/deepseek-v4-flash-0731")
+os.environ.setdefault("OPENAI_COMPATIBLE_API_KEY", "sk-fc61075fae8dc7ba-0hru3s-21c10785")
+os.environ.setdefault("OPENAI_COMPATIBLE_MODEL", "kgw/kilo-auto/free")
 
 
 # Hook-chain skills to optimize in order
@@ -41,8 +41,8 @@ HOOK_CHAIN_SKILLS = [
 
 DEFAULT_CONFIG = {
     "model_backend": "openai_compatible",
-    "optimizer_model": "crof/deepseek-v4-flash-0731",
-    "target_model": "crof/deepseek-v4-flash-0731",
+    "optimizer_model": "kgw/kilo-auto/free",
+    "target_model": "kgw/kilo-auto/free",
     "optimizer_backend": "openai_compatible",
     "target_backend": "openai_compatible",
     "num_epochs": 3,

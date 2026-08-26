@@ -25,8 +25,8 @@ sys.path.insert(0, str(OPT_DIR))
 # Configure openai_compatible backend BEFORE any skillopt imports
 os.environ.setdefault("REFLACT_MODEL_BACKEND", "openai_compatible")
 os.environ.setdefault("OPENAI_COMPATIBLE_BASE_URL", "http://localhost:20128/v1")
-os.environ.setdefault("OPENAI_COMPATIBLE_API_KEY", "sk-2d3c99a72a01cbcc-smtwcf-24b76850")
-os.environ.setdefault("OPENAI_COMPATIBLE_MODEL", "crof/deepseek-v4-flash-0731")
+os.environ.setdefault("OPENAI_COMPATIBLE_API_KEY", "sk-fc61075fae8dc7ba-0hru3s-21c10785")
+os.environ.setdefault("OPENAI_COMPATIBLE_MODEL", "kgw/kilo-auto/free")
 
 
 HOOK_CHAIN_SKILLS = [

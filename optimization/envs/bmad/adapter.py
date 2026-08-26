@@ -69,11 +69,11 @@ class BmadAdapter(EnvAdapter):
             )
         if not os.environ.get("OPENAI_COMPATIBLE_API_KEY"):
             os.environ["OPENAI_COMPATIBLE_API_KEY"] = cfg.get(
-                "openai_compatible_api_key", "sk-2d3c99a72a01cbcc-smtwcf-24b76850"
+                "openai_compatible_api_key", "sk-fc61075fae8dc7ba-0hru3s-21c10785"
             )
         if not os.environ.get("OPENAI_COMPATIBLE_MODEL"):
             os.environ["OPENAI_COMPATIBLE_MODEL"] = cfg.get(
-                "target_model", "crof/deepseek-v4-flash-0731"
+                "target_model", "kgw/kilo-auto/free"
             )
 
     def get_dataloader(self):
