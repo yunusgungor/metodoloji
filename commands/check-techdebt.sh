@@ -53,10 +53,15 @@ orig = td.read_text(encoding="utf-8")
 # ekleyince §4 çakışma UYARI + §3 P0 sınırı tetiklenir mi?
 print(f"[1/{total_stages}] aktif tabloya duplicate TD-010 eklenince §4 çakışma yakalıyor mu")
 # Aktif tabloya TD-010 satırı ekleyelim (P0 olarak), ödenmiş tabloda zaten var.
+# Fallback zinciri: P0 placeholder → TD-003 (P2) → TD-001 (eski varsayım)
+new_row = "| TD-010 | duplicate-test | test | 2026-08-26 | Test | @test | SP-001 |\n"
 broken = re.sub(
-    r"(\| TD-003 \|[^\n]+\n)",
-    r"\1| TD-010 | duplicate-test | test | 2026-08-26 | Test | @test | SP-001 |\n",
-    orig, count=1)
+    r"(\| —    \| —     \| —             \| —             \| —    \| —      \| —            \|\n)",
+    r"\1" + new_row, orig, count=1)
+if "TD-010 | duplicate-test" not in broken:
+    broken = re.sub(r"(\| TD-003 \|[^\n]+\n)", r"\1" + new_row, orig, count=1)
+if "TD-010 | duplicate-test" not in broken:
+    broken = re.sub(r"(\| TD-001 \|[^\n]+\n)", r"\1" + new_row, orig, count=1)
 td.write_text(broken, encoding="utf-8")
 try:
     r = run_check()
