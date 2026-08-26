@@ -87,7 +87,7 @@ if removed == removed_after or removed == 0:
 if not has_dev_story_gate_error(broken_toml):
     print("[HATA] negatif test 1 başarısız: hard-gate silindiği halde §3 mantığı yakalamadı")
     sys.exit(1)
-print("[OK]   negatif test 1/2: hard-gate anahtar kelimeleri silindi → §3 MISS yakalandı")
+print("[OK]   negatif test 1/3: hard-gate anahtar kelimeleri silindi → §3 MISS yakalandı")
 
 # ---- Test 2: §7 bridge drift ----
 def has_bridge_drift_error(bridge_text: str) -> bool:
