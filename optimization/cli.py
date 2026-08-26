@@ -86,6 +86,8 @@ def cmd_optimize(args):
         cfg["batch_size"] = args.batch_size
     if args.edit_budget:
         cfg["edit_budget"] = args.edit_budget
+    if getattr(args, "force_accept", False):
+        cfg["use_gate"] = False
 
     if args.skill:
         skills = [args.skill]
@@ -202,6 +204,7 @@ def main():
     p_opt.add_argument("--epochs", type=int, default=3)
     p_opt.add_argument("--batch-size", type=int, default=10)
     p_opt.add_argument("--edit-budget", type=int, default=6)
+    p_opt.add_argument("--force-accept", action="store_true", help="Disable gate, accept all candidates")
 
     # compare
     sub.add_parser("compare", help="Compare before/after results")

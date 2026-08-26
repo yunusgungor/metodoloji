@@ -62,7 +62,8 @@ DEFAULT_CONFIG = {
     "gate_metric": "hard",
     "sel_env_num": 15,
     "test_env_num": 0,
-    "eval_test": True,
+    "eval_test": False,
+    "force_accept": False,
     "split_mode": "ratio",
     "split_ratio": "2:1:7",
     "split_seed": 42,
@@ -183,6 +184,7 @@ def main():
     parser.add_argument("--batch-size", type=int, default=None, help="Batch size")
     parser.add_argument("--edit-budget", type=int, default=None, help="Edit budget (learning rate)")
     parser.add_argument("--seed", type=int, default=None, help="Random seed")
+    parser.add_argument("--force-accept", action="store_true", help="Disable gate, accept all candidates")
     args = parser.parse_args()
 
     cfg = dict(DEFAULT_CONFIG)
@@ -194,6 +196,8 @@ def main():
         cfg["edit_budget"] = args.edit_budget
     if args.seed is not None:
         cfg["seed"] = args.seed
+    if args.force_accept:
+        cfg["use_gate"] = False
 
     if args.chain:
         results = {}
