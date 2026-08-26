@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
 .metodoloji/logs/
+_generated_splits/
+optimization/output/
