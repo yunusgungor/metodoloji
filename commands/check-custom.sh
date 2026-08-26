@@ -13,6 +13,7 @@
 #   4. Köprü DOGRULAMA kalıbı (gate uygulayıcılar: "ls -la ... HATA ver")
 #   5. gds-* Mod A köprü referansı (dev-skill-to-methodology-bridge zorunlu)
 #   6. config.toml [hooks] soft/hard sözleşmesi (DRY: §5b ile aynı parser)
+#   7. Köprü belge §N.N referans drift denetimi (bridge.md bölümleriyle senkron)
 #
 # Kullanım:  sh commands/check-custom.sh
 #            sh commands/check-custom.sh --negtest
@@ -472,6 +473,66 @@ if [ $? -eq 0 ]; then
     echo "[OK]   config soft/hard sözleşmesi geçerli"
 else
     echo "[UYARI] config soft/hard sorunu (yukarı bak)"
+    PROBLEMS=$((PROBLEMS + 1))
+fi
+
+echo "== 7) Köprü belge §N.N referans drift denetimi =="
+# dev-skill-to-methodology-bridge referansı taşıyan custom/*.toml dosyalarında
+# kullanılan §N.N bölüm referansları bridge.md'de gerçekten var olmalı.
+# Bu, bridge belgesi güncellendiğinde custom/'un drift'ini yakalar (silinen/
+# yeniden adlandırılan bölümlerden doğan yanlış referansları).
+"$PY" - <<'PY'
+import glob, os, re, sys, tomllib
+for _s in (sys.stdout, sys.stderr):
+    try: _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError): pass
+
+PLUGIN = os.environ.get("PLUGIN_ROOT") or "."
+BRIDGE = os.path.join(PLUGIN, "docs", "bmad", "dev-skill-to-methodology-bridge.md")
+if not os.path.isfile(BRIDGE):
+    print("  [HATA] bridge belgesi yok: %s" % BRIDGE)
+    sys.exit(1)
+
+# Bridge bölümlerini çıkar: ## §N veya ### §N.N[a-z]?
+bridge_secs = set()
+with open(BRIDGE, encoding="utf-8") as f:
+    for m in re.finditer(r'^(?:##|###) §([0-9]+(?:\.[0-9]+[a-z]?)?)', f.read(), re.M):
+        bridge_secs.add(m.group(1))
+
+problems = []
+checked = 0
+for path in sorted(glob.glob(os.path.join(PLUGIN, "custom", "*.toml"))):
+    name = os.path.basename(path)[:-5]
+    if name == "config":
+        continue
+    try:
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        continue
+    # Bridge referansı taşımayan dosyalar muaf (farklı manifestolara atıf
+    # yapıyor olabilir — sadece bridge kullananları denetle).
+    if "dev-skill-to-methodology-bridge" not in text:
+        continue
+    checked += 1
+    refs = set()
+    for m in re.finditer(r'§([0-9]+(?:\.[0-9]+[a-z]?)?)', text):
+        refs.add(m.group(1))
+    unknown = sorted(refs - bridge_secs)
+    if unknown:
+        problems.append("%s: bridge'de olmayan §N.N → %s (yazım hatası veya "
+                        "eski bölüm; bridge.md'den kontrol et)" %
+                        (name, ", ".join(unknown)))
+
+print("  denetlenen bridge kullanan: %d" % checked)
+for p in problems:
+    print("  MISS: %s" % p)
+raise SystemExit(1 if problems else 0)
+PY
+if [ $? -eq 0 ]; then
+    echo "[OK]   köprü §N.N referansları bridge ile senkron"
+else
+    echo "[UYARI] köprü §N.N drift (yukarı bak)"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 
