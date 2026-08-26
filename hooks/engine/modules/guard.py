@@ -121,17 +121,19 @@ def _parse_experiment_refs(content: str) -> list[dict]:
     return refs
 
 
-def _validate_story_experiment_refs(content: str) -> tuple[bool, str]:
+def _validate_story_experiment_refs(content: str, root: str = "") -> tuple[bool, str]:
     """Validate that all experiment_refs in a story file point to approved records.
 
     Returns (is_valid, reason).
     """
+    if not root:
+        root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
     refs = _parse_experiment_refs(content)
     if not refs:
         # No experiment_refs — not a story with metadata, allow
         return True, ""
 
-    recs_dir = pathlib.Path("docs/experiments")
+    recs_dir = pathlib.Path(root) / "docs" / "experiments"
     if not recs_dir.is_dir():
         return False, "experiment_refs found but docs/experiments/ directory missing"
 
@@ -471,7 +473,7 @@ def guard(json_in: dict) -> dict:
 
                 if story_content:
                     # 1. Validate experiment_refs in frontmatter
-                    valid, reason = _validate_story_experiment_refs(story_content)
+                    valid, reason = _validate_story_experiment_refs(story_content, root)
                     if not valid:
                         return {
                             "decision": "deny",

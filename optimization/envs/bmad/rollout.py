@@ -175,14 +175,12 @@ def _run_guard(task: dict) -> str:
     json_in = _make_guard_input(task)
 
     # Story validation scenarios need a sandbox with docs/experiments + records.
-    # NOTE: _validate_story_experiment_refs resolves docs/experiments via cwd,
-    # not OPENHANDS_PROJECT_DIR — so we chdir into the sandbox.
+    # _validate_story_experiment_refs now resolves docs/experiments via
+    # OPENHANDS_PROJECT_DIR (root param), so no chdir needed.
     if "story" in q or "s-00" in q or "ac-" in q:
         sandbox = _setup_sandbox("missing")
-        prev_cwd = os.getcwd()
         try:
-            os.chdir(sandbox)
-            # Add approved experiment record for valid-story scenarios
+            # Add approved record for valid-story scenarios
             if "valid" in q or "all checks" in q or "complete metadata" in q:
                 with open(os.path.join(sandbox, "docs", "experiments", "E-001.md"), "w", encoding="utf-8") as f:
                     f.write("# E-001\n\n**Karar:** ONAYLANDI\n\n**Tarih:** 2026-01-01\n")
@@ -193,7 +191,6 @@ def _run_guard(task: dict) -> str:
             result = guard(json_in)
             return result.get("decision", "allow").upper()
         finally:
-            os.chdir(prev_cwd)
             import shutil
             shutil.rmtree(sandbox, ignore_errors=True)
 
