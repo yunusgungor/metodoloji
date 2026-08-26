@@ -53,8 +53,9 @@ hooks/engine/
 ## Sağlık kontrolü
 
 ```sh
-sh commands/check-plugin.sh            # tam denetim (§0–§6 + §2b + §5b + drift)
+sh commands/check-plugin.sh            # tam denetim (§0–§6 + §2b + §5b + §5c + drift)
 sh commands/check-plugin.sh --negtest  # negatif test: KÖPRÜ boz → yakala → geri yükle
+sh commands/check-custom.sh            # sadece custom/ statik kalite denetimi (§0–§6)
 ```
 
 ## Doğruluk kaynağı ve drift

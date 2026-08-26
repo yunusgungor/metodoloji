@@ -9,6 +9,7 @@
 #   4. Belgesel (B/C/D) kayıt eksiksizliği  (run_experiment.py --validate)
 #   5. Engine drift denetimi               (plugin motoru == repo canonical, repo erişilebilirse)
 #   5b. Hard gate enforcement modu (soft/hard — custom/config.toml [hooks])
+#   5c. custom/ köprü TOML'leri statik kalite denetimi (commands/check-custom.sh)
 #   6. Geliştirme kayıtları format kontrolü  (run_experiment.py --validate)
 #
 # Kullanım:  sh commands/check-plugin.sh   (plugin kökünden veya her yerden;
@@ -592,6 +593,24 @@ if [ $? -eq 0 ]; then
 else
     echo "[UYARI] hard gate modu sorunu (yukarı bak)"
     PROBLEMS=$((PROBLEMS + 1))
+fi
+
+echo "== 5c) custom/ köprü TOML'leri statik kalite denetimi =="
+# check-custom.sh §0-§6: TOML parse, persistent_facts, derinlik, hard-gate
+# anahtar kelimeleri, DOGRULAMA kalıbı, gds Mod A köprü referansı, config
+# soft/hard sözleşmesi. Bağımsız script; aynı stilde, aynı [OK]/[UYARI]/[HATA]
+# çıktı. Kök çıktısı kendi içinde tutulur, sadece exit code PROBLEMS'a eklenir.
+if [ -f "$SELF/check-custom.sh" ]; then
+    if sh "$SELF/check-custom.sh" >/tmp/meth-custom.$$.log 2>&1; then
+        echo "[OK]   custom/ statik kalite denetimi geçti"
+    else
+        echo "[UYARI] custom/ statik kalite ihlali var:"
+        sed 's/^/       /' /tmp/meth-custom.$$.log
+        PROBLEMS=$((PROBLEMS + 1))
+    fi
+    rm -f /tmp/meth-custom.$$.log
+else
+    echo "[UYARI] commands/check-custom.sh bulunamadı (atlandı)"
 fi
 
 echo "== 6) Geliştirme kayıtları format kontrolü =="
