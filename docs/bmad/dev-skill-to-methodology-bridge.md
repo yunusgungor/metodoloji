@@ -257,6 +257,16 @@ Guard hook'u story dosyası yazılırken methodology zincirini doğrular:
 | Methodology chain | Hard gate (DENY) | Story yazılamaz |
 | Methodology compliance | Soft (warning) | Audit log'a yazılır |
 
+### §3.8 Git Commit Disiplini
+
+KÖPRÜ #1, #2 veya #3 sonrasında üretilen veya güncellenen dosyalar **commit edilmelidir**:
+
+| An | Commit Konvansiyonu |
+|----|---------------------|
+| KÖPRÜ #1 (S kaydı) | `[Story X.Y] metodoloji kaydı oluşturuldu` |
+| KÖPRÜ #2 (S güncelleme) | `[Story X.Y] dev agent record güncellendi` |
+| KÖPRÜ #3 (QR oluşturma) | `[Story X.Y] kalite kaydı oluşturuldu` |
+
 ---
 
 ## §4 Dosya Yapısı
@@ -307,6 +317,7 @@ Story lifecycle'ında her adımda kontrol edilecekler:
 - [ ] **Code Review**: AC metadata'sı (Experiment, Type, Measured) doğrulandı mı?
 - [ ] **Code Review**: Task↔AC eşleştirmesi doğrulandı mı?
 - [ ] **Code Review**: DoD maddelerinin kanıtları tam mı?
+- [ ] **Dev Story**: KÖPRÜ #1–3 dosyaları ayrı commit'lerle kaydedildi mi?
 
 ---
 
@@ -325,3 +336,22 @@ Bu belge aşağıdaki skill'lerle uyumludur:
 | audit hook | ✅ | Methodology compliance uyarıları |
 | bmad-edit-prd | ❌ KALDIRILDI | DEPRECATED — bmad-prd'ye birleştirildi |
 | bmad-testarch-atdd | ❌ Bağlantısız | Ayrı test workflow'u, AC'lerle bağlantılı değil |
+
+---
+
+## §7 Oturum Kapanışı (Session Closure)
+
+Bir oturum aşağıdaki adımlar tamamlandığında kapatılmalıdır:
+
+### §7.1 Kapanış Kontrol Listesi
+- [ ] Tüm AC'lerin Verify yöntemi çalıştırıldı mı?
+- [ ] Her DoD item'ı için kanıt toplandı mı?
+- [ ] QR kaydı (QR-XXX) oluşturuldu mu?
+- [ ] Metodoloji kaydı (S-XXX) güncellendi mi?
+- [ ] KÖPRÜ #1–3 dosyaları commit edildi mi?
+- [ ] Story durumu `done` olarak işaretlendi mi?
+
+### §7.2 Kapanış Sonrası
+- Story `done` durumuna geçer
+- Bir sonraki story'ye geçiş için hazır hale gelir
+- Sprint durumu gerekirse güncellenir
