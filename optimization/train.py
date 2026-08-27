@@ -143,6 +143,50 @@ def run_training(skill_name: str, cfg: dict) -> dict:
     return result
 
 
+def run_manifesto_training(cfg: dict) -> dict:
+    """Run SkillOpt training on a manifesto document."""
+    from skillopt.engine.trainer import ReflACTTrainer
+    from envs.manifesto.adapter import ManifestoAdapter
+
+    out_root = str(PROJECT_ROOT / "optimization" / "output" / "manifesto-research")
+    os.makedirs(out_root, exist_ok=True)
+
+    cfg["out_root"] = out_root
+    cfg["skill_init"] = str(PROJECT_ROOT / "docs" / "bmad" / "research-methodology.md")
+    cfg["data_path"] = str(PROJECT_ROOT / "optimization" / "benchmarks" / "data" / "manifesto_rules.jsonl")
+    # Override model if env var is set
+    if os.environ.get("OPENAI_COMPATIBLE_MODEL"):
+        cfg["optimizer_model"] = os.environ["OPENAI_COMPATIBLE_MODEL"]
+        cfg["target_model"] = os.environ["OPENAI_COMPATIBLE_MODEL"]
+
+    print(f"\n{'='*60}")
+    print(f"  Training manifesto: research-methodology.md")
+    print(f"  Output: {out_root}")
+    print(f"{'='*60}\n")
+
+    adapter = ManifestoAdapter(
+        data_path=cfg["data_path"],
+        split_mode=cfg.get("split_mode", "ratio"),
+        split_ratio=cfg.get("split_ratio", "2:1:7"),
+        split_seed=cfg.get("split_seed", 42),
+        workers=cfg.get("workers", 2),
+        analyst_workers=cfg.get("analyst_workers", 2),
+        minibatch_size=cfg.get("minibatch_size", 5),
+        edit_budget=cfg.get("edit_budget", 4),
+        seed=cfg.get("seed", 42),
+        max_completion_tokens=cfg.get("max_completion_tokens", 2048),
+    )
+
+    trainer = ReflACTTrainer(cfg, adapter)
+    result = trainer.train()
+
+    summary_path = os.path.join(out_root, "training_summary.json")
+    with open(summary_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2, ensure_ascii=False, default=str)
+
+    return result
+
+
 def run_benchmark(skill_name: str, cfg: dict) -> dict:
     """Run evaluation only (no training)."""
     from envs.bmad.adapter import BmadAdapter

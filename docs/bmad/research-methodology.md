@@ -1,7 +1,7 @@
 # Araştırma Metodolojisi Manifestosu
 
 **Version:** 2.0.0
-**Purpose:** BMAD araştırma metodolojisinin temel kurallarını, modüler yapısını ve kapı kurallarını tanımlar.
+**Purpose:** BMAD (Behavior-Driven Methodology for AI Development) araştırma metodolojisinin temel kurallarını, modüler yapısını ve kapı kurallarını tanımlar.
 
 ---
 
@@ -11,10 +11,12 @@
 Metodoloji zinciri şu sırayla ilerler:
 
 ```
-Experiment (E) → Investigation Record (IR) → Sprint Planning (SP) → Story (S) → Quality Record (QR) → Peer Review (PR)
+Experiment (E) → Implementation Readiness (IR) → Sprint Planning (SP) → Story (S) → Quality Record (QR) → Production Readiness (PR)
 ```
 
 Her aşama bir öncekinin çıktısına bağlıdır. Zincirin her halkası onay gerektirir.
+
+> **Zorunlu kayıt zinciri kuralları:** IR olmadan Sprint Planning başlatılamaz; her onaylı geçiş git commit ile kalıcı kayıt altına alınır; story, QR ve PR çıktılarında Deney Onayı alanı zorunludur.
 
 ### §1.2 Temel Kural
 > **Belgesel karar kod yazma izni değildir. Kod her durumda Mod A mekanik onayına bağlıdır.**
@@ -68,7 +70,7 @@ Her modun kapı kuralları, o modun çıktısının kalitesini ve uyumluluğunu 
 1. **Deney Onayı:** Kod yazmadan önce kapsamı eşleşen VERIFIED deney onayı gerekir
 2. **Guard Hook:** PreToolUse hook'u kod yazmasını engeller (fail-closed)
 3. **Stop Hook:** İncomplete story varsa session kapanışını engeller
-4. **Story Metadata:** AC metadata完整性 kontrolü (Experiment, Type, Measured, Verify)
+4. **Story Metadata:** AC metadata tamlığı kontrolü (Experiment, Type, Measured, Verify)
 5. **Task↔AC:** Her task'ın bir AC'ye bağlı olması zorunludur
 6. **DoD:** Her DoD item'ının identifier ve verify alanı zorunludur
 
@@ -94,21 +96,22 @@ Her modun kapı kuralları, o modun çıktısının kalitesini ve uyumluluğunu 
 
 ### §4.1 Deney Oluşturma
 - Her deney `docs/experiments/E-XXX.md` dosyasında kayıtlı olmalıdır
-- Deney kaydı şu alanları içermelidir:
-  - **Hypothesis:** Test edilen varsayım
-  - **Scope:** Deneyin kapsamı (dosya yolları)
-  - **Method:** Deney yöntemi
-  - **Expected Result:** Beklenen sonuç
-  - **Status:** BEKLİYOR | ONAYLANDI | REDDEDİLDİ
+- Deney kaydı şu alanları içermelidir (Türkçe etiketler zorunlu — kapı bu etiketleri ayrıştırır):
+  - **Teori:** Hangi teoriden/çerçeveden geldiği
+  - **Hipotez:** H-NNN: "metrik >= eşik" formatında test edilen varsayım
+  - **Ölçüm metrikleri:** Metrik adı + eşik değeri
+  - **Deney tasarımı:** Girdiler, prosedür, kontrol değişkenleri
+  - **Kod kapsamı:** Onayın açtığı dosya glob'ları
+  - **Durum:** planlandı → ONAYLANDI | REDDEDİLDİ (kapı yazar)
 
 ### §4.2 Deney Onayı
 - Deney onayı `run_experiment.py --verify` ile doğrulanır
 - Onaylı deney: `status: ONAYLANDI` ve HMAC imzası geçerli
 - Onaysız deney: Kod yazımı engellenir (guard hook)
 
-### §4.3 Hypothesis Koruması
+### §4.3 Hipotez (Hypothesis) Koruması
 - Deney onayı olmayan AC'ler `[HYPOTHESIS]` olarak işaretlenir
-- Hypothesis AC'ler implemente edilemez
+- Hipotez AC'ler implemente edilemez
 - Kullanıcıya "Bu AC için deney onayı gerekli" mesajı gösterilir
 
 ---
@@ -119,6 +122,7 @@ Her modun kapı kuralları, o modun çıktısının kalitesini ve uyumluluğunu 
 - Her story bir deney kaydına bağlı olmalıdır
 - Story dosyası `{implementation_artifacts}/<story-key>.md` konumunda olmalıdır
 - Story metadata'sı zorunlu: Experiment, Type, Measured, Verify
+- Her story kaydında `Deney Onayı` alanı zorunludur: E-id, status, doğrulama yöntemi, timestamp, git commit ref.
 
 ### §5.2 Story → Metodoloji Kaydı
 - Story oluşturulduğunda `docs/development/stories/S-<sira>.md` kayıt dosyası da oluşturulur
@@ -149,7 +153,7 @@ Her DoD için:
 ## §6 Quality Record (QR) Kuralları
 
 ### §6.1 QR Oluşturma
-- Story tamamlandığında `docs/quality/QR-<sira>.md` dosyası oluşturulur
+- **QR** zorunludur: story tamamlandığında `docs/quality/QR-<sira>.md` oluşturulur; QR onayı olmadan story `done` kabul edilemez
 - QR: Her DoD item'ı için durum, kanıt ve tarih içerir
 - QR, story dosyasındaki Quality Record section'ını günceller
 
@@ -160,28 +164,28 @@ Her DoD için:
 
 ---
 
-## §7 Peer Review (PR) Kuralları
+## §7 Production Readiness (PR) Kuralları
 
 ### §7.1 PR Oluşturma
-- QR onayından sonra `bmad-code-review` çalıştırılır
-- PR bulguları story dosyasına eklenir
-- PR sonucu: Approve | Changes Requested | Blocked
+- QR onayından sonra deploy hazırlığı yapılır
+- PR kaydı `docs/development/PR-XXX.md` konumunda oluşturulur
+- **PR Durum:** HAZIR | BEKLİYOR
 
 ### §7.2 PR Döngüsü
-- Changes Requested → Düzeltilir → Tekrar review
-- Blocked → Engeller kaldırılır → Tekrar review
-- Approve → Story `done` durumuna geçer
+- BEKLİYOR → Hazırlıklar tamamlanır → HAZIR
+- HAZIR → Deploy yapılır → Story `done` durumuna geçer
 
 ---
 
 ## §8 Guard Hook Kuralları
 
-### §8.1 Kod Yazma Engeli
+### §8.1 Kod Yazma Engeli (DENY)
+- Kod yazma izni bulunmadığında guard hook sonucu **DENY** olur: onaysız deney, eksik story metadata veya Hipotez AC'si
 - Onaysız deney kaydı olan dosyalara kod yazılamaz
 - Story metadata'sı eksik olan dosyalar engellenir
 
 ### §8.2 Story Metadata Doğrulama
-- AC metadata完整性 kontrolü
+- AC metadata tamlığı kontrolü
 - Task↔AC eşleşme kontrolü
 - DoD yapısal kontrolü
 
@@ -222,3 +226,25 @@ Bu metodoloji aşağıdaki bileşenlerle uyumludur:
 | bmad-sprint-planning | ✅ Mod D | Sprint yönetimi |
 | bmad-create-epics-and-stories | ✅ Mod C | Epik/story ayrıştırma |
 | bridge doc | ✅ v3.0 | Köprü belgesi |
+
+---
+
+## §11 Zorunlu Denetim ve Kayıt Kuralları
+
+### §11.1 Zorunlu Terimler
+- **onaylı deney**: yalnızca `status: ONAYLANDI` ve HMAC imzası geçerli deney; yoksa kod yazma **DENY** edilir.
+- **Hipotez**: deney onayı bekleyen AC. `[HYPOTHESIS]` etiketiyle işaretlenir, implemente edilemez.
+- **DENY**: guard/stop hook'un engelleme kararı. Kod yazma veya oturum kapanışı engellenir.
+- **QR (Quality Record)**: `docs/quality/QR-<sira>.md` — story tamamlandığında zorunlu. QR onayı olmadan `done` kabul edilmez.
+- **IR (Implementation Readiness)**: `docs/development/IR-<sira>.md` — Kapi 1. Sprint Planning öncesi zorunlu.
+- **PR (Production Readiness)**: `docs/development/PR-<sira>.md` — Kapi 4. Deploy öncesi zorunlu.
+
+### §11.2 Zorunlu Kayıt Yolları
+| Kayıt | Yol | Geçerli Durum Değerleri |
+|-------|-----|------------------------|
+| Deney (E) | `docs/experiments/E-XXX.md` | planlandı → ONAYLANDI \| REDDEDİLDİ |
+| IR | `docs/development/IR-XXX.md` | HAZIR \| EKSİK |
+| SP | `docs/development/SP-XXX.md` | planlandı \| devam ediyor \| tamamlandı \| iptal |
+| Story (S) | `docs/development/stories/S-XXX.md` | backlog \| sprint \| in-progress \| review \| done \| blocked |
+| QR | `docs/quality/QR-XXX.md` | ONAYLANDI \| REDDEDİLDİ \| REVİZE |
+| PR | `docs/development/PR-XXX.md` | HAZIR \| BEKLİYOR |

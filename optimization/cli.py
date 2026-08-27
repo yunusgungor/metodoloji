@@ -152,6 +152,36 @@ def cmd_compare(args):
     print()
 
 
+def cmd_manifesto(args):
+    """Run SkillOpt training on manifestos."""
+    from train import run_manifesto_training, DEFAULT_CONFIG, _require_llm_env
+
+    _require_llm_env()
+
+    cfg = dict(DEFAULT_CONFIG)
+    if args.epochs:
+        cfg["num_epochs"] = args.epochs
+    if args.batch_size:
+        cfg["batch_size"] = args.batch_size
+    if args.edit_budget:
+        cfg["edit_budget"] = args.edit_budget
+    if getattr(args, "force_accept", False):
+        cfg["use_gate"] = False
+
+    try:
+        result = run_manifesto_training(cfg)
+    except Exception as e:
+        print(f"  ERROR: {e}")
+        return
+
+    results_path = OPT_DIR / "output" / "manifesto_results.json"
+    results_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(results_path, "w", encoding="utf-8") as f:
+        json.dump({"manifesto-research": result}, f, indent=2, ensure_ascii=False, default=str)
+
+    print(f"\n  Results saved to {results_path}")
+
+
 def cmd_status(args):
     """Show optimization status."""
     output_dir = OPT_DIR / "output"
@@ -210,6 +240,13 @@ def main():
     p_opt.add_argument("--edit-budget", type=int, default=6)
     p_opt.add_argument("--force-accept", action="store_true", help="Disable gate, accept all candidates")
 
+    # manifesto
+    p_man = sub.add_parser("manifesto", help="Optimize docs/bmad manifestos via SkillOpt")
+    p_man.add_argument("--epochs", type=int, default=3, help="Training epochs")
+    p_man.add_argument("--batch-size", type=int, default=5, help="Batch size")
+    p_man.add_argument("--edit-budget", type=int, default=4, help="Edit budget")
+    p_man.add_argument("--force-accept", action="store_true", help="Disable gate, accept all candidates")
+
     # compare
     sub.add_parser("compare", help="Compare before/after results")
 
@@ -222,6 +259,8 @@ def main():
         cmd_benchmark(args)
     elif args.command == "optimize":
         cmd_optimize(args)
+    elif args.command == "manifesto":
+        cmd_manifesto(args)
     elif args.command == "compare":
         cmd_compare(args)
     elif args.command == "status":

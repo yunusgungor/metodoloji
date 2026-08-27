@@ -1,0 +1,49 @@
+# Manifesto Optimizer Training Config
+# Uses SkillOpt to optimize docs/bmad manifestos
+
+model:
+  backend: openai_compatible
+  optimizer: th/qwen3.8-27b:free
+  target: th/qwen3.8-27b:free
+  optimizer_backend: openai_compatible
+  target_backend: openai_compatible
+
+train:
+  num_epochs: 3
+  batch_size: 5
+  accumulation: 2
+  seed: 42
+  train_size: 30
+
+gradient:
+  minibatch_size: 5
+  merge_batch_size: 3
+  analyst_workers: 2
+  failure_only: false
+
+optimizer:
+  learning_rate: 4
+  min_learning_rate: 2
+  lr_scheduler: constant
+  lr_control_mode: fixed
+  skill_update_mode: patch
+  use_slow_update: false
+  use_meta_skill: false
+
+evaluation:
+  use_gate: true
+  gate_metric: hard
+  sel_env_num: 15
+  test_env_num: 0
+  eval_test: false
+
+env:
+  name: manifesto
+  skill_init: docs/bmad/research-methodology.md
+  data_path: optimization/benchmarks/data/manifesto_rules.jsonl
+  split_mode: ratio
+  split_ratio: "2:1:7"
+  split_seed: 42
+  workers: 2
+  max_completion_tokens: 2048
+  out_root: optimization/output/manifesto-research
