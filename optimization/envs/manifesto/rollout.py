@@ -15,15 +15,12 @@ from skillopt.model import chat_target
 
 from .evaluator import evaluate_task
 
-# Configure openai_compatible backend
+# Configure openai_compatible backend — env vars only, no hardcoded secrets
 if not os.environ.get("REFLACT_MODEL_BACKEND"):
     os.environ["REFLACT_MODEL_BACKEND"] = "openai_compatible"
 if not os.environ.get("OPENAI_COMPATIBLE_BASE_URL"):
     os.environ["OPENAI_COMPATIBLE_BASE_URL"] = "http://localhost:20128/v1"
-if not os.environ.get("OPENAI_COMPATIBLE_API_KEY"):
-    os.environ["OPENAI_COMPATIBLE_API_KEY"] = "sk-2d3c99a72a01cbcc-smtwcf-24b76850"
-if not os.environ.get("OPENAI_COMPATIBLE_MODEL"):
-    os.environ["OPENAI_COMPATIBLE_MODEL"] = "th/qwen3.8-27b:free"
+# API key and model must come from environment — never hardcode
 
 from skillopt.model import set_backend
 set_backend("openai_compatible")
