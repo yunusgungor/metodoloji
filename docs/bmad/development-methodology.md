@@ -83,8 +83,14 @@ experiment_refs:
 
 ### §3.3 Story Doğrulama
 - Guard hook'u story metadata'sını doğrular
-- Eksik metadata = DENY
-- Hypothesis AC'ler implemente edilemez
+- Eksik metadata durumunda doğrulama **DENY** sonucu verilir
+- Hipotez AC'ler implemente edilemez
+
+### §3.4 Deney Onayı (Experiment Approval Gate)
+- Story implementasyonuna geçiş prerequisite: tüm `experiment_refs[].status` alanları **`ONAYLANDI`** olmalıdır
+- `ONAYLANDI` durumu olmayan story'ler `bmad-dev-story` (Mod A) tarafından kabul edilmez
+- Guard hook, her experiment referansının durumunu `ONAYLANDI` olarak doğrular
+- Deney onayı olmadan kod yazma izni verilmez
 
 ---
 
@@ -95,6 +101,12 @@ experiment_refs:
 - Test first development
 - AC bazında implementasyon
 - **Belgesel karar kod yazma izni VERMEZ**
+
+### §4.1.1 Git İşlemleri
+- Her implementasyon adımında değişiklikler commit edilmeli
+- Commit mesajı formatı: `[Story X.Y] <değişiklik açıklaması>`
+- Implementasyon tamamlandığında tüm değişikliklerin commit'lenmiş olması zorunludur
+- Commit olmaksızın Testing (§5) aşamasına geçilemez
 
 ### §4.2 Guard Hook Entegrasyonu
 - Kod yazma izni: Onaylı deney kaydı gerektirir
@@ -151,7 +163,7 @@ experiment_refs:
   - **Acceptance Auditor:** AC metadata + Task↔AC + DoD kontrolü
 
 ### §6.2 Review Sonucu
-- **Approve:** Story done
+- **Approve:** Story done — Approve sonrası §9 Oturum Kapanışı adımları tetiklenir
 - **Changes Requested:** Düzeltilir → Tekrar review
 - **Blocked:** Engeller kaldırılır → Tekrar review
 
@@ -220,7 +232,31 @@ experiment_refs:
 
 ### §8.3 Kayıt Zinciri Uyumluluğu
 ```
-E (Experiment) → SP (Sprint Planning) → S (Story) → QR (Quality Record) → PR (Peer Review)
+E (Experiment) → IR (Implementation Readiness) → SP (Sprint Planning) → S (Story) → QR (Quality Record) → PR (Production Readiness)
 ```
 
 Her aşama bir öncekinin çıktısına bağlıdır. Zincirin her halkası onay gerektirir.
+
+**Not:** Implementation aşamasında her adımın ardından git commit yapılması zorunludur (§4.1.1). Commit olmadan Testing (§5) aşamasına geçilemez.
+
+### §8.4 Kritik Kapı ve Kavramlar
+
+| Kavram | Tanım | Detay |
+|--------|-------|-------|
+| **ONAYLANDI** | Experiment onay durumu | §3.4 - Story impl. prerequisite |
+| **DENY** | Guard/stop hook engelleme kararı | Kod yazma veya oturum kapanışı engellenir |
+| **Hipotez** | Deney onayı bekleyen AC | `[HYPOTHESIS]` etiketi, implemente edilemez |
+| **QR** | Quality Record | `docs/quality/QR-XXX.md`, done sonrası zorunlu |
+| **IR** | Implementation Readiness | `docs/development/IR-XXX.md`, Kapi 1 |
+| **PR** | Production Readiness | `docs/development/PR-XXX.md`, Kapi 4 |
+
+---
+
+## §9 Oturum Kapanışı
+
+Bir story tamamlandığında ve kod incelemesi onaylandığında oturum kapatılır. Bu işlem şu adımları içerir:
+- Kalite Kaydı (QR) oluşturulur ve onaylanır (§7)
+- Story durumu "done" olarak işaretlenir (§6.2)
+- Gerekirse sprint durumu güncellenir (§2.1)
+
+Oturum kapatılması, geliştirme döngüsünün son adımıdır ve bir sonraki story'ye geçiş için zorunludur.
