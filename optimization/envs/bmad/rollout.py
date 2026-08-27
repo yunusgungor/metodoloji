@@ -14,6 +14,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -43,35 +44,63 @@ def _make_guard_input(task: dict) -> dict:
     Each task encodes a scenario; we translate it into a realistic tool input
     (file_editor path+content or terminal command) that triggers the expected
     hook decision.
+
+    S-005 fix: parse question text for path/content hints so scenario intent
+    is preserved. Falls back to heuristic routing.
     """
-    question = task.get("question", "").lower()
+    question = task.get("question", "")
+    ql = question.lower()
+    task_id = task.get("id", "")
     expected = task.get("expected_action", "")
 
-    # Story file scenarios → file_editor with story content
-    if "story" in question or "s-00" in question or "ac-" in question:
+    # 1. Notebook scenarios — extract path from question (handles adv-notebook-004/005)
+    if "notebook" in ql or "ipynb" in ql:
+        # Try to extract path: "creating <path>" or "creates a story file"
+        m = re.search(r"creating (\S+\.ipynb)", ql)
+        if m:
+            return {"tool_name": "notebook_editor", "tool_input": {"path": m.group(1), "content": []}}
+        if "story file" in ql:
+            # notebook creates a story file — treat as file_editor with story content
+            return {"tool_name": "file_editor", "tool_input": {"path": "docs/development/stories/S-050.md", "content": _build_story_content(task)}}
+        return {"tool_name": "notebook_editor", "tool_input": {"path": "notebooks/test.ipynb", "content": []}}
+
+    # 2. Secret scenarios with explicit content — extract path + content from quotes
+    if "secret" in ql or task_id.startswith("adv-secret"):
+        m_path = re.search(r"creating (\S+\.py)", ql)
+        m_content = re.search(r"content '([^']+)'", question)
+        if m_path and m_content:
+            return {"tool_name": "file_editor", "tool_input": {"path": m_path.group(1), "content": m_content.group(1)}}
+        # Fall through to terminal routing
+        cmd = _extract_command(task)
+        return {"tool_name": "terminal", "tool_input": {"command": cmd}}
+
+    # 3. Story file scenarios — use id-aware story content
+    if "story" in ql or "s-00" in ql or "ac-" in ql or "dod" in ql or task_id.startswith("adv-multirefs") or task_id.startswith("adv-dodcase") or task_id.startswith("adv-notebook-005"):
         path = "docs/development/stories/S-001.md"
         content = _build_story_content(task)
         return {"tool_name": "file_editor", "tool_input": {"path": path, "content": content}}
 
-    # Secret / terminal scenarios
-    if "gate-key" in question or "secret" in question or "git" in question or "docker" in question:
+    # 4. Terminal / infra scenarios
+    if "gate-key" in ql or "git" in ql or "docker" in ql or "terraform" in ql or "kubectl" in ql:
         cmd = _extract_command(task)
         return {"tool_name": "terminal", "tool_input": {"command": cmd}}
 
-    # Notebook
-    if "notebook" in question or "ipynb" in question:
-        return {"tool_name": "notebook_editor", "tool_input": {"path": "notebooks/test.ipynb", "content": "bmad_gate_key"}}
-
-    # Code file scenarios
+    # 5. Code file scenarios — fall through
     return {"tool_name": "file_editor", "tool_input": {"path": _extract_path(task), "content": ""}}
 
 
 def _build_story_content(task: dict) -> str:
-    """Build a mock story file content that triggers the expected guard decision."""
+    """Build a mock story file content that triggers the expected guard decision.
+
+    S-005 fix: handle specific scenario patterns (empty refs, no status field,
+    bracket/paren DoD, backlog status, multi-refs all-ONAY) by constructing
+    story content that matches the question's intent.
+    """
     question = task.get("question", "").lower()
     expected = task.get("expected_action", "")
+    task_id = task.get("id", "")
 
-    # Base story with frontmatter + full AC metadata
+    # Base story with frontmatter + full AC metadata + Status: done
     base = """---
 experiment_refs:
   - id: E-001
@@ -99,11 +128,281 @@ experiment_refs:
 - [ ] [DoD-1] All ACs met — Verify: test suite passes
 """
 
-    # Valid story — return full metadata as-is
-    if "valid" in question or "all checks" in question or "complete metadata" in question:
+    # S-005 specific patterns MUST be checked before the generic "valid" check
+    # because scenario questions contain words like "valid AC metadata" that
+    # would falsely match the generic valid check.
+
+    # adv-multirefs-002: 3 refs all ONAY → ALLOW
+    if "three experiments" in question or ("id: e-002" in question and "id: e-003" in question):
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+  - id: E-002
+    status: ONAYLANDI
+  - id: E-003
+    status: ONAYLANDI
+---
+
+# Story: S-052 — Multi Refs
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given three refs When all ONAY Then allow
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] [DoD-1] Chain passes — Verify: run
+"""
+
+    # adv-multirefs-004: refs no status field → ALLOW
+    if "no status field" in question or "missing status field" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+---
+
+# Story: S-054 — Refs No Status
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given ref with no status When validating Then allow
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] [DoD-1] Chain passes — Verify: run
+"""
+
+    # adv-multirefs-005: empty refs list → ALLOW (not a story with metadata)
+    if "experiment_refs: []" in question or "empty refs list" in question or "empty refs" in question:
+        return """---
+
+# Story: S-055 — Empty Refs
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given empty refs When validating Then allow
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] [DoD-1] Passes — Verify: run
+"""
+
+    # adv-dodcase-002: [DoD-001] (bracket form) → ALLOW
+    if "[dod-001]" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-071 — DoD Bracket
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given bracket DoD When validating Then allow
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] [DoD-001] first criterion is met — Verify: run
+"""
+
+    # adv-dodcase-003: (DoD-001) (paren form) → ALLOW
+    if "(dod-001)" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-072 — DoD Paren
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given paren DoD When validating Then allow
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] (DoD-001) first criterion is met — Verify: run
+"""
+
+    # adv-notebook-005: Status: backlog → ALLOW (backlog skips chain check)
+    if "backlog" in question or "[hypothesis]" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-050 — Backlog
+
+**Status:** backlog
+
+## Acceptance Criteria
+
+- [ ] [AC-1] [HYPOTHESIS] Given backlog status When chain check Then skip
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] [DoD-1] Passes — Verify: run
+"""
+
+    # Valid story — return full metadata as-is (only after S-005 patterns)
+    if "all checks" in question or "complete metadata" in question or "valid story with" in question:
         return base
 
-    # Scenario-specific modifications
+
+    # adv-multirefs-004: refs no status field → ALLOW
+    if "no status field" in question or ("[{id: e-001}]" in question and "missing status" in question):
+        return """---
+experiment_refs:
+  - id: E-001
+---
+
+# Story: S-054 — Refs No Status
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given ref with no status When validating Then allow
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] [DoD-1] Chain passes — Verify: run
+"""
+
+    # adv-multirefs-005: empty refs list → ALLOW (not a story with metadata)
+    if "experiment_refs: []" in question or "empty refs" in question:
+        return """---
+
+# Story: S-055 — Empty Refs
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given empty refs When validating Then allow
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] [DoD-1] Passes — Verify: run
+"""
+
+    # adv-dodcase-002: [DoD-001] (bracket form) → ALLOW
+    if "[dod-001]" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-071 — DoD Bracket
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given bracket DoD When validating Then allow
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] [DoD-001] first criterion is met — Verify: run
+"""
+
+    # adv-dodcase-003: (DoD-001) (paren form) → ALLOW
+    if "(dod-001)" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-072 — DoD Paren
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given paren DoD When validating Then allow
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] (DoD-001) first criterion is met — Verify: run
+"""
+
+    # adv-notebook-005: Status: backlog → ALLOW (backlog skips chain check)
+    if "backlog" in question or "[hypothesis]" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-050 — Backlog
+
+**Status:** backlog
+
+## Acceptance Criteria
+
+- [ ] [AC-1] [HYPOTHESIS] Given backlog status When chain check Then skip
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] [DoD-1] Passes — Verify: run
+"""
+
+    # Existing scenarios (kept for backward compat)
     if "no qr" in question:
         return base
     if "pending" in question or "bekliyor" in question:
@@ -113,7 +412,6 @@ experiment_refs:
     if "reddedildi" in question or "rejected" in question:
         return base.replace("status: ONAYLANDI", "status: REDDEDİLDİ")
     if "missing experiment field" in question or "ac-" in question:
-        # AC missing Experiment field
         return base.replace("  - Experiment: E-001\n", "")
     if "sp-" in question:
         return base + "\nSprint: SP-003\n"

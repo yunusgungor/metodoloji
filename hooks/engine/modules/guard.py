@@ -168,7 +168,7 @@ def _validate_story_experiment_refs(content: str, root: str = "") -> tuple[bool,
 
 _AC_ID_RE = re.compile(r"\[AC-(\d+)\]")
 _TASK_AC_RE = re.compile(r"AC:\s*(AC-\d+)")
-_DOD_ID_RE = re.compile(r"\[?DoD-(\d+)\]?")
+_DOD_ID_RE = re.compile(r"[\[\(]?DoD-(\d+)[\]\)]?")
 _HYPOTHESIS_RE = re.compile(r"\[HYPOTHESIS\]")
 _EXPERIMENT_FIELD_RE = re.compile(r"Experiment:\s*(E-\d+|—|-)")
 _MEASURED_FIELD_RE = re.compile(r"Measured:\s*(true|false)", re.IGNORECASE)
@@ -501,6 +501,24 @@ def guard(json_in: dict) -> dict:
 
         # --- Non-story files: free zone and code target checks ---
 
+        # D7 — Content secret scan (S-005 fix: moved BEFORE free-zone check)
+        # Apply to all paths so agent-zone files (scratch/, tmp/) are also scanned.
+        # Without this, free-zone files bypass _KEY_ACCESS_IN_CONTENT entirely.
+        if tool_name in ("file_editor", "notebook_editor"):
+            try:
+                content = ""
+                if tool_name == "file_editor":
+                    content = str(tool_input.get("content", ""))
+                elif tool_name == "notebook_editor":
+                    content = _notebook_content_to_text(tool_input.get("content", []))
+                if content and _KEY_ACCESS_IN_CONTENT.search(content):
+                    return {
+                        "decision": "deny",
+                        "reason": f"Secret access pattern detected in {rel} — blocked."
+                    }
+            except Exception as exc:
+                sys.stderr.write(f"metodoloji: secret check error for {rel}: {exc}\n")
+
         # Free zone — no approval needed
         if is_free(rel):
             continue
@@ -508,22 +526,6 @@ def guard(json_in: dict) -> dict:
         # Check if it's a code target
         if not is_code_target(rel):
             continue
-
-        # Check for secret references in file content (for free zones)
-        if any(rel.startswith(zone) for zone in _AGENT_ZONES):
-            try:
-                content = ""
-                if tool_name == "file_editor":
-                    content = str(tool_input.get("content", ""))
-                elif tool_name == "notebook_editor":
-                    content = _notebook_content_to_text(tool_input.get("content", []))
-                if _KEY_ACCESS_IN_CONTENT.search(content):
-                    return {
-                        "decision": "deny",
-                        "reason": f"Secret access pattern detected in {rel} — blocked."
-                    }
-            except Exception as exc:
-                sys.stderr.write(f"metodoloji: secret check error for {rel}: {exc}\n")
 
         # Find approved record
         approved, detail = find_approved(rel, root=root)
