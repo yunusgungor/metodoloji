@@ -14,6 +14,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+import tempfile
 import re
 import sys
 from pathlib import Path
@@ -253,82 +254,7 @@ experiment_refs:
 ## Definition of Done
 
 - [ ] (DoD-001) first criterion is met — Verify: run
-"""
-
-    # adv-notebook-005: Status: backlog → ALLOW (backlog skips chain check)
-    if "backlog" in question or "[hypothesis]" in question:
-        return """---
-experiment_refs:
-  - id: E-001
-    status: ONAYLANDI
----
-
-# Story: S-050 — Backlog
-
-**Status:** backlog
-
-## Acceptance Criteria
-
-- [ ] [AC-1] [HYPOTHESIS] Given backlog status When chain check Then skip
-  - Type: agent-verifiable
-  - Measured: true
-  - Verify: run
-
-## Definition of Done
-
-- [ ] [DoD-1] Passes — Verify: run
-"""
-
-    # Valid story — return full metadata as-is (only after S-005 patterns)
-    if "all checks" in question or "complete metadata" in question or "valid story with" in question:
-        return base
-
-
-    # adv-multirefs-004: refs no status field → ALLOW
-    if "no status field" in question or ("[{id: e-001}]" in question and "missing status" in question):
-        return """---
-experiment_refs:
-  - id: E-001
----
-
-# Story: S-054 — Refs No Status
-
-**Status:** done
-
-## Acceptance Criteria
-
-- [ ] [AC-1] Given ref with no status When validating Then allow
-  - Experiment: E-001
-  - Type: agent-verifiable
-  - Measured: true
-  - Verify: run
-
-## Definition of Done
-
-- [ ] [DoD-1] Chain passes — Verify: run
-"""
-
-    # adv-multirefs-005: empty refs list → ALLOW (not a story with metadata)
-    if "experiment_refs: []" in question or "empty refs" in question:
-        return """---
-
-# Story: S-055 — Empty Refs
-
-**Status:** done
-
-## Acceptance Criteria
-
-- [ ] [AC-1] Given empty refs When validating Then allow
-  - Type: agent-verifiable
-  - Measured: true
-  - Verify: run
-
-## Definition of Done
-
-- [ ] [DoD-1] Passes — Verify: run
-"""
-
-    # adv-dodcase-002: [DoD-001] (bracket form) → ALLOW
+"""    # adv-dodcase-002: [DoD-001] (bracket form) → ALLOW
     if "[dod-001]" in question:
         return """---
 experiment_refs:
@@ -376,6 +302,233 @@ experiment_refs:
 ## Definition of Done
 
 - [ ] (DoD-001) first criterion is met — Verify: run
+"""
+
+
+    # adv-dodcase-001: dod-001 (lowercase, regex case-sensitive) → DENY
+    # question (already lowercased) contains "dod-001" and "case-sensitive"
+    if "dod-001 first criterion" in question and "case-sensitive" in question and "[dod-001]" not in question and "(dod-001)" not in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-070 — DoD Lower
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given lowercase dod When validating Then deny
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] dod-001 first criterion is met — Verify: run
+"""
+
+    # adv-dodcase-004: DoD line with no identifier → DENY
+    # question (already lowercased) contains "no dod identifier"
+    if "no dod identifier" in question or ("first criterion is met" in question and "lacks the dod" in question):
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-073 — DoD No ID
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given no DoD id When validating Then deny
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] first criterion is met — Verify: run
+"""
+
+    # adv-dodcase-005: DOD-001 (all uppercase) → DENY (case-sensitive)
+    if "DOD-001 first criterion" in question or "all-uppercase" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-074 — DoD Upper
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given uppercase DOD When validating Then deny
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: run
+
+## Definition of Done
+
+- [ ] DOD-001 first criterion is met — Verify: run
+"""
+
+    # guard-010: AC Experiment=— (dash) and no [HYPOTHESIS] → DENY
+    if ("experiment=—" in question or "experiment=— (dash)" in question) and "no [hypothesis]" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-010 — AC Dash
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given dash Experiment When no hypothesis tag Then deny
+  - Experiment: —
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: check x
+
+## Definition of Done
+
+- [ ] [DoD-1] Passes — Verify: run
+"""
+
+    # adv-acmeta-001: AC Experiment empty → DENY
+    if "experiment field is empty" in question or "experiment: (empty" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-060 — AC Empty Experiment
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given empty Experiment When validating Then deny
+  - Experiment:
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: check x
+
+## Definition of Done
+
+- [ ] [DoD-1] Passes — Verify: run
+"""
+
+    # adv-acmeta-002: AC Measured: yes (invalid) → DENY
+    if "measured: yes" in question or "must be true or false" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-061 — AC Invalid Measured
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given Measured yes When validating Then deny
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: yes
+  - Verify: check x
+
+## Definition of Done
+
+- [ ] [DoD-1] Passes — Verify: run
+"""
+
+    # adv-acmeta-003: AC Type: integration (invalid) → DENY
+    if "type: integration" in question or "must be agent-verifiable" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-062 — AC Invalid Type
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given Type integration When validating Then deny
+  - Experiment: E-001
+  - Type: integration
+  - Measured: true
+  - Verify: check x
+
+## Definition of Done
+
+- [ ] [DoD-1] Passes — Verify: run
+"""
+
+    # adv-acmeta-004: AC no Verify field → DENY
+    if "no verify field" in question or "verify field is required" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-063 — AC No Verify
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given no Verify When validating Then deny
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+
+## Definition of Done
+
+- [ ] [DoD-1] Passes — Verify: run
+"""
+
+    # adv-acmeta-005: AC Verify empty → DENY
+    if "empty verify is treated as missing" in question or "verify: (empty)" in question:
+        return """---
+experiment_refs:
+  - id: E-001
+    status: ONAYLANDI
+---
+
+# Story: S-064 — AC Empty Verify
+
+**Status:** done
+
+## Acceptance Criteria
+
+- [ ] [AC-1] Given empty Verify When validating Then deny
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify:
+
+## Definition of Done
+
+- [ ] [DoD-1] Passes — Verify: run
 """
 
     # adv-notebook-005: Status: backlog → ALLOW (backlog skips chain check)

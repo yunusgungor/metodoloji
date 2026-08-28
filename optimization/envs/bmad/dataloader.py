@@ -8,8 +8,16 @@ from skillopt.datasets.base import SplitDataLoader
 
 
 def _normalize_item(raw: dict) -> dict:
-    """Normalize one raw benchmark entry into SkillOpt's expected shape."""
-    return {
+    """Normalize one raw benchmark entry into SkillOpt's expected shape.
+
+    Preserves `scenario_setup` (and any other pass-through metadata) so the
+    sandbox-seeding fields required by `_setup_sandbox_from_task` survive
+    the split materialization. Without this, every adv-* scenario whose
+    `expected_action == "allow"` is built on top of a seeded sandbox
+    collapses to `{}` and the guard falls through to a "no approved record"
+    DENY — six spurious over-DENYs on the plugin-side bench.
+    """
+    item = {
         "id": str(raw.get("id") or ""),
         "question": str(raw.get("question") or ""),
         "ground_truth": str(raw.get("ground_truth") or ""),
@@ -19,6 +27,12 @@ def _normalize_item(raw: dict) -> dict:
         "skill_target": str(raw.get("skill_target") or ""),
         "hard_metric": str(raw.get("hard_metric") or "exact_match"),
     }
+    # Pass through any non-str / non-standard fields (e.g. scenario_setup)
+    # so downstream hooks can read them.
+    for key, val in raw.items():
+        if key not in item and not isinstance(val, str):
+            item[key] = val
+    return item
 
 
 class BmadLoader(SplitDataLoader):
