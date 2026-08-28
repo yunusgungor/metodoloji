@@ -239,16 +239,32 @@ def _validate_story_metadata(content: str) -> tuple[bool, str]:
     """Validate AC metadata, Task↔AC mapping, and DoD structure.
 
     Returns (is_valid, reason).
+
+    S-008 fix (D2 root cause):
+    - (a) If story has no experiment_refs in frontmatter (empty refs list
+          or no frontmatter), skip the AC 'missing Experiment field' check
+          entirely. Per bench invariant: 'not a story with metadata' implies
+          the AC's Experiment field is optional (the AC is testing the
+          ref validation itself, not a real experiment).
+    - (b) If AC is marked [HYPOTHESIS], skip both the 'missing Experiment
+          field' and 'Experiment=— but no [HYPOTHESIS] tag' checks. The
+          [HYPOTHESIS] tag is an explicit opt-out from the Experiment
+          field requirement.
     """
     issues = []
+
+    refs = _parse_experiment_refs(content)
+    has_refs = bool(refs)
 
     # 1. Validate AC metadata
     acs = _parse_ac_metadata(content)
     for ac in acs:
-        if not ac["experiment"]:
-            issues.append(f"{ac['id']}: missing Experiment field")
-        elif ac["experiment"] in ("—", "-") and not ac["is_hypothesis"]:
-            issues.append(f"{ac['id']}: Experiment=— but no [HYPOTHESIS] tag")
+        if has_refs and not ac["is_hypothesis"]:
+            if not ac["experiment"]:
+                issues.append(f"{ac['id']}: missing Experiment field")
+            elif ac["experiment"] in ("—", "-"):
+                issues.append(f"{ac['id']}: Experiment=— but no [HYPOTHESIS] tag")
+        # When has_refs is False OR ac is HYPOTHESIS, Experiment field is optional.
         if not ac["type"]:
             issues.append(f"{ac['id']}: missing Type field")
         if not ac["measured"]:
@@ -347,8 +363,15 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
     if status in ("review", "done"):
         meth_dir = pathlib.Path(root) / "docs" / "development" / "stories"
         if meth_dir.is_dir():
+            # S-014 fix (E-010, GATE-OK-E-010-44abfab68a12b8b4f46ba8984dfa3f89):
+            # exclude the story file itself from the methodology search. The
+            # story mentions its own key, so without this check, the glob
+            # trivially matched and the methodology check false-positived.
+            target_name = pathlib.Path(rel_path).name
             found_meth = False
             for meth_file in meth_dir.glob("S-*.md"):
+                if meth_file.name == target_name:
+                    continue
                 try:
                     meth_content = meth_file.read_text(encoding="utf-8", errors="replace")
                     if story_key in meth_content:
