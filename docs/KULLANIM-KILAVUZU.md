@@ -139,6 +139,20 @@ OpenHands Runtime
                 │                └── Onaysız kod değişikliği var mı? → DENY
 ```
 
+### Root Çözümleme Kuralları (KRİTİK)
+
+Plugin, hedef projeye `.metodoloji/plugin` olarak senkronlanır. Placeholder'lar **her zaman şöyle çözümlenir**:
+
+| Placeholder | Değer | Örnek (hedef proje `~/proje`) |
+|-------------|-------|-------------------------------|
+| `{project-root}` | **Hedef proje kökü** (`$OPENHANDS_PROJECT_DIR`) | `~/proje` |
+| `{metodoloji-root}` | **Plugin kökü** (`.metodoloji/plugin`) | `~/proje/.metodoloji/plugin` |
+| `{skill-root}` | Skill'in plugin içindeki konumu | `~/proje/.metodoloji/plugin/skills/<skill>` |
+
+**Çıktı kuralı:** Metodoloji çıktıları (story, deney, planning, test artifact'ları, `bmad-output/`) **her zaman `{project-root}` üzerinde** oluşturulur — `{metodoloji-root}` üzerinde DEĞİL. Plugin kodu salt-okunur çalışır; yazılan tek şey hedef projenin çıktılarıdır.
+
+Bu kuralı ihlal eden bir komut görürseniz (`{metodoloji-root}/bmad-output` vb. çıktı yolu), bunu hedef projeye (`{project-root}/bmad-output`) düzeltin.
+
 ---
 
 ## 3. Kurulum

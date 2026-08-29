@@ -6,6 +6,35 @@
 # [agents.bmad-agent-pm]
 # description = "Prefers short, bulleted PRDs over narrative drafts."
 
+# --- Artifact yolları: hedef projeye yönlendir (PLUGIN'e değil!) ---
+# Plugin kurulduğunda {metodoloji-root} = plugin dizini, {project-root} = hedef repo.
+# Metodoloji çıktıları (story, deney, planning, test artifact'ları) HER ZAMAN
+# hedef repoda oluşturulmalı — plugin üzerinde değil.
+# Bu override, installer'ın yazdığı bmad/config.toml'daki hatalı
+# {metodoloji-root}/bmad-output yollarını ezer.
+[core]
+output_folder = "{project-root}/bmad-output"
+
+[modules.bmm]
+planning_artifacts = "{project-root}/bmad-output/planning-artifacts"
+implementation_artifacts = "{project-root}/bmad-output/implementation-artifacts"
+project_knowledge = "{project-root}/docs"
+
+[modules.tea]
+test_artifacts = "{project-root}/bmad-output/test-artifacts"
+test_design_output = "{project-root}/bmad-output/test-artifacts/test-design"
+test_review_output = "{project-root}/bmad-output/test-artifacts/test-reviews"
+trace_output = "{project-root}/bmad-output/test-artifacts/traceability"
+
+[modules.gds]
+planning_artifacts = "{project-root}/bmad-output/planning-artifacts"
+implementation_artifacts = "{project-root}/bmad-output/implementation-artifacts"
+project_knowledge = "{project-root}/docs"
+
+[modules.wds]
+project_knowledge = "{project-root}/docs"
+design_artifacts = "{project-root}/design-artifacts"
+
 # --- Hook enforcement modu (Faz 2 hard gate) ---
 # OpenHands runtime: guard (PreToolUse) + stop (Stop) fail-closed çalışır —
 # onaylı deney kaydı olmadan kod yazımı ve oturum kapanışı DENY döner.

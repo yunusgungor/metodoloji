@@ -151,12 +151,19 @@ def main():
     args = parser.parse_args()
 
     project_root = Path(args.project_root).resolve()
-    bmad_dir = project_root / "bmad"
+    # {metodoloji-root} = bu script'in konumundan türetilir (plugin kökü).
+    # Plugin kurulduğunda config'ler plugin içinde yaşar ({metodoloji-root}/bmad,
+    # {metodoloji-root}/custom) — hedef projede {project-root}/bmad diye bir
+    # dizin olmayabilir. Hedef proje yalnızca {project-root} ile geçilir.
+    _script_dir = Path(__file__).resolve().parent  # .../bmad/scripts
+    metodoloji_root = _script_dir.parent.parent     # plugin kökü
+    bmad_dir = metodoloji_root / "bmad"
+    custom_dir = metodoloji_root / "custom"
 
     base_team = load_toml(bmad_dir / "config.toml", required=True)
     base_user = load_toml(bmad_dir / "config.user.toml")
-    custom_team = load_toml(bmad_dir / "custom" / "config.toml")
-    custom_user = load_toml(bmad_dir / "custom" / "config.user.toml")
+    custom_team = load_toml(custom_dir / "config.toml")
+    custom_user = load_toml(custom_dir / "config.user.toml")
 
     merged = deep_merge(base_team, base_user)
     merged = deep_merge(merged, custom_team)
