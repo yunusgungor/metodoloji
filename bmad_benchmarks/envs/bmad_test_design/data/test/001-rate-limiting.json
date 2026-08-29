@@ -1,0 +1,9 @@
+[
+  {
+    "id": "rate-limiting-test",
+    "story_text": "As an API consumer, I want rate limiting on all endpoints so that the service remains stable under load.\n\nAC1: 100 requests/minute per API key\nAC2: 429 response with Retry-After header\nAC3: Sliding window algorithm (not fixed window)\nAC4: Rate limit headers: X-RateLimit-Remaining, X-RateLimit-Reset\nAC5: Burst allowance: 20 requests/second max\nAC6: Different limits for free vs paid tiers",
+    "architecture_text": "Rate limiter middleware in FastAPI. Redis-backed sliding window counters. Configurable per-endpoint and per-tier. Middleware runs before route handler.",
+    "expected_test_categories": ["unit", "integration", "e2e", "edge-case", "negative"],
+    "task_type": "test-design"
+  }
+]

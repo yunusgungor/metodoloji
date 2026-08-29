@@ -1,0 +1,32 @@
+[
+  {
+    "id": "xss-in-template",
+    "diff_text": "--- a/src/templates/comment.html\n+++ b/src/templates/comment.html\n@@ -5,6 +5,8 @@\n <div class=\"comment\">\n-  <p>{{ comment.body }}</p>\n+  <p>{{ comment.body | safe }}</p>\n   <span class=\"author\">{{ comment.author }}</span>\n </div>",
+    "spec_text": "User-generated content must be escaped by default. |safe filter only allowed after explicit sanitization.",
+    "expected_findings": [
+      {"category": "security", "severity": "high", "title_keyword": "xss"},
+      {"category": "security", "severity": "high", "title_keyword": "escape"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "missing-error-handling",
+    "diff_text": "--- a/src/api/upload.py\n+++ b/src/api/upload.py\n@@ -10,6 +10,8 @@ def upload_file(request):\n     file = request.FILES['file']\n-    path = default_storage.save(file.name, file)\n+    with open(f'/uploads/{file.name}', 'wb+') as dest:\n+        for chunk in file.chunks():\n+            dest.write(chunk)\n     return JsonResponse({'status': 'ok'})",
+    "spec_text": "File uploads must use Django's storage API. Direct file writes bypass security checks and quota enforcement.",
+    "expected_findings": [
+      {"category": "security", "severity": "high", "title_keyword": "storage"},
+      {"category": "bugs", "severity": "medium", "title_keyword": "path traversal"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "sql-injection-order",
+    "diff_text": "--- a/src/views/search.py\n+++ b/src/views/search.py\n@@ -8,7 +8,8 @@ def product_search(request):\n     query = request.GET.get('q', '')\n     sort = request.GET.get('sort', 'name')\n-    products = Product.objects.raw(f'SELECT * FROM products WHERE name LIKE \\'%{query}%\\' ORDER BY {sort}')\n+    products = Product.objects.filter(name__icontains=query).order_by(sort)\n     return render(request, 'search.html', {'products': products})",
+    "spec_text": "Search must use ORM queries. Raw SQL is prohibited. Sort parameter must be whitelisted.",
+    "expected_findings": [
+      {"category": "bugs", "severity": "medium", "title_keyword": "sort"},
+      {"category": "security", "severity": "medium", "title_keyword": "whitelist"}
+    ],
+    "task_type": "code-review"
+  }
+]

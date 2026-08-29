@@ -1,0 +1,9 @@
+[
+  {
+    "id": "event-sourcing-arch",
+    "input_text": "Building an order management system for an e-commerce platform. Orders go through: placed → confirmed → shipped → delivered → (optionally) returned. Each state transition must be auditable. Need to support order modifications up until shipping. Current throughput: 1000 orders/minute peak. Team has experience with PostgreSQL but not event sourcing.",
+    "input_type": "raw-idea",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  }
+]

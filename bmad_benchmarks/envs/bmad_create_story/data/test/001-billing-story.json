@@ -1,0 +1,11 @@
+[
+  {
+    "id": "billing-system-story",
+    "epic_text": "Epic: Billing & Subscription System\nAs a platform owner, I want automated billing so that customers are charged correctly.\n\nAC1: Monthly subscription billing on 1st of each month\nAC2: Usage-based billing for API calls (overage charges)\nAC3: Invoice generation with PDF download\nAC4: Failed payment retry (3 attempts over 7 days)\nAC5: Subscription upgrade/downgrade proration",
+    "prd_text": "Billing system integrating with Stripe for payments. Must handle subscriptions, usage metering, and invoice generation. Tax calculation via TaxJar. Failed payments trigger dunning emails.",
+    "architecture_text": "Microservice: billing-service in Python/FastAPI. PostgreSQL for subscription data, Redis for metering counters, Stripe webhooks for payment events. Event-driven with Kafka for billing events.",
+    "expected_sections": ["Acceptance Criteria", "Technical Tasks", "Definition of Done", "Status", "Dev Notes"],
+    "expected_metadata_fields": ["AC-", "Experiment:", "Type:", "Measured:", "Verify:"],
+    "task_type": "create-story"
+  }
+]

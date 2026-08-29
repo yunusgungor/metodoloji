@@ -1,0 +1,9 @@
+[
+  {
+    "id": "internal-tools-prd",
+    "idea_text": "Internal developer platform: self-service infrastructure provisioning, CI/CD pipeline management, monitoring dashboards, and on-call rotation. Target: 200-person engineering org. Must reduce average deployment time from 45min to under 10min. Integrate with existing GitHub, Datadog, and PagerDuty.",
+    "target_audience": "Platform engineers and SREs who manage infrastructure for 200+ developers. Currently using manual Terraform + Jenkins with no self-service.",
+    "expected_sections": ["Overview", "Goals", "User Stories", "Requirements", "Success Metrics", "Risks"],
+    "task_type": "prd"
+  }
+]
