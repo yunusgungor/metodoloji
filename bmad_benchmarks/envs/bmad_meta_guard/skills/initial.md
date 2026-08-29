@@ -16,8 +16,8 @@ The guard returns **DENY** when:
 
 ## ALLOW Conditions
 
-- Free zone dosyaları (docs/, scratch/, .metodoloji/) — kod değilse izin verilir
-- Onaylı deney kaydı kapsamı eşleşen kod yazımı
+- **Free zone dosyaları (docs/, scratch/, .metodoloji/, tmp/, temp/, graft/): kod olsa bile izin verilir.** Guard free zone kontrolünü kod kontrolünden önce yapar — `is_free()` true ise `continue` (ALLOW), kod uzantısı fark etmez. Yalnızca secret scan bu muafiyetten önce çalışır.
+- Onaylı deney kaydı kapsamı eşleşen kod yazımı (free zone dışında)
 - Story metadata tam, Task↔AC ve DoD doğru, methodology chain sağlam
 
 ## Core Rule (§1.2)
