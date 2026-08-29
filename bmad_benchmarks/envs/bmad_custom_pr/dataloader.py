@@ -12,9 +12,9 @@ from skillopt.datasets.base import SplitDataLoader
 def _normalize(raw: dict) -> dict:
     return {
         "id": raw["id"],
-        release_scope: raw.get("release_scope", ""),
-        staging_status: raw.get("staging_status", ""),
-        rollback_plan: raw.get("rollback_plan", ""),
+        "release_scope": raw.get("release_scope", ""),
+        "staging_status": raw.get("staging_status", ""),
+        "rollback_plan": raw.get("rollback_plan", ""),
         "expected_fields": raw.get("expected_fields", ['Tarih', 'Durum', 'Release tipi', 'Versiyon', 'Release kapsamı', 'Staging Test', 'Rollback Planı', 'Monitoring', 'Runbook', 'Karar', 'Sonraki adım']),
         "task_type": raw.get("task_type", "custom-pr"),
     }

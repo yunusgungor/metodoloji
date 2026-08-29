@@ -6,7 +6,7 @@ from .dataloader import BmadCustomIrDataLoader
 from .rollout import run_batch
 
 
-class BmadCustomIrAdapter:
+class BmadCustomIrAdapter(EnvAdapter):
 
     def __init__(self, *, split_dir, data_path=None, split_mode="split_dir",
                  split_ratio=None, split_seed=42, split_output_dir=None,
