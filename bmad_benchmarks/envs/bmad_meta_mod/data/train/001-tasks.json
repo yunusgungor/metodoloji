@@ -1,0 +1,38 @@
+[
+  {
+    "id": "task-code-auth",
+    "task_desc": "Kullanıcı kimlik doğrulama sistemi için Python kod yazılacak, test edilecek ve deploy edilecek.",
+    "expected_mode": "A",
+    "task_type": "meta-mod"
+  },
+  {
+    "id": "task-brainstorm",
+    "task_desc": "Yeni bir ürün fikri üzerine beyin fırtınası yapılacak, konsept geliştirilecek.",
+    "expected_mode": "B",
+    "task_type": "meta-mod"
+  },
+  {
+    "id": "task-prd",
+    "task_desc": "Yeni özellik için PRD oluşturulacak, UX tasarımı ve mimari kararlar alınacak.",
+    "expected_mode": "C",
+    "task_type": "meta-mod"
+  },
+  {
+    "id": "task-sprint",
+    "task_desc": "Sprint planlama yapılacak, sprint-status.yaml oluşturulacak, retrospektif notları tutulacak.",
+    "expected_mode": "D",
+    "task_type": "meta-mod"
+  },
+  {
+    "id": "task-deploy",
+    "task_desc": "Production ortamına deploy yapılacak, deployment log kaydedilecek.",
+    "expected_mode": "A",
+    "task_type": "meta-mod"
+  },
+  {
+    "id": "task-ux-spec",
+    "task_desc": "Kullanıcı arayüzü için UX spec ve mockup hazırlanacak.",
+    "expected_mode": "C",
+    "task_type": "meta-mod"
+  }
+]

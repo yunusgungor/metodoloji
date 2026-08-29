@@ -1,0 +1,14 @@
+[
+  {
+    "id": "guard-task-no-ac",
+    "scenario": "Story'de bir Technical Task'ın AC: AC-XXX referansı yok. Story dosyasına yazılıyor. Guard kararı?",
+    "expected_decision": "DENY",
+    "task_type": "meta-guard"
+  },
+  {
+    "id": "guard-prd-no-code",
+    "scenario": "PRD belgesi oluşturuluyor (docs/planning/prd.md) — belgesel çıktı, kod değil. Guard kararı?",
+    "expected_decision": "ALLOW",
+    "task_type": "meta-guard"
+  }
+]

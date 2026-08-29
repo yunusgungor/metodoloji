@@ -1,0 +1,14 @@
+[
+  {
+    "id": "task-doc",
+    "task_desc": "Proje dokümantasyonu güncellenecek, README yazılacak.",
+    "expected_mode": "D",
+    "task_type": "meta-mod"
+  },
+  {
+    "id": "task-requirement",
+    "task_desc": "Gereksinim analizi yapılacak, epics ve story'ler ayrıştırılacak.",
+    "expected_mode": "C",
+    "task_type": "meta-mod"
+  }
+]

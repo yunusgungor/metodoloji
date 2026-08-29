@@ -32,6 +32,10 @@ BENCHMARKS = [
     "bmad-custom-story",
     "bmad-custom-qr",
     "bmad-custom-pr",
+    # docs/bmad meta benchmarks
+    "bmad-meta-mod",
+    "bmad-meta-chain",
+    "bmad-meta-guard",
 ]
 
 _ADAPTERS = {
@@ -46,6 +50,10 @@ _ADAPTERS = {
     "bmad-custom-story": ("bmad_benchmarks.envs.bmad_custom_story.adapter", "BmadCustomStoryAdapter"),
     "bmad-custom-qr": ("bmad_benchmarks.envs.bmad_custom_qr.adapter", "BmadCustomQRAdapter"),
     "bmad-custom-pr": ("bmad_benchmarks.envs.bmad_custom_pr.adapter", "BmadCustomPrAdapter"),
+    # docs/bmad meta benchmarks
+    "bmad-meta-mod": ("bmad_benchmarks.envs.bmad_meta_mod.adapter", "BmadMetaModAdapter"),
+    "bmad-meta-chain": ("bmad_benchmarks.envs.bmad_meta_chain.adapter", "BmadMetaChainAdapter"),
+    "bmad-meta-guard": ("bmad_benchmarks.envs.bmad_meta_guard.adapter", "BmadMetaGuardAdapter"),
 }
 
 

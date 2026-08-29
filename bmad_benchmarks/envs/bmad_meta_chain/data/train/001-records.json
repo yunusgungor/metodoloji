@@ -1,0 +1,50 @@
+[
+  {
+    "id": "chain-experiment",
+    "stage": "Bir deney yapıldı ve sonucu kayıt altına alınacak. Hangi kayıt, hangi yol, hangi durum değerleri?",
+    "expected_record": "E",
+    "expected_path": "docs/experiments/",
+    "expected_status": "planlandı | ONAYLANDI | REDDEDİLDİ",
+    "task_type": "meta-chain"
+  },
+  {
+    "id": "chain-ir",
+    "stage": "Araştırma bulguları geliştirmeye hazır mı kontrol edilecek, sprint planlamadan önce. Hangi kayıt?",
+    "expected_record": "IR",
+    "expected_path": "docs/development/IR-",
+    "expected_status": "HAZIR | EKSİK",
+    "task_type": "meta-chain"
+  },
+  {
+    "id": "chain-sp",
+    "stage": "Sprint kapsamı netleştirilecek, IR onayından sonra. Hangi kayıt?",
+    "expected_record": "SP",
+    "expected_path": "docs/development/SP-",
+    "expected_status": "planlandı | devam ediyor | tamamlandı | iptal",
+    "task_type": "meta-chain"
+  },
+  {
+    "id": "chain-story",
+    "stage": "Bir story implementasyona hazır hale getirilecek. Hangi kayıt?",
+    "expected_record": "S",
+    "expected_path": "docs/development/stories/S-",
+    "expected_status": "backlog | sprint | in-progress | review | done | blocked",
+    "task_type": "meta-chain"
+  },
+  {
+    "id": "chain-qr",
+    "stage": "Story tamamlandı, kalite doğrulaması yapılacak. Hangi kayıt?",
+    "expected_record": "QR",
+    "expected_path": "docs/quality/QR-",
+    "expected_status": "pass | fail | partial",
+    "task_type": "meta-chain"
+  },
+  {
+    "id": "chain-pr",
+    "stage": "Deploy öncesi production readiness kontrol edilecek. Hangi kayıt?",
+    "expected_record": "PR",
+    "expected_path": "docs/development/PR-",
+    "expected_status": "HAZIR | BEKLİYOR",
+    "task_type": "meta-chain"
+  }
+]

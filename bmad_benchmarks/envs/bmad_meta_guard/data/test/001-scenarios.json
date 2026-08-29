@@ -1,0 +1,14 @@
+[
+  {
+    "id": "guard-experiment-rejected",
+    "scenario": "Story frontmatter'da experiment_refs içinde E-002 var, status REDDEDİLDİ. Story'ye yazılıyor. Guard kararı?",
+    "expected_decision": "DENY",
+    "task_type": "meta-guard"
+  },
+  {
+    "id": "guard-scratch",
+    "scenario": "Geçici deneme dosyası scratch/test.py'ye yazılıyor — scratch free zone. Guard kararı?",
+    "expected_decision": "ALLOW",
+    "task_type": "meta-guard"
+  }
+]

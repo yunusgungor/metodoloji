@@ -1,0 +1,14 @@
+[
+  {
+    "id": "task-arch",
+    "task_desc": "Mikroservis mimarisi kararı verilecek, architecture spine oluşturulacak.",
+    "expected_mode": "C",
+    "task_type": "meta-mod"
+  },
+  {
+    "id": "task-test",
+    "task_desc": "Unit test yazılacak ve mevcut testlerin geçtiği doğrulanacak.",
+    "expected_mode": "A",
+    "task_type": "meta-mod"
+  }
+]
