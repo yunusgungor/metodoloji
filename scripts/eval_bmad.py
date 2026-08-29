@@ -32,6 +32,7 @@ BENCHMARKS = [
     "bmad-custom-story",
     "bmad-custom-qr",
     "bmad-custom-pr",
+    "bmad-custom-ideation",
 ]
 
 _ADAPTERS = {
@@ -46,6 +47,7 @@ _ADAPTERS = {
     "bmad-custom-story": ("bmad_benchmarks.envs.bmad_custom_story.adapter", "BmadCustomStoryAdapter"),
     "bmad-custom-qr": ("bmad_benchmarks.envs.bmad_custom_qr.adapter", "BmadCustomQRAdapter"),
     "bmad-custom-pr": ("bmad_benchmarks.envs.bmad_custom_pr.adapter", "BmadCustomPrAdapter"),
+    "bmad-custom-ideation": ("bmad_benchmarks.envs.bmad_custom_ideation.adapter", "BmadCustomIdeationAdapter"),
 }
 
 

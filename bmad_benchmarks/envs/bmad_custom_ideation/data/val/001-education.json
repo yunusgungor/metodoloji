@@ -1,0 +1,8 @@
+[
+  {
+    "id": "idea-education-platform",
+    "user_idea": "Kodlama bootcamp'leri için online öğrenme platformu. Canlı dersler, otomatik derecelendirilen kodlama alıştırmaları, akran kod incelemesi. 500 eşzamanlı öğrenci desteklesin.",
+    "expected_behaviors": ["proactive-inference", "explicit-decision", "multiple-perspective", "focused-one-question", "hypothesis-offer"],
+    "task_type": "custom-ideation"
+  }
+]
