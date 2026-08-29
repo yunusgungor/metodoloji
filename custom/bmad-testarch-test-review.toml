@@ -12,6 +12,6 @@ persistent_facts = [
 activation_steps_append = [
   "Bu calismayi baslatmadan once metodoloji manifestosundaki (docs/bmad/research-methodology.md) ilgili modun kapi kurallarini dogrula: uretilcek ciktinin kanit turu ve kayit formati.",
   "Calismayi bitirmeden once kaydin eksiksiz oldugunu dogrula: Turkce alan etiketleri, karar gerekcesi, belirsizlik itirafi. Belgesel karar kod yazma izni degildir.",
-  "KÖPRÜ: Bu skill bagimsiz bir metodoloji kaydi uretmez; test altyapisi/sonuclarini bmad-code-review'in urettigi docs/development/QR-<sira>.md kaydinin 'Mekanik kontroller' bolumune ekler (docs/bmad/dev-skill-to-methodology-bridge.md §1 ve §3.1 Faz 3). Eger bagli bir QR kaydi yoksa (bmad-code-review onceden calismadiysa), once onu calistirmayi soyle; bulgulari QR'a besle, ayri kayit acma. Bulgu varsa ilgili QR kaydini guncelle ve native test ciktisina 'Metodoloji kaydi: docs/development/QR-<sira>.md' referansini ekle.",
+  "KÖPRÜ: Bu skill bagimsiz bir metodoloji kaydi uretmez; test altyapisi/sonuclarini bmad-code-review'in urettigi docs/quality/QR-<sira>.md kaydinin 'Mekanik kontroller' bolumune ekler (docs/bmad/dev-skill-to-methodology-bridge.md §1 ve §3.1 Faz 3). Eger bagli bir QR kaydi yoksa (bmad-code-review onceden calismadiysa), once onu calistirmayi soyle; bulgulari QR'a besle, ayri kayit acma. Bulgu varsa ilgili QR kaydini guncelle ve native test ciktisina 'Metodoloji kaydi: docs/quality/QR-<sira>.md' referansini ekle.",
 ]
 
