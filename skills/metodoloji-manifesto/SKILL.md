@@ -16,7 +16,7 @@ Bu skill, taşınan BMAD metodolojisinin **çekirdek sözleşmesidir**. Ayrınt�
 | Değişken | Anlam |
 |---|---|
 | `{project-root}` | Üzerinde çalışılan hedef projenin kökü (kayıtlar `docs/` altında burada) |
-| `{metodoloji-root}` | Bu plugin'in kökü (engine, skills, custom, bmad). Çalışma zamanında `~/.openhands/plugins/installed/metodoloji` veya workspace içi senkron `.metodoloji/plugin` |
+| `{metodoloji-root}` | Bu plugin'in kökü (engine, skills, custom, bmad). Kurulum kökü: `~/.openhands/plugins/installed/metodoloji`. |
 
 Herhangi bir skill metninde bu değişkenleri gördüğünde yukarıdaki anlamlarla çöz.
 

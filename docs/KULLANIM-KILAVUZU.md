@@ -108,7 +108,7 @@ OpenHands Runtime
        │
        ├── SessionStart ──→ bootstrap.sh
        │    │                    │
-       │    │              Plugin'i .metodoloji/plugin'e senkronla
+       │    │              Plugin kökünü belirle (kopyalama yok)
        │    │              Gate key oluştur (yoksa)
        │    │              Eksik dizinleri oluştur
        │    │              Bağlam enjekte et (kayıt zinciri hatırlatması)
@@ -139,19 +139,15 @@ OpenHands Runtime
                 │                └── Onaysız kod değişikliği var mı? → DENY
 ```
 
-### Root Çözümleme Kuralları (KRİTİK)
+### Root Çözümleme Kuralları
 
-Plugin, hedef projeye `.metodoloji/plugin` olarak senkronlanır. Placeholder'lar **her zaman şöyle çözümlenir**:
+| Placeholder | Değer |
+|-------------|-------|
+| `{project-root}` | Hedef proje kökü (`$OPENHANDS_PROJECT_DIR`) |
+| `{metodoloji-root}` | Plugin kurulum kökü (`~/.openhands/plugins/installed/metodoloji`) |
+| `{skill-root}` | Skill'in plugin içindeki konumu |
 
-| Placeholder | Değer | Örnek (hedef proje `~/proje`) |
-|-------------|-------|-------------------------------|
-| `{project-root}` | **Hedef proje kökü** (`$OPENHANDS_PROJECT_DIR`) | `~/proje` |
-| `{metodoloji-root}` | **Plugin kökü** (`.metodoloji/plugin`) | `~/proje/.metodoloji/plugin` |
-| `{skill-root}` | Skill'in plugin içindeki konumu | `~/proje/.metodoloji/plugin/skills/<skill>` |
-
-**Çıktı kuralı:** Metodoloji çıktıları (story, deney, planning, test artifact'ları, `bmad-output/`) **her zaman `{project-root}` üzerinde** oluşturulur — `{metodoloji-root}` üzerinde DEĞİL. Plugin kodu salt-okunur çalışır; yazılan tek şey hedef projenin çıktılarıdır.
-
-Bu kuralı ihlal eden bir komut görürseniz (`{metodoloji-root}/bmad-output` vb. çıktı yolu), bunu hedef projeye (`{project-root}/bmad-output`) düzeltin.
+**Çıktı kuralı:** Metodoloji çıktıları (story, deney, planning, test artifact'ları, `bmad-output/`) her zaman `{project-root}` üzerinde oluşturulur — `{metodoloji-root}` üzerinde değil.
 
 ---
 
@@ -207,7 +203,7 @@ python3 --version  # >= 3.11 olmalı
 OpenHands oturumunuzda plugin otomatik olarak yüklenir. `SessionStart` hook'u
 şunları yapar:
 
-1. Plugin dosyalarını `.metodoloji/plugin/` altına senkronlar
+1. Plugin'i workspace'e kopyalamaz — tek kök kurulum köküdür
 2. `~/.bmad/gate-key` yoksa oluşturur (0600 izinli)
 3. Eksik dizinleri oluşturur (`docs/experiments/`, `.metodoloji/logs/`)
 4. Bağlam enjekte eder: "METODOLOJI aktif — Kayıt zinciri: E → IR → SP → S → QR → PR"

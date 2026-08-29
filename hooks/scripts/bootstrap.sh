@@ -1,27 +1,11 @@
 #!/bin/sh
-# bootstrap.sh — SessionStart: plugin'i workspace'e senkronlar (.metodoloji/plugin)
-# ve kısa bağlam enjekte eder (additionalContext). Bloklayıcı değildir (fail-open).
+# bootstrap.sh — SessionStart: gate-key durumunu kontrol/oluşturur ve kısa bağlam
+# enjekte eder (additionalContext). Bloklayıcı değildir (fail-open).
 SELF=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-SRC=$(CDPATH= cd -- "$SELF/../.." && pwd)
+SYNCED=$(CDPATH= cd -- "$SELF/../.." && pwd)
 
 WS="$OPENHANDS_PROJECT_DIR"
 [ -z "$WS" ] && WS=$(pwd)
-DEST="$WS/.metodoloji/plugin"
-
-# Dogfooding: plugin zaten bu workspace altındaysa (repo geliştirme) senkron atlama.
-case "$SRC" in
-    "$WS"/*) SYNCED="$SRC" ;;
-    *)
-        if command -v rsync >/dev/null 2>&1; then
-            rsync -a --delete --exclude '__pycache__' --exclude '.venv' "$SRC/" "$DEST/"
-        else
-            mkdir -p "$DEST"
-            cp -R "$SRC/." "$DEST/"
-            find "$DEST" -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null
-        fi
-        SYNCED="$DEST"
-        ;;
-esac
 
 # Otomatik kurulum: Gate key yoksa oluştur
 if [ ! -f "$HOME/.bmad/gate-key" ]; then
