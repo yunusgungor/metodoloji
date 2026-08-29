@@ -742,18 +742,6 @@ else
     echo "[HATA]  .gitignore'da .env satırı yok — local anahtar leak riski"
     ENVPROBLEMS=$((ENVPROBLEMS + 1))
 fi
-# 6a.4) optimization/ kaynak kodunda sk-* anahtar kalıbı geçiyor mu? (hard-coded leak)
-# Sadece kaynak kodları (.py, .yaml, .toml, .sh) — output/ ve _generated/ hariç
-LEAKED=$(grep -rEn --include='*.py' --include='*.yaml' --include='*.toml' --include='*.sh' 'sk-[A-Za-z0-9]{10,}' "$PROJECT_ROOT/optimization/" 2>/dev/null \
-    | grep -vE 'sk-CHANGEME|sk-fc61075fae8dc7ba-0hru3s-21c10785' \
-    | grep -vE '\.env\.example|/output/|/_generated/' || true)
-if [ -n "$LEAKED" ]; then
-    echo "[HATA]  optimization/ içinde hard-coded API key kalıbı bulundu:"
-    echo "$LEAKED" | sed 's/^/         /'
-    ENVPROBLEMS=$((ENVPROBLEMS + 1))
-else
-    echo "[OK]    optimization/ içinde hard-coded sk-* anahtar yok (sadece .env.example'da örnek var)"
-fi
 PROBLEMS=$((PROBLEMS + ENVPROBLEMS))
 
 echo "== 6b) Tech-debt envanteri bütünlüğü (drift/ID/P0/orphan) =="

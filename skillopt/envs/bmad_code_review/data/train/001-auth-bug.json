@@ -1,0 +1,43 @@
+[
+  {
+    "id": "auth-sql-injection",
+    "diff_text": "--- a/src/auth/login.py\n+++ b/src/auth/login.py\n@@ -10,7 +10,7 @@ def login(username, password):\n-    query = f\"SELECT * FROM users WHERE username='{username}' AND password='{password}'\"\n+    query = f\"SELECT * FROM users WHERE username='{username}' AND password='{hash_password(password)}'\"\n     result = db.execute(query)\n     if result:\n         return create_session(result)\n+    # TODO: rate limiting\n     return None",
+    "spec_text": "Login must use parameterized queries. Rate limiting required after 5 failed attempts.",
+    "expected_findings": [
+      {"category": "security", "severity": "high", "title_keyword": "sql injection"},
+      {"category": "security", "severity": "medium", "title_keyword": "rate limit"},
+      {"category": "maintainability", "severity": "low", "title_keyword": "todo"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "api-null-ref",
+    "diff_text": "--- a/src/api/handler.py\n+++ b/src/api/handler.py\n@@ -25,6 +25,10 @@ def handle_request(req):\n     user = get_user(req.user_id)\n-    data = user.get_profile()\n+    profile = user.profile\n+    data = profile.get_data()\n     return jsonify(data)",
+    "spec_text": "API must handle missing user profiles gracefully with 404.",
+    "expected_findings": [
+      {"category": "bugs", "severity": "high", "title_keyword": "null"},
+      {"category": "bugs", "severity": "medium", "title_keyword": "attributeerror"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "perf-n-plus-one",
+    "diff_text": "--- a/src/models/order.py\n+++ b/src/models/order.py\n@@ -40,6 +40,12 @@ def get_orders_with_items(customer_id):\n     orders = Order.query.filter_by(customer_id=customer_id).all()\n+    for order in orders:\n+        order.items = OrderItem.query.filter_by(order_id=order.id).all()\n+        for item in order.items:\n+            item.product = Product.query.get(item.product_id)\n     return orders",
+    "spec_text": "Must use eager loading or joins to avoid N+1 queries. Max 3 queries per list endpoint.",
+    "expected_findings": [
+      {"category": "performance", "severity": "high", "title_keyword": "n+1"},
+      {"category": "performance", "severity": "medium", "title_keyword": "query"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "error-swallow",
+    "diff_text": "--- a/src/services/payment.py\n+++ b/src/services/payment.py\n@@ -15,7 +15,9 @@ def process_payment(order_id, amount):\n     try:\n         charge = stripe.Charge.create(amount=amount, currency='usd')\n         update_order_status(order_id, 'paid')\n+        return charge\n     except Exception as e:\n-        raise PaymentError(str(e))\n+        log.error(f\"Payment failed: {e}\")\n+        return None",
+    "spec_text": "Payment failures must propagate as PaymentError. Never swallow exceptions silently.",
+    "expected_findings": [
+      {"category": "bugs", "severity": "high", "title_keyword": "swallow"},
+      {"category": "maintainability", "severity": "medium", "title_keyword": "exception"}
+    ],
+    "task_type": "code-review"
+  }
+]

@@ -1,0 +1,9 @@
+[
+  {
+    "id": "ai-assistant-prd",
+    "idea_text": "AI-powered code review assistant that integrates with GitHub PRs. Automatically reviews code, suggests improvements, checks for security vulnerabilities, and enforces coding standards. Free for open-source, $12/mo per seat for private repos.",
+    "target_audience": "Development teams (3-50 devs) who want automated code quality gates without slowing down the review process.",
+    "expected_sections": ["Overview", "Goals", "User Stories", "Requirements", "Success Metrics", "Risks"],
+    "task_type": "prd"
+  }
+]

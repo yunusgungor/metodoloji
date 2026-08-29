@@ -1,0 +1,16 @@
+[
+  {
+    "id": "payment-flow-test",
+    "story_text": "As a customer, I want to pay for my order using credit card or PayPal so that I can complete my purchase.\n\nAC1: Support Visa, Mastercard, Amex\nAC2: PayPal redirect flow\nAC3: 3D Secure for cards > €100\nAC4: Payment failure shows clear error\nAC5: Retry up to 3 times\nAC6: Order status updates within 5 seconds",
+    "architecture_text": "Payment module: src/payment/ with Stripe SDK for cards, PayPal REST API for PayPal. Webhook handler for async confirmations. Redis for idempotency keys. PostgreSQL for transaction log.",
+    "expected_test_categories": ["unit", "integration", "e2e", "edge-case", "negative"],
+    "task_type": "test-design"
+  },
+  {
+    "id": "search-feature-test",
+    "story_text": "As a user, I want to search products by name, category, and price range so that I can find what I need quickly.\n\nAC1: Full-text search with typo tolerance\nAC2: Filter by category (multi-select)\nAC3: Price range slider (min/max)\nAC4: Results sorted by relevance by default\nAC5: Pagination: 20 per page\nAC6: Search suggestions after 2 chars",
+    "architecture_text": "Elasticsearch for search backend, Redis cache for popular queries, React frontend with debounced search input.",
+    "expected_test_categories": ["unit", "integration", "e2e", "edge-case", "negative"],
+    "task_type": "test-design"
+  }
+]

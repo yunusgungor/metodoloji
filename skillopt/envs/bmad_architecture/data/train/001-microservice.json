@@ -1,0 +1,23 @@
+[
+  {
+    "id": "ecommerce-microservice",
+    "input_text": "Building an e-commerce platform with user management, product catalog, order processing, and payment. Need to support 10k concurrent users, 99.9% uptime. Team of 5 developers split across frontend and backend. Must integrate with Stripe for payments and SendGrid for emails.",
+    "input_type": "raw-idea",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  },
+  {
+    "id": "saas-dashboard",
+    "input_text": "Multi-tenant SaaS analytics dashboard. Each tenant has isolated data. Real-time event processing with 5-second latency. Must support custom metric definitions per tenant. Compliance: SOC2, GDPR. Tech preference: TypeScript, PostgreSQL, Redis.",
+    "input_type": "raw-idea",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  },
+  {
+    "id": "brownfield-api",
+    "input_text": "Existing monolithic Django app serving 500k users. Need to extract payment and notification services into separate services. Must maintain backward compatibility during migration. Current stack: Django 4.2, PostgreSQL, Celery, Redis. Team has Kubernetes experience but no service mesh.",
+    "input_type": "existing-codebase",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  }
+]

@@ -1,0 +1,9 @@
+[
+  {
+    "id": "realtime-collab",
+    "input_text": "Real-time collaborative document editor (like Google Docs). Multiple users edit simultaneously. Must handle 100 concurrent editors per document. Conflict resolution via CRDT. Offline support with sync. Tech: TypeScript, WebSocket, Redis pub/sub.",
+    "input_type": "raw-idea",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  }
+]

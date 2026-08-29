@@ -1,0 +1,11 @@
+[
+  {
+    "id": "notification-story",
+    "epic_text": "Epic: Notification System\nAs a user, I want to receive notifications for important events so that I stay informed.\n\nAC1: In-app notification center\nAC2: Email notifications for critical events\nAC3: Push notifications (mobile)\nAC4: Notification preferences per event type\nAC5: Batch notifications (digest mode)",
+    "prd_text": "Multi-channel notification system. Must support in-app, email, and push. Users can configure preferences per event type. Batch mode sends daily digest.",
+    "architecture_text": "Event-driven: Kafka → Notification Service → Channel Adapters (Email/SMS/Push). Template engine for message formatting. Redis for notification queue.",
+    "expected_sections": ["Acceptance Criteria", "Technical Tasks", "Definition of Done", "Status", "Dev Notes"],
+    "expected_metadata_fields": ["AC-", "Experiment:", "Type:", "Measured:", "Verify:"],
+    "task_type": "create-story"
+  }
+]

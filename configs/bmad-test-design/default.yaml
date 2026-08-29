@@ -1,0 +1,14 @@
+_base_: ../../skillopt/envs/_base_/default.yaml
+
+env:
+  name: bmad-test-design
+  skill_init: skillopt/envs/bmad_test_design/skills/initial.md
+  split_mode: split_dir
+  split_dir: skillopt/envs/bmad_test_design/data/train
+  workers: 2
+  max_completion_tokens: 4096
+  limit: 0
+
+train:
+  batch_size: 8
+  num_epochs: 3

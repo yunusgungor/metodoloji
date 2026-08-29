@@ -1,0 +1,22 @@
+[
+  {
+    "id": "user-auth-story",
+    "epic_text": "Epic: User Authentication System\nAs a platform administrator, I want a secure authentication system so that only authorized users can access the system.\n\nAC1: Users can register with email/password\nAC2: Users can log in and receive JWT token\nAC3: Token expires after 24 hours\nAC4: Rate limiting: max 5 failed attempts per 15 minutes\nAC5: Password must meet complexity requirements",
+    "prd_text": "The authentication system is the foundation of our platform. It must support email+password registration, JWT-based sessions, and brute-force protection. Consider OAuth2 for future phases.",
+    "architecture_text": "Stack: Python/FastAPI, PostgreSQL, Redis for rate limiting. Auth module in src/auth/. JWT signing with RS256. Password hashing with bcrypt, cost factor 12.",
+    "ux_text": "Login page: email field, password field, submit button. Registration page: email, password, confirm password. Show validation errors inline.",
+    "expected_sections": ["Acceptance Criteria", "Technical Tasks", "Definition of Done", "Status", "Dev Notes"],
+    "expected_metadata_fields": ["AC-", "Experiment:", "Type:", "Measured:", "Verify:"],
+    "task_type": "create-story"
+  },
+  {
+    "id": "dashboard-story",
+    "epic_text": "Epic: Analytics Dashboard\nAs a product manager, I want a real-time analytics dashboard so that I can track user engagement metrics.\n\nAC1: Dashboard loads within 2 seconds\nAC2: Shows DAU, WAU, MAU charts\nAC3: Filterable by date range\nAC4: Auto-refresh every 60 seconds\nAC5: Export to CSV",
+    "prd_text": "Dashboard for tracking key product metrics. Must handle 10k+ concurrent users. Data from event stream processed by Kafka → ClickHouse pipeline.",
+    "architecture_text": "React frontend, WebSocket for real-time updates, ClickHouse for analytics queries, Redis cache for dashboard state.",
+    "ux_text": "Grid layout with metric cards on top, charts below. Date picker in header. Export button top-right.",
+    "expected_sections": ["Acceptance Criteria", "Technical Tasks", "Definition of Done", "Status", "Dev Notes"],
+    "expected_metadata_fields": ["AC-", "Experiment:", "Type:", "Measured:", "Verify:"],
+    "task_type": "create-story"
+  }
+]

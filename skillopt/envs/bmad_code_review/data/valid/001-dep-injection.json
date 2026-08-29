@@ -1,0 +1,22 @@
+[
+  {
+    "id": "dep-injection-vuln",
+    "diff_text": "--- a/src/utils/loader.py\n+++ b/src/utils/loader.py\n@@ -5,6 +5,8 @@ import pickle\n \n def load_user_data(data_path):\n     with open(data_path, 'rb') as f:\n-        data = json.load(f)\n+        data = pickle.load(f)\n     return data",
+    "spec_text": "Data loading must use safe deserialization (JSON only). No pickle, no eval, no exec.",
+    "expected_findings": [
+      {"category": "security", "severity": "high", "title_keyword": "pickle"},
+      {"category": "security", "severity": "high", "title_keyword": "deserialization"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "race-condition",
+    "diff_text": "--- a/src/cache/manager.py\n+++ b/src/cache/manager.py\n@@ -12,9 +12,11 @@ class CacheManager:\n     def get_or_create(self, key, factory):\n-        val = self.redis.get(key)\n-        if val is None:\n-            val = factory()\n-            self.redis.set(key, val, ex=self.ttl)\n+        with self.lock:\n+            val = self.redis.get(key)\n+            if val is None:\n+                val = factory()\n+                self.redis.set(key, val, ex=self.ttl)\n         return val",
+    "spec_text": "Cache must use distributed lock (Redis SETNX) to prevent thundering herd. Current implementation uses local threading lock.",
+    "expected_findings": [
+      {"category": "bugs", "severity": "medium", "title_keyword": "lock"},
+      {"category": "performance", "severity": "medium", "title_keyword": "thundering"}
+    ],
+    "task_type": "code-review"
+  }
+]

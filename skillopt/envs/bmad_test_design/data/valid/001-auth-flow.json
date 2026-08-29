@@ -1,0 +1,9 @@
+[
+  {
+    "id": "auth-flow-test",
+    "story_text": "As a user, I want to reset my password via email so that I can regain access to my account.\n\nAC1: Request reset with email\nAC2: Receive reset link within 5 minutes\nAC3: Link expires after 1 hour\nAC4: New password must meet complexity rules\nAC5: Old sessions invalidated after reset\nAC6: Rate limit: 3 requests per hour",
+    "architecture_text": "Auth module: src/auth/. Password reset via email token (JWT, 1h expiry). Rate limiting with Redis. Session invalidation via token blacklist.",
+    "expected_test_categories": ["unit", "integration", "e2e", "edge-case", "negative"],
+    "task_type": "test-design"
+  }
+]

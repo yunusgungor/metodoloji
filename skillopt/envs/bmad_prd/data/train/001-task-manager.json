@@ -1,0 +1,16 @@
+[
+  {
+    "id": "task-manager-prd",
+    "idea_text": "A lightweight project management tool for small teams (5-20 people). Features: task boards (Kanban), time tracking, file attachments, team chat. Must work offline-first with sync. Competitors: Trello (too simple), Jira (too complex). Our angle: simplicity + offline.",
+    "target_audience": "Small software teams (5-20 devs) who need lightweight project management without enterprise overhead. Currently using spreadsheets or basic tools.",
+    "expected_sections": ["Overview", "Goals", "User Stories", "Requirements", "Success Metrics", "Risks"],
+    "task_type": "prd"
+  },
+  {
+    "id": "health-app-prd",
+    "idea_text": "Mobile app for tracking daily health habits: water intake, sleep, exercise, medication. Gamification with streaks and achievements. Integration with Apple Health and Google Fit. Subscription model: free tier (3 habits), premium ($4.99/mo, unlimited + analytics).",
+    "target_audience": "Health-conscious adults aged 25-45 who want to build better habits but find existing apps too complicated or too gamified.",
+    "expected_sections": ["Overview", "Goals", "User Stories", "Requirements", "Success Metrics", "Risks"],
+    "task_type": "prd"
+  }
+]

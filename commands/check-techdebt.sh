@@ -109,10 +109,10 @@ try:
 finally:
     td.write_text(orig, encoding="utf-8")
 
-# Aşama 3/3: Orphan TODO: TD-999 optimization/ içine inject → §5 yakalıyor mu?
+# Aşama 3/3: Orphan TODO: TD-999 scratch/ içine inject → §5 yakalıyor mu?
 # (envanter dosyası §5 kapsamı dışında — oraya yazmak meşru referans olur)
-print(f"[3/{total_stages}] orphan TODO [TD-999] optimization/ içine enjekte edildiğinde §5 yakalıyor mu")
-negtest_artifact = PLUGIN / "optimization" / "_negtest_orphan.py"
+print(f"[3/{total_stages}] orphan TODO [TD-999] scratch/ içine enjekte edildiğinde §5 yakalıyor mu")
+negtest_artifact = PLUGIN / "scratch" / "_negtest_orphan.py"
 artifact_orig = None
 if negtest_artifact.exists():
     artifact_orig = negtest_artifact.read_text(encoding="utf-8")
@@ -218,10 +218,10 @@ TODO_IDS=$(grep -rhoE --binary-files=without-match \
     'TODO:[[:space:]]*\[TD-[0-9]+\]' \
     --exclude-dir=__pycache__ --exclude='*.pyc' \
     --exclude-dir=_generated_splits --exclude-dir=.metodoloji \
-    "$PLUGIN_ROOT/optimization/" "$PLUGIN_ROOT/custom/" 2>/dev/null \
+    "$PLUGIN_ROOT/scratch/" "$PLUGIN_ROOT/custom/" 2>/dev/null \
     | sed -E 's/.*\[(TD-[0-9]+)\].*/\1/' | sort -u)
 if [ -z "$TODO_IDS" ]; then
-    echo "[OK]   TODO comment taranan dizinlerde yok (optimization/, custom/)"
+    echo "[OK]   TODO comment taranan dizinlerde yok (scratch/, custom/)"
 else
     TMPC=$(mktemp); TMPD=$(mktemp)
     trap 'rm -f "$TMPC" "$TMPD"' EXIT
