@@ -1,0 +1,10 @@
+[
+  {
+    "id": "pr-hotfix-security",
+    "release_scope": "Release v1.2.1 (Hotfix). Scope: QR-007 (CVE-2026-xxx stripe upgrade 6.0.0→7.2.1). Critical security fix.",
+    "staging_status": "Deployed to staging. Smoke: 5/5 PASS. E2E: PASS. Integration: 15/15.",
+    "rollback_plan": "Instant rollback (same image re-deploy). Trigger: error > 2%. Minimal steps. Rollback tested: YES.",
+    "expected_fields": ["Tarih", "Durum", "Release tipi", "Versiyon", "Release kapsamı", "Staging Test", "Rollback Planı", "Monitoring", "Runbook", "Karar", "Sonraki adım"],
+    "task_type": "custom-pr"
+  }
+]

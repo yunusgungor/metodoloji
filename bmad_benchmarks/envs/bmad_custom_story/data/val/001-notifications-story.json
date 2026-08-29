@@ -1,0 +1,10 @@
+[
+  {
+    "id": "story-notifications",
+    "epic": "Epic: Notification System. As a user, I want notifications for important events so that I stay informed. ACs: in-app center, email, push, preferences, batch digest, 90-day retention.",
+    "experiments": "E-022 ONAYLANDI (notification latency 120ms p95). All ACs measured except batch digest which is [HYPOTHESIS].",
+    "architecture": "Event-driven: Kafka → Notification Service → Channel Adapters. Redis queue. PostgreSQL prefs/history.",
+    "expected_fields": ["Tarih", "Durum", "Sprint", "User Story", "Acceptance Criteria", "Technical Tasks", "Definition of Done", "Bağımlılıklar", "Araştırma Girdileri"],
+    "task_type": "custom-story"
+  }
+]

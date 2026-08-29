@@ -26,6 +26,12 @@ BENCHMARKS = [
     "bmad-architecture",
     "bmad-prd",
     "bmad-test-design",
+    # Custom TOML methodology benchmarks
+    "bmad-custom-ir",
+    "bmad-custom-sp",
+    "bmad-custom-story",
+    "bmad-custom-qr",
+    "bmad-custom-pr",
 ]
 
 _ADAPTERS = {
@@ -34,6 +40,12 @@ _ADAPTERS = {
     "bmad-architecture": ("bmad_benchmarks.envs.bmad_architecture.adapter", "BmadArchitectureAdapter"),
     "bmad-prd": ("bmad_benchmarks.envs.bmad_prd.adapter", "BmadPrdAdapter"),
     "bmad-test-design": ("bmad_benchmarks.envs.bmad_test_design.adapter", "BmadTestDesignAdapter"),
+    # Custom TOML methodology benchmarks
+    "bmad-custom-ir": ("bmad_benchmarks.envs.bmad_custom_ir.adapter", "BmadCustomIrAdapter"),
+    "bmad-custom-sp": ("bmad_benchmarks.envs.bmad_custom_sp.adapter", "BmadCustomSpAdapter"),
+    "bmad-custom-story": ("bmad_benchmarks.envs.bmad_custom_story.adapter", "BmadCustomStoryAdapter"),
+    "bmad-custom-qr": ("bmad_benchmarks.envs.bmad_custom_qr.adapter", "BmadCustomQRAdapter"),
+    "bmad-custom-pr": ("bmad_benchmarks.envs.bmad_custom_pr.adapter", "BmadCustomPrAdapter"),
 }
 
 

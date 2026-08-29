@@ -1,0 +1,10 @@
+[
+  {
+    "id": "ir-monolith-migration",
+    "research_inputs": "E-025 ONAYLANDI (service extraction strategy), R-011 (brownfield migration risks). All approved.",
+    "design_docs": "PRD: docs/prd/migration.md, UX: yok, Mimari: docs/architecture/migration-spine.md",
+    "dependencies": "API: internal auth-service (ready). Altyapı: Kubernetes ready. Harici: none.",
+    "expected_fields": ["Tarih", "Durum", "Araştırma girdileri", "Tasarım belgeleri", "Başarı kriterleri", "Teknik bağımlılıklar", "Risk değerlendirmesi", "Eksikler", "Karar", "Sonraki adım"],
+    "task_type": "custom-ir"
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "qr-reporting-feature",
+    "story_summary": "S-030: Reporting dashboard. Story: 'As a manager, I want to export reports so that I can analyze data offline.' ACs: CSV/Excel/PDF export, date range, column selection, async for 100k+ rows.",
+    "diff_summary": "Added src/reporting/exporter.py, src/reporting/tasks.py, src/reporting/formats.py. +350/-10 lines.",
+    "test_results": "Unit: 52/55. Integration: 20/20. E2E: 5/5. Coverage: 91%. Lint: pass. Security: clean. Performance: export 100k rows = 12s (target < 15s). Reviewer: @sally APPROVED.",
+    "expected_fields": ["Tarih", "Durum", "Story", "PR/MR", "Test Coverage", "Test Sonuçları", "Karar", "Sonraki adım"],
+    "task_type": "custom-qr"
+  }
+]

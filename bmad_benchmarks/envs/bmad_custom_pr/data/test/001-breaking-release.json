@@ -1,0 +1,10 @@
+[
+  {
+    "id": "pr-breaking-rollback",
+    "release_scope": "Release v3.0.0 (Major). Scope: QR-008 (API v2), QR-009 (service mesh). Breaking: API v1 sunset, mesh ingress change.",
+    "staging_status": "Deployed to staging. Smoke: 5/5. E2E: PASS. Integration: 20/20. Migration: SUCCESS.",
+    "rollback_plan": "Blue-green. Trigger: error > 3%. DB migration DESTRUCTIVE (v2 columns dropped) — rollback requires restore. Kill switch: service mesh canary.",
+    "expected_fields": ["Tarih", "Durum", "Release tipi", "Versiyon", "Release kapsamı", "Staging Test", "Rollback Planı", "Monitoring", "Runbook", "Karar", "Sonraki adım"],
+    "task_type": "custom-pr"
+  }
+]

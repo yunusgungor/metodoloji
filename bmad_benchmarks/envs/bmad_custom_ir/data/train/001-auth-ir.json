@@ -1,0 +1,26 @@
+[
+  {
+    "id": "ir-auth-system",
+    "research_inputs": "E-012 (auth performance test: bcrypt cost=12, login p95=45ms approved), R-003 (user needs: 500 concurrent logins), D-008 (login UX flow approved). All records ONAYLANDI.",
+    "design_docs": "PRD: docs/prd/auth.md, UX: docs/ux/login-flow.md, Mimari: docs/architecture/auth-spine.md (AD-1..AD-5)",
+    "dependencies": "API: internal user-service (ready). Kütüphaneler: bcrypt==4.1.0 (new), PyJWT==2.8.0. Altyapı: PostgreSQL ready, Redis ready. Harici: none.",
+    "expected_fields": ["Tarih", "Durum", "Araştırma girdileri", "Tasarım belgeleri", "Başarı kriterleri", "Teknik bağımlılıklar", "Risk değerlendirmesi", "Eksikler", "Karar", "Sonraki adım"],
+    "task_type": "custom-ir"
+  },
+  {
+    "id": "ir-payment-system",
+    "research_inputs": "E-021 (payment 3D Secure pending, NOT approved), R-007 (PCI compliance research). E-021 status BEKLİYOR.",
+    "design_docs": "PRD: docs/prd/payment.md, UX: yok, Mimari: docs/architecture/payment-spine.md",
+    "dependencies": "API: Stripe SDK (ready). Kütüphaneler: stripe==6.0.0. Altyapı: PostgreSQL ready. Harici: Stripe API keys needed.",
+    "expected_fields": ["Tarih", "Durum", "Araştırma girdileri", "Tasarım belgeleri", "Başarı kriterleri", "Teknik bağımlılıklar", "Risk değerlendirmesi", "Eksikler", "Karar", "Sonraki adım"],
+    "task_type": "custom-ir"
+  },
+  {
+    "id": "ir-search-system",
+    "research_inputs": "E-015 (search index latency: 2ms p95 approved), R-004 (product search needs). All ONAYLANDI.",
+    "design_docs": "PRD: docs/prd/search.md, UX: docs/ux/search-bar.md, Mimari: docs/architecture/search-spine.md",
+    "dependencies": "API: Elasticsearch (ready). Kütüphaneler: elasticsearch-py==8.12.0. Altyapı: ES cluster ready, Redis ready. Harici: none.",
+    "expected_fields": ["Tarih", "Durum", "Araştırma girdileri", "Tasarım belgeleri", "Başarı kriterleri", "Teknik bağımlılıklar", "Risk değerlendirmesi", "Eksikler", "Karar", "Sonraki adım"],
+    "task_type": "custom-ir"
+  }
+]

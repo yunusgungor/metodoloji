@@ -1,0 +1,26 @@
+[
+  {
+    "id": "sp-sprint-7",
+    "sprint_scope": "Sprint 7: auth (S-012), payment (S-018), search autocomplete (S-024). Sprint goal: 'Ship the authentication and payment foundations so customers can log in and pay.'",
+    "capacity": "Team velocity: 18 points/sprint (last 3 sprints avg). This sprint capacity: 15 points (2 devs on holiday). Stories: S-012 (5 pts), S-018 (8 pts), S-024 (2 pts) = 15 total. Fits.",
+    "tech_debt": "Active P0s in tech-debt.md: TD-010 (auth rate-limit bypass), TD-012 (hardcoded secrets in old payment code). Both out of scope this sprint but must be referenced.",
+    "expected_fields": ["Tarih", "Durum", "Sprint hedefi", "Story'ler", "Kapasite", "Teknik borç", "Blokerler", "Bağımlılıklar"],
+    "task_type": "custom-sp"
+  },
+  {
+    "id": "sp-sprint-8",
+    "sprint_scope": "Sprint 8: reporting (S-030), notifications (S-036). Sprint goal: 'Deliver reporting export and notification channels for the Q2 release.'",
+    "capacity": "Team velocity: 18 pts. This sprint capacity: 20 pts (full team). Stories: S-030 (10 pts), S-036 (8 pts), plus tech debt TD-011 (2 pts) = 20 total. At capacity.",
+    "tech_debt": "P0s: TD-010, TD-012 (carryover). TD-011 (lint config) planned this sprint with 2 pts.",
+    "expected_fields": ["Tarih", "Durum", "Sprint hedefi", "Story'ler", "Kapasite", "Teknik borç", "Blokerler", "Bağımlılıklar"],
+    "task_type": "custom-sp"
+  },
+  {
+    "id": "sp-sprint-9",
+    "sprint_scope": "Sprint 9: multi-tenant (S-042), billing (S-048). Sprint goal: 'Enable multi-tenant isolation and subscription billing for enterprise customers.'",
+    "capacity": "Team velocity: 18 pts. This sprint capacity: 12 pts (1 dev on call duty). Stories: S-042 (8 pts), S-048 (6 pts) = 14 pts > 12 capacity. OVERLOADED.",
+    "tech_debt": "P0s: TD-010, TD-012. No P0 planned this sprint.",
+    "expected_fields": ["Tarih", "Durum", "Sprint hedefi", "Story'ler", "Kapasite", "Teknik borç", "Blokerler", "Bağımlılıklar"],
+    "task_type": "custom-sp"
+  }
+]

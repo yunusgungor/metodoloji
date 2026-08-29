@@ -1,0 +1,26 @@
+[
+  {
+    "id": "pr-release-1",
+    "release_scope": "Release v1.2.0 (Minor). Scope: QR-001 (auth), QR-002 (payment). Both ONAYLANDI. Feature flag: payment checkout 10%→50%→100%.",
+    "staging_status": "Deployed to staging 2026-08-28. Smoke tests: 5/5 PASS. E2E: PASS. Integration: 15/15. DB migration: SUCCESS.",
+    "rollback_plan": "Blue-green deploy. Rollback triggers: error rate > 5%, latency > 500ms. Steps: stop deploy → reroute traffic → remove new version → DB rollback if needed. Rollback tested in staging: YES.",
+    "expected_fields": ["Tarih", "Durum", "Release tipi", "Versiyon", "Release kapsamı", "Staging Test", "Rollback Planı", "Monitoring", "Runbook", "Karar", "Sonraki adım"],
+    "task_type": "custom-pr"
+  },
+  {
+    "id": "pr-release-2",
+    "release_scope": "Release v1.3.0 (Minor). Scope: QR-003 (reporting), QR-004 (notifications). QR-003 ONAYLANDI, QR-004 ONAYLANDI.",
+    "staging_status": "Deployed to staging. Smoke: 4/5 PASS (export email delivery FAILED). E2E: FAIL (one scenario). Integration: 14/15.",
+    "rollback_plan": "Rolling deploy. Rollback triggers: error rate > 3%. Steps documented. DB migration: reversible. Rollback tested: NO (not yet).",
+    "expected_fields": ["Tarih", "Durum", "Release tipi", "Versiyon", "Release kapsamı", "Staging Test", "Rollback Planı", "Monitoring", "Runbook", "Karar", "Sonraki adım"],
+    "task_type": "custom-pr"
+  },
+  {
+    "id": "pr-release-3",
+    "release_scope": "Release v2.0.0 (Major, breaking). Scope: QR-005 (multi-tenant), QR-006 (billing). Breaking: API v1 removed.",
+    "staging_status": "Deployed to staging. Smoke: 5/5 PASS. E2E: PASS. Integration: 18/18. Migration: SUCCESS.",
+    "rollback_plan": "Blue-green. Trigger: error > 4%. Migration: reversible with rollback SQL prepared. Kill switch for billing. Rollback tested: YES.",
+    "expected_fields": ["Tarih", "Durum", "Release tipi", "Versiyon", "Release kapsamı", "Staging Test", "Rollback Planı", "Monitoring", "Runbook", "Karar", "Sonraki adım"],
+    "task_type": "custom-pr"
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "sp-overloaded",
+    "sprint_scope": "Sprint 11: AI features (S-055 10pts), mobile app (S-056 12pts), infra migration (S-057 8pts). Sprint goal: 'Ship AI assistant and mobile app while migrating infra.'",
+    "capacity": "Team velocity: 18 pts. This sprint capacity: 15 pts. Stories: 30 pts total. MASSIVELY OVERLOADED (2x capacity).",
+    "tech_debt": "P0s: TD-010, TD-012. None planned.",
+    "expected_fields": ["Tarih", "Durum", "Sprint hedefi", "Story'ler", "Kapasite", "Teknik borç", "Blokerler", "Bağımlılıklar"],
+    "task_type": "custom-sp"
+  }
+]
