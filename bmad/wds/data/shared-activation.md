@@ -7,7 +7,7 @@ Each agent's SKILL.md references this file instead of repeating these steps.
 
 ## Step: sync
 
-Read `~/{metodoloji-root}/bmad/wds/tools/sync/SKILL.md` and run it in silent mode.
+Read `{metodoloji-root}/bmad/wds/tools/sync/SKILL.md` and run it in silent mode.
 
 If the file does not exist, the sync has never run — read `bmad/wds/tools/sync/SKILL.md`
 from the current project instead and run it. This handles first activation after BMad install.
@@ -18,7 +18,7 @@ Continue regardless of sync outcome. Never block activation on sync.
 
 ## Step: state
 
-Check for session state. Read `~/{metodoloji-root}/bmad/wds/tools/memory/SKILL.md` and follow
+Check for session state. Read `{metodoloji-root}/bmad/wds/tools/memory/SKILL.md` and follow
 the `load` operation for the current agent_id.
 
 If state found: show resume prompt. Wait for user response before continuing.

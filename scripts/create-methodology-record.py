@@ -15,6 +15,7 @@ The script:
 """
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -274,7 +275,8 @@ def main():
     parser.add_argument("--project-root", default=".", help="Project root directory")
     args = parser.parse_args()
 
-    project_root = Path(args.project_root).resolve()
+    _proj = os.environ.get("OPENHANDS_PROJECT_DIR") or args.project_root
+    project_root = Path(_proj).resolve()
     story_path = Path(args.story).resolve()
 
     if not story_path.exists():

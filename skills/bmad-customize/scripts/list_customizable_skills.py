@@ -13,7 +13,7 @@ one-liner, and checks whether override files already exist in
 
 Skills in BMad are loaded either from a project-local location (e.g. the
 project's `{metodoloji-root}/skills/` or `.cursor/skills/`) or from a user-global
-location (e.g. `~/{metodoloji-root}/skills/`). We do not hardcode those paths — the
+location (e.g. `{metodoloji-root}/skills/`). We do not hardcode those paths — the
 running skill's own location is the source of truth for sibling discovery.
 `--extra-root` is available for the rare case where skills live in multiple
 locations on the same machine.
