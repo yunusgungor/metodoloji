@@ -1,0 +1,16 @@
+[
+  {
+    "id": "root-malformed-output",
+    "operation": "Bir komut {metodoloji-root}/bmad-output altına story yazmayı öneriyor",
+    "expected_root": "project-root",
+    "expected_direction": "output",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "root-manifesto-read",
+    "operation": "Metodoloji manifestosunu docs/bmad/research-methodology.md'den oku",
+    "expected_root": "metodoloji-root",
+    "expected_direction": "read",
+    "task_type": "meta-root"
+  }
+]

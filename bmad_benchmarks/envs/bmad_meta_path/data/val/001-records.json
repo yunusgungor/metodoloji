@@ -1,0 +1,18 @@
+[
+  {
+    "id": "path-story-val",
+    "stage": "Bir kullanıcı hikayesinin metodoloji kaydını oluştur",
+    "expected_root": "project-root",
+    "expected_path": "docs/development/stories/S-",
+    "expected_status": "backlog | sprint | in-progress | review | done | blocked",
+    "task_type": "meta-path"
+  },
+  {
+    "id": "path-qr-val",
+    "stage": "Bir feature'ın kalite kaydını oluştur",
+    "expected_root": "project-root",
+    "expected_path": "docs/quality/QR-",
+    "expected_status": "pass | fail | partial",
+    "task_type": "meta-path"
+  }
+]

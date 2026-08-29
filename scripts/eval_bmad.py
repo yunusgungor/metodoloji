@@ -36,6 +36,8 @@ BENCHMARKS = [
     "bmad-meta-mod",
     "bmad-meta-chain",
     "bmad-meta-guard",
+    "bmad-meta-root",
+    "bmad-meta-path",
 ]
 
 _ADAPTERS = {
@@ -54,6 +56,8 @@ _ADAPTERS = {
     "bmad-meta-mod": ("bmad_benchmarks.envs.bmad_meta_mod.adapter", "BmadMetaModAdapter"),
     "bmad-meta-chain": ("bmad_benchmarks.envs.bmad_meta_chain.adapter", "BmadMetaChainAdapter"),
     "bmad-meta-guard": ("bmad_benchmarks.envs.bmad_meta_guard.adapter", "BmadMetaGuardAdapter"),
+    "bmad-meta-root": ("bmad_benchmarks.envs.bmad_meta_root.adapter", "BmadMetaRootAdapter"),
+    "bmad-meta-path": ("bmad_benchmarks.envs.bmad_meta_path.adapter", "BmadMetaPathAdapter"),
 }
 
 
