@@ -90,7 +90,7 @@ metodoloji/
 │   │       ├── audit.py         # PostToolUse denetim izi
 │   │       └── stop.py          # Stop mantığı (oturum kapanışı engelleme)
 │   └── scripts/
-│       ├── bootstrap.sh         # SessionStart: plugin'i workspace'e senkronlar
+│       ├── bootstrap.sh         # SessionStart: gate-key + eksik dizinler + bağlam
 │       └── hook-entry.sh        # Tek çözümleme noktası: mod-seçim + Python'a yönlendirme
 ├── skills/                      # 124+ BMAD skill dizinleri
 ├── custom/                      # 74 köprü TOML + config.toml
@@ -108,7 +108,6 @@ OpenHands Runtime
        │
        ├── SessionStart ──→ bootstrap.sh
        │    │                    │
-       │    │              Plugin kökünü belirle (kopyalama yok)
        │    │              Gate key oluştur (yoksa)
        │    │              Eksik dizinleri oluştur
        │    │              Bağlam enjekte et (kayıt zinciri hatırlatması)
@@ -188,7 +187,6 @@ python3 --version  # >= 3.11 olmalı
 | Python | 3.11+ | `tomllib` stdlib modülü için |
 | OpenHands | Son sürüm | Plugin API desteği |
 | Git | 2.x | Versiyon kontrolü |
-| rsync | Opsiyonel | Bootstrap senkronizasyonu hızlandırır |
 
 ---
 
@@ -1094,7 +1092,6 @@ modüler motor (`hooks/engine/main.py` + `modules/`) içindir.
 ```bash
 cd /path/to/metodoloji
 git pull
-# Plugin otomatik olarak güncellenir (bootstrap.sh rsync ile senkronlar)
 ```
 
 ### S: custom TOML'daki bir öğeyi nasıl silerim?
