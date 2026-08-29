@@ -6,7 +6,6 @@ Scoring layers:
 """
 
 import json
-import os
 import pathlib
 from skillopt.model import chat_target
 

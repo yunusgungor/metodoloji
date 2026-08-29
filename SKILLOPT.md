@@ -26,7 +26,7 @@ bmad_benchmarks/envs/
 │   ├── dataloader.py            # SplitDataLoader (JSON items)
 │   ├── rollout.py               # Rollout + scoring functions
 │   ├── skills/initial.md        # Seed skill (starting point)
-│   └── data/{train,valid}/      # Training + held-out validation
+│   └── data/{train,val,test}/   # Training, validation, test splits
 ├── bmad_create_story/           # Same structure
 ├── bmad_architecture/
 ├── bmad_prd/

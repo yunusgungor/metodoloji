@@ -28,11 +28,6 @@ def _rollout_one(item: dict, skill_content: str, out_dir: pathlib.Path,
     if item.get("target_audience"):
         user_prompt += f"\n\n## Target Audience\n\n{item['target_audience']}"
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt},
-    ]
-
     output_text, meta = chat_target(
         system=system_prompt,
         user=user_prompt,

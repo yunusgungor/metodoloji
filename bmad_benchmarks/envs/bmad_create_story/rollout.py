@@ -41,11 +41,6 @@ def _rollout_one(item: dict, skill_content: str, out_dir: pathlib.Path,
     if item.get("ux_text"):
         user_prompt += f"\n\n## UX\n\n{item['ux_text']}"
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt},
-    ]
-
     output_text, meta = chat_target(
         system=system_prompt,
         user=user_prompt,
