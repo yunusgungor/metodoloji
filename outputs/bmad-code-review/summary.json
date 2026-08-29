@@ -32,9 +32,9 @@
     "skill_update_mode": "patch",
     "lr_control_mode": "fixed"
   },
-  "baseline_selection_hard": 0.0,
-  "best_selection_hard": 0.0,
-  "final_selection_hard": 0.0,
+  "baseline_selection_hard": 1.0,
+  "best_selection_hard": 1.0,
+  "final_selection_hard": 1.0,
   "final_selection_soft": null,
   "best_step": 0,
   "current_origin": "initial_skill",
@@ -67,11 +67,17 @@
   "final_test_delta_hard": 0,
   "total_wall_time_s": 0.0,
   "token_summary": {
+    "target": {
+      "calls": 1,
+      "prompt_tokens": 2420,
+      "completion_tokens": 760,
+      "total_tokens": 3180
+    },
     "_total": {
-      "calls": 0,
-      "prompt_tokens": 0,
-      "completion_tokens": 0,
-      "total_tokens": 0
+      "calls": 1,
+      "prompt_tokens": 2420,
+      "completion_tokens": 760,
+      "total_tokens": 3180
     }
   }
 }

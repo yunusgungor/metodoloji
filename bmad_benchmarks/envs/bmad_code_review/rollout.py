@@ -38,7 +38,8 @@ def _score(output_text: str, expected: list[dict]) -> tuple[int, float]:
     return hard, soft
 
 
-def _rollout_one(item: dict, skill_content: str, out_dir: pathlib.Path) -> dict:
+def _rollout_one(item: dict, skill_content: str, out_dir: pathlib.Path,
+                  max_completion_tokens: int = 4096) -> dict:
     system_prompt = (
         f"{skill_content}\n\n"
         f"You are an elite code reviewer. Review the following diff "
@@ -48,20 +49,24 @@ def _rollout_one(item: dict, skill_content: str, out_dir: pathlib.Path) -> dict:
     if item.get("spec_text"):
         user_prompt += f"\n\n## Spec\n\n{item['spec_text']}"
 
+    output_text, meta = chat_target(
+        system=system_prompt,
+        user=user_prompt,
+        max_completion_tokens=max_completion_tokens,
+    )
+
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt},
+        {"role": "assistant", "content": output_text},
     ]
-
-    response = chat_target(messages)
-    output_text = response if isinstance(response, str) else response.get("content", "")
 
     hard, soft = _score(output_text, item["expected_findings"])
 
     # Persist conversation for reflection
     pred_dir = out_dir / "predictions" / item["id"]
     pred_dir.mkdir(parents=True, exist_ok=True)
-    conversation = messages + [{"role": "assistant", "content": output_text}]
+    conversation = messages
     (pred_dir / "conversation.json").write_text(
         json.dumps(conversation, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -85,7 +90,8 @@ def run_batch(items: list[dict], skill_content: str, out_dir,
     results = []
     for item in items:
         try:
-            result = _rollout_one(item, skill_content, out_dir)
+            result = _rollout_one(item, skill_content, out_dir,
+                                  max_completion_tokens=max_completion_tokens)
         except Exception as exc:
             result = {
                 "id": item["id"],

@@ -27,7 +27,8 @@ def _score(output_text: str, expected_sections: list[str],
     return hard, soft
 
 
-def _rollout_one(item: dict, skill_content: str, out_dir: pathlib.Path) -> dict:
+def _rollout_one(item: dict, skill_content: str, out_dir: pathlib.Path,
+                  max_completion_tokens: int = 4096) -> dict:
     system_prompt = (
         f"{skill_content}\n\n"
         f"You are a story context engine. Create a comprehensive story file."
@@ -45,15 +46,23 @@ def _rollout_one(item: dict, skill_content: str, out_dir: pathlib.Path) -> dict:
         {"role": "user", "content": user_prompt},
     ]
 
-    response = chat_target(messages)
-    output_text = response if isinstance(response, str) else response.get("content", "")
+    output_text, meta = chat_target(
+        system=system_prompt,
+        user=user_prompt,
+        max_completion_tokens=max_completion_tokens,
+    )
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+        {"role": "assistant", "content": output_text},
+    ]
 
     hard, soft = _score(output_text, item["expected_sections"],
                         item["expected_metadata_fields"])
 
     pred_dir = out_dir / "predictions" / item["id"]
     pred_dir.mkdir(parents=True, exist_ok=True)
-    conversation = messages + [{"role": "assistant", "content": output_text}]
+    conversation = messages
     (pred_dir / "conversation.json").write_text(
         json.dumps(conversation, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -78,7 +87,8 @@ def run_batch(items: list[dict], skill_content: str, out_dir,
     results = []
     for item in items:
         try:
-            result = _rollout_one(item, skill_content, out_dir)
+            result = _rollout_one(item, skill_content, out_dir,
+                                  max_completion_tokens=max_completion_tokens)
         except Exception as exc:
             result = {
                 "id": item["id"], "hard": 0, "soft": 0.0,
