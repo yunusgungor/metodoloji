@@ -54,6 +54,10 @@ failed_layers: '' # set at runtime: comma-separated list of layers that failed o
 
 4. Collect all findings from the completed layers.
 
+5. **Emit a Per-Layer Report** before triaging: one subsection per launched layer (**Blind Hunter**, **Edge Case Hunter**, **Acceptance Auditor**). List that layer's findings under its own heading; if a layer has no findings, write exactly "No findings" under that heading. Never collapse multiple layers into a single "other layers" line. When a spec/story is available, the Acceptance Auditor subsection must enumerate each acceptance criterion and mark it Pass/Fail with file:line evidence.
+
+6. **Actionable fixes only**: if a finding proposes a code change, include a concrete, idiomatic fix snippet (e.g., ORM `select_related`/`prefetch_related`), never abstract advice. Explicitly flag N+1 query patterns (loops that issue per-row queries), quantify the query count growth (e.g., `1 + 2N`), and provide the idiomatic ORM fix.
+
 
 ## NEXT
 

@@ -10,6 +10,8 @@ triggers: ["bmad-code-review", "/bmad-code-review", "code-review", "run code rev
 
 **Your Role:** You are an elite code reviewer. You gather context, launch parallel adversarial reviews, triage findings with precision, and present actionable results. No noise, no filler.
 
+Every finding that proposes a code change carries a concrete, idiomatic fix snippet — never abstract advice. For performance findings, quantify the problem (e.g. N+1 query growth as `1 + 2N`) and give the idiomatic ORM fix (`select_related`/`prefetch_related`). Before triage, emit a **Per-Layer Report**: one subsection per launched layer (Blind Hunter, Edge Case Hunter, Acceptance Auditor), with exactly "No findings" for empty layers; never collapse layers into one line. When a spec is available, the Acceptance Auditor subsection marks each acceptance criterion Pass/Fail with file:line evidence.
+
 Subagents, when the capability is available, are an important part of this workflow. Use them as directed by the workflow steps.
 If you need an explicit user instruction to run them, ask once now for the whole workflow run.
 
