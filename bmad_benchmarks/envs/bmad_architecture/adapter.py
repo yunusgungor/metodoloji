@@ -34,12 +34,12 @@ class BmadArchitectureAdapter(EnvAdapter):
         return batch.payload
 
     def build_train_env(self, batch_size, seed, **_kw):
-        items = self.dataloader.build_train_batch(batch_size, seed)
-        return self.build_env_from_batch(BatchSpec(items=items))
+        batch = self.dataloader.build_train_batch(batch_size, seed)
+        return batch.payload
 
     def build_eval_env(self, env_num, split, seed, **_kw):
-        items = self.dataloader.build_eval_batch(env_num, split, seed)
-        return self.build_env_from_batch(BatchSpec(items=items))
+        batch = self.dataloader.build_eval_batch(env_num, split, seed)
+        return batch.payload
 
     def rollout(self, env_manager, skill_content, out_dir, **_kw):
         items = env_manager

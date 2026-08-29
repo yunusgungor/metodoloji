@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
-"""Evaluate a trained BMAD skill.
+"""Evaluate a trained BMAD skill using SkillOpt's eval-only engine.
+
+Wraps SkillOpt's eval_only.py by calling its main() directly (avoids the
+repo-path subprocess issue). Adapters are registered like train_bmad.py.
 
 Usage:
-    python scripts/eval_bmad.py --benchmark bmad-code-review --skill outputs/bmad-code-review/best_skill.md
+    python scripts/eval_bmad.py --benchmark bmad-code-review --split test
     python scripts/eval_bmad.py --benchmark all
 """
 
 import argparse
-import subprocess
+import importlib
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIGS_DIR = REPO_ROOT / "configs"
 OUTPUTS_DIR = REPO_ROOT / "outputs"
+
+sys.path.insert(0, str(REPO_ROOT))
 
 BENCHMARKS = [
     "bmad-code-review",
@@ -23,8 +28,28 @@ BENCHMARKS = [
     "bmad-test-design",
 ]
 
+_ADAPTERS = {
+    "bmad-code-review": ("bmad_benchmarks.envs.bmad_code_review.adapter", "BmadCodeReviewAdapter"),
+    "bmad-create-story": ("bmad_benchmarks.envs.bmad_create_story.adapter", "BmadCreateStoryAdapter"),
+    "bmad-architecture": ("bmad_benchmarks.envs.bmad_architecture.adapter", "BmadArchitectureAdapter"),
+    "bmad-prd": ("bmad_benchmarks.envs.bmad_prd.adapter", "BmadPrdAdapter"),
+    "bmad-test-design": ("bmad_benchmarks.envs.bmad_test_design.adapter", "BmadTestDesignAdapter"),
+}
 
-def eval_benchmark(name: str, skill_path: str = None, split: str = "valid"):
+
+def _register_bmad_adapters():
+    from scripts import train as skillopt_train
+    for name, (module_path, class_name) in _ADAPTERS.items():
+        try:
+            mod = importlib.import_module(module_path)
+            cls = getattr(mod, class_name)
+            skillopt_train._ENV_REGISTRY[name] = cls
+            print(f"  [registered] {name}")
+        except Exception as exc:
+            print(f"  [skip] {name}: {exc}")
+
+
+def eval_benchmark(name: str, skill_path: str | None = None, split: str = "test"):
     config_path = CONFIGS_DIR / name / "default.yaml"
     if not skill_path:
         skill_path = OUTPUTS_DIR / name / "best_skill.md"
@@ -36,16 +61,27 @@ def eval_benchmark(name: str, skill_path: str = None, split: str = "valid"):
         print(f"[ERROR] Skill not found: {skill_path}")
         return False
 
-    cmd = [
-        sys.executable, str(REPO_ROOT / "scripts" / "eval_only.py"),
+    sys.argv = [
+        "eval_only.py",
         "--config", str(config_path),
         "--skill", str(skill_path),
         "--split", split,
     ]
 
     print(f"\nEvaluating: {name} | skill: {skill_path} | split: {split}")
-    result = subprocess.run(cmd, cwd=str(REPO_ROOT))
-    return result.returncode == 0
+    try:
+        # Re-import to pick up fresh sys.argv
+        for mod in list(sys.modules):
+            if mod.startswith("scripts.eval_only"):
+                del sys.modules[mod]
+        from scripts.eval_only import main as eval_main
+        eval_main()
+        return True
+    except SystemExit as exc:
+        return exc.code == 0
+    except Exception as exc:
+        print(f"[ERROR] {name}: {exc}")
+        return False
 
 
 def main():
@@ -53,8 +89,11 @@ def main():
     parser.add_argument("--benchmark", choices=BENCHMARKS + ["all"],
                         default="bmad-code-review")
     parser.add_argument("--skill", default=None, help="Path to skill .md file")
-    parser.add_argument("--split", default="valid", help="Data split to evaluate")
+    parser.add_argument("--split", default="test", help="Data split to evaluate")
     args = parser.parse_args()
+
+    print("Registering BMAD adapters...")
+    _register_bmad_adapters()
 
     benchmarks = BENCHMARKS if args.benchmark == "all" else [args.benchmark]
 
