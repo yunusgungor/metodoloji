@@ -1,13 +1,17 @@
-_base_: ../../skillopt/envs/_base_/default.yaml
+_base_: ../../bmad_benchmarks/envs/_base_/default.yaml
 
-env:
-  name: bmad-code-review
-  skill_init: skillopt/envs/bmad_code_review/skills/initial.md
-  split_mode: split_dir
-  split_dir: skillopt/envs/bmad_code_review/data/train
-  workers: 2
-  max_completion_tokens: 4096
-  limit: 0
+model:
+  target: oc/mimo-v2.5-free
+  optimizer: oc/mimo-v2.5-free
+
+env: bmad-code-review
+skill_init: bmad_benchmarks/envs/bmad_code_review/skills/initial.md
+split_mode: split_dir
+split_dir: bmad_benchmarks/envs/bmad_code_review/data
+workers: 2
+max_completion_tokens: 4096
+limit: 0
+out_root: outputs/bmad-code-review
 
 train:
   batch_size: 8

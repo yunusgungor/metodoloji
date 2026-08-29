@@ -1,0 +1,18 @@
+[
+  {
+    "id": "auth-sql-injection",
+    "hard": 0,
+    "soft": 0.0,
+    "task_type": "code-review",
+    "error": "chat_target() missing 1 required positional argument: 'user'",
+    "n_turns": 0
+  },
+  {
+    "id": "api-null-ref",
+    "hard": 0,
+    "soft": 0.0,
+    "task_type": "code-review",
+    "error": "chat_target() missing 1 required positional argument: 'user'",
+    "n_turns": 0
+  }
+]

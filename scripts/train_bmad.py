@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Train BMAD skills using SkillOpt.
 
+Wraps SkillOpt's train.py, registering BMAD adapters first.
+
 Usage:
     python scripts/train_bmad.py --benchmark bmad-code-review
     python scripts/train_bmad.py --benchmark all
@@ -8,12 +10,15 @@ Usage:
 """
 
 import argparse
-import subprocess
+import importlib
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIGS_DIR = REPO_ROOT / "configs"
+
+# MUST add repo root before any local imports
+sys.path.insert(0, str(REPO_ROOT))
 
 BENCHMARKS = [
     "bmad-code-review",
@@ -23,28 +28,62 @@ BENCHMARKS = [
     "bmad-test-design",
 ]
 
+# Adapter class mapping
+_ADAPTERS = {
+    "bmad-code-review": ("bmad_benchmarks.envs.bmad_code_review.adapter", "BmadCodeReviewAdapter"),
+    "bmad-create-story": ("bmad_benchmarks.envs.bmad_create_story.adapter", "BmadCreateStoryAdapter"),
+    "bmad-architecture": ("bmad_benchmarks.envs.bmad_architecture.adapter", "BmadArchitectureAdapter"),
+    "bmad-prd": ("bmad_benchmarks.envs.bmad_prd.adapter", "BmadPrdAdapter"),
+    "bmad-test-design": ("bmad_benchmarks.envs.bmad_test_design.adapter", "BmadTestDesignAdapter"),
+}
 
-def train_benchmark(name: str, epochs: int = 3, lr: int = 3, batch_size: int = 8):
+
+def _register_bmad_adapters():
+    """Register BMAD adapters into SkillOpt's environment registry."""
+    # Import SkillOpt's train module to access its registry
+    from scripts import train as skillopt_train
+
+    for name, (module_path, class_name) in _ADAPTERS.items():
+        try:
+            mod = importlib.import_module(module_path)
+            cls = getattr(mod, class_name)
+            skillopt_train._ENV_REGISTRY[name] = cls
+            print(f"  [registered] {name}")
+        except Exception as exc:
+            print(f"  [skip] {name}: {exc}")
+
+
+def train_benchmark(name: str, extra_args: list[str] | None = None):
     config_path = CONFIGS_DIR / name / "default.yaml"
     if not config_path.exists():
         print(f"[ERROR] Config not found: {config_path}")
         return False
 
-    out_root = REPO_ROOT / "outputs" / name
-    cmd = [
-        sys.executable, str(REPO_ROOT / "scripts" / "train.py"),
+    # out_root is set in the YAML config per benchmark
+    sys.argv = [
+        "train.py",
         "--config", str(config_path),
-        "--out_root", str(out_root),
     ]
+    if extra_args:
+        sys.argv.extend(extra_args)
 
     print(f"\n{'='*60}")
     print(f"Training: {name}")
     print(f"Config:   {config_path}")
-    print(f"Output:   {out_root}")
     print(f"{'='*60}\n")
 
-    result = subprocess.run(cmd, cwd=str(REPO_ROOT))
-    return result.returncode == 0
+    try:
+        # Re-import to pick up the fresh sys.argv
+        if "scripts.train" in sys.modules:
+            del sys.modules["scripts.train"]
+        from scripts.train import main as train_main
+        train_main()
+        return True
+    except SystemExit as exc:
+        return exc.code == 0
+    except Exception as exc:
+        print(f"[ERROR] {name}: {exc}")
+        return False
 
 
 def main():
@@ -54,14 +93,25 @@ def main():
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--lr", type=int, default=3, help="Learning rate (max edits)")
     parser.add_argument("--batch-size", type=int, default=8)
-    args = parser.parse_args()
+    args, extra = parser.parse_known_args()
+
+    print("Registering BMAD adapters...")
+    _register_bmad_adapters()
 
     benchmarks = BENCHMARKS if args.benchmark == "all" else [args.benchmark]
 
+    extra_args = []
+    if args.epochs != 3:
+        extra_args.extend(["--num_epochs", str(args.epochs)])
+    if args.lr != 3:
+        extra_args.extend(["--learning_rate", str(args.lr)])
+    if args.batch_size != 8:
+        extra_args.extend(["--batch_size", str(args.batch_size)])
+    extra_args.extend(extra)
+
     results = {}
     for name in benchmarks:
-        ok = train_benchmark(name, epochs=args.epochs, lr=args.lr,
-                             batch_size=args.batch_size)
+        ok = train_benchmark(name, extra_args=extra_args)
         results[name] = ok
 
     print("\n" + "=" * 60)

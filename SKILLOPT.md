@@ -19,7 +19,7 @@ modifying model weights**.
 ## Architecture
 
 ```
-skillopt/envs/
+bmad_benchmarks/envs/
 ├── _base_/default.yaml          # Shared hyperparameters
 ├── bmad_code_review/
 │   ├── adapter.py               # EnvAdapter implementation
@@ -135,7 +135,7 @@ Each benchmark uses JSON items with this structure:
 
 ## Adding More Training Data
 
-Drop JSON files into `skillopt/envs/<benchmark>/data/train/`.
+Drop JSON files into `bmad_benchmarks/envs/<benchmark>/data/train/`.
 Each file can contain a single object or an array of objects.
 The dataloader globs `*.json` from the split directory.
 
