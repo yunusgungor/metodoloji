@@ -1,8 +1,0 @@
-[
-  {
-    "id": "idea-marketplace-escrow",
-    "user_idea": "İki taraflı pazar yeri: freelance geliştiriciler için. Escrow ödeme sistemi, portfolyo vitrini, yetenek eşleştirme algoritması. Logo tasarımı, web tasarımı, illüstrasyon dikeylerinde başlasın.",
-    "expected_behaviors": ["proactive_inference", "explicit_decision", "multiple_perspective", "focused_one_question", "hypothesis_offer"],
-    "task_type": "custom-ideation"
-  }
-]
