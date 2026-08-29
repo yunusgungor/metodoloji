@@ -9,9 +9,31 @@ import pathlib
 from skillopt.model import chat_target
 
 
+def _normalize_field(field: str) -> str:
+    """Normalize a Turkish field label for matching: strip punctuation, handle
+    singular/plural, accents. 'Test Sonuçları' matches 'test sonucu'."""
+    import unicodedata
+    f = field.lower()
+    # singularize common Turkish plurals (lar/ler) — careful not to strip real suffixes
+    for plural, singular in [("sonuçları", "sonucu"), ("kriterleri", "kriter"), ("bağımlılıkları", "bağımlılık")]:
+        f = f.replace(plural, singular)
+    # strip trailing -lar/-ler
+    if f.endswith("lar"):
+        f = f[:-3]
+    elif f.endswith("ler"):
+        f = f[:-3]
+    return f.strip()
+
+
 def _score(output_text: str, expected_fields: list[str]) -> tuple[int, float]:
     output_lower = output_text.lower()
-    found = sum(1 for f in expected_fields if f.lower() in output_lower)
+    # Normalize both sides for matching
+    norm_output = _normalize_field(output_lower)
+    found = 0
+    for f in expected_fields:
+        norm_f = _normalize_field(f)
+        if norm_f in output_lower or norm_f in norm_output:
+            found += 1
     soft = found / len(expected_fields) if expected_fields else 1.0
     hard = 1 if soft >= 0.9 else 0
     return hard, soft
