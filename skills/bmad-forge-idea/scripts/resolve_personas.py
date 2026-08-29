@@ -77,7 +77,8 @@ def load_agents(project_root: Path):
     The core resolver may emit agents as a dict keyed by code or as an array
     of tables (depending on how the layers merged); normalize both to a dict.
     """
-    script = project_root / "bmad" / "scripts" / "resolve_config.py"
+    root = Path(__file__).resolve().parent.parent.parent.parent  # plugin kökü (scripts/ altından)
+    script = root / "bmad" / "scripts" / "resolve_config.py"
     data = _run_json([sys.executable, str(script), "--project-root", str(project_root), "--key", "agents"])
     if data is None:
         return {}, False
@@ -95,8 +96,10 @@ def find_party_skill(project_root: Path, skill_root: Path):
     Skills install as siblings, so the party skill is almost always next to
     this one. A couple of common install roots cover the rest.
     """
+    root = Path(__file__).resolve().parent.parent.parent.parent  # plugin kökü
     candidates = [
         skill_root.parent / PARTY_SKILL,
+        root / "skills" / PARTY_SKILL,
         project_root / ".agents" / "skills" / PARTY_SKILL,
         project_root / "skills" / PARTY_SKILL,
     ]
@@ -108,7 +111,8 @@ def find_party_skill(project_root: Path, skill_root: Path):
 
 def load_party_workflow(project_root: Path, party_skill: Path):
     """Merged [workflow] table for bmad-party-mode (base + user overrides)."""
-    resolver = project_root / "hooks" / "engine" / "resolve_customization.py"
+    root = Path(__file__).resolve().parent.parent.parent.parent  # plugin kökü
+    resolver = root / "hooks" / "engine" / "resolve_customization.py"
     data = _run_json([sys.executable, str(resolver), "--skill", str(party_skill), "--key", "workflow"])
     if data is not None and isinstance(data.get("workflow"), dict):
         return data["workflow"]
@@ -123,7 +127,8 @@ def load_party_overrides(project_root: Path):
     Reads only the user's override TOMLs (team then personal, personal wins on
     scalars). No base roster exists in this path, so a shallow merge is enough.
     """
-    custom = project_root / "custom"
+    root = Path(__file__).resolve().parent.parent.parent.parent  # plugin kökü
+    custom = root / "custom"
     team = _load_toml(custom / f"{PARTY_SKILL}.toml").get("workflow", {})
     user = _load_toml(custom / f"{PARTY_SKILL}.user.toml").get("workflow", {})
     team = team if isinstance(team, dict) else {}

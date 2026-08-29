@@ -58,9 +58,17 @@ def _run_json(cmd):
         return None
 
 
+def _plugin_root() -> Path:
+    """Plugin kökü — bu script'in konumundan türetilir (scripts/ altında).
+    Plugin kurulduğunda hedef projede {project-root}/bmad yoktur; script'ler
+    plugin içinde yaşar. `project_root` parametresi yalnızca hedef projedir."""
+    return Path(__file__).resolve().parent.parent.parent.parent  # .../skills/<skill>/scripts → plugin kökü
+
+
 def load_agents(project_root: Path):
     """Installed agents as {code: entry}. Empty dict (with a flag) on failure."""
-    script = project_root / "bmad" / "scripts" / "resolve_config.py"
+    root = _plugin_root()
+    script = root / "bmad" / "scripts" / "resolve_config.py"
     data = _run_json([sys.executable, str(script), "--project-root", str(project_root), "--key", "agents"])
     if data is None:
         return {}, False
@@ -69,7 +77,8 @@ def load_agents(project_root: Path):
 
 def load_workflow(project_root: Path, skill_root: Path):
     """Merged [workflow] table. Falls back to the skill's base customize.toml."""
-    script = project_root / "hooks" / "engine" / "resolve_customization.py"
+    root = _plugin_root()
+    script = root / "hooks" / "engine" / "resolve_customization.py"
     data = _run_json([sys.executable, str(script), "--skill", str(skill_root), "--key", "workflow"])
     if data is not None and "workflow" in data:
         return data["workflow"]

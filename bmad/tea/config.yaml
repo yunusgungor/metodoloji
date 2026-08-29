@@ -3,7 +3,7 @@
 # Version: 6.10.0
 # Date: 2026-08-02T07:20:36.240Z
 
-test_artifacts: "{metodoloji-root}/bmad-output/test-artifacts"
+test_artifacts: "{project-root}/bmad-output/test-artifacts"
 tea_use_playwright_utils: true
 tea_use_pactjs_utils: false
 tea_pact_mcp: none
@@ -14,13 +14,13 @@ test_stack_type: auto
 ci_platform: auto
 test_framework: auto
 risk_threshold: p1
-test_design_output: _bmad-output/test-artifacts/test-design
-test_review_output: _bmad-output/test-artifacts/test-reviews
-trace_output: _bmad-output/test-artifacts/traceability
+test_design_output: {project-root}/bmad-output/test-artifacts/test-design
+test_review_output: {project-root}/bmad-output/test-artifacts/test-reviews
+trace_output: {project-root}/bmad-output/test-artifacts/traceability
 
 # Core Configuration Values
 user_name: Yunus
 project_name: graph-engineering-arge
 communication_language: Türkçe
 document_output_language: Türkçe
-output_folder: "{metodoloji-root}/bmad-output"
+output_folder: "{project-root}/bmad-output"

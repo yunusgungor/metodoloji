@@ -17,4 +17,4 @@ user_name: Yunus
 project_name: graph-engineering-arge
 communication_language: Türkçe
 document_output_language: Türkçe
-output_folder: "{metodoloji-root}/bmad-output"
+output_folder: "{project-root}/bmad-output"
