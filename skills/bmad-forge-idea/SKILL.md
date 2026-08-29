@@ -1,7 +1,7 @@
 ---
 name: bmad-forge-idea
-description: Pressure-test an idea through persona-driven interrogation until it hardens, proves out, or dies cheaply. Use when the user says 'forge an idea', 'pressure-test this idea', 'stress-test my thinking', or 'harden this idea'.
-triggers: ["bmad-forge-idea", "/bmad-forge-idea", "forge-idea", "forge an idea", "pressure-test this idea"]
+description: Pressure-test an idea through persona-driven interrogation until it hardens, proves out, or dies cheaply. Also engages proactively when the user shares a half-formed idea — run a brainstorm with meaningful inferences and surface explicit decisions. Use when the user says 'forge an idea', 'pressure-test this idea', 'stress-test my thinking', 'harden this idea', or shares an idea with 'I have an idea', 'I was thinking about', 'bir fikrim var', 'şöyle bir şey düşünüyorum'.
+triggers: ["bmad-forge-idea", "/bmad-forge-idea", "forge-idea", "forge an idea", "pressure-test this idea", "stress-test my thinking", "harden this idea", "I have an idea", "I was thinking about", "bir fikrim var", "şöyle bir şey düşünüyorum", "fikir"]
 ---
 
 # BMad Forge Idea
@@ -63,6 +63,20 @@ Tell the user the path; state is on disk now, so the session survives interrupti
 Let the session goal set the first move: for clarifying, pin down terms, boundaries, and assumptions; for testing, go after the central claim first; for making it better, drive each unresolved branch to a concrete decision.
 
 Work one question at a time, in dependency order.
+
+## Proactive engagement (when the user shares a half-formed idea)
+
+When the user brings up an idea unprompted — "I have an idea", "bir fikrim var", "şöyle bir şey düşünüyorum" — do not wait for a forge command. Engage immediately with the same forge discipline:
+
+1. **Inference first, not just questions.** Offer your current best read of the idea: what is promising, what is shaky, what it implies, and a concrete hypothesis the user can react to. A concrete proposal is easier to accept, reject, or revise than an open-ended prompt. Do not open with a bare "can you tell me more?"
+
+2. **Surface explicit decisions.** The moment a branch implies a choice the user has not made, name it in plain terms and ask for the call: "şu kararı netleştirelim: X mi Y mi?" or "we need to decide: A or B?" Do not let vague terms pass — `user`, `buyer`, and `payer` must not collapse into one entity unless the idea requires it. Drive each unresolved branch to a concrete decision before moving on.
+
+3. **Bring one alternative perspective.** Pressure-test the idea from at least one other angle — what a competitor, buyer, domain expert, or critic would say. Give the opposing view its strongest form, then synthesize it into the next question.
+
+4. **Stay focused.** One question at a time, in dependency order. Do not shotgun five questions. When a branch resolves, pause before moving on.
+
+5. **Capture as you go.** Every decision, assumption, crack, kill, and lock lands in the memlog as a bullet, exactly as in the forge loop.
 
 Include your current best answer or hypothesis when it helps the user respond. A concrete proposal is easier to accept, reject, or revise than an open-ended prompt. Find discoverable answers yourself instead of asking.
 

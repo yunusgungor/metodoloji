@@ -10,5 +10,8 @@ persistent_facts = [
 ]
 activation_steps_append = [
   "Bu calismayi baslatmadan once metodoloji manifestosundaki (docs/bmad/research-methodology.md) ilgili modun kapi kurallarini dogrula: uretilcek ciktinin kanit turu ve kayit formati.",
-  "Calismayi bitirmeden once kaydin eksiksiz oldugunu dogrula: Turkce alan etiketleri, karar gerekcesi, belirsizlik itirafi. Belgesel karar kod yazma izni degildir."
+  "Calismayi bitirmeden once kaydin eksiksiz oldugunu dogrula: Turkce alan etiketleri, karar gerekcesi, belirsizlik itirafi. Belgesel karar kod yazma izni degildir.",
+  "PROAKTIF TETIKLENME: Kullanici yarim bir fikir paylasirsa (bir fikrim var, soyle bir sey dusunuyorum, I have an idea) forge komutu bekleme — hemen devreye gir. Sadece soru sorma; once fikrin senin okumani sun: ne umut verici, ne sakat, ne ima ediyor. Somut bir hipotez oner ki kullanici kabul/red/revize edebilsin.",
+  "EXPLICIT DECISION: Bir dal, kullanicinin henuz vermedigi bir secimi ima eder etmez o secimi acikca adlandir ve kararini iste: 'su karari netlestirelim: X mi Y mi?'. Muplak terimleri gecirme — user/buyer/payer ayni varlik degilse ayirt et. Cozumlenen her dal, kullanicinin uzerinde insa edebilecegi somut bir karara baglanmali.",
+  "TEK TEK SORU: Ayni anda bes soru sorma. Bagimlilik sirasina gore tek soru sor, dal cozumlenince duraklayip kullanicinin kalan endisesini dile getirmesine firsat ver."
 ]
