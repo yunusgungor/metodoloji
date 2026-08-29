@@ -19,6 +19,7 @@ train:
 gradient:
   minibatch_size: 4
   merge_batch_size: 4
+  analyst_workers: 1
 
 optimizer:
   learning_rate: 3
