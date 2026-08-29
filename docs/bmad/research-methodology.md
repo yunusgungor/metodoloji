@@ -246,5 +246,5 @@ Bu metodoloji aşağıdaki bileşenlerle uyumludur:
 | IR | `docs/development/IR-XXX.md` | HAZIR \| EKSİK |
 | SP | `docs/development/SP-XXX.md` | planlandı \| devam ediyor \| tamamlandı \| iptal |
 | Story (S) | `docs/development/stories/S-XXX.md` | backlog \| sprint \| in-progress \| review \| done \| blocked |
-| QR | `docs/quality/QR-XXX.md` | ONAYLANDI \| REDDEDİLDİ \| REVİZE |
+| QR | `docs/quality/QR-XXX.md` | pass \| fail \| partial |
 | PR | `docs/development/PR-XXX.md` | HAZIR \| BEKLİYOR |
