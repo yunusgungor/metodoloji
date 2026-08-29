@@ -1,0 +1,16 @@
+[
+  {
+    "id": "microservices-consistency-test",
+    "story_text": "As a platform, I want eventual consistency across microservices so that order data is synchronized.\n\nAC1: Order service publishes events to Kafka\nAC2: Payment service consumes and processes payment\nAC3: Notification service sends confirmation\nAC4: Inventory service decrements stock\nAC5: Compensation: failed payment rolls back order\nAC6: Outbox pattern for reliable event publishing",
+    "architecture_text": "Microservices with Kafka event bus. Each service has its own database. Outbox pattern for exactly-once delivery. Saga pattern for distributed transactions.",
+    "expected_test_categories": ["unit", "integration", "e2e", "edge-case", "negative"],
+    "task_type": "test-design"
+  },
+  {
+    "id": "search-index-test",
+    "story_text": "As a user, I want search to return relevant results so that I can find what I'm looking for.\n\nAC1: Full-text search on product name and description\nAC2: Faceted filters: category, brand, price range\nAC3: Sort by relevance, price, rating\nAC4: Index refresh within 5 minutes of product change\nAC5: Handle 1M products\nAC6: Typo tolerance (Levenshtein distance 2)",
+    "architecture_text": "Elasticsearch cluster with product index. Incremental indexing via Kafka consumer. Search API with query DSL. Synonym dictionary.",
+    "expected_test_categories": ["unit", "integration", "e2e", "edge-case", "negative"],
+    "task_type": "test-design"
+  }
+]

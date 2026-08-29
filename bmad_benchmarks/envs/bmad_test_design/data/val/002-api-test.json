@@ -1,0 +1,9 @@
+[
+  {
+    "id": "api-versioning-test",
+    "story_text": "As an API consumer, I want API versioning so that my integration doesn't break when the API is updated.\n\nAC1: URL-based versioning: /api/v1/, /api/v2/\nAC2: Deprecated versions return Sunset header\nAC3: Breaking changes require new major version\nAC4: Backward-compatible changes allowed in minor versions\nAC5: Version negotiation via Accept header\nAC6: Deprecation notice 6 months before removal",
+    "architecture_text": "FastAPI with versioned routers. Deprecation middleware adds Sunset/Deprecation headers. API gateway handles version routing. OpenAPI spec per version.",
+    "expected_test_categories": ["unit", "integration", "e2e", "edge-case", "negative"],
+    "task_type": "test-design"
+  }
+]

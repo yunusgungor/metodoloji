@@ -1,0 +1,23 @@
+[
+  {
+    "id": "auth-flow-test",
+    "story_text": "As a user, I want to reset my password via email so that I can regain access to my account.\n\nAC1: Request reset with email\nAC2: Receive reset link within 5 minutes\nAC3: Link expires after 1 hour\nAC4: New password must meet complexity rules\nAC5: Old sessions invalidated after reset\nAC6: Rate limit: 3 requests per hour",
+    "architecture_text": "Auth module: src/auth/. Password reset via email token (JWT, 1h expiry). Rate limiting with Redis. Session invalidation via token blacklist.",
+    "expected_test_categories": ["unit", "integration", "e2e", "edge-case", "negative"],
+    "task_type": "test-design"
+  },
+  {
+    "id": "file-upload-test",
+    "story_text": "As a user, I want to upload files to my project so that I can share documents with my team.\n\nAC1: Support PDF, PNG, JPG, DOCX (max 50MB)\nAC2: Virus scan before storage\nAC3: Generate thumbnails for images\nAC4: Progress bar during upload\nAC5: Retry on network failure (3 attempts)\nAC6: Deduplication by content hash",
+    "architecture_text": "Multipart upload to S3. ClamAV for virus scanning. Sharp for image thumbnails. Presigned URLs for direct upload. Content-addressable storage for dedup.",
+    "expected_test_categories": ["unit", "integration", "e2e", "edge-case", "negative"],
+    "task_type": "test-design"
+  },
+  {
+    "id": "payment-test",
+    "story_text": "As a customer, I want to pay for my order using credit card or PayPal so that I can complete my purchase.\n\nAC1: Support Visa, Mastercard, Amex\nAC2: PayPal redirect flow\nAC3: 3D Secure for cards > €100\nAC4: Payment failure shows clear error\nAC5: Retry up to 3 times\nAC6: Order status updates within 5 seconds",
+    "architecture_text": "Payment module: src/payment/ with Stripe SDK for cards, PayPal REST API for PayPal. Webhook handler for async confirmations. Redis for idempotency keys.",
+    "expected_test_categories": ["unit", "integration", "e2e", "edge-case", "negative"],
+    "task_type": "test-design"
+  }
+]

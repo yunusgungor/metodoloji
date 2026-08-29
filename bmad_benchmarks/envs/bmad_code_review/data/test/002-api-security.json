@@ -1,0 +1,31 @@
+[
+  {
+    "id": "auth-bypass",
+    "diff_text": "--- a/src/auth/middleware.py\n+++ b/src/auth/middleware.py\n@@ -8,6 +8,8 @@ def require_auth(request):\n     if not request.headers.get('Authorization'):\n         return JsonResponse({'error': 'Unauthorized'}, status=401)\n-    user = verify_token(request.headers['Authorization'])\n+    token = request.headers['Authorization'].replace('Bearer ', '')\n+    user = verify_token(token)\n+    if not user:\n+        return JsonResponse({'error': 'Unauthorized'}, status=401)\n     request.user = user\n     return None",
+    "spec_text": "Token verification must return user or None. Invalid tokens must be rejected, not silently accepted.",
+    "expected_findings": [
+      {"category": "security", "severity": "high", "title_keyword": "token"},
+      {"category": "bugs", "severity": "high", "title_keyword": "auth"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "insecure-deserialization",
+    "diff_text": "--- a/src/api/import.py\n+++ b/src/api/import.py\n@@ -12,8 +12,10 @@ def import_data(request):\n     file = request.FILES['file']\n-    data = json.loads(file.read().decode('utf-8'))\n+    import pickle\n+    data = pickle.loads(file.read())\n+    if not isinstance(data, dict):\n+        return JsonResponse({'error': 'Invalid format'}, status=400)\n     return JsonResponse({'imported': process(data)})",
+    "spec_text": "File imports must use safe deserialization (JSON only). Pickle is forbidden.",
+    "expected_findings": [
+      {"category": "security", "severity": "high", "title_keyword": "pickle"},
+      {"category": "security", "severity": "high", "title_keyword": "deserialization"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "log-injection",
+    "diff_text": "--- a/src/utils/logger.py\n+++ b/src/utils/logger.py\n@@ -5,6 +5,8 @@ def log_event(event_type, user_input):\n-    logger.info(f'{event_type}: {user_input}')\n+    sanitized = user_input.replace('\\n', ' ').replace('\\r', ' ')\n+    logger.info(f'{event_type}: {sanitized}')\n     logger.debug(f'Event metadata: {event_type}')",
+    "spec_text": "Log messages must sanitize user input to prevent log injection attacks.",
+    "expected_findings": [
+      {"category": "security", "severity": "medium", "title_keyword": "injection"}
+    ],
+    "task_type": "code-review"
+  }
+]

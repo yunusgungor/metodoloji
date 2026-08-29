@@ -1,0 +1,16 @@
+[
+  {
+    "id": "realtime-collab",
+    "input_text": "Real-time collaborative document editor (like Google Docs). Multiple users edit simultaneously. Must handle 100 concurrent editors per document. Conflict resolution via CRDT. Offline support with sync. Tech: TypeScript, WebSocket, Redis pub/sub.",
+    "input_type": "raw-idea",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  },
+  {
+    "id": "legacy-migration",
+    "input_text": "Existing monolithic Rails app serving 2M users. Need to extract payment and notification services into separate services. Must maintain backward compatibility during 6-month migration. Current: Rails 7, PostgreSQL, Sidekiq. Team has no Kubernetes experience.",
+    "input_type": "existing-codebase",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  }
+]

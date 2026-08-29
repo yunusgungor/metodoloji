@@ -1,0 +1,9 @@
+[
+  {
+    "id": "crm-prd",
+    "idea_text": "CRM system for B2B sales teams. Lead scoring, pipeline management, automated follow-up sequences. Must integrate with Salesforce and HubSpot. AI-powered deal risk assessment. Mobile app for field sales. Must handle 10k contacts per account.",
+    "target_audience": "B2B sales teams (5-50 reps) who need better pipeline visibility and automated follow-ups without enterprise CRM complexity.",
+    "expected_sections": ["Overview", "Goals", "User Stories", "Requirements", "Success Metrics", "Risks"],
+    "task_type": "prd"
+  }
+]

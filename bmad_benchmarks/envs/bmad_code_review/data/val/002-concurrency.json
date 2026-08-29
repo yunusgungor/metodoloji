@@ -1,0 +1,21 @@
+[
+  {
+    "id": "race-condition-order",
+    "diff_text": "--- a/src/orders/service.py\n+++ b/orders/views.py\n@@ -10,6 +10,9 @@ def place_order(user, items):\n     stock = Inventory.get_available(items)\n-    if stock >= len(items):\n+    with transaction.atomic():\n+        stock = Inventory.select_for_update(items)\n+        if stock >= len(items):\n             Order.create(user, items)\n+            Inventory.reserve(items)\n     return order",
+    "spec_text": "Orders must use database transactions with row-level locking to prevent overselling.",
+    "expected_findings": [
+      {"category": "bugs", "severity": "high", "title_keyword": "locking"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "async-deadlock",
+    "diff_text": "--- a/src/services/notification.py\n+++ b/orders/views.py\n@@ -8,6 +8,9 @@ async def send_notification(user, message):\n-    await email_service.send(user.email, message)\n-    await sms_service.send(user.phone, message)\n+    async with self.lock:\n+        await email_service.send(user.email, message)\n+        await sms_service.send(user.phone, message)\n+    await push_service.send(user.device, message)",
+    "spec_text": "Notification channels must be independent. Failure in one must not block others.",
+    "expected_findings": [
+      {"category": "bugs", "severity": "high", "title_keyword": "deadlock"},
+      {"category": "spec-deviation", "severity": "high", "title_keyword": "independent"}
+    ],
+    "task_type": "code-review"
+  }
+]

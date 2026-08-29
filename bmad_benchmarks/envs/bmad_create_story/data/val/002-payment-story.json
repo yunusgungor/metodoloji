@@ -1,0 +1,11 @@
+[
+  {
+    "id": "payment-refund-story",
+    "epic_text": "Epic: Payment Refund System\nAs a customer, I want to request a refund so that I can get my money back.\n\nAC1: Refund request within 30 days of purchase\nAC2: Full or partial refund amount\nAC3: Refund reason selection (dropdown)\nAC4: Admin approval workflow (approve/reject with notes)\nAC5: Automatic refund to original payment method\nAC6: Refund status tracking (pending → approved → processed → completed)",
+    "prd_text": "Refund system integrated with Stripe. Customers request refunds via self-service. Admins review and approve. Automatic processing via Stripe API.",
+    "architecture_text": "FastAPI service with PostgreSQL. Stripe SDK for refund processing. State machine for refund status. Email notifications at each status change.",
+    "expected_sections": ["Acceptance Criteria", "Technical Tasks", "Definition of Done", "Status", "Dev Notes"],
+    "expected_metadata_fields": ["AC-", "Experiment:", "Type:", "Measured:", "Verify:"],
+    "task_type": "create-story"
+  }
+]

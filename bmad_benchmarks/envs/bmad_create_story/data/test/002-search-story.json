@@ -1,0 +1,11 @@
+[
+  {
+    "id": "search-autocomplete-story",
+    "epic_text": "Epic: Search Autocomplete\nAs a user, I want search suggestions as I type so that I can find products faster.\n\nAC1: Suggestions appear after 2 characters typed\nAC2: Max 10 suggestions displayed\nAC3: Suggestions ranked by popularity (last 30 days)\nAC4: Recent searches shown when input is empty\nAC5: Keyboard navigation (arrow keys + enter)\nAC6: Debounce: 300ms delay before API call",
+    "prd_text": "Search autocomplete for e-commerce product catalog. Must handle 50k+ products. Suggestions ranked by purchase frequency. Cache popular queries in Redis.",
+    "architecture_text": "Frontend: React with debounced input. Backend: FastAPI endpoint. Elasticsearch for full-text search with completion suggester. Redis cache for top 1000 queries.",
+    "expected_sections": ["Acceptance Criteria", "Technical Tasks", "Definition of Done", "Status", "Dev Notes"],
+    "expected_metadata_fields": ["AC-", "Experiment:", "Type:", "Measured:", "Verify:"],
+    "task_type": "create-story"
+  }
+]

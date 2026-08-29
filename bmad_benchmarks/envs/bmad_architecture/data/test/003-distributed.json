@@ -1,0 +1,16 @@
+[
+  {
+    "id": "distributed-cache-arch",
+    "input_text": "Distributed caching layer for a read-heavy web application. Must handle 1M reads/second. Cache invalidation strategy needed (write-through, TTL). Redis cluster with sharding. Cache warming on deployment. Monitoring for cache hit rate.",
+    "input_type": "raw-idea",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  },
+  {
+    "id": "event-driven-migration",
+    "input_text": "Migrate a synchronous order processing pipeline to event-driven architecture. Currently: order → payment → fulfillment → notification (all synchronous HTTP calls). Must become: order events → payment service, fulfillment service consume asynchronously. Idempotency required for all consumers.",
+    "input_type": "existing-codebase",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  }
+]

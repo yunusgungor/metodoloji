@@ -4,8 +4,8 @@
 seed: 42
 
 evaluation:
-  sel_env_num: 1
-  test_env_num: 1
+  sel_env_num: 4
+  test_env_num: 4
   eval_test: true
 
 model:

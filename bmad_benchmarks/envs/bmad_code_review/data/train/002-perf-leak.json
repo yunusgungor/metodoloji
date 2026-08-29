@@ -1,0 +1,42 @@
+[
+  {
+    "id": "n-plus-one-django",
+    "diff_text": "--- a/orders/views.py\n+++ b/orders/views.py\n@@ -15,8 +15,10 @@ def order_list(request):\n     orders = Order.objects.filter(user=request.user)\n+    for order in orders:\n+        order.items = OrderItem.objects.filter(order=order)\n+        order.customer = Customer.objects.get(id=order.customer_id)\n     return render(request, 'orders/list.html', {'orders': orders})",
+    "spec_text": "Use select_related/prefetch_related. Max 2 queries per list view.",
+    "expected_findings": [
+      {"category": "performance", "severity": "high", "title_keyword": "n+1"},
+      {"category": "performance", "severity": "medium", "title_keyword": "query"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "memory-leak-node",
+    "diff_text": "--- a/src/cache.js\n+++ b/src/cache.js\n@@ -3,6 +3,9 @@ class Cache {\n   constructor() {\n+    this.store = new Map();\n+    this.timers = new Map();\n   }\n   set(key, value, ttl) {\n+    this.store.set(key, value);\n+    this.timers.set(key, setTimeout(() => this.store.delete(key), ttl));\n   }\n }",
+    "spec_text": "Cache must have max size limit. Timers must be cleaned up on destroy().",
+    "expected_findings": [
+      {"category": "performance", "severity": "medium", "title_keyword": "memory"},
+      {"category": "bugs", "severity": "medium", "title_keyword": "timer"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "clean-code-review",
+    "diff_text": "--- a/src/utils/formatter.py\n+++ b/orders/views.py\n@@ -8,6 +8,9 @@ def format_currency(amount, currency='USD'):\n-    return f'{currency} {amount:.2f}'\n+    symbol = CURRENCY_SYMBOLS.get(currency, currency)\n+    formatted = f'{symbol} {amount:,.2f}'\n+    return formatted",
+    "spec_text": "Formatter must handle negative amounts and zero.",
+    "expected_findings": [
+      {"category": "maintainability", "severity": "low", "title_keyword": "edge case"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "api-rate-limit",
+    "diff_text": "--- a/src/middleware/rate_limit.py\n+++ b/src/middleware/rate_limit.py\n@@ -5,7 +5,10 @@ class RateLimitMiddleware:\n     def __call__(self, request):\n-        # TODO: implement rate limiting\n+        key = f\"rate:{request.user.id}\"\n+        count = self.redis.incr(key)\n+        if count > 100:\n+            return JsonResponse({'error': 'Rate limited'}, status=429)\n         return self.get_response(request)",
+    "spec_text": "Rate limiting must use sliding window. Must include Retry-After header. Must have different limits per tier.",
+    "expected_findings": [
+      {"category": "bugs", "severity": "high", "title_keyword": "sliding window"},
+      {"category": "spec-deviation", "severity": "high", "title_keyword": "retry-after"},
+      {"category": "spec-deviation", "severity": "medium", "title_keyword": "tier"}
+    ],
+    "task_type": "code-review"
+  }
+]

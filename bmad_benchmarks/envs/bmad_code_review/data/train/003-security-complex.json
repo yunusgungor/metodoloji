@@ -1,0 +1,41 @@
+[
+  {
+    "id": "path-traversal",
+    "diff_text": "--- a/src/files/views.py\n+++ b/orders/views.py\n@@ -10,6 +10,8 @@ def download_file(request, filename):\n-    path = os.path.join('/storage', filename)\n+    path = os.path.join('/storage', request.GET.get('path', ''), filename)\n     return FileResponse(open(path, 'rb'))",
+    "spec_text": "File access must validate path is within /storage. No user-controlled path components.",
+    "expected_findings": [
+      {"category": "security", "severity": "high", "title_keyword": "path traversal"},
+      {"category": "security", "severity": "high", "title_keyword": "injection"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "hardcoded-secrets",
+    "diff_text": "--- a/src/config/settings.py\n+++ b/orders/views.py\n@@ -5,6 +5,10 @@ DATABASES = {\n+    'default': {\n+        'ENGINE': 'django.db.backends.postgresql',\n+        'PASSWORD': 'supersecret123',\n+    }\n }",
+    "spec_text": "Secrets must come from environment variables. Never hardcode credentials.",
+    "expected_findings": [
+      {"category": "security", "severity": "high", "title_keyword": "secret"},
+      {"category": "security", "severity": "high", "title_keyword": "credential"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "cors-misconfiguration",
+    "diff_text": "--- a/src/api/middleware.py\n+++ b/orders/views.py\n@@ -3,6 +3,8 @@ class CORSMiddleware:\n     def __call__(self, request):\n         response = self.get_response(request)\n+        response['Access-Control-Allow-Origin'] = '*'\n+        response['Access-Control-Allow-Headers'] = '*'\n+        response['Access-Control-Allow-Methods'] = '*'\n         return response",
+    "spec_text": "CORS must only allow specific origins from the whitelist. Credentials require explicit origin.",
+    "expected_findings": [
+      {"category": "security", "severity": "high", "title_keyword": "cors"},
+      {"category": "spec-deviation", "severity": "high", "title_keyword": "whitelist"}
+    ],
+    "task_type": "code-review"
+  },
+  {
+    "id": "sql-injection-java",
+    "diff_text": "--- a/src/main/java/com/app/UserRepository.java\n+++ b/orders/views.java\n@@ -10,7 +10,8 @@ public List<User> findUsers(String name, String role) {\n-    String query = \"SELECT * FROM users WHERE name = '\" + name + \"' AND role = '\" + role + \"'\";\n+    String query = \"SELECT * FROM users WHERE name = ? AND role = ?\";\n     return jdbcTemplate.query(query, new UserRowMapper(), name, role);\n }",
+    "spec_text": "All database queries must use parameterized statements. No string concatenation in SQL.",
+    "expected_findings": [
+      {"category": "security", "severity": "high", "title_keyword": "injection"}
+    ],
+    "task_type": "code-review"
+  }
+]

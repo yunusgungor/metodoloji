@@ -1,0 +1,30 @@
+[
+  {
+    "id": "saas-multi-tenant",
+    "input_text": "Multi-tenant SaaS analytics dashboard. Each tenant has isolated data. Real-time event processing with 5-second latency. Must support custom metric definitions per tenant. Compliance: SOC2, GDPR. Tech preference: TypeScript, PostgreSQL, Redis.",
+    "input_type": "raw-idea",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  },
+  {
+    "id": "iot-platform",
+    "input_text": "IoT device management platform for 100k+ devices. Devices send telemetry every 30 seconds. Need real-time dashboards, alerting rules, and device fleet management. MQTT for device communication. Time-series data storage. Must handle device firmware updates over-the-air.",
+    "input_type": "raw-idea",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  },
+  {
+    "id": "fintech-payment",
+    "input_text": "Payment processing platform for marketplace. Split payments between buyers and sellers. Escrow for high-value transactions. PCI-DSS compliance required. Must handle 5000 transactions/minute. Multi-currency support. Real-time settlement reporting.",
+    "input_type": "raw-idea",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  },
+  {
+    "id": "healthcare-ehr",
+    "input_text": "Electronic health records system for a hospital network. HIPAA compliance mandatory. Must integrate with existing lab systems (HL7/FHIR). Role-based access (doctor, nurse, admin). Audit logging for all data access. Must support offline mode for field nurses.",
+    "input_type": "existing-codebase",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  }
+]

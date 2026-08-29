@@ -1,0 +1,9 @@
+[
+  {
+    "id": "expense-tracker-prd",
+    "idea_text": "Expense tracking app for small businesses. Receipt scanning with OCR, automatic categorization, tax report generation. Bank feed integration (Plaid). Multi-account support. Must handle 10k transactions/year per business. Export to QuickBooks.",
+    "target_audience": "Small business owners (1-20 employees) who need to track expenses without hiring an accountant.",
+    "expected_sections": ["Overview", "Goals", "User Stories", "Requirements", "Success Metrics", "Risks"],
+    "task_type": "prd"
+  }
+]

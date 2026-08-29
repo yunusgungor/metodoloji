@@ -1,0 +1,9 @@
+[
+  {
+    "id": "supply-chain-arch",
+    "input_text": "Supply chain management system for a retail company. Tracks inventory across 500 stores. Real-time stock updates from POS systems. Automated reorder triggers. Must handle batch imports from suppliers (CSV/EDI). Forecasting module for demand planning.",
+    "input_type": "raw-idea",
+    "expected_invariants": ["paradigm", "boundary", "dependency", "state", "ownership"],
+    "task_type": "architecture"
+  }
+]

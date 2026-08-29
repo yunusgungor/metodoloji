@@ -1,0 +1,9 @@
+[
+  {
+    "id": "smart-home-prd",
+    "idea_text": "Smart home hub that connects devices from different manufacturers (Zigbee, Z-Wave, WiFi). Voice control via Alexa/Google Assistant. Automated routines (e.g., lights off when leaving). Energy monitoring dashboard. Must work offline for core functions.",
+    "target_audience": "Tech-savvy homeowners who have mixed device ecosystems and want unified control without vendor lock-in.",
+    "expected_sections": ["Overview", "Goals", "User Stories", "Requirements", "Success Metrics", "Risks"],
+    "task_type": "prd"
+  }
+]

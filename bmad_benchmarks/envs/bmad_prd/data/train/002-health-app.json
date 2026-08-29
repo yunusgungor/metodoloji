@@ -1,0 +1,23 @@
+[
+  {
+    "id": "health-app-prd",
+    "idea_text": "Mobile app for tracking daily health habits: water intake, sleep, exercise, medication. Gamification with streaks and achievements. Integration with Apple Health and Google Fit. Subscription model: free tier (3 habits), premium ($4.99/mo, unlimited + analytics).",
+    "target_audience": "Health-conscious adults aged 25-45 who want to build better habits but find existing apps too complicated or too gamified.",
+    "expected_sections": ["Overview", "Goals", "User Stories", "Requirements", "Success Metrics", "Risks"],
+    "task_type": "prd"
+  },
+  {
+    "id": "marketplace-prd",
+    "idea_text": "Two-sided marketplace for freelance designers. Clients post projects, designers submit proposals. Escrow payment system. Portfolio showcase. Skill-based matching algorithm. Must launch in 3 verticals: logo design, web design, illustration.",
+    "target_audience": "Small business owners who need design work done affordably, and freelance designers looking for consistent client flow.",
+    "expected_sections": ["Overview", "Goals", "User Stories", "Requirements", "Success Metrics", "Risks"],
+    "task_type": "prd"
+  },
+  {
+    "id": "education-platform-prd",
+    "idea_text": "Online learning platform for coding bootcamps. Live instructor-led sessions, auto-graded coding challenges, peer code review. Must support 500 concurrent students. Progress tracking and certificates. Integration with GitHub for code submissions.",
+    "target_audience": "Coding bootcamp students (career changers) and bootcamp operators who need a modern LMS with real coding integration.",
+    "expected_sections": ["Overview", "Goals", "User Stories", "Requirements", "Success Metrics", "Risks"],
+    "task_type": "prd"
+  }
+]

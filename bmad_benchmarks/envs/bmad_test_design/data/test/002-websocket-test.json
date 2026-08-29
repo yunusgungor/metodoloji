@@ -1,0 +1,9 @@
+[
+  {
+    "id": "realtime-notifications-test",
+    "story_text": "As a user, I want to receive real-time notifications in my browser so that I don't have to refresh the page.\n\nAC1: WebSocket connection established on page load\nAC2: Automatic reconnection with exponential backoff\nAC3: Message types: info, warning, error, success\nAC4: Notification sounds (configurable)\nAC5: Notification history (last 50)\nAC6: Works on mobile browsers (fallback to SSE)",
+    "architecture_text": "WebSocket server in Node.js with Socket.io. Redis pub/sub for multi-server broadcast. Client stores last 50 in localStorage. SSE fallback for old browsers.",
+    "expected_test_categories": ["unit", "integration", "e2e", "edge-case", "negative"],
+    "task_type": "test-design"
+  }
+]
