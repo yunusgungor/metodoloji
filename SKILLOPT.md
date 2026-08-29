@@ -41,7 +41,9 @@ configs/
 
 scripts/
 ├── train_bmad.py                # Training entry point
-├── eval_bmad.py                 # Evaluation entry point
+└── eval_bmad.py                 # Evaluation entry point
+
+bmad_benchmarks/
 └── register_benchmarks.py       # Adapter registration
 ```
 
