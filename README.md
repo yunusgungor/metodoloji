@@ -29,9 +29,10 @@ veya yerel: `Plugin.load("<repo>/openhands/metodoloji")`.
 
 ## Yol değişkenleri
 
-- `{project-root}` — hedef proje kökü (kayıtlar burada)
-- `{metodoloji-root}` — bu plugin'in kökü (kuruluysa `~/.openhands/plugins/installed/metodoloji`,
-  bootstrap ile `.metodoloji/plugin` senkronu)
+- `{project-root}` — hedef proje kökü (`$OPENHANDS_PROJECT_DIR`) — metodoloji çıktıları burada
+- `{metodoloji-root}` — bu plugin'in kökü (kurulum kökü `~/.openhands/plugins/installed/metodoloji`) — salt okunur kaynak
+
+**Kural:** Tüm metodoloji çıktıları (kayıtlar, bmad-output, artifact'lar) `{project-root}` üzerinde oluşturulur — `{metodoloji-root}` üzerinde değil.
 
 ## Modüler Motor Yapısı
 

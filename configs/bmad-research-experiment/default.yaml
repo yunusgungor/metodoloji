@@ -8,7 +8,7 @@ model:
 
 skill_init: bmad_benchmarks/envs/bmad_research_experiment/skills/initial.md
 split_mode: split_dir
-split_dir: /Users/yunusgungor/orca/openhands-metodoloji/bmad_benchmarks/envs/bmad_research_experiment/data
+split_dir: bmad_benchmarks/envs/bmad_research_experiment/data
 workers: 2
 max_completion_tokens: 4096
 limit: 0

@@ -22,8 +22,8 @@ def main():
     # Read JSON input from stdin
     try:
         json_in = json.load(sys.stdin)
-    except json.JSONDecodeError:
-        # If no valid JSON, allow by default
+    except (json.JSONDecodeError, ValueError, EOFError):
+        # If no valid JSON (including closed/empty stdin), allow by default
         print(json.dumps({"decision": "allow"}))
         return
 

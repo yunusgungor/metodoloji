@@ -7,9 +7,8 @@ import os
 import pathlib
 import re
 import sys
-from typing import Optional
 
-from .config import GATE_DIR, _BMD_DIR, _KEY_ACCESS_IN_CONTENT, _AGENT_ZONES, _DONE_RE
+from .config import GATE_DIR, _BMD_DIR, _KEY_ACCESS_IN_CONTENT, _DONE_RE
 from .utils import is_code_target, is_free, norm_path, rel_to_root, repo_root, extract_story_key_from_content
 from .bash_targets import extract_bash_targets
 
@@ -127,7 +126,7 @@ def _validate_story_experiment_refs(content: str, root: str = "") -> tuple[bool,
     Returns (is_valid, reason).
     """
     if not root:
-        root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
+        root = repo_root({})
     refs = _parse_experiment_refs(content)
     if not refs:
         # No experiment_refs — not a story with metadata, allow
@@ -315,7 +314,7 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
     """
     issues = []
     if not root:
-        root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
+        root = repo_root({})
     root = os.path.abspath(root)
 
     # Extract story status (handles: 'Status: done', '- **Status:** done', etc.)
@@ -417,7 +416,7 @@ def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> t
         return False, "gate script not available"
     target_rel = norm_path(target).lstrip("/")
     if not root:
-        root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
+        root = repo_root({})
     recs_dir = recs_dir or "docs/experiments"
     base = pathlib.Path(root) / recs_dir
     if not base.is_dir():
@@ -717,7 +716,7 @@ def quality(json_in: dict) -> dict:
     if not _is_git_commit(command):
         return {"decision": "allow"}
 
-    root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
+    root = repo_root({})
     root = os.path.abspath(root)
 
     # Check IR (Kapi 1 — project-level readiness)
@@ -832,7 +831,7 @@ def deploy(json_in: dict) -> dict:
     if not command or not _DEPLOY_CMD_RE.search(command):
         return {"decision": "allow"}
 
-    root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
+    root = repo_root({})
     root = os.path.abspath(root)
 
     # Check IR (Kapi 1 — project-level readiness)

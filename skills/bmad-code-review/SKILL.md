@@ -1,7 +1,7 @@
 ---
 name: bmad-code-review
 description: 'Review code changes adversarially using parallel review layers (Blind Hunter, Edge Case Hunter, Acceptance Auditor) with structured triage into actionable categories. Use when the user says "run code review" or "review this code"'
-triggers: ["bmad-code-review", "/bmad-code-review", "code-review", "run code review"]
+triggers: ["bmad-code-review", "/bmad-code-review", "code-review", "run code review", "kod inceleme", "kod gozden gecirme", "review yap"]
 ---
 
 # Code Review Workflow

@@ -47,7 +47,7 @@ Before you create or refine any capability, load the prompt-quality canon at `re
 ## Dominion
 
 ### Read Access
-- `{project_root}/` — general project awareness
+- `{project-root}/` — general project awareness
 
 ### Write Access
 - `{sanctum_path}/` — your sanctum, full read/write

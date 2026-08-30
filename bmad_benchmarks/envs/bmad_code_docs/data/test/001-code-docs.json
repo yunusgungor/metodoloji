@@ -1,0 +1,132 @@
+[
+  {
+    "id": "codoc-test-learning",
+    "scenario": "Deney E-005 tamamlandı. Hipotez: 'latency <= 100ms'. Ölçüm: 'latency=85ms (50/50)'. Deney onaylandı. Sonuç: Optimizasyon başarılı, Redis cache kullanımı latency'yi düşürdü.",
+    "expected_type": "L",
+    "expected_tags": ["performance", "redis", "latency", "learning"],
+    "expected_sections": ["## Öğrenilen", "## Bağlam", "## Kanıt", "## Uygulama"],
+    "context": {
+      "tool_name": "terminal",
+      "command": "python3 run_experiment.py --record docs/experiments/E-005.md --run \"python bench_latency.py\"",
+      "output_summary": "ONAYLANDI"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-test-api",
+    "scenario": "bmad-index-docs skill'inin API'si: 'def generate_index(target_dir: str, output_path: str = None) -> str'. Fonksiyon belirtilen dizindeki tüm .md dosyalarını tarar, gruplar ve index.md oluşturur. Kullanım: index = generate_index('docs/code-docs/')",
+    "expected_type": "A",
+    "expected_tags": ["api", "index", "docs"],
+    "expected_sections": ["## API", "## İmza", "## Kullanım", "## Dikkat Edilecekler"],
+    "context": {
+      "tool_name": "file_editor",
+      "path": "skills/bmad-index-docs/SKILL.md",
+      "content_preview": "def generate_index(target_dir, output_path=None):"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-test-pattern",
+    "scenario": "SkillOpt training pipeline'da config-driven eval pattern kullanılıyor: default.yaml config → adapter → dataloader → rollout → scoring. Her benchmark kendi config'ini override eder, base config'den miras alır.",
+    "expected_type": "P",
+    "expected_tags": ["training", "config", "pipeline", "pattern"],
+    "expected_sections": ["## Kalıp", "## Kullanım Senaryosu", "## Örnek", "## Avantajlar", "## Dezavantajlar"],
+    "context": {
+      "tool_name": "file_editor",
+      "path": "configs/bmad-code-docs/default.yaml",
+      "content_preview": "_base_: ../../bmad_benchmarks/envs/_base_/default.yaml"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-test-pending",
+    "scenario": "Kodda '# HACK: geçici çözüm — E-149 sonrası kalıcı fix ekle' yorumu var. Bu bir teknik borç ve planlanan düzeltme.",
+    "expected_type": "X",
+    "expected_tags": ["hack", "tech-debt", "temporary", "pending"],
+    "expected_sections": ["## Açıklama", "## Bağlam", "## Sonraki Adımlar"],
+    "context": {
+      "tool_name": "file_editor",
+      "path": "src/utils/cache.py",
+      "content_preview": "# HACK: geçici çözüm"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-test-pending-priority",
+    "scenario": "Kullanıcı 'Acil: Guard hook security vulnerability fix' dedi. Bu yüksek öncelikli bir güvenlik sorunu.",
+    "expected_type": "X",
+    "expected_tags": ["security", "guard", "urgent", "pending"],
+    "expected_sections": ["## Açıklama", "## Bağlam", "## Sonraki Adımlar"],
+    "context": {
+      "tool_name": "terminal",
+      "command": "echo 'Security vulnerability tespit edildi'",
+      "output_summary": "Guard hook security vulnerability"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-test-pending-update",
+    "scenario": "X-002-test-coverage-artır pending işi tamamlandı. Status: pending → done olarak güncelle. Tamamlanma tarihini ekle.",
+    "expected_type": "X",
+    "expected_tags": ["testing", "coverage", "completion", "pending"],
+    "expected_sections": ["## Açıklama", "## Bağlam", "## Sonraki Adımlar"],
+    "context": {
+      "tool_name": "file_editor",
+      "path": "docs/code-docs/pending/X-002-test-coverage-artır.md",
+      "content_preview": "status: done"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-test-decision",
+    "scenario": "Proje için logging sistemi kararı alındı: structured logging (JSON format) kullanılacak. Gerekçe: production'da log analizi kolaylaşacak. Deney E-006 ile test edildi.",
+    "expected_type": "D",
+    "expected_tags": ["logging", "structured", "production", "decision"],
+    "expected_sections": ["## Karar", "## Gerekçe", "## Sonuçlar"],
+    "context": {
+      "tool_name": "file_editor",
+      "path": "docs/bmad/architecture/logging-decision.md",
+      "content_preview": "Structured logging kararı alındı"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-test-troubleshooting",
+    "scenario": "Redis bağlantısı kopuyor: 'ConnectionRefusedError: [Errno 111] Connection refused'. Çözüm: Redis pool boyutunu artırdık ve reconnect mekanizması ekledik.",
+    "expected_type": "T",
+    "expected_tags": ["redis", "connection", "pool", "troubleshooting"],
+    "expected_sections": ["## Hata", "## Neden", "## Çözüm", "## Önleme"],
+    "context": {
+      "tool_name": "terminal",
+      "command": "python3 -c 'import redis; r = redis.Redis()'",
+      "output_summary": "ConnectionRefusedError"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-test-auto-index",
+    "scenario": "When a new code-doc is created, index.md is automatically updated. The _update_index() function now creates index.md if it doesn't exist.",
+    "expected_type": "P",
+    "expected_tags": ["index", "auto-update", "code-docs", "pattern"],
+    "expected_sections": ["## Kalıp", "## Kullanım Senaryosu", "## Örnek", "## Avantajlar", "## Dezavantajlar"],
+    "context": {
+      "tool_name": "file_editor",
+      "path": "hooks/engine/modules/code_docs.py",
+      "content_preview": "def _update_index(): if not index_path.exists(): _create_index(index_path)"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-test-parallel-rollout",
+    "scenario": "run_batch() now uses concurrent.futures.ThreadPoolExecutor when workers > 1. This enables parallel processing of training items.",
+    "expected_type": "P",
+    "expected_tags": ["parallel", "rollout", "performance", "pattern"],
+    "expected_sections": ["## Kalıp", "## Kullanım Senaryosu", "## Örnek", "## Avantajlar", "## Dezavantajlar"],
+    "context": {
+      "tool_name": "file_editor",
+      "path": "bmad_benchmarks/envs/bmad_code_docs/rollout.py",
+      "content_preview": "with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:"
+    },
+    "task_type": "code-docs"
+  }
+]

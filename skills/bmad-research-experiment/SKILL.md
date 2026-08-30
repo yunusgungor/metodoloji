@@ -62,7 +62,7 @@ Treat every entry in `{workflow.persistent_facts}` as foundational context. Entr
 
 ### Step 4: Load Config
 
-Load config from `{metodoloji-root}/bmad/config.toml` and `{metodoloji-root}/bmad/config.user.toml`. Use `{user_name}`, `{communication_language}`, `{document_output_language}`, and `{project_root}`.
+Load config from `{metodoloji-root}/bmad/config.toml` and `{metodoloji-root}/bmad/config.user.toml`. Use `{user_name}`, `{communication_language}`, `{document_output_language}`, and `{project-root}`.
 
 ### Step 5: Greet the User
 

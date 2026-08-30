@@ -41,9 +41,10 @@ RELATIVE_DOT_RE = re.compile(r'(?:^|[\s"`\'(])(\.\./\S+)', re.MULTILINE)
 # Cross-directory ./ — ./subdir/ is wrong because ./ means same folder only
 CROSS_DIR_DOT_SLASH_RE = re.compile(r'(?:^|[\s"`\'(])\./(?:references|scripts|assets)/\S+', re.MULTILINE)
 
-# Memory path pattern: should use {metodoloji-root}/bmad/memory/
+# Memory path pattern: must use {metodoloji-root}/bmad/memory/ (built-agent memory
+# lives in the plugin, not the target project)
 MEMORY_PATH_RE = re.compile(r'bmad/memory/\S+')
-VALID_MEMORY_PATH_RE = re.compile(r'\{project-root\}/bmad/memory/[\w-]+/')
+VALID_MEMORY_PATH_RE = re.compile(r'\{metodoloji-root\}/bmad/memory/[\w-]+/')
 
 # Fenced code block detection (to skip examples showing wrong patterns)
 FENCE_RE = re.compile(r'^```', re.MULTILINE)
@@ -192,22 +193,28 @@ def scan_file(filepath: Path, skip_fenced: bool = True) -> list[dict]:
             'action': '',
         })
 
-    # Memory path check — memory paths should use {metodoloji-root}/bmad/memory/{skillName}/
+    # Memory path check — memory paths MUST use {metodoloji-root}/bmad/memory/{skillName}/
+    # (built-agent memory lives in the plugin, never the target project).
     for match in MEMORY_PATH_RE.finditer(content):
         pos = match.start()
         if skip_fenced and is_in_fenced_block(content, pos):
             continue
-        start = max(0, pos - 20)
+        start = max(0, pos - 40)
         before = content[start:pos]
-        if '{project-root}/' not in before:
+        if '{metodoloji-root}/' not in before:
             line_num = get_line_number(content, pos)
             line_content = content.split('\n')[line_num - 1].strip()
+            # A {project-root}/bmad/memory/ reference is the wrong root — flag it explicitly.
+            if '{project-root}/' in before:
+                title = 'Memory path uses {project-root} prefix — must be {metodoloji-root}/bmad/memory/'
+            else:
+                title = 'Memory path missing {metodoloji-root} prefix — use {metodoloji-root}/bmad/memory/'
             findings.append({
                 'file': rel_path,
                 'line': line_num,
                 'severity': 'high',
                 'category': 'memory-path',
-                'title': 'Memory path missing {project-root} prefix — use {metodoloji-root}/bmad/memory/',
+                'title': title,
                 'detail': line_content[:120],
                 'action': '',
             })

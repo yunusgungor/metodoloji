@@ -7,6 +7,12 @@
 <critical>YOU MUST ALWAYS SPEAK OUTPUT In your Agent communication style with the configured `{communication_language}`</critical>
 <critical>YOU MUST ALWAYS WRITE all artifact and document content in `{document_output_language}`</critical>
 
+<critical>VARIABLES — resolve before any action:
+- `{{project_root_path}}` = the target project's root directory (`{project-root}`, i.e. `$OPENHANDS_PROJECT_DIR`). This workflow scans and documents THIS root.
+- `{{project_knowledge}}` = the directory where generated documentation is written (resolved from config, e.g. `docs`).
+- `{{root_path}}` = same as `{{project_root_path}}` — a part's root path when a project has multiple parts. In a single-part project it equals `{{project_root_path}}`.
+</critical>
+
 <step n="0.5" goal="Load documentation requirements data for fresh starts (not needed for resume)" if="resume_mode == false">
 <critical>DATA LOADING STRATEGY - Understanding the Documentation Requirements System:</critical>
 

@@ -6,6 +6,8 @@ correct root. Scoring checks root + exact path fragment + status values.
 
 import json
 import pathlib
+import sys
+
 from skillopt.model import chat_target
 
 
@@ -99,3 +101,31 @@ def run_batch(items: list[dict], skill_content: str, out_dir,
         json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     return results
+
+
+def _selfcheck() -> None:
+    """Assert the meta-path scorer: correct root+path+status passes; a wrong
+    path or missing status fails. Run: python3 rollout.py --selfcheck."""
+    item = {"expected_root": "project-root",
+            "expected_path": "docs/development/stories/S-",
+            "expected_status": "planlandı | devam ediyor | tamamlandı"}
+    # Correct answer passes.
+    assert _score("Kayıt project-root/docs/development/stories/S-001.md olarak oluşturulur; "
+                  "durum: tamamlandı.", item) == (1, 1.0)
+    # Wrong root fails.
+    assert _score("Kayıt metodoloji-root/docs/development/stories/S-001.md; durum: tamamlandı.",
+                  item)[0] == 0
+    # Wrong path fragment fails.
+    assert _score("Kayıt project-root/docs/quality/QR-001.md; durum: tamamlandı.",
+                  item)[0] == 0
+    # Missing status fails.
+    assert _score("Kayıt project-root/docs/development/stories/S-001.md olarak oluşturulur.",
+                  item)[0] == 0
+    print("selfcheck OK")
+
+
+if __name__ == "__main__":
+    if "--selfcheck" in sys.argv:
+        _selfcheck()
+        sys.exit(0)
+    sys.exit("rollout.py is a module — import run_batch via the adapter (or run --selfcheck)")

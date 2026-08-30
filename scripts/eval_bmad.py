@@ -48,6 +48,8 @@ BENCHMARKS = [
     "bmad-meta-path",
     # Research methodology benchmark
     "bmad-research-experiment",
+    # Code docs benchmark
+    "bmad-code-docs",
 ]
 
 _ADAPTERS = {
@@ -70,6 +72,8 @@ _ADAPTERS = {
     "bmad-meta-path": ("bmad_benchmarks.envs.bmad_meta_path.adapter", "BmadMetaPathAdapter"),
     # Research methodology benchmark
     "bmad-research-experiment": ("bmad_benchmarks.envs.bmad_research_experiment.adapter", "BmadResearchExperimentAdapter"),
+    # Code docs benchmark
+    "bmad-code-docs": ("bmad_benchmarks.envs.bmad_code_docs.adapter", "BmadCodeDocsAdapter"),
 }
 
 
@@ -150,6 +154,9 @@ def eval_benchmark(name: str, skill_path: str | None = None, split: str = "test"
 
 
 def main():
+    # Resolve relative config paths against the methodology root, not the caller's cwd.
+    os.chdir(REPO_ROOT)
+
     parser = argparse.ArgumentParser(description="Evaluate trained BMAD skills")
     parser.add_argument("--benchmark", choices=BENCHMARKS + ["all"],
                         default="bmad-code-review")

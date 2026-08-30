@@ -13,7 +13,9 @@
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# Project root = the target project being validated, NOT the methodology repo.
+# Resolve from the standard env vars like the hook engine does.
+PROJECT_ROOT="${OPENHANDS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}}"
 
 FIX_MODE=false
 VERBOSE=false

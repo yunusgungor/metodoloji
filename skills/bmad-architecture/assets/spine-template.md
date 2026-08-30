@@ -62,7 +62,7 @@ companions: []
 <!-- The shapes worth fixing at cold-start — not a fixed list. Include only what's non-obvious at this altitude, and use as many diagrams as convey it, each as VALID mermaid (never a placeholder or empty graph). Candidates: system/container/context view; DEPLOYMENT & ENVIRONMENTS and external provider/infra topology (cover the operational envelope here when this altitude owns it — don't let it fall through); core-entity ERD (names + relationships only; an attribute that's itself an invariant is an AD, not a diagram); a minimal source tree. The code owns the detail — this is scaffold, not a mirror to maintain. -->
 
 ```text
-{root}/
+{project-root}/
   {dir}/   # {what lives here}
 ```
 

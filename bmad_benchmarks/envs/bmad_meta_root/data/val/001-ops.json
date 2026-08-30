@@ -12,5 +12,33 @@
     "expected_root": "metodoloji-root",
     "expected_direction": "read",
     "task_type": "meta-root"
+  },
+  {
+    "id": "root-bmad-kopru-read",
+    "operation": "docs/bmad/development-methodology.md köprü kopyasını projeden oku",
+    "expected_root": "project-root",
+    "expected_direction": "read",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "root-malformed-plugin-write",
+    "operation": "Deney kaydını {metodoloji-root}/docs/experiments/E-002.md olarak yaz",
+    "expected_root": "project-root",
+    "expected_direction": "output",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "root-custom-config-read",
+    "operation": "plugin kökündeki custom/bmad-sprint-planning.toml köprü yapılandırmasını oku",
+    "expected_root": "metodoloji-root",
+    "expected_direction": "read",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "root-testartifacts-output",
+    "operation": "test artifact'larını bmad-output/test-artifacts altına üret",
+    "expected_root": "project-root",
+    "expected_direction": "output",
+    "task_type": "meta-root"
   }
 ]

@@ -122,12 +122,11 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
           **What would you like to do?**
           1. Run `create-story` to create next story from epics with comprehensive context
-          2. Run `*validate-create-story` to improve existing stories before development (recommended quality check)
+          2. Review and validate existing story AC metadata (Experiment, Type, Measured, Verify)
           3. Specify a particular story file to develop (provide full path)
           4. Check {{sprint_status}} file to see current sprint status
 
-          💡 **Tip:** Stories in `ready-for-dev` may not have been validated. Consider running `validate-create-story` first for a quality
-          check.
+          💡 **Tip:** Stories in `ready-for-dev` should have proper AC metadata before development begins.
         </output>
         <ask>Choose option [1], [2], [3], or [4], or specify story file path:</ask>
 
@@ -136,7 +135,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
         </check>
 
         <check if="user chooses '2'">
-          <action>HALT - Run validate-create-story to improve existing stories</action>
+          <action>HALT - Review story AC metadata: ensure Experiment, Type, Measured, Verify fields are present</action>
         </check>
 
         <check if="user chooses '3'">
@@ -170,7 +169,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
           **Available Options:**
           1. Run `create-story` to create next story from epics with comprehensive context
-          2. Run `*validate-create-story` to improve existing stories
+          2. Review and validate existing story AC metadata (Experiment, Type, Measured, Verify)
           3. Specify which story to develop
         </output>
         <ask>What would you like to do? Choose option [1], [2], or [3]:</ask>
@@ -180,7 +179,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
         </check>
 
         <check if="user chooses '2'">
-          <action>HALT - Run validate-create-story to improve existing stories</action>
+          <action>HALT - Review story AC metadata: ensure Experiment, Type, Measured, Verify fields are present</action>
         </check>
 
         <check if="user chooses '3'">

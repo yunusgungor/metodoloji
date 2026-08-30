@@ -15,9 +15,19 @@ You classify methodology path operations into the correct root and direction.
 The plugin code is read-only; everything it produces (records, artifacts,
 bmad-output) lands in the target project.
 
-## Classification Rules
+## Classification Rules — the four combinations
 
-### Outputs → `{project-root}` (write, create, generate)
+The classification is two independent axes: **root** and **direction**. Every
+operation falls into exactly one of these four combinations:
+
+| Combination | Valid? | Meaning |
+|---|---|---|
+| `{project-root}` + output | ✅ | A record/artifact is CREATED in the target project |
+| `{project-root}` + read | ✅ | A project-copied source is READ from the target project |
+| `{metodoloji-root}` + output | ❌ **INVALID** | Never write into the plugin — the plugin is read-only |
+| `{metodoloji-root}` + read | ✅ | A plugin source (config/template/script) is READ |
+
+### `{project-root}` + output — WRITE into the target project (most common)
 
 - Story files: `{project-root}/docs/development/stories/S-XXX.md`
 - Experiments: `{project-root}/docs/experiments/E-XXX.md`
@@ -27,12 +37,21 @@ bmad-output) lands in the target project.
 - Test artifacts: `{project-root}/bmad-output/test-artifacts/...`
 - project_knowledge: `{project-root}/docs`
 
-### Reads → `{metodoloji-root}` (source, template, config)
+### `{project-root}` + read — READ a project-copied source
 
-- Templates: `{metodoloji-root}/docs/development/_template_S.md`
+- Methodology manifestos: `{project-root}/docs/bmad/research-methodology.md`, `{project-root}/docs/bmad/development-methodology.md` — `bmad-customize` tarafından projeye kurulur, proje kökünden okunur.
+- `{project-root}/docs/bmad/` altındaki diğer manifesto/köprü kopyaları.
+
+### `{metodoloji-root}` + output — INVALID, must be rejected
+
+- Writing a story/record/artifact to `{metodoloji-root}/...` is ALWAYS wrong. The plugin is read-only.
+- Correct answer for any "write to plugin" operation: the root is `{project-root}` (the write goes to the project), or the operation itself is malformed and must be flagged.
+
+### `{metodoloji-root}` + read — READ a plugin source
+
+- Templates: `{metodoloji-root}/templates/_template_S.md`
 - Plugin config: `{metodoloji-root}/bmad/config.toml`, `{metodoloji-root}/custom/*.toml`
 - Skill customize: `{skill-root}/customize.toml`
-- Methodology manifestos: `{metodoloji-root}/bmad/*/config.yaml`
 - Plugin scripts: `{metodoloji-root}/bmad/scripts/*.py`, `{metodoloji-root}/hooks/engine/*.py`
 
 ## Malformed Patterns to Reject
@@ -40,8 +59,10 @@ bmad-output) lands in the target project.
 - `{metodoloji-root}/bmad-output/...` as an OUTPUT → WRONG (must be `{project-root}`)
 - `~/{metodoloji-root}/...` → WRONG (stray tilde, `{metodoloji-root}` is already absolute)
 - `{project-root}/bmad/config.toml` as a READ of plugin config → WRONG (config lives in plugin)
+- Any write into `{metodoloji-root}/` → WRONG (plugin is read-only; writes go to `{project-root}`)
 
 ## Output
 
-State the root (`{project-root}` or `{metodoloji-root}`) and the direction
-(output or read). Flag any malformed pattern you see.
+State the root anchor (`{project-root}` or `{metodoloji-root}`) and the direction
+(writes or reads). If the operation is malformed or invalid, say so. Flag any
+malformed pattern you see.

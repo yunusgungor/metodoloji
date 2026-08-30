@@ -6,7 +6,146 @@ import pathlib
 import re
 import time
 
-from .config import RUNTIME, log_file
+from .config import RUNTIME, log_file, CODE_DOCS_DIR
+
+
+def _detect_notable_events(tool_name: str, tool_input: dict, tool_output: dict) -> list[dict]:
+    """Detect notable events that should trigger code doc generation.
+
+    Returns list of events with type and context for doc creation.
+    """
+    events = []
+    output_str = str(tool_output) if tool_output else ""
+
+    # 1. Experiment approved → learning doc
+    if tool_name == "terminal":
+        cmd = str(tool_input.get("command", ""))
+        if "run_experiment.py" in cmd and "--verify" not in cmd:
+            if "ONAYLANDI" in output_str or "VERIFIED" in output_str:
+                # Extract experiment ID from command
+                exp_match = re.search(r"E-\d+", cmd)
+                record_match = re.search(r"--record\s+(\S+)", cmd)
+                if exp_match and record_match:
+                    events.append({
+                        "type": "learning",
+                        "trigger": "experiment_approved",
+                        "experiment_id": exp_match.group(0),
+                        "record_path": record_match.group(1),
+                    })
+
+    # 2. Architecture/design file changed → decision doc
+    if tool_name == "file_editor":
+        path = tool_input.get("path", "")
+        if any(p in path.lower() for p in ["architecture", "mimari", "design", "spine"]):
+            content = str(tool_input.get("content", ""))
+            if content and len(content) > 100:
+                events.append({
+                    "type": "decision",
+                    "trigger": "architecture_change",
+                    "path": path,
+                    "content_preview": content[:200],
+                })
+
+    # 3. Error then success → troubleshooting doc
+    if tool_name == "terminal":
+        cmd = str(tool_input.get("command", ""))
+        if "error" in output_str.lower() or "traceback" in output_str.lower():
+            events.append({
+                "type": "troubleshooting",
+                "trigger": "error_detected",
+                "command": cmd,
+                "error_preview": output_str[:300],
+            })
+
+    # 4. Incomplete work / future plans → pending doc
+    if tool_name == "file_editor":
+        path = tool_input.get("path", "")
+        content = str(tool_input.get("content", ""))
+        # Detect TODO/FIXME/HACK comments
+        todo_matches = re.findall(r"(?:TODO|FIXME|HACK|XXX|OPTIMIZE)[:\s]*(.+)", content, re.IGNORECASE)
+        for todo in todo_matches[:3]:  # Max 3 per file
+            events.append({
+                "type": "pending",
+                "trigger": "todo_detected",
+                "path": path,
+                "description": todo.strip()[:200],
+            })
+
+    # 5. LLM output mentions future plans → pending doc
+    if tool_name == "terminal":
+        output_lower = output_str.lower()
+        # Detect phrases indicating planned but unfinished work
+        plan_patterns = [
+            r"(?:sonraki|bir sonraki|gelecek)\s+(?:adım|aşama|iterasyon)",
+            r"(?:planlanan|planlanan|düşünülen)\s+(?:çalışma|iş|değişiklik)",
+            r"(?:henüz yapılmadı|henüz tamamlanmadı|bekliyor)",
+            r"(?:ihtiyaç var|gerekli|eklenmeli|düzenlenmeli)",
+        ]
+        for pattern in plan_patterns:
+            match = re.search(pattern, output_lower)
+            if match:
+                events.append({
+                    "type": "pending",
+                    "trigger": "future_plan_detected",
+                    "description": match.group(0)[:200],
+                    "context": output_str[max(0, match.start()-50):match.end()+50],
+                })
+                break  # Only one pending event per output
+
+    return events
+
+
+def _try_generate_code_doc(event: dict):
+    """Try to generate a code doc from a detected event. Non-blocking."""
+    try:
+        from .code_docs import (create_learning, create_decision,
+                                create_troubleshooting, create_pending)
+
+        if event["type"] == "learning" and "experiment_id" in event:
+            create_learning(
+                experiment_id=event["experiment_id"],
+                record_path=event["record_path"],
+            )
+
+        elif event["type"] == "decision" and "path" in event:
+            create_decision(
+                title=f"Mimari değişiklik: {os.path.basename(event['path'])}",
+                decision=event.get("content_preview", "Mimari dosya değiştirildi"),
+                rationale="Audit hook tarafından otomatik tespit edildi",
+            )
+
+        elif event["type"] == "troubleshooting" and "command" in event:
+            create_troubleshooting(
+                title=f"Hata tespiti: {event['command'][:50]}",
+                error=event.get("error_preview", "Hata tespit edildi"),
+                cause="Audit hook tarafından otomatik tespit edildi",
+                solution="Çözüm henüz eklenmedi — manuel güncelleme gerekli",
+            )
+
+        elif event["type"] == "pending":
+            desc = event.get("description", "Tamamlanmamış iş")
+            path = event.get("path", "")
+            context = event.get("context", "")
+            trigger = event.get("trigger", "")
+
+            if trigger == "todo_detected":
+                title = f"TODO: {desc[:50]}"
+                context_info = f"Dosya: {path}" if path else ""
+            else:
+                title = f"Bekleyen iş: {desc[:50]}"
+                context_info = context[:200] if context else ""
+
+            create_pending(
+                title=title,
+                description=desc,
+                context=context_info,
+                next_steps="Manuel olarak güncellenmeli",
+                priority="normal",
+                tags=["pending", "auto-detected"],
+            )
+    except Exception as exc:
+        import sys
+        print(f"code-docs generation warning: {exc}", file=sys.stderr)  # Non-blocking, but visible for debugging
 
 
 def _validate_methodology_compliance(tool_name: str, tool_input: dict) -> list[str]:
@@ -39,7 +178,8 @@ def _check_kopru_consumption(tool_name: str, tool_input: dict) -> list[str]:
     the corresponding chain records exist. Non-blocking warnings.
     """
     warnings = []
-    root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
+    from .utils import repo_root
+    root = repo_root({})
     root = os.path.abspath(root)
 
     if tool_name == "file_editor":
@@ -100,13 +240,19 @@ def audit(json_in: dict) -> dict:
     kopru_warnings = _check_kopru_consumption(tool_name, tool_input)
     warnings.extend(kopru_warnings)
 
+    # Detect notable events for code doc generation (non-blocking)
+    notable_events = _detect_notable_events(tool_name, tool_input, tool_output)
+    for event in notable_events:
+        _try_generate_code_doc(event)
+
     if warnings:
         record["methodology_warnings"] = warnings
 
     # Get log file path anchored to the project root, not the process cwd
     # (cwd may differ under OpenHands; guard/quality/deploy resolve scopes
     # via OPENHANDS_PROJECT_DIR, so audit must too).
-    root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
+    from .utils import repo_root
+    root = repo_root(json_in)
     log_path = pathlib.Path(root).absolute() / log_file()
 
     # Ensure log directory exists

@@ -1,8 +1,7 @@
 # /metodoloji:init — Kayıt iskeletini hedef projeye kur
 
 Bu komut metodoloji kayıt zinciri için gereken dizinleri ve şablonları **{project-root}**
-altına kurar. {metodoloji-root} = bu plugin'in kökü (bootstrap ile `.metodoloji/plugin`
-altında da mevcuttur).
+altına kurar. {metodoloji-root} = bu plugin'in kurulum kökü (`~/.openhands/plugins/installed/metodoloji`).
 
 ## Adımlar
 

@@ -32,14 +32,38 @@
 
 > Story'nin "done" sayılması için tüm kriterler karşılanmalı
 
-- [ ] **Given** [başlangıç durumu] **When** [aksiyon] **Then** [beklenen sonuç]
-- [ ] **Given** [başlangıç durumu] **When** [aksiyon] **Then** [beklenen sonuç]
-- [ ] **Given** [başlangıç durumu] **When** [aksiyon] **Then** [beklenen sonuç]
+- [AC-001] **Given** [başlangıç durumu] **When** [aksiyon] **Then** [beklenen sonuç]
+  - Experiment: E-XXX
+  - Type: agent-verifiable | manual
+  - Measured: true | false
+  - Verify: [test komutu]
+- [AC-002] **Given** [başlangıç durumu] **When** [aksiyon] **Then** [beklenen sonuç]
+  - Experiment: E-XXX
+  - Type: agent-verifiable | manual
+  - Measured: true | false
+  - Verify: [test komutu]
+- [AC-003] **Given** [başlangıç durumu] **When** [aksiyon] **Then** [beklenen sonuç]
+  - Experiment: E-XXX
+  - Type: agent-verifiable | manual
+  - Measured: true | false
+  - Verify: [test komutu]
 
 ### Örnek
-- [ ] **Given** ben admin panelindeyim **When** "son 7 gün" filtresini seçersem **Then** yalnızca son 7 günün loglarını görürüm
-- [ ] **Given** log listesi yüklüyken **When** filtreyi değiştirirsem **Then** loading spinner görürüm
-- [ ] **Given** hiç log yoksa **When** sayfayı yüklersem **Then** "Log bulunamadı" mesajı görürüm
+- [AC-001] **Given** ben admin panelindeyim **When** "son 7 gün" filtresini seçersem **Then** yalnızca son 7 günün loglarını görürüm
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: curl http://localhost:8000/api/logs?days=7
+- [AC-002] **Given** log listesi yüklüyken **When** filtreyi değiştirirsem **Then** loading spinner görürüm
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: check_ui_spinner.py
+- [AC-003] **Given** hiç log yoksa **When** sayfayı yüklersem **Then** "Log bulunamadı" mesajı görürüm
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: check_empty_state.py
 
 ---
 
@@ -47,12 +71,12 @@
 
 > Story'yi tamamlamak için gereken teknik adımlar
 
-- [ ] [Task 1: API endpoint implementasyonu] — [@username]
-- [ ] [Task 2: Frontend component] — [@username]
-- [ ] [Task 3: Database migration] — [@username]
-- [ ] [Task 4: Unit tests] — [@username]
-- [ ] [Task 5: Integration tests] — [@username]
-- [ ] [Task 6: Dokümantasyon] — [@username]
+- [ ] Task 1: API endpoint implementasyonu (AC: AC-001) — [@username]
+- [ ] Task 2: Frontend component (AC: AC-002, AC-003) — [@username]
+- [ ] Task 3: Database migration (AC: AC-001) — [@username]
+- [ ] Task 4: Unit tests (AC: AC-001, AC-002, AC-003) — [@username]
+- [ ] Task 5: Integration tests (AC: AC-001) — [@username]
+- [ ] Task 6: Dokümantasyon — [@username]
 
 ---
 
@@ -60,13 +84,27 @@
 
 > Story'nin gerçekten bitmiş sayılması için genel kriterler
 
-- [ ] Tüm acceptance criteria karşılandı
-- [ ] Code review yapıldı ve onaylandı (QR-xxx)
-- [ ] Unit test coverage >= %80
-- [ ] Integration test yazıldı ve geçti
-- [ ] Dokümantasyon güncellendi
-- [ ] Staging'de test edildi
-- [ ] Product owner kabul etti
+- [DoD-001] Tüm acceptance criteria karşılandı (AC: AC-001, AC-002, AC-003)
+  - Verify: pytest tests/
+  - Evidence: test output
+- [DoD-002] Code review yapıldı ve onaylandı
+  - Verify: QR-001 record exists
+  - Evidence: QR record
+- [DoD-003] Unit test coverage >= %80
+  - Verify: coverage report
+  - Evidence: coverage output
+- [DoD-004] Integration test yazıldı ve geçti
+  - Verify: pytest tests/integration/
+  - Evidence: test output
+- [DoD-005] Dokümantasyon güncellendi
+  - Verify: docs/ updated
+  - Evidence: git diff
+- [DoD-006] Staging'de test edildi
+  - Verify: manual test
+  - Evidence: test results
+- [DoD-007] Product owner kabul etti
+  - Verify: PO sign-off
+  - Evidence: approval message
 
 ---
 

@@ -71,12 +71,18 @@ def extract_story_key_from_content(content: str) -> str:
 
 
 def repo_root(json_in: dict) -> str:
-    """Get repository root from environment or JSON input."""
+    """Get repository root from environment variables.
+
+    Priority:
+    1. CLAUDE_PROJECT_DIR (Claude Code standard)
+    2. OPENHANDS_PROJECT_DIR (OpenHands standard)
+    3. json_in["cwd"] (hook input fallback)
+    4. os.getcwd() (last resort)
+    """
     root = (
         os.environ.get("CLAUDE_PROJECT_DIR")
         or os.environ.get("OPENHANDS_PROJECT_DIR")
         or json_in.get("cwd")
-        or json_in.get("working_dir")
         or os.getcwd()
     )
     return os.path.abspath(root)

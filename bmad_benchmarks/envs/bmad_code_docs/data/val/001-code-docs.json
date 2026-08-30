@@ -1,0 +1,119 @@
+[
+  {
+    "id": "codoc-val-pattern",
+    "scenario": "Yeni bir API fonksiyonu yazıldı: 'def create_methodology_record(story_path: str, output_dir: str) -> dict'. Fonksiyon story dosyasından metadata çıkarıp docs/development/stories/ altına S-XXX.md kaydı oluşturuyor. Bu kalıp其他 projelerde de kullanılabilir.",
+    "expected_type": "P",
+    "expected_tags": ["methodology", "record", "pattern"],
+    "expected_sections": ["## Kalıp", "## Kullanım Senaryosu", "## Örnek", "## Avantajlar", "## Dezavantajlar"],
+    "context": {
+      "tool_name": "file_editor",
+      "path": "scripts/create-methodology-record.py",
+      "content_preview": "def create_methodology_record(story_path, output_dir):"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-val-decision",
+    "scenario": "Proje için TOML config sistemi kararı alındı: base customize.toml → team {skill}.toml → user {skill}.user.toml sıralamasıyla deep-merge. Scalars override, arrays append. Bu yapı 74+ TOML dosyasıyla çalışıyor.",
+    "expected_type": "D",
+    "expected_tags": ["config", "toml", "architecture", "decision"],
+    "expected_sections": ["## Karar", "## Gerekçe", "## Sonuçlar"],
+    "context": {
+      "tool_name": "file_editor",
+      "path": "skills/bmad-bmb-setup/scripts/merge-config.py",
+      "content_preview": "TOML config merge strategy"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-val-troubleshooting",
+    "scenario": "SkillOpt training sırasında hata: 'ImportError: cannot import name _ENV_REGISTRY from scripts.train'. Modül yeniden yüklendiğinde registry temizleniyor. Çözüm: _register_bmad_adapters() her train_benchmark çağrısından sonra tekrar çağrılmalı.",
+    "expected_type": "T",
+    "expected_tags": ["training", "import", "registry", "troubleshooting"],
+    "expected_sections": ["## Hata", "## Neden", "## Çözüm", "## Önleme"],
+    "context": {
+      "tool_name": "terminal",
+      "command": "python scripts/train_bmad.py --benchmark bmad-code-docs",
+      "output_summary": "ImportError: cannot import name _ENV_REGISTRY"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-val-pending",
+    "scenario": "Kullanıcı 'Self-improvement döngüsü ekle — eğitim sistemi kendi sonuçlarından öğrenmeli' dedi. Bu henüz yapılmamış bir geliştirme planı.",
+    "expected_type": "X",
+    "expected_tags": ["training", "improvement", "self-learning", "pending"],
+    "expected_sections": ["## Açıklama", "## Bağlam", "## Sonraki Adımlar"],
+    "context": {
+      "tool_name": "terminal",
+      "command": "echo 'Self-improvement döngüsü planlandı'",
+      "output_summary": "Self-improvement döngüsü ekle"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-val-pending-priority",
+    "scenario": "Sprint planning toplantısında yüksek öncelikli bir iş belirlendi: 'Guard hook false-negative sorununu çöz'. Bu iş sprint'i bloke ediyor.",
+    "expected_type": "X",
+    "expected_tags": ["guard", "sprint", "urgent", "pending"],
+    "expected_sections": ["## Açıklama", "## Bağlam", "## Sonraki Adımlar"],
+    "context": {
+      "tool_name": "terminal",
+      "command": "echo 'Sprint planning tamamlandı'",
+      "output_summary": "Guard hook false-negative sorunu"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-val-pending-dependency",
+    "scenario": "Yeni API endpoint'i yazılacak ama önce rate limiting eklenmeli. Bağımlılık: rate limiting olmadan API doğrulanamaz.",
+    "expected_type": "X",
+    "expected_tags": ["api", "rate-limiting", "dependency", "pending"],
+    "expected_sections": ["## Açıklama", "## Bağlam", "## Sonraki Adımlar"],
+    "context": {
+      "tool_name": "file_editor",
+      "path": "src/api/new_endpoint.py",
+      "content_preview": "# TODO: rate limiting eklemeden önce test edilemez"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-val-learning",
+    "scenario": "Deney E-004 tamamlandı. Hipotez: 'error rate <= 0.05'. Ölçüm: 'error_rate=0.03 (97/100)'. Deney onaylandı. Sonuç: Retry mekanizması başarıyla çalışıyor.",
+    "expected_type": "L",
+    "expected_tags": ["retry", "error", "reliability", "learning"],
+    "expected_sections": ["## Öğrenilen", "## Bağlam", "## Kanıt", "## Uygulama"],
+    "context": {
+      "tool_name": "terminal",
+      "command": "python3 run_experiment.py --record docs/experiments/E-004.md --run \"python bench_retry.py\"",
+      "output_summary": "ONAYLANDI"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-val-api",
+    "scenario": "bmad-code-docs skill'inin API'si: 'def create_pending(title: str, description: str, priority: str = \"normal\") -> pathlib.Path'. Fonksiyon yeni bir pending doc oluşturur ve yolunu döndürür.",
+    "expected_type": "A",
+    "expected_tags": ["api", "pending", "code-docs"],
+    "expected_sections": ["## API", "## İmza", "## Kullanım", "## Dikkat Edilecekler"],
+    "context": {
+      "tool_name": "file_editor",
+      "path": "hooks/engine/modules/code_docs.py",
+      "content_preview": "def create_pending(title, description, priority):"
+    },
+    "task_type": "code-docs"
+  },
+  {
+    "id": "codoc-val-context-loading",
+    "scenario": "New task starts: 'Implement auth module'. System should auto-load relevant code-docs (previous auth decisions, patterns) via load_context_for_task().",
+    "expected_type": "L",
+    "expected_tags": ["context-loading", "auto-load", "auth", "learning"],
+    "expected_sections": ["## Öğrenilen", "## Bağlam", "## Kanıt", "## Uygulama"],
+    "context": {
+      "tool_name": "file_editor",
+      "path": "src/auth/module.py",
+      "content_preview": "def authenticate(user, password): ..."
+    },
+    "task_type": "code-docs"
+  }
+]

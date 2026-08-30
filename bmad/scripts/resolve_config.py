@@ -142,7 +142,7 @@ def main():
     )
     parser.add_argument(
         "--project-root", "-p", required=True,
-        help="Absolute path to the project root (contains bmad/)",
+        help="Absolute path to the target project root (config files live in the plugin, not here)",
     )
     parser.add_argument(
         "--key", "-k", action="append", default=[],

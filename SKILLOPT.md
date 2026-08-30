@@ -44,7 +44,7 @@ scripts/
 └── eval_bmad.py                 # Evaluation entry point
 
 bmad_benchmarks/
-└── register_benchmarks.py       # Adapter registration
+└── envs/                        # Benchmark environments (adapters register inline in train_bmad/eval_bmad)
 ```
 
 ## Quick Start

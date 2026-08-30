@@ -16,7 +16,7 @@
 ## Project Structure
 
 ```
-{{project_root}}/
+{{project_root_path}}/
 {{source_tree}}
 ```
 

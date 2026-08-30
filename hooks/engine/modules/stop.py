@@ -5,7 +5,7 @@ import os
 import pathlib
 import re
 
-from .config import GATE_DIR, RUNTIME, _DONE_RE
+from .config import _DONE_RE
 from .guard import find_approved
 from .utils import is_free, norm_path
 
@@ -22,7 +22,8 @@ def _check_story_status(root: str) -> tuple[bool, str]:
 
     Returns (should_block, reason).
     """
-    # Look for sprint-status.yaml
+    # Look for sprint-status.yaml. Canonical path is bmad-output/ (config.toml);
+    # _bmad-output kept only as a legacy fallback for pre-migration projects.
     for candidate in [
         pathlib.Path(root) / "bmad-output" / "implementation-artifacts" / "sprint-status.yaml",
         pathlib.Path(root) / "_bmad-output" / "implementation-artifacts" / "sprint-status.yaml",
@@ -45,7 +46,8 @@ def _check_story_status(root: str) -> tuple[bool, str]:
 
 def stop(json_in: dict) -> dict:
     """Stop hook: block stop if unapproved code changes or incomplete stories exist."""
-    root = os.environ.get("OPENHANDS_PROJECT_DIR") or os.getcwd()
+    from .utils import repo_root
+    root = repo_root(json_in)
 
     # 1. Check for incomplete stories
     should_block, reason = _check_story_status(root)

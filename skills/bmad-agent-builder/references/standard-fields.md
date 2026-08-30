@@ -150,7 +150,7 @@ These work from any file in the skill because they're always resolved from the s
 
 ### Memory Files
 
-Always use `{project-root}` prefix: `{metodoloji-root}/bmad/memory/{skillName}/`
+Built-agent memory lives in the plugin, not the target project. Always use the `{metodoloji-root}` prefix: `{metodoloji-root}/bmad/memory/{skillName}/`
 
 The memory `index.md` is the single entry point to the agent's memory system — it tells the agent what else to load (boundaries, logs, references, etc.). Load it once on activation; don't duplicate load instructions for individual memory files.
 

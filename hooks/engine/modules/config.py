@@ -7,8 +7,13 @@ import re
 # Runtime detection
 RUNTIME = os.environ.get("METODOLOJI_RUNTIME", "claude")
 
-# Gate script location
-_HERE = pathlib.Path(__file__).resolve().parent.parent.parent
+# Gate script location — resolved inside the methodology root.
+# config.py lives at <methodology-root>/hooks/engine/modules/config.py:
+#   parent1 = modules/
+#   parent2 = engine/
+#   parent3 = hooks/
+#   parent4 = <methodology-root>
+_METHODOLOGY_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent.parent
 
 def _first_existing(cands: list[pathlib.Path]) -> pathlib.Path | None:
     for c in cands:
@@ -17,8 +22,7 @@ def _first_existing(cands: list[pathlib.Path]) -> pathlib.Path | None:
     return None
 
 GATE_DIR = _first_existing([
-    _HERE.parent / "skills" / "bmad-research-experiment" / "scripts",
-    _HERE.parent.parent / "skills" / "bmad-research-experiment" / "scripts",
+    _METHODOLOGY_ROOT / "skills" / "bmad-research-experiment" / "scripts",
 ])
 
 # Shared story status regex (DRY: used by guard, stop, audit)
@@ -61,10 +65,21 @@ EXEC_CONFIG_NAME = re.compile(
 # Free zones
 FREE_PREFIXES = (
     "_bmad/", "scratch/", "graft/", ".git/", "tmp/", "temp/",
-    "openhands/", ".metodoloji/"
+    "openhands/", ".metodoloji/", "docs/code-docs/"
 )
 
-INFRA_FILES = {"scripts/check-methodology.sh", "scripts/run_experiment.py"}
+INFRA_FILES = {"scripts/check-methodology.sh", "skills/bmad-research-experiment/scripts/run_experiment.py"}
+
+# Code docs paths
+CODE_DOCS_DIR = "docs/code-docs"
+CODE_DOCS_TYPES = {
+    "decision": {"prefix": "D", "dir": "decisions"},
+    "pattern": {"prefix": "P", "dir": "patterns"},
+    "learning": {"prefix": "L", "dir": "learnings"},
+    "api": {"prefix": "A", "dir": "api"},
+    "troubleshooting": {"prefix": "T", "dir": "troubleshooting"},
+    "pending": {"prefix": "X", "dir": "pending"},
+}
 
 FREE_DOC_MD = re.compile(r"(?i)^docs/.*\.md$")
 FREE_DOC_RAW = re.compile(r"(?i)^docs/.*/raw(/|$)")

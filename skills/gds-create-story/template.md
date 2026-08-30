@@ -2,7 +2,7 @@
 
 Status: ready-for-dev
 
-<!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
+<!-- Note: Validation is optional. Run AC metadata validation for quality check before dev-story. -->
 
 ## Story
 

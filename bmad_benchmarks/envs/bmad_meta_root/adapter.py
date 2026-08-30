@@ -8,6 +8,7 @@ import pathlib
 from skillopt.envs.base import EnvAdapter
 from .dataloader import BmadMetaRootDataLoader
 from .rollout import run_batch
+from .verify_combinations import verify_coverage
 
 
 class BmadMetaRootAdapter(EnvAdapter):
@@ -29,6 +30,9 @@ class BmadMetaRootAdapter(EnvAdapter):
 
     def setup(self, cfg):
         super().setup(cfg)
+        # Fail fast if the training data no longer covers every root×direction
+        # combination — a partial matrix silently biases the skill.
+        verify_coverage(split_dir=self.split_dir_path)
         self.dataloader.setup(cfg)
 
     def get_dataloader(self):
