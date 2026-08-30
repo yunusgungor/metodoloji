@@ -39,7 +39,7 @@ Temel işlevleri:
 
 | Parça | İşlev |
 |-------|-------|
-| `skills/` | 124 BMAD skill'i (native gövde) + `metodoloji-manifesto` (çekirdek sözleşme) |
+| `skills/` | 122 BMAD skill'i (native gövde) |
 | `custom/` | 119 köprü TOML (33 KÖPRÜ ile aktif: `activation_steps_append`/`principles` → native çıktıları metodoloji kaydına bağlar) + `config.toml` (soft/hard) |
 | `hooks/` | PreToolUse / PostToolUse / Stop / SessionStart hook'ları; modüler motor yapısı |
 | `hooks/engine/` | Python motoru: `main.py` (giriş), `modules/` (guard, audit, stop, utils, config) |

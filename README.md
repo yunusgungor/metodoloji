@@ -7,7 +7,7 @@ mekanik kapılar (guard/stop/quality/deploy) + kayıt zinciri (E → IR → SP �
 
 | Parça | İşlev |
 |---|---|
-| `skills/` | 124 BMAD skill'i (native gövde) + `metodoloji-manifesto` (çekirdek sözleşme) |
+| `skills/` | 122 BMAD skill'i (native gövde) |
 | `custom/` | 74 köprü TOML (`activation_steps_append` → native çıktıları metodoloji kaydına bağlar) + `config.toml` (soft/hard) |
 | `hooks/` | PreToolUse/PostToolUse/Stop/SessionStart hook'ları; modüler motor yapısı |
 | `hooks/engine/` | Python motoru: `main.py` (giriş), `modules/` (guard, audit, stop, utils, config) |

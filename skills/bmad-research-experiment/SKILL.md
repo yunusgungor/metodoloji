@@ -1,7 +1,7 @@
 ---
 name: bmad-research-experiment
 description: 'Run the research methodology gate — Theory → Hypothesis → Experiment → Measurement → Approval. Use when the user says they want to run an experiment, test a hypothesis, verify a claim, or follow the research methodology.'
-triggers: ["bmad-research-experiment", "/bmad-research-experiment", "research-experiment"]
+triggers: ["bmad-research-experiment", "/bmad-research-experiment", "research-experiment", "sıradaki doğru adımla devam edelim", "kayıt zinciri", "hard gate", "guard code", "metodoloji"]
 ---
 
 # Research Experiment Workflow
@@ -15,7 +15,20 @@ triggers: ["bmad-research-experiment", "/bmad-research-experiment", "research-ex
 - Bare paths (e.g. `experiment-log.md`) resolve from the skill root.
 - `{skill-root}` resolves to this skill's installed directory.
 - `{project-root}` resolves from the project working directory.
+- `{metodoloji-root}` = plugin root (`~/.openhands/plugins/installed/metodoloji`).
+- `{gate-script}` = `{skill-root}/scripts/run_experiment.py`.
+- `{production-root}` = `{project-root}/lib/graph/` (production modules).
+- `{bench-root}` = `{project-root}/scratch/` (measurement benches).
 - `{user_name}` and `{communication_language}` come from `bmad/config.user.toml`; `{document_output_language}` from `bmad/config.toml`.
+
+## OpenHands Tool Contract (critical)
+
+This plugin runs on OpenHands — tool schemas differ from Claude Code:
+
+- `terminal` tool accepts **only** the `command` parameter. Do **not** add `description` or other extra params — OpenHands rejects with `extra_forbidden`.
+- `file_editor` tool: use only `path`, `content`, and `action` fields.
+- Prefer `python3` over `uv run` in scripts (uv is not available in every environment).
+- If you need to explain what a command does, say it in **plain text**, not as a tool parameter.
 
 ## PREREQUISITES
 
@@ -71,6 +84,7 @@ Clarify with the researcher the **theory/framework** behind this question:
 
 - Why is this question being asked? What model, framework, or prior evidence motivates it?
 - A vague "I'm curious" is not a theory — write down the reasoning that predicts an outcome.
+- A good next experiment: (a) maps to a PDF claim or an existing surface's gap, (b) is falsifiable (a broken implementation scores below the threshold), (c) fits in one coherent commit.
 - Output: a short theory statement recorded in the experiment log.
 
 ### Stage 2 — Hipotez (Hypothesis)
@@ -115,6 +129,8 @@ produce an approval:
 ```
 python3 {skill-root}/scripts/run_experiment.py --record {project-root}/docs/experiments/<deney-id>.md --run "<ölçüm komutu>"
 ```
+
+For format/draft checks without writing a decision, use `--dry-run` (see below). For adding supplementary metadata to the record, use `--raw "key=value"` pairs.
 
 The measurement command must print a `metric_accuracy=0.93 (14/15)`-style line
 (`_accuracy`/`_validity`/`_precision`/`_score`/`_rate`/`_quality`); the gate
@@ -172,12 +188,35 @@ python3 {skill-root}/scripts/run_experiment.py --verify --record {project-root}/
 
 **The gate also cross-checks the recorded hypothesis.** `--verify` compares the claim recorded in the record's `Hipotez` field against the claim the gate actually evaluated (stored in `Kapı kanıtı`). Editing the threshold *after* approval and keeping the token is a forged outcome — it fails verify even though the token still matches the (edited) `Kapı kanıtı`. Only the original hypothesis as recorded at Stage 2 verifies.
 
-### Stage 6 — Sonuç (Record & Hand Off)
+### Stage 6 — Sonuç (Record & Delivery)
 
 - Write/update `docs/experiments/<deney-id>.md` per `experiment-log.md` (the manifesto's mandatory format).
 - Record: theory, hypothesis + threshold, measurement metrics, design, raw results, decision + rationale, next step.
-- **Next step is derived from the decision:** ONAYLANDI → "Kod aşamasına geç" (the dev agent implements from the approved experiment); REDDEDİLDİ → "Teori'ye dön; yeni hipotez için yeni deney aç."
+- **Next step is derived from the decision:** ONAYLANDI → proceed to delivery (below); REDDEDİLDİ → "Teori'ye dön; yeni hipotez için yeni deney aç."
 - Summarize honestly to the user: what was measured, what the gate decided, and what happens next.
+
+**Delivery loop (ONAYLANDI only):**
+
+1. **Production surface:** Add the function/class to the production module (`{production-root}/pipeline.py` or appropriate module) with a docstring naming the experiment: `Deney E-NNN: docs/experiments/E-NNN.md (H-NNN: ... >= 0.90) -> GATE-OK-E-NNN-` (leave the hash empty until the gate runs; fill it in after).
+2. **Benchmark re-verify:** Run the bench again against the production surface to confirm `measured=1.00`. A broken integration must score below the threshold (falsifiability).
+3. **Append to cli.py:** Add the experiment to the Verified Tokens banner (both the `E-XXX (hash)` list and the `| E-XXX` list).
+4. **Update sprint-status.yaml:** Append a one-line entry to `_bmad-output/implementation-artifacts/sprint-status.yaml` (same style as existing `E-NNN ...` entries).
+5. **Update R-002:** If the experiment closes a PDF gap / research direction, add a row to the R-002 table and update the closing paragraph + experiment count.
+6. **Commit (one experiment per commit):**
+
+```
+git add -A && git commit -m "Add <feature> (E-NNN) — <PDF claim / one-line>
+
+<2-4 lines: what was added, measured value + token, what a broken impl would do>.
+
+Measured: <metric>=1.00 (4/4), GATE-OK-E-NNN-<hash> (verified).
+A <broken integration> would <fail how> -> falsifiable.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+"
+```
+
+7. **Update memory:** After committing, update the project memory file (e.g. `ge-dre-project-state.md` under `progress/`): add the new capability to the direction list, bump the experiment count + latest commit hash, and record any new lesson learned.
 
 ## Integrity Rules (from the manifesto — non-negotiable)
 
@@ -187,3 +226,20 @@ python3 {skill-root}/scripts/run_experiment.py --verify --record {project-root}/
 4. Running an experiment you never ran, or reporting a measurement you never took, is fraud and is forbidden.
 5. A negative result is a result.
 6. If observed data contradicts the theory, the **theory** is revised — never the data.
+7. A broken implementation must score below the threshold (falsifiability). If it doesn't, the test is broken — fix the test, not the threshold.
+8. One measurement, one decision per record; a decided record refuses a re-run.
+9. No half-finished cycles: every experiment ships as one commit with its docs.
+10. No measurement, no gate; no gate approval, no code.
+
+## Live-LLM Lessons (E-125..E-150 — learned the hard way)
+
+These recur when running experiments that call LLMs; handle them up front so the bench is stable:
+
+1. **Temporal schema (valid_at) makes the LLM return EMPTY output.** Ask the LLM for S-P-O only; parse dates deterministically from the text (`_parse_valid_at`).
+2. **Non-deterministic predicates**: "was CEO of" vs "became CEO of" are the same attribute — normalize to `(company, role, person)` and dedupe `norm_claims`.
+3. **Non-deterministic JSON**: retry `llm_extract_graph` 4x (long chains multiply the flake probability). Benchmarks that query the LLM's output must use the LLM's ACTUAL output, not a hardcoded predicate.
+4. **Code/tool prompts drift to tool-call XML** instead of JSON — add "Do NOT call any tools and do NOT use XML" to the prompt.
+5. **Rate/bundle limits**: live calls consume real quota — gate with RateLimiter (E-148) and bundle_allowed (E-149).
+6. **Consistency**: the pipeline's DECISIONS (fact/superseded) must not flip across runs even when the LLM is non-deterministic (E-135). If a bench is flaky, retry, don't weaken the assert.
+7. **`kg.claims` is subject-keyed** — the subject is the dict KEY, not a field. Access via `claims.items()`.
+8. **`SwarmReducer.reduce` needs hashable tuples**, not relation dicts.
