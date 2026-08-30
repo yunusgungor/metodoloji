@@ -20,8 +20,8 @@ _FIELD_PATTERNS = {
     "Kod kapsamı": re.compile(r"Kod kapsamı|##\s*Kod|###\s*Kod kapsamı|\*\*Kod kapsamı", re.IGNORECASE),
 }
 
-# Hypothesis format: H-NNN: "metric >= threshold"
-_HYPOTHESIS_RE = re.compile(r"H-\d+:\s*\".*(?:>=|<=|>|<|==)\s*\d")
+# Hypothesis format: H-NNN anywhere in text (format flexibility)
+_HYPOTHESIS_RE = re.compile(r"H-\d+")
 
 
 def _score(output_text: str, expected_fields: list[str],

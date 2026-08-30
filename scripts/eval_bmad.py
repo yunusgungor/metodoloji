@@ -75,11 +75,13 @@ _ADAPTERS = {
 
 def _register_bmad_adapters():
     from scripts import train as skillopt_train
+    from scripts import eval_only as skillopt_eval
     for name, (module_path, class_name) in _ADAPTERS.items():
         try:
             mod = importlib.import_module(module_path)
             cls = getattr(mod, class_name)
             skillopt_train._ENV_REGISTRY[name] = cls
+            skillopt_eval._ENV_REGISTRY[name] = cls
             print(f"  [registered] {name}")
         except Exception as exc:
             print(f"  [skip] {name}: {exc}")
@@ -117,22 +119,15 @@ def eval_benchmark(name: str, skill_path: str | None = None, split: str = "test"
         sys.argv.extend(["--split_dir", str(_cfg["split_dir"])])
     if _cfg.get("split_mode"):
         sys.argv.extend(["--split_mode", str(_cfg["split_mode"])])
-    if _cfg.get("skill_init"):
-        sys.argv.extend(["--skill_init", str(_cfg["skill_init"])])
     target = _cfg.get("model", {}).get("target", "")
     if target:
         os.environ["TARGET_DEPLOYMENT"] = target
     optimizer = _cfg.get("model", {}).get("optimizer", "")
     if optimizer:
         os.environ["OPTIMIZER_DEPLOYMENT"] = optimizer
-    for key in ("seed", "workers", "limit", "out_root",
-                "minibatch_size", "edit_budget"):
+    # Only pass args that eval_only.py accepts
+    for key in ("seed", "workers", "out_root", "test_env_num"):
         val = _cfg.get(key)
-        if val is not None:
-            sys.argv.extend([f"--{key}", str(val)])
-    train = _cfg.get("train", {})
-    for key in ("batch_size", "num_epochs"):
-        val = train.get(key)
         if val is not None:
             sys.argv.extend([f"--{key}", str(val)])
 

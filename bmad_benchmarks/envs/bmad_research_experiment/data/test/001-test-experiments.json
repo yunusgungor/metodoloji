@@ -1,0 +1,66 @@
+[
+  {
+    "id": "test-001",
+    "task_desc": "Guard hook'un REDDEDİLDİ deney kaydıyla kod yazmayı engelleme testi. Kapı sonucu REDDEDİLDİ olan bir deney record'u ile dosya oluşturmayı dene, DENY al.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "test-002",
+    "task_desc": "Tekrar karar verme testi. Zaten ONAYLANDI kararlı bir deney record'una yeni bir ölçüm eklenmeye çalışıldığında kapının reddetmesi gerekiyor. Tek ölçüm tek karar kuralı.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "test-003",
+    "task_desc": "Wilson lower bound hesaplama testi. n=10, x=9 (başarı oranı 0.90) olduğunda Wilson 95% lower bound hesaplanmalı ve eşik değerinin altındaysa belirsizlik olarak işaretlenmeli.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "test-004",
+    "task_desc": "Sprint completion rate ölçümü. 10 story'lik bir sprint'te tamamlanan story oranı hesaplanmalı. Blocked story'ler hesaba katılmalı ama destacats haricindeki iptal edilen story'ler dahil edilmemeli.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "test-005",
+    "task_desc": "Backward compatibility deneyi. Eski format (Ingilizce etiketli) deney kayıtları yeni kapıyla okunabilmeli ama otomatik olarak Türkçeye dönüştürülmeli veya uyarı verilmeli.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "test-006",
+    "task_desc": "Error recovery testi. Audit hook log dosyası yazılabilir durumda değilse (readonly filesystem) hook sessizce başarısız olmalı, ana process'i block etmemeli.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "test-007",
+    "task_desc": "Multiple gate pipeline testi. IR → SP → S → QR → PR zincirinde her kapı bir sonraki kapıyı açmalı. Eksik IR ile SP başlatılamaz, eksik QR ile PR yapılamaz.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "test-008",
+    "task_desc": "Memory update correctness testi. Deney tamamlandığında project memory dosyası güncellenmeli: yeni kapasite listeye eklenmeli, deney sayısı artırılmalı, son commit hash kaydedilmeli.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  }
+]

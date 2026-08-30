@@ -1,0 +1,66 @@
+[
+  {
+    "id": "val-001",
+    "task_desc": "Guard hook'un hash mismatch kontrolünü test et. Kod yazma izni için bir deney onayı gerekiyor, ama deney record'u farklı bir dosya glob'u kapsıyorsa izin verilmemeli. Kapsam eşleşmesi zorunlu.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "val-002",
+    "task_desc": "Stop hook'un timeout davranışı. Stop hook çalışırken故事 dosyası silinirse veya bozulursa hata ile başa çıkmalı ve session'ı kilitmemeli. Graceful degradation test et.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "val-003",
+    "task_desc": "QR kaydı ile PR kaydı arasındaki tutarlılık. QR'da tüm DoD'lar pass ise PR otomatik olarak HAZIR olmalı. QR partial ise PR BEKLİYOR olmalı.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "val-004",
+    "task_desc": "Commit mesajı format doğrulama. Deney bazlı commit'lerin tümü standard bir format izlemeli: 'Add <feature> (E-NNN) — <claim>' başlığı, measured value ve GATE-OK token içermeli.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "val-005",
+    "task_desc": "Mod seçimi deneyi. Bir görevin Mod A (kod) mı yoksa Mod C (tasarım) mı olduğunu otomatik sınıflandıran bir sistem tasarla. Yanlış sınıflandırma oranı < %10 olmalı.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "val-006",
+    "task_desc": "SkillOpt training pipeline hata yönetimi. Model API'si 404 döndüğünde eğitim sessizce başarısız olmamalı, error log'a yazmalı ve cooldown ile yeniden denemeli.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "val-007",
+    "task_desc": "Seed determinism testi. Aynı seed ile iki kez eğitim çalıştırıldığında ilk 3 step'in rollout skorları birebir aynı olmalı (model deterministik olmasa bile seed controlled randomness).",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "val-008",
+    "task_desc": "Regression guard testi. Eski bir deney record'uyla kod yazmaya çalışıldığında (record zaten karar vermiş ve kapalıysa) guard hook yeni deney talep etmeli.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  }
+]

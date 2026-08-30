@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook-001",
+    "task_desc": "Guard hook'un kod yazma engelleme mekanizmasını test et. PreToolUse hook'u, kapsamı eşleşen VERIFIED deney kaydı olmadan terminalden dosya oluşturmayı engellemeli (fail-closed). Test: izinsiz dosya oluşturma komutu gönder, DENY sonucunu doğrula.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "hook-002",
+    "task_desc": "Guard hook'un kapsam dışı dosyalara yazma izni verip vermediğini test et. scratch/ ve .metodoloji/ dizinleri serbest bölge olarak tanımlı — bu dizinlerdeki dosya işlemleri guard tarafından engellenmemeli. Test: scratch/test.txt oluştur, engellenmediğini doğrula.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "hook-003",
+    "task_desc": "Stop hook'un tamamlanmamış story varken oturum kapanışını engelleme mekanizmasını test et. docs/development/stories/ altında in-progress veya review durumunda story dosyası varsa session kapanışı exit 2 ile engellenmeli.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "hook-004",
+    "task_desc": "Audit hook'un denetim izi doğruluğunu test et. PostToolUse hook'u her terminal ve dosya düzenleme komutunu .metodoloji/logs/hook-audit.log dosyasına loglamalı. Test: 5 farklı komut çalıştır, log dosyasında 5 satır olduğunu doğrula.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "hook-005",
+    "task_desc": "Quality hook'un git commit kalite kontrolünü test et. Quality hook'u, IR/QR/SP'siz story varken commit'i engellemeli (fail-closed). Test: eksik kayıtlı bir story ile commit denemesi yap, DENY sonucunu doğrula.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "hook-006",
+    "task_desc": "Deploy hook'un eksik PR ile deploy engellemesini test et. IR/QR/SP/PR eksik story ile terraform/kubectl deploy komutu gönder, DENY sonucunu doğrula.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  }
+]
