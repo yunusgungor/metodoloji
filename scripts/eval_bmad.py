@@ -11,12 +11,20 @@ Usage:
 
 import argparse
 import importlib
+import os
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIGS_DIR = REPO_ROOT / "configs"
 OUTPUTS_DIR = REPO_ROOT / "outputs"
+
+# Load .env so AZURE_OPENAI_* vars are available to SkillOpt
+try:
+    from dotenv import load_dotenv
+    load_dotenv(REPO_ROOT / ".env", override=True)
+except ImportError:
+    pass
 
 sys.path.insert(0, str(REPO_ROOT))
 
@@ -38,6 +46,8 @@ BENCHMARKS = [
     "bmad-meta-guard",
     "bmad-meta-root",
     "bmad-meta-path",
+    # Research methodology benchmark
+    "bmad-research-experiment",
 ]
 
 _ADAPTERS = {
@@ -58,6 +68,8 @@ _ADAPTERS = {
     "bmad-meta-guard": ("bmad_benchmarks.envs.bmad_meta_guard.adapter", "BmadMetaGuardAdapter"),
     "bmad-meta-root": ("bmad_benchmarks.envs.bmad_meta_root.adapter", "BmadMetaRootAdapter"),
     "bmad-meta-path": ("bmad_benchmarks.envs.bmad_meta_path.adapter", "BmadMetaPathAdapter"),
+    # Research methodology benchmark
+    "bmad-research-experiment": ("bmad_benchmarks.envs.bmad_research_experiment.adapter", "BmadResearchExperimentAdapter"),
 }
 
 
@@ -85,12 +97,44 @@ def eval_benchmark(name: str, skill_path: str | None = None, split: str = "test"
         print(f"[ERROR] Skill not found: {skill_path}")
         return False
 
+    import yaml as _yaml
+    with open(config_path) as _f:
+        _cfg = _yaml.safe_load(_f)
+    target = _cfg.get("model", {}).get("target", "")
+    if target:
+        os.environ["TARGET_DEPLOYMENT"] = target
+    optimizer = _cfg.get("model", {}).get("optimizer", "")
+    if optimizer:
+        os.environ["OPTIMIZER_DEPLOYMENT"] = optimizer
     sys.argv = [
         "eval_only.py",
         "--config", str(config_path),
         "--skill", str(skill_path),
         "--split", split,
+        "--env", name,
     ]
+    if _cfg.get("split_dir"):
+        sys.argv.extend(["--split_dir", str(_cfg["split_dir"])])
+    if _cfg.get("split_mode"):
+        sys.argv.extend(["--split_mode", str(_cfg["split_mode"])])
+    if _cfg.get("skill_init"):
+        sys.argv.extend(["--skill_init", str(_cfg["skill_init"])])
+    target = _cfg.get("model", {}).get("target", "")
+    if target:
+        os.environ["TARGET_DEPLOYMENT"] = target
+    optimizer = _cfg.get("model", {}).get("optimizer", "")
+    if optimizer:
+        os.environ["OPTIMIZER_DEPLOYMENT"] = optimizer
+    for key in ("seed", "workers", "limit", "out_root",
+                "minibatch_size", "edit_budget"):
+        val = _cfg.get(key)
+        if val is not None:
+            sys.argv.extend([f"--{key}", str(val)])
+    train = _cfg.get("train", {})
+    for key in ("batch_size", "num_epochs"):
+        val = train.get(key)
+        if val is not None:
+            sys.argv.extend([f"--{key}", str(val)])
 
     print(f"\nEvaluating: {name} | skill: {skill_path} | split: {split}")
     try:
@@ -99,6 +143,8 @@ def eval_benchmark(name: str, skill_path: str | None = None, split: str = "test"
             if mod.startswith("scripts.eval_only"):
                 del sys.modules[mod]
         from scripts.eval_only import main as eval_main
+        # Re-register adapters after module reload (module init clears registry)
+        _register_bmad_adapters()
         eval_main()
         return True
     except SystemExit as exc:

@@ -11,11 +11,19 @@ Usage:
 
 import argparse
 import importlib
+import os
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIGS_DIR = REPO_ROOT / "configs"
+
+# Load .env so AZURE_OPENAI_* vars are available to SkillOpt
+try:
+    from dotenv import load_dotenv
+    load_dotenv(REPO_ROOT / ".env", override=True)
+except ImportError:
+    pass
 
 # MUST add repo root before any local imports
 sys.path.insert(0, str(REPO_ROOT))
@@ -38,6 +46,8 @@ BENCHMARKS = [
     "bmad-meta-guard",
     "bmad-meta-root",
     "bmad-meta-path",
+    # Research methodology benchmark
+    "bmad-research-experiment",
 ]
 
 # Adapter class mapping
@@ -59,6 +69,8 @@ _ADAPTERS = {
     "bmad-meta-guard": ("bmad_benchmarks.envs.bmad_meta_guard.adapter", "BmadMetaGuardAdapter"),
     "bmad-meta-root": ("bmad_benchmarks.envs.bmad_meta_root.adapter", "BmadMetaRootAdapter"),
     "bmad-meta-path": ("bmad_benchmarks.envs.bmad_meta_path.adapter", "BmadMetaPathAdapter"),
+    # Research methodology benchmark
+    "bmad-research-experiment": ("bmad_benchmarks.envs.bmad_research_experiment.adapter", "BmadResearchExperimentAdapter"),
 }
 
 
@@ -84,10 +96,46 @@ def train_benchmark(name: str, extra_args: list[str] | None = None):
         return False
 
     # out_root is set in the YAML config per benchmark
+    import yaml as _yaml
+    with open(config_path) as _f:
+        _cfg = _yaml.safe_load(_f)
+    # Set TARGET_DEPLOYMENT BEFORE SkillOpt modules load (they read it at import time)
+    target = _cfg.get("model", {}).get("target", "")
+    if target:
+        os.environ["TARGET_DEPLOYMENT"] = target
+    optimizer = _cfg.get("model", {}).get("optimizer", "")
+    if optimizer:
+        os.environ["OPTIMIZER_DEPLOYMENT"] = optimizer
     sys.argv = [
         "train.py",
         "--config", str(config_path),
+        "--env", name,
     ]
+    if _cfg.get("split_dir"):
+        sys.argv.extend(["--split_dir", str(_cfg["split_dir"])])
+    if _cfg.get("split_mode"):
+        sys.argv.extend(["--split_mode", str(_cfg["split_mode"])])
+    if _cfg.get("skill_init"):
+        sys.argv.extend(["--skill_init", str(_cfg["skill_init"])])
+    # Set TARGET_DEPLOYMENT so SkillOpt uses the correct model
+    target = _cfg.get("model", {}).get("target", "")
+    if target:
+        os.environ["TARGET_DEPLOYMENT"] = target
+    optimizer = _cfg.get("model", {}).get("optimizer", "")
+    if optimizer:
+        os.environ["OPTIMIZER_DEPLOYMENT"] = optimizer
+    # Pass through fields that SkillOpt reads from CLI, not from config
+    for key in ("seed", "workers", "limit", "out_root",
+                "minibatch_size", "edit_budget"):
+        val = _cfg.get(key)
+        if val is not None:
+            sys.argv.extend([f"--{key}", str(val)])
+    # Pass through train.* fields
+    train = _cfg.get("train", {})
+    for key in ("batch_size", "num_epochs"):
+        val = train.get(key)
+        if val is not None:
+            sys.argv.extend([f"--{key}", str(val)])
     if extra_args:
         sys.argv.extend(extra_args)
 
@@ -101,6 +149,8 @@ def train_benchmark(name: str, extra_args: list[str] | None = None):
         if "scripts.train" in sys.modules:
             del sys.modules["scripts.train"]
         from scripts.train import main as train_main
+        # Re-register adapters after module reload (module init clears registry)
+        _register_bmad_adapters()
         train_main()
         return True
     except SystemExit as exc:

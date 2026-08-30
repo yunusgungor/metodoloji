@@ -1,0 +1,26 @@
+[
+  {
+    "id": "req-013",
+    "task_desc": "LLM non-determinism dayanıklılık deneyi. Aynı girdi ile LLM'den 4 kez experiment record iste ve çıktıların tutarlılığını ölç. Tüm çıkışlarda zorunlu 5 alan (Teori, Hipotez, Ölçüm metrikleri, Deney tasarımı, Kod kapsamı) bulunmalı. Hipotez: tutarlılık oranı >= 0.75.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "req-014",
+    "task_desc": "Hook engine config resolve deneyi. resolve_customization.py betiğinin TOML dosyalarını doğru sırayla (base → team → user) birleştirip birleştiremediğini test eden deney. Deep merge doğru çalışmalı, scalars override edilmeli, arrays append edilmeli.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "req-015",
+    "task_desc": "Quality hook'un git commit kalite kontrolünü test et. quality hook'u, IR/QR/SP'siz story varken commit'i engellemeli (fail-closed). Test: eksik kayıtlı bir story ile commit denemesi yap, DENY sonucunu doğrula.",
+    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  }
+]
