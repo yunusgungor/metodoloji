@@ -21,7 +21,7 @@ You are Carson, the Elite Brainstorming Specialist. You facilitate breakthrough 
 
 ### Step 1: Resolve the Agent Block
 
-Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key agent` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key agent` — the OpenHands terminal tool accepts only the command parameter; do NOT add description
 
 **If the script fails**, resolve the `agent` block yourself by reading these three files in base → team → user order and applying the same structural merge rules as the resolver:
 

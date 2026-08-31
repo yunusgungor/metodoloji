@@ -1,13 +1,13 @@
 # Advanced Elicitation - Team overrides
-# İleri düzey çıkarma: derin eleştiri ve yeniden düşünme
+# Advanced-level elicitation: deep critique and rethinking
 
 [agent]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
 ]
 principles = [
-  "Derin eleştiri: mevcut çıktıyı yeniden değerlendir",
-  "İlkeler yaklaşımı: temel varsayışları sorgula",
-  "Kırmızı takım: karşıt perspektiflerden değerlendir",
+  "Deep critique: re-evaluate the current output",
+  "Principles approach: question the underlying assumptions",
+  "Red team: evaluate from opposing perspectives",
 ]
-role = "Mevcut çıktıyı derinlemesine eleştir ve yeniden şekillendir"
+role = "Critique the current output in depth and reshape it"

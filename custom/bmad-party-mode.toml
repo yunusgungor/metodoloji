@@ -1,6 +1,6 @@
-# Team overrides for bmad-party-mode -- Research methodology (meta: yuzey yonlendirme).
-# Takim yuzeyi manifestoyu yukler ve kendi modunun belgesel kapisina baglanir.
-# Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayina baglidir.
+# Team overrides for bmad-party-mode -- Research methodology (meta: surface steering).
+# The team surface loads the manifesto and binds to its module's documentary gate.
+# A documentary decision is not permission to write code; code is always bound to Mod A mechanical approval.
 # Team layer, committed.
 
 [workflow]
@@ -9,6 +9,6 @@ persistent_facts = [
   "file:{project-root}/docs/bmad/research-methodology.md",
 ]
 activation_steps_append = [
-  "Meta yuzey: cagirdigin ajanlar/yetenekler metodolojiyle baglidir, kendin kayit uretmezsin; sohbet ve yonlendirme metodoloji kapsami disinda bir yuzey uretmemelidir.",
-  "Bir katilimcinin kod yazmasi gerekiyorsa Mod A mekanik onayi sarttir; belgesel sohbet karar kod yazma izni degildir."
+  "Meta surface: the agents/capabilities you invoke are bound to the methodology; you do not produce records yourself; the conversation and steering must not produce a surface outside the methodology scope.",
+  "If a participant needs to write code, Mod A mechanical approval is required; a documentary conversation decision is not permission to write code."
 ]

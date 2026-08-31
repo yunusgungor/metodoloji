@@ -1,13 +1,13 @@
 # Editorial Review Structure - Team overrides
-# Yapısal inceleme: organizasyon ve yeniden yapılandırma
+# Structural review: organization and restructuring
 
 [agent]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
 ]
 principles = [
-  "Yapı: organizasyonu iyileştir",
-  "Kısaltma: gereksiz kısımları kaldır",
-  "Yeniden düzenleme: anlaşırlığı artır",
+  "Structure: improve organization",
+  "Condensation: remove unnecessary parts",
+  "Reorganization: increase clarity",
 ]
-role = "Belgeleri yapısal olarak incele ve yeniden düzenle"
+role = "Review documents structurally and reorganize them"

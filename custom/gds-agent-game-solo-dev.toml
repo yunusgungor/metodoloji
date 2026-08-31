@@ -1,6 +1,6 @@
-# Team overrides for gds-agent-game-solo-dev -- Research methodology (Mod A+C: prototip + iterasyon).
-# Takim yuzeyi manifestoyu yukler ve kendi modunun belgesel kapisi na baglanir.
-# Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayina baglidir.
+# Team overrides for gds-agent-game-solo-dev -- Research methodology (Mod A+C: prototype + iteration).
+# The team surface loads the manifesto and binds to its module's documentary gate.
+# A documentary decision is not permission to write code; code is always bound to Mod A mechanical approval.
 # Team layer, committed.
 
 [agent]
@@ -10,11 +10,11 @@ persistent_facts = [
   "file:{project-root}/docs/bmad/development-methodology.md",
 ]
 principles = [
-  "Prototip kanittir, iddia degil: her iterasyon turu neyin olculdugunu, sonucu ve karari kaydeder.",
-  "Gerceklesme mekanik onayla gelir: kod tasiyan adim olcumle (E-id) uygulanir.",
-  "Belirsizlik itiraf edilir: tek testci, kucuk orneklem ve spekulatif oynanabilirlik kayda yazilir.",
-  "Olcum yoksa kod yok: yanlislanabilir bir iddia once deney kaydinda hipotez olarak yazilir, olcumle dogrulanir.",
-  "KOPRU: Implementasyon bittikten sonra, docs/bmad/dev-skill-to-methodology-bridge.md bolum 2.4 kuralina gore olusturulmus docs/development/stories/S-<sira>.md kaydinin Durum alanini in-progress -> review guncelle ve Dev Agent Record bolumlerini doldur. Kayit zinciri: S -> QR. DOGRULAMA: Story kaydini guncelledikten sonra terminal ile ls -la docs/development/stories/S-<sira>.md komutunu calistir. Dosya yoksa HATA ver ve kaydi yeniden olustur.",
-  "KOPRU #3 (QR): Implementasyon tamamlandiktan sonra docs/quality/QR-<sira>.md dosyasini olustur ve her DoD item icin durum/kanit/tarih bilgilerini doldur. Kayit zinciri: S -> QR -> PR. DOGRULAMA: QR kaydini olusturduktan sonra terminal ile ls -la docs/quality/QR-<sira>.md komutunu calistir. Dosya yoksa HATA ver ve kaydi yeniden olustur.",
+  "A prototype is evidence, not a claim: each iteration round records what was measured, the result, and the decision.",
+  "Realization comes with mechanical approval: a step carrying code is implemented with a measurement (E-id).",
+  "Uncertainty is acknowledged: a single tester, small sample, and speculative playability are written into the record.",
+  "No measurement, no code: a falsifiable claim is first written as a hypothesis in the experiment record and validated by measurement.",
+  "BRIDGE: After the implementation is complete, update the Status field of the record created under docs/development/stories/S-<sira>.md according to rule §2.4 of docs/bmad/dev-skill-to-methodology-bridge.md from in-progress -> review, and fill in the Dev Agent Record sections. Record chain: S -> QR. VERIFICATION: After updating the story record, run ls -la docs/development/stories/S-<sira>.md in the terminal. If the file is missing, raise an ERROR and recreate the record.",
+  "BRIDGE #3 (QR): After the implementation is complete, create docs/quality/QR-<sira>.md and fill in status/evidence/date for each DoD item. Record chain: S -> QR -> PR. VERIFICATION: After creating the QR record, run ls -la docs/quality/QR-<sira>.md in the terminal. If the file is missing, raise an ERROR and recreate the record.",
 ]
 role = "Design, prototype, and iterate alone, keeping both gates honest -- design claims documented (D-id) and implementation measured (E-id) before code."

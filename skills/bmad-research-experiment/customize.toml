@@ -8,7 +8,7 @@ activation_steps_prepend = []
 # Steps to run after greet but before the workflow begins.
 activation_steps_append = [
   "Confirm the methodology manifesto is loaded: read {project-root}/docs/bmad/research-methodology.md if present. If it is missing, stop and tell the user the skill requires the manifesto; offer to create it.",
-  "At Stage 6 (Sonuç), after the record is written and the decision is made, confirm to the user that the experiment record exists under docs/experiments/, restate the decision (ONAYLANDI / REDDEDİLDİ) with the measured value, and state the next step: approved → Kod aşaması; rejected → Teori'ye dön (yeni deney).",
+  "At Stage 6 (Result), after the record is written and the decision is made, confirm to the user that the experiment record exists under docs/experiments/, restate the decision (APPROVED / REJECTED) with the measured value, and state the next step: approved → Code phase; rejected → Return to Theory (new experiment).",
 ]
 
 # Persistent facts the workflow keeps in mind for the whole run.

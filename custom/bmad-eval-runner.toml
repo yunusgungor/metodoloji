@@ -1,5 +1,5 @@
 # Eval Runner - Team overrides
-# Değerlendirme çalıştırıcısı: test ve ölçüm (Mod A: kod denetimi)
+# Evaluation runner: test and measurement (Mod A: code audit)
 
 [workflow]
 persistent_facts = [
@@ -7,8 +7,8 @@ persistent_facts = [
   "file:{project-root}/docs/bmad/research-methodology.md",
 ]
 activation_steps_append = [
-  "Bu calismayi baslatmadan once metodoloji manifestosundaki (docs/bmad/research-methodology.md) ilgili modun kapi kurallarini dogrula: uretilcek ciktinin kanit turu ve kayit formati.",
-  "Değerlendirme senaryolarını oluştur",
-  "Testleri çalıştır",
-  "Sonuçları analiz et"
+  "Before starting this work, verify the gate rules of the relevant module in the methodology manifesto (docs/bmad/research-methodology.md): the evidence type and record format of the output to be produced.",
+  "Create the evaluation scenarios",
+  "Run the tests",
+  "Analyze the results"
 ]

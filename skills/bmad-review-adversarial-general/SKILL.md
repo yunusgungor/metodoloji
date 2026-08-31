@@ -11,12 +11,7 @@ Bu yuzey gelistirme kanadina da baglidir: `docs/bmad/development-methodology.md`
 Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayini ister
 (run_experiment.py --verify + guard-code.sh). Uydurma kanit/olcum sahtekarliktir.
 
-**KÖPRÜ:** Bu skill bagimsiz bir metodoloji kaydi uretmez; hasim denetim bulgularini
-`bmad-code-review`'in urettigi `docs/development/QR-<sira>.md` kaydinin `Code review`
-bolumune ekler (docs/bmad/dev-skill-to-methodology-bridge.md §1.1 ve §3.1 Faz 3). Eger
-bagli bir QR kaydi yoksa (bmad-code-review onceden calismadiysa), once onu calistirmayi
-soyle; bulgulari QR'a besle, ayri kayit acma. Bulgu varsa ilgili QR kaydini guncelle ve
-native review ciktisina `Metodoloji kaydi: docs/development/QR-<sira>.md` referansini ekle.
+**Bridge:** This skill does not produce an independent methodology record; it adds the adversarial review findings to the `Code review` section of the `docs/development/QR-<seq>.md` record produced by `bmad-code-review` (docs/bmad/dev-skill-to-methodology-bridge.md §1.1 and §3.1, Phase 3). If there is no linked QR record (bmad-code-review has not run before), say to run it first; feed the findings into the QR, do not open a separate record. If there are findings, update the relevant QR record and add the `Methodology record: docs/development/QR-<seq>.md` reference to the native review output.
 
 
 # Adversarial Review (General)

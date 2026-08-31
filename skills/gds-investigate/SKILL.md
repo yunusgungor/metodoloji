@@ -53,7 +53,7 @@ After every outcome, present what was learned and pause for the user before cont
 
 ### Step 1: Resolve the workflow block
 
-Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — the OpenHands terminal tool accepts only the command parameter; do NOT add description
 
 If the script fails, stop and surface the error.
 

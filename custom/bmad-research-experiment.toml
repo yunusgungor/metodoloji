@@ -1,5 +1,5 @@
 # Research Experiment - Team overrides
-# Araştırma deneyi: bilimsel deneyler
+# Research experiment: scientific experiments
 
 [workflow]
 persistent_facts = [
@@ -7,7 +7,7 @@ persistent_facts = [
   "file:{project-root}/docs/bmad/research-methodology.md",
 ]
 activation_steps_append = [
-  "Hipotezi tanımla",
-  "Deney tasarımını oluştur",
-  "Sonuçları analiz et"
+  "Define the hypothesis",
+  "Create the experiment design",
+  "Analyze the results"
 ]

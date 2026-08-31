@@ -1,12 +1,12 @@
 # Index Docs - Team overrides
-# Belge indeksleme
+# Document indexing
 
 [workflow]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
 ]
 activation_steps_append = [
-  "Belgeleri tara",
-  "İndeks oluştur",
-  "Bağlantıları kontrol et"
+  "Scan the documents",
+  "Create the index",
+  "Check the links"
 ]

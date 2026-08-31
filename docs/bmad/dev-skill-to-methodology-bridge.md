@@ -5,40 +5,40 @@
 
 ---
 
-## §1 Genel Bağlam
+## §1 General Context
 
-Bu belge, `bmad-create-story` ve `bmad-dev-story` skill'lerinin araştırma metodolojisiyle nasıl entegre olduğunu tanımlar. Metodoloji zinciri:
+This document defines how the `bmad-create-story` and `bmad-dev-story` skills integrate with the research methodology. Methodology chain:
 
 ```
 Epic/Story → Experiment Record (E) → Story Implementation (S) → Quality Record (QR)
 ```
 
-Her story, bir veya birden fazla onaylı deney kaydına bağlanmalıdır. Bağlantı kurulmayan story'ler "hypothesis" olarak işaretlenir — kod yazımı deney onayı gerektirir.
+Every story must be linked to one or more approved experiment records. Stories without a link are marked as "hypothesis" — code writing requires experiment approval.
 
 ---
 
-## §2 Acceptance Criteria Dinamik İşleme Kuralları
+## §2 Acceptance Criteria Dynamic Processing Rules
 
-### §2.1 AC ↔ Experiment Bağlantısı
+### §2.1 AC ↔ Experiment Link
 
-Her Acceptance Criterion'un bir deney kaydıyla ilişkilendirilmesi gerekir:
+Each Acceptance Criterion must be associated with an experiment record:
 
 ```yaml
-# Story YAML frontmatter'da
+# In Story YAML frontmatter
 experiment_refs:
   - id: E-001
-    scope: "AC #1 ve #2 — kullanıcı kimlik doğrulama akışı"
-    status: ONAYLANDI  # ONAYLANDI | BEKLİYOR | REDDEDİLDİ
+    scope: "AC #1 and #2 — user authentication flow"
+    status: APPROVED  # APPROVED | PENDING | REJECTED
   - id: E-002
-    scope: "AC #3 — şifre sıfırlama"
-    status: BEKLİYOR   # Bu AC henüz deney onayı almamış
+    scope: "AC #3 — password reset"
+    status: PENDING   # This AC has not yet received experiment approval
 ```
 
-**Kural:** `status: BEKLİYOR` veya `status: REDDEDİLDİ` olan AC'ler implemente edilemez. Story dosyasında bu AC'ler `[HYPOTHESIS]` olarak işaretlenir.
+**Rule:** ACs with `status: PENDING` or `status: REJECTED` cannot be implemented. In the story file, these ACs are marked as `[HYPOTHESIS]`.
 
-### §2.2 AC Metadata Slotları
+### §2.2 AC Metadata Slots
 
-Story template'inde her AC için aşağıdaki metadata alanları zorunludur:
+In the story template, the following metadata fields are required for each AC:
 
 ```markdown
 ## Acceptance Criteria
@@ -50,308 +50,308 @@ Story template'inde her AC için aşağıdaki metadata alanları zorunludur:
    - Verify: curl | puppeteer | lighthouse | test | manual
 
 2. [AC-002] **Given** ... **When** ... **Then** ... [HYPOTHESIS]
-   - Experiment: — (deney onayı bekliyor)
+   - Experiment: — (awaiting experiment approval)
    - Type: agent-verifiable
    - Measured: false
    - Verify: test
 ```
 
-### §2.2a Technical Tasks ↔ AC Eşleştirme
+### §2.2a Technical Tasks ↔ AC Mapping
 
-Her Technical Task'ın bir AC'ye bağlı olması zorunludur:
+Every Technical Task must be bound to an AC:
 
 ```markdown
 ## Technical Tasks
 
-- [ ] Task 1: API endpoint oluştur (AC: AC-001)
-  - [ ] Subtask 1.1: Route tanımla
-  - [ ] Subtask 1.2: Handler yaz
-- [ ] Task 2: Validasyon ekle (AC: AC-001, AC-002)
-  - [ ] Subtask 2.1: Input doğrulama
+- [ ] Task 1: Create API endpoint (AC: AC-001)
+  - [ ] Subtask 1.1: Define route
+  - [ ] Subtask 1.2: Write handler
+- [ ] Task 2: Add validation (AC: AC-001, AC-002)
+  - [ ] Subtask 2.1: Input validation
 ```
 
-**Kural:** AC referansı olmayan task = validation uyarısı. Guard hook'u bu eşleştirmeyi doğrular.
+**Rule:** A task without an AC reference = validation warning. The guard hook validates this mapping.
 
-### §2.2b Definition of Done ↔ AC Eşleştirme
+### §2.2b Definition of Done ↔ AC Mapping
 
-Her DoD item'ı bir AC'ye bağlı olmalı ve doğrulama yöntemi tanımlı olmalıdır:
+Each DoD item must be bound to an AC and have a defined verification method:
 
 ```markdown
 ## Definition of Done
 
-- [ ] DoD-001: Tüm AC'ler karşılandı (AC: AC-001, AC-002)
+- [ ] DoD-001: All ACs satisfied (AC: AC-001, AC-002)
   - Verify: curl + puppeteer
   - Evidence: test output
-- [ ] DoD-002: Testler geçti (AC: AC-001)
+- [ ] DoD-002: Tests passed (AC: AC-001)
   - Verify: pytest
   - Evidence: test output
 ```
 
-### §2.3 Metodoloji Kaydı Oluşturma (KÖPRÜ #1)
+### §2.3 Methodology Record Creation (BRIDGE #1)
 
-`bmad-create-story` tamamlandığında:
+When `bmad-create-story` completes:
 
-1. Native story dosyası (`{implementation_artifacts}/<story-key>.md`) üretilir
-2. `docs/development/stories/S-<sira>.md` metodoloji kaydı oluşturulur
-3. Metodoloji kaydındaki alanlar:
+1. The native story file (`{implementation_artifacts}/<story-key>.md`) is generated
+2. The `docs/development/stories/S-<sequence>.md` methodology record is created
+3. Fields in the methodology record:
 
 ```markdown
-# Metodoloji Kaydı: S-<sira>
+# Methodology Record: S-<sequence>
 
-| Alan | Değer |
+| Field | Value |
 |------|-------|
-| Tarih | YYYY-MM-DD |
-| Durum | backlog \| sprint \| in-progress \| review \| done \| blocked |
-| Story Başlığı | <story title> |
+| Date | YYYY-MM-DD |
+| Status | backlog \| sprint \| in-progress \| review \| done \| blocked |
+| Story Title | <story title> |
 | Epic | <epic num> |
-| Acceptance Criteria | <AC listesi —ettooling formatında> |
-| Experiment Refs | <E-XXX listesi> |
-| Dosya Listesi | <boş — implementasyon sonrası doldurulur> |
-| Sprint Ref | <sprint-status.yaml referansı> |
-| Native Story | <story dosya yolu> |
+| Acceptance Criteria | <AC list — in et-tooling format> |
+| Experiment Refs | <E-XXX list> |
+| File List | <empty — filled after implementation> |
+| Sprint Ref | <sprint-status.yaml reference> |
+| Native Story | <story file path> |
 ```
 
-4. Native story dosyasına referans eklenir:
+4. A reference is added to the native story file:
    ```
-   <!-- Metodoloji kaydı: docs/development/stories/S-<sira>.md -->
+   <!-- Methodology record: docs/development/stories/S-<sequence>.md -->
    ```
 
-### §2.4 Implementasyon Sonrası Güncelleme (KÖPRÜ #2)
+### §2.4 Post-Implementation Update (BRIDGE #2)
 
-`bmad-dev-story` tamamlandığında:
+When `bmad-dev-story` completes:
 
-1. Metodoloji kaydının Durum alanı `in-progress` → `review` olarak güncellenir
-2. Dev Agent Record bölümleri doldurulur:
-   - **Debug Log**: Uygulanan düzeltmeler ve karşılaşılıan sorunlar
-   - **Completion Notes**: Kısa özet
-   - **File List**: Değiştirilen dosyalar (proje root'a görerel)
-   - **Change Log**: Değişiklik özeti
-3. Experiment Refs alanına deney sonuçları eklenir (varsa)
-4. Native story dosyasındaki ilgili section da güncellenir
+1. The methodology record's Status field is updated from `in-progress` → `review`
+2. The Dev Agent Record sections are filled in:
+   - **Debug Log**: Applied fixes and issues encountered
+   - **Completion Notes**: Brief summary
+   - **File List**: Changed files (relative to project root)
+   - **Change Log**: Change summary
+3. Experiment results are added to the Experiment Refs field (if any)
+4. The relevant section in the native story file is also updated
 
-### §2.5 Quality Record (QR) Oluşturma (KÖPRÜ #3)
+### §2.5 Quality Record (QR) Creation (BRIDGE #3)
 
-`bmad-dev-story` Step 9'da tüm DoD maddeleri doğrulandığında QR kaydı oluşturulur:
+When all DoD items are verified in `bmad-dev-story` Step 9, the QR record is created:
 
-1. `docs/quality/QR-<sira>.md` dosyası oluşturulur
-2. QR içeriği:
+1. The `docs/quality/QR-<sequence>.md` file is created
+2. QR content:
 
 ```markdown
-# Quality Record: QR-<sira>
+# Quality Record: QR-<sequence>
 
-| Alan | Değer |
+| Field | Value |
 |------|-------|
 | Story | <story_key> |
-| Story File | <story dosya yolu> |
-| Tarih | YYYY-MM-DD |
+| Story File | <story file path> |
+| Date | YYYY-MM-DD |
 | QR Status | pass | fail | partial |
 
-## DoD Doğrulama Sonuçları
+## DoD Verification Results
 
-| DoD Item | Durum | Kanit | Tarih |
+| DoD Item | Status | Evidence | Date |
 |----------|-------|-------|-------|
 | DoD-001 | ✅ passed | curl output | 2026-08-20 |
 | DoD-002 | ✅ passed | pytest output | 2026-08-20 |
 | DoD-003 | ❌ failed | test output | 2026-08-20 |
 
-## AC Doğrulama Sonuçları
+## AC Verification Results
 
-| AC | Durum | Method | Evidence |
+| AC | Status | Method | Evidence |
 |----|-------|--------|----------|
 | AC-001 | ✅ verified | curl | response body |
 | AC-002 | ⏳ pending | — | — |
 
-## Test Özeti
+## Test Summary
 
 - Unit tests: X passed, Y failed
 - Integration tests: X passed, Y failed
 - Regression: pass/fail
 
-## Dosya Listesi
+## File List
 
 - file1.ts (new)
 - file2.ts (modified)
 
-## Değişiklik Özeti
+## Change Summary
 
 <change log summary>
 ```
 
-3. Story dosyasındaki Quality Record section güncellenir:
-   - Her DoD item'ı ✅ veya ❌ olarak işaretlenir
-   - QR Record Path alanı doldurulur
-4. Kayıt zinciri tamamlanır: S → QR → PR
+3. The Quality Record section in the story file is updated:
+   - Each DoD item is marked as ✅ or ❌
+   - The QR Record Path field is filled in
+4. The record chain is completed: S → QR → PR
 
 ---
 
-## §3 Guard Hook Entegrasyonu
+## §3 Guard Hook Integration
 
-### §3.1 Story-Experiment Eşleştirme Kontrolü
+### §3.1 Story-Experiment Mapping Check
 
-Guard hook'u kod yazma izni verirken sadece `docs/experiments/` kayıtlarına bakmaz — aynı zamanda story dosyasındaki AC'lerin deney bağlantısını doğrular:
+When granting code writing permission, the guard hook does not only look at `docs/experiments/` records — it also verifies the experiment link of the ACs in the story file:
 
-1. **Hedef dosya bir story dosyasıysa** (`{implementation_artifacts}/*-*.md`):
-   - YAML frontmatter'daki `experiment_refs` alanını okur
-   - Her referansın `docs/experiments/` altında mevcut ve `ONAYLANDI` olduğunu doğrular
-   - Eksik veya onaysız referans varsa DENY
+1. **If the target file is a story file** (`{implementation_artifacts}/*-*.md`):
+   - Reads the `experiment_refs` field in the YAML frontmatter
+   - Verifies that each reference exists under `docs/experiments/` and is `APPROVED`
+   - If any reference is missing or unapproved, DENY
 
-2. **Hedef dosya bir kod dosyasıysa**:
-   - Mevcut davranış korunur: `docs/experiments/` kaydı aranır
-   - Ek olarak: Değiştirilen dosyanın ait olduğu story'nin AC'lerinin deney bağlantısı kontrol edilir (opsiyonel, hard gate değil)
+2. **If the target file is a code file**:
+   - Existing behavior is preserved: a `docs/experiments/` record is searched
+   - Additionally: the experiment link of the ACs of the story that the modified file belongs to is checked (optional, not a hard gate)
 
-### §3.2 AC Metadata Doğrulama
+### §3.2 AC Metadata Validation
 
-Guard hook'u story dosyası yazılırken AC metadata'sını doğrular:
+When the story file is written, the guard hook validates the AC metadata:
 
-- Her AC'de `[AC-XXX]` identifier var mı?
-- Her AC'de `Experiment:` alanı dolu mu?
-- Her AC'de `Type:` alanı tanımlı mı?
-- Her AC'de `Measured:` alanı var mı?
-- Her AC'de `Verify:` alanı var mı?
-- Experiment=— olan AC'lerde `[HYPOTHESIS]` etiketi var mı?
+- Does every AC have an `[AC-XXX]` identifier?
+- Is the `Experiment:` field filled in for every AC?
+- Is the `Type:` field defined for every AC?
+- Does every AC have a `Measured:` field?
+- Does every AC have a `Verify:` field?
+- Do ACs with Experiment=— have the `[HYPOTHESIS]` tag?
 
-Eksik metadata = DENY.
+Missing metadata = DENY.
 
-### §3.3 Task↔AC Eşleştirme Kontrolü
+### §3.3 Task↔AC Mapping Check
 
-Guard hook'u Technical Tasks bölümünü doğrular:
+The guard hook validates the Technical Tasks section:
 
-- Her task'ta `AC: AC-XXX` referansı var mı?
-- Referans verilen AC story'de tanımlı mı?
+- Does every task have an `AC: AC-XXX` reference?
+- Is the referenced AC defined in the story?
 
-Eksik referans = DENY.
+Missing reference = DENY.
 
-### §3.4 DoD Yapısal Kontrol
+### §3.4 DoD Structural Check
 
-Guard hook'u Definition of Done bölümünü doğrular:
+The guard hook validates the Definition of Done section:
 
-- Her DoD item'ında `[DoD-XXX]` identifier var mı?
-- Her DoD item'ında `Verify:` alanı var mı?
+- Does every DoD item have a `[DoD-XXX]` identifier?
+- Does every DoD item have a `Verify:` field?
 
-Eksik identifier = DENY.
+Missing identifier = DENY.
 
-### §3.5 Hypothesis Koruması
+### §3.5 Hypothesis Protection
 
-`[HYPOTHESIS]` olarak işaretli AC'ler:
-- Implemente edilemez (guard hook'u DENY)
-- Story durumu `blocked` olarak güncellenir
-- Kullanıcıya "Bu AC için deney onayı gerekli" mesajı gösterilir
+ACs marked as `[HYPOTHESIS]`:
+- Cannot be implemented (the guard hook returns DENY)
+- The story status is updated to `blocked`
+- The user is shown the message "Experiment approval is required for this AC"
 
-### §3.6 Methodology Chain Validation (YENİ)
+### §3.6 Methodology Chain Validation (NEW)
 
-Guard hook'u story dosyası yazılırken methodology zincirini doğrular:
+When the story file is written, the guard hook validates the methodology chain:
 
-- **Status = done**: QR kaydı (docs/quality/QR-XXX.md) mevcut olmalı
-- **Status = review/done**: Metodoloji kaydı (docs/development/stories/S-XXX.md) mevcut olmalı
-- Eksik kayıt = DENY + "Run: python3 scripts/create-qr-record.py" veya "python3 scripts/create-methodology-record.py" mesajı
+- **Status = done**: The QR record (docs/quality/QR-XXX.md) must exist
+- **Status = review/done**: The methodology record (docs/development/stories/S-XXX.md) must exist
+- Missing record = DENY + "Run: python3 scripts/create-qr-record.py" or "python3 scripts/create-methodology-record.py" message
 
-### §3.7 Programatik Zorlama Özeti
+### §3.7 Programmatic Enforcement Summary
 
-| Kontrol | Zorlama Türü | Hata Durumu |
+| Check | Enforcement Type | Error State |
 |---------|-------------|-------------|
-| Experiment onayı | Hard gate (DENY) | Kod yazılamaz |
-| Experiment refs | Hard gate (DENY) | Story yazılamaz |
-| AC metadata | Hard gate (DENY) | Story yazılamaz |
-| Task↔AC | Hard gate (DENY) | Story yazılamaz |
-| DoD identifier | Hard gate (DENY) | Story yazılamaz |
-| Methodology chain | Hard gate (DENY) | Story yazılamaz |
-| Methodology compliance | Soft (warning) | Audit log'a yazılır |
+| Experiment approval | Hard gate (DENY) | Code cannot be written |
+| Experiment refs | Hard gate (DENY) | Story cannot be written |
+| AC metadata | Hard gate (DENY) | Story cannot be written |
+| Task↔AC | Hard gate (DENY) | Story cannot be written |
+| DoD identifier | Hard gate (DENY) | Story cannot be written |
+| Methodology chain | Hard gate (DENY) | Story cannot be written |
+| Methodology compliance | Soft (warning) | Written to the audit log |
 
-### §3.8 Git Commit Disiplini
+### §3.8 Git Commit Discipline
 
-KÖPRÜ #1, #2 veya #3 sonrasında üretilen veya güncellenen dosyalar **commit edilmelidir**:
+Files generated or updated after BRIDGE #1, #2, or #3 **must be committed**:
 
-| An | Commit Konvansiyonu |
+| When | Commit Convention |
 |----|---------------------|
-| KÖPRÜ #1 (S kaydı) | `[Story X.Y] metodoloji kaydı oluşturuldu` |
-| KÖPRÜ #2 (S güncelleme) | `[Story X.Y] dev agent record güncellendi` |
-| KÖPRÜ #3 (QR oluşturma) | `[Story X.Y] kalite kaydı oluşturuldu` |
+| BRIDGE #1 (S record) | `[Story X.Y] methodology record created` |
+| BRIDGE #2 (S update) | `[Story X.Y] dev agent record updated` |
+| BRIDGE #3 (QR creation) | `[Story X.Y] quality record created` |
 
 ---
 
-## §4 Dosya Yapısı
+## §4 File Structure
 
 ```
 docs/
 ├── bmad/
-│   ├── dev-skill-to-methodology-bridge.md  ← Bu belge (v4.0)
-│   ├── research-methodology.md              ← Metodoloji manifestosu
-│   └── development-methodology.md           ← Geliştirme metodolojisi
+│   ├── dev-skill-to-methodology-bridge.md  ← This document (v4.0)
+│   ├── research-methodology.md              ← Methodology manifesto
+│   └── development-methodology.md           ← Development methodology
 ├── development/
-│   ├── _template_S.md                       ← Metodoloji kayıt şablonu
+│   ├── _template_S.md                       ← Methodology record template
 │   └── stories/
-│       ├── S-001.md                         ← Story metodoloji kayıtları
+│       ├── S-001.md                         ← Story methodology records
 │       └── S-002.md
 ├── experiments/
-│   ├── E-001.md                             ← Deney kayıtları
+│   ├── E-001.md                             ← Experiment records
 │   └── E-002.md
 └── quality/
-    └── QR-001.md                            ← Quality Record kayıtları
+    └── QR-001.md                            ← Quality Record entries
 
 scripts/
 ├── check-methodology.sh                     ← Methodology chain validation
-├── create-methodology-record.py             ← KÖPRÜ #1: S-XXX.md oluştur
-├── create-qr-record.py                      ← KÖPRÜ #3: QR-XXX.md oluştur
-└── run_experiment.py                        ← Deney onay sistemi
+├── create-methodology-record.py             ← BRIDGE #1: create S-XXX.md
+├── create-qr-record.py                      ← BRIDGE #3: create QR-XXX.md
+└── run_experiment.py                        ← Experiment approval system
 ```
 
 ---
 
-## §5 Kontrol Listesi
+## §5 Checklist
 
-Story lifecycle'ında her adımda kontrol edilecekler:
+What to check at each step of the story lifecycle:
 
-- [ ] **Create Story**: AC'lerin her birinde `Experiment` alanı dolu mu?
-- [ ] **Create Story**: AC'lerde `Type`, `Measured`, `Verify` alanları var mı?
-- [ ] **Create Story**: `experiment_refs` frontmatter'da tanımlı mı?
-- [ ] **Create Story**: Her task'ta `AC: AC-XXX` referansı var mı?
-- [ ] **Create Story**: Her DoD item'ında `[DoD-XXX]` ve `Verify:` var mı?
-- [ ] **Create Story**: Metodoloji kaydı (S-XXX) oluşturuldu mu?
-- [ ] **Dev Story**: Implementasyon öncesi deney onayı doğrulandı mı?
-- [ ] **Dev Story**: Hypothesis olarak işaretli AC'ler atlandı mı?
-- [ ] **Dev Story**: Her AC'nin `Verify` yöntemi çalıştırıldı mı?
-- [ ] **Dev Story**: Her DoD item'ı için kanıt toplandı mı?
-- [ ] **Dev Story**: QR kaydı (QR-XXX) oluşturuldu mu?
-- [ ] **Dev Story**: Tamamlanma sonrası metodoloji kaydı güncellendi mi?
-- [ ] **Code Review**: AC'lerin deney sonuçlarıyla eşleşmesi doğrulandı mı?
-- [ ] **Code Review**: AC metadata'sı (Experiment, Type, Measured) doğrulandı mı?
-- [ ] **Code Review**: Task↔AC eşleştirmesi doğrulandı mı?
-- [ ] **Code Review**: DoD maddelerinin kanıtları tam mı?
-- [ ] **Dev Story**: KÖPRÜ #1–3 dosyaları ayrı commit'lerle kaydedildi mi?
+- [ ] **Create Story**: Is the `Experiment` field filled in for each AC?
+- [ ] **Create Story**: Do the ACs have `Type`, `Measured`, `Verify` fields?
+- [ ] **Create Story**: Is `experiment_refs` defined in the frontmatter?
+- [ ] **Create Story**: Does every task have an `AC: AC-XXX` reference?
+- [ ] **Create Story**: Does every DoD item have `[DoD-XXX]` and `Verify:`?
+- [ ] **Create Story**: Was the methodology record (S-XXX) created?
+- [ ] **Dev Story**: Was experiment approval verified before implementation?
+- [ ] **Dev Story**: Were ACs marked as hypothesis skipped?
+- [ ] **Dev Story**: Was each AC's `Verify` method executed?
+- [ ] **Dev Story**: Was evidence collected for each DoD item?
+- [ ] **Dev Story**: Was the QR record (QR-XXX) created?
+- [ ] **Dev Story**: Was the methodology record updated after completion?
+- [ ] **Code Review**: Was the match between ACs and experiment results verified?
+- [ ] **Code Review**: Was the AC metadata (Experiment, Type, Measured) verified?
+- [ ] **Code Review**: Was the Task↔AC mapping verified?
+- [ ] **Code Review**: Are the DoD items' evidence complete?
+- [ ] **Dev Story**: Were the BRIDGE #1–3 files committed with separate commits?
 
 ---
 
-## §6 Uyumluluk
+## §6 Compliance
 
-Bu belge aşağıdaki skill'lerle uyumludur:
+This document is compliant with the following skills:
 
-| Skill | Uyumluluk | Not |
+| Skill | Compatibility | Note |
 |-------|-----------|-----|
-| bmad-create-story | ✅ KÖPRÜ #1 | Story oluşturma sırasında metodoloji kaydı |
-| bmad-dev-story | ✅ KÖPRÜ #2 + #3 | Implementasyon sonrası güncelleme + QR oluşturma |
-| bmad-create-epics-and-stories | ⚠️ Kısmi | AC formatı uyumlu ama experiment bağlama yok |
-| bmad-code-review | ✅ | Acceptance Auditor AC metadata + Task↔AC + DoD kontrolü |
-| guard hook | ✅ | Experiment + AC metadata + Task↔AC + DoD doğrulama |
-| stop hook | ✅ | Story durumu kontrolü (in-progress = block) |
-| audit hook | ✅ | Methodology compliance uyarıları |
-| bmad-edit-prd | ❌ KALDIRILDI | DEPRECATED — bmad-prd'ye birleştirildi |
-| bmad-testarch-atdd | ❌ Bağlantısız | Ayrı test workflow'u, AC'lerle bağlantılı değil |
+| bmad-create-story | ✅ BRIDGE #1 | Methodology record during story creation |
+| bmad-dev-story | ✅ BRIDGE #2 + #3 | Post-implementation update + QR creation |
+| bmad-create-epics-and-stories | ⚠️ Partial | AC format compatible but no experiment binding |
+| bmad-code-review | ✅ | Acceptance Auditor AC metadata + Task↔AC + DoD check |
+| guard hook | ✅ | Experiment + AC metadata + Task↔AC + DoD validation |
+| stop hook | ✅ | Story status check (in-progress = block) |
+| audit hook | ✅ | Methodology compliance warnings |
+| bmad-edit-prd | ❌ REMOVED | DEPRECATED — merged into bmad-prd |
+| bmad-testarch-atdd | ❌ Unlinked | Separate test workflow, not linked to ACs |
 
 ---
 
-## §7 Oturum Kapanışı (Session Closure)
+## §7 Session Closure
 
-Bir oturum aşağıdaki adımlar tamamlandığında kapatılmalıdır:
+A session should be closed when the following steps are completed:
 
-### §7.1 Kapanış Kontrol Listesi
-- [ ] Tüm AC'lerin Verify yöntemi çalıştırıldı mı?
-- [ ] Her DoD item'ı için kanıt toplandı mı?
-- [ ] QR kaydı (QR-XXX) oluşturuldu mu?
-- [ ] Metodoloji kaydı (S-XXX) güncellendi mi?
-- [ ] KÖPRÜ #1–3 dosyaları commit edildi mi?
-- [ ] Story durumu `done` olarak işaretlendi mi?
+### §7.1 Closure Checklist
+- [ ] Was the Verify method executed for all ACs?
+- [ ] Was evidence collected for each DoD item?
+- [ ] Was the QR record (QR-XXX) created?
+- [ ] Was the methodology record (S-XXX) updated?
+- [ ] Were the BRIDGE #1–3 files committed?
+- [ ] Was the story status marked as `done`?
 
-### §7.2 Kapanış Sonrası
-- Story `done` durumuna geçer
-- Bir sonraki story'ye geçiş için hazır hale gelir
-- Sprint durumu gerekirse güncellenir
+### §7.2 After Closure
+- The story transitions to `done` status
+- It becomes ready to move on to the next story
+- The sprint status is updated if necessary

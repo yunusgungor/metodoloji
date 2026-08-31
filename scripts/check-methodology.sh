@@ -1,7 +1,7 @@
 #!/bin/bash
 # check-methodology.sh — Methodology chain validation script
-# Config.py'da INFRA_FILES olarak referans verilmişti ama yoktu.
-# Tüm methodology zincirini doğrular: E → S → QR → PR
+# Was referenced as INFRA_FILES in Config.py but was missing.
+# Validates the whole methodology chain: E → S → QR → PR
 #
 # Usage: sh scripts/check-methodology.sh [--fix] [--verbose]
 #
@@ -131,12 +131,12 @@ for exp_file in "$PROJECT_ROOT"/docs/experiments/E-*.md; do
     EXP_COUNT=$((EXP_COUNT + 1))
     basename_exp=$(basename "$exp_file")
 
-    if grep -q "status: ONAYLANDI\|Status: ONAYLANDI" "$exp_file" 2>/dev/null; then
+    if grep -q "status: APPROVED\|Status: APPROVED\|status: ONAYLANDI\|Status: ONAYLANDI" "$exp_file" 2>/dev/null; then
         EXP_APPROVED=$((EXP_APPROVED + 1))
-        log_ok "$basename_exp is ONAYLANDI"
-    elif grep -q "status: BEKLİYOR\|Status: BEKLİYOR" "$exp_file" 2>/dev/null; then
+        log_ok "$basename_exp is APPROVED"
+    elif grep -q "status: PENDING\|Status: PENDING\|status: BEKLİYOR\|Status: BEKLİYOR" "$exp_file" 2>/dev/null; then
         EXP_PENDING=$((EXP_PENDING + 1))
-        log_warn "$basename_exp is BEKLİYOR"
+        log_warn "$basename_exp is PENDING"
     else
         log_warn "$basename_exp status unknown"
     fi
@@ -146,8 +146,8 @@ if [ "$EXP_COUNT" -eq 0 ]; then
     log_warn "No experiment records found in docs/experiments/"
 else
     echo "  Total experiments: $EXP_COUNT"
-    echo "  Approved (ONAYLANDI): $EXP_APPROVED"
-    echo "  Pending (BEKLİYOR): $EXP_PENDING"
+    echo "  Approved: $EXP_APPROVED"
+    echo "  Pending: $EXP_PENDING"
 fi
 
 # ─── CHECK 5: QR records completeness ───

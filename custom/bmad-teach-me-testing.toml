@@ -1,6 +1,6 @@
-# Team overrides for bmad-teach-me-testing -- Research methodology (Mod A: test becerisi egitimi).
-# Takim yuzeyi manifestoyu yukler ve kendi modunun belgesel kapisina baglanir.
-# Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayina baglidir.
+# Team overrides for bmad-teach-me-testing -- Research methodology (Mod A: test skill training).
+# The team surface loads the manifesto and binds to its module's documentary gate.
+# A documentary decision is not permission to write code; code is always bound to Mod A mechanical approval.
 # Team layer, committed.
 
 [workflow]
@@ -9,6 +9,6 @@ persistent_facts = [
   "file:{project-root}/docs/bmad/research-methodology.md",
 ]
 activation_steps_append = [
-  "Bu calismayi baslatmadan once metodoloji manifestosundaki (docs/bmad/research-methodology.md) ilgili modun kapi kurallarini dogrula: uretilcek ciktinin kanit turu ve kayit formati.",
-  "Calismayi bitirmeden once kaydin eksiksiz oldugunu dogrula: Turkce alan etiketleri, karar gerekcesi, belirsizlik itirafi. Belgesel karar kod yazma izni degildir."
+  "Before starting this work, verify the gate rules of the relevant module in the methodology manifesto (docs/bmad/research-methodology.md): the evidence type and record format of the output to be produced.",
+  "Before finishing the work, verify that the record is complete: English field labels, decision rationale, uncertainty acknowledgment. A documentary decision is not permission to write code."
 ]

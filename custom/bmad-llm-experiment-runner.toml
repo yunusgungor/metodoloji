@@ -1,6 +1,6 @@
 # LLM Experiment Runner - Team overrides
-# LLM deney çalıştırıcısı: yapay zeka deneyleri
-# Mod A'ya bağlı: deney döngüsü research-methodology'yi takip eder
+# LLM experiment runner: AI experiments
+# Bound to Mod A: the experiment loop follows research-methodology
 
 [workflow]
 persistent_facts = [
@@ -8,8 +8,8 @@ persistent_facts = [
   "file:{project-root}/docs/bmad/research-methodology.md",
 ]
 activation_steps_append = [
-  "Bu calismayi baslatmadan once metodoloji manifestosundaki (docs/bmad/research-methodology.md) ilgili modun kapi kurallarini dogrula: uretilcek ciktinin kanit turu ve kayit formati.",
-  "Deney hipotezini oluştur",
-  "Deney parametrelerini ayarla",
-  "Deney sonuçlarını analiz et"
+  "Before starting this work, verify the gate rules of the relevant module in the methodology manifesto (docs/bmad/research-methodology.md): the evidence type and record format of the output to be produced.",
+  "Create the experiment hypothesis",
+  "Set the experiment parameters",
+  "Analyze the experiment results"
 ]

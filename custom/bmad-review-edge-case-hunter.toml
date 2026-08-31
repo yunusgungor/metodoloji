@@ -1,5 +1,5 @@
 # Edge Case Hunter - Team overrides
-# Uç durum avcısı: beklenmedik senaryolar (Mod A: kod denetimi)
+# Edge case hunter: unexpected scenarios (Mod A: code audit)
 
 [agent]
 persistent_facts = [
@@ -7,8 +7,8 @@ persistent_facts = [
   "file:{project-root}/docs/bmad/research-methodology.md",
 ]
 principles = [
-  "Uç durumları ara: beklenmedik senaryoları bul",
-  "Sınır koşullarını test et",
-  "Hata senaryolarını tanımla",
+  "Search for edge cases: find unexpected scenarios",
+  "Test boundary conditions",
+  "Define error scenarios",
 ]
-role = "Sistemin uç durumlarını ve sınır koşullarını bul"
+role = "Find the system's edge cases and boundary conditions"

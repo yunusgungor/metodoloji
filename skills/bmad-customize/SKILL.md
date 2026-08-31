@@ -94,7 +94,7 @@ Default by character (policy → team, personal → user), confirm before writin
 3. Write. Create `{metodoloji-root}/custom/` if needed.
 4. Verify:
    ```
-   python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill <install-path> --key <agent-or-workflow>` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME``
+   python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill <install-path> --key <agent-or-workflow>` — the OpenHands terminal tool accepts only the command parameter; do NOT add description``
    Show the merged output, point out the changed fields.
 
    **Resolver missing or fails:** read whichever layers exist — `<install-path>/customize.toml` (base), `{metodoloji-root}/custom/{skill-name}.toml` (team), `{metodoloji-root}/custom/{skill-name}.user.toml` (user) — apply base → team → user with the same merge rules (scalars override, tables deep-merge, `code`/`id`-keyed arrays merge by key, all other arrays append), describe how the changed fields resolve.

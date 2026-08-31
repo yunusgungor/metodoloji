@@ -1,4 +1,4 @@
-# Team overrides for bmad-dev-auto — Research methodology (Mod A → Kod: otonom gerçekleme).
+# Team overrides for bmad-dev-auto — Research methodology (Mod A → Code: autonomous realization).
 # This workflow writes code directly (autonomous dev). It must load the manifesto and require a
 # verified experiment approval before implementing, exactly like bmad-agent-dev.
 # Without this, invoking /bmad-dev-auto directly would bypass the methodology gate.
@@ -14,6 +14,6 @@ activation_steps_prepend = [
 ]
 activation_steps_append = [
   "Before implementing any feature, verify its experiment approval: run `python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py --verify --record {project-root}/docs/experiments/<deney-id>.md` and require the VERIFIED output. FORGED or REDDEDİLDİ means no code — stop and request a valid approved experiment record.",
-  "TASK↔AC DİNAMİK DOĞRULAMA: Her Technical Task'ta (AC: AC-XXX) referansı olup olmadığını kontrol et. Eksik referans varsa implementasyon öncesi kullanıcıya bildir ve düzeltilmesini sağla.",
-  "KÖPRÜ: Otonom implementasyon bittikten sonra, docs/bmad/dev-skill-to-methodology-bridge.md §2.3 kuralina gore olusturulmus docs/development/stories/S-<sira>.md kaydinin Durum alanini 'in-progress' → 'review' guncelle ve Dev Agent Record (Debug Log, Completion Notes, File List, Change Log) bolumlerini doldur. Otonom mod kayit zincirini (S → QR) atlamaz; siradaki bmad-code-review adimi bu kayda baglidir. Native story dosyasini degistirirsen metodoloji kaydini da senkronize et. DOGRULAMA: Story kaydini guncelledikten sonra terminal ile 'ls -la docs/development/stories/S-<sira>.md' komutunu calistir. Dosya yoksa HATA ver ve kaydi yeniden olustur."
+  "TASK↔AC DYNAMIC VALIDATION: Check whether each Technical Task has a reference (AC: AC-XXX). If a reference is missing, inform the user before implementation and have it corrected.",
+  "BRIDGE: After the autonomous implementation is complete, update the Status field of the record created under docs/development/stories/S-<sira>.md according to rule §2.3 of docs/bmad/dev-skill-to-methodology-bridge.md from 'in-progress' → 'review', and fill in the Dev Agent Record (Debug Log, Completion Notes, File List, Change Log) sections. Autonomous mode does not skip the record chain (S → QR); the next bmad-code-review step depends on this record. If you change the native story file, sync the methodology record too. VERIFICATION: After updating the story record, run 'ls -la docs/development/stories/S-<sira>.md' in the terminal. If the file is missing, raise an ERROR and recreate the record."
 ]

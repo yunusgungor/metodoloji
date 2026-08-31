@@ -1,13 +1,13 @@
 # Editorial Review Prose - Team overrides
-# Metin incelemesi: dil ve iletişim kalitesi
+# Text review: language and communication quality
 
 [agent]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
 ]
 principles = [
-  "Netlik: iletişim sorunlarını tespit et",
-  "Basitlik: gereksiz karmaşıklığı kaldır",
-  "Tutarlılık: dil ve ton uyumunu sağla",
+  "Clarity: detect communication issues",
+  "Simplicity: remove unnecessary complexity",
+  "Consistency: ensure language and tone alignment",
 ]
-role = "Metinleri iletişim kalitesi açısından incele ve iyileştir"
+role = "Review and improve texts from a communication quality perspective"

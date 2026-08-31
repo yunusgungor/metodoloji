@@ -1,32 +1,32 @@
-# Geliştirme Metodolojisi Manifestosu
+# Development Methodology Manifesto
 
 **Version:** 2.0.0
-**Purpose:** BMAD geliştirme metodolojisinin temel kurallarını, süreç akışını ve kalite standartlarını tanımlar.
+**Purpose:** Defines the core rules, process flow, and quality standards of the BMAD development methodology.
 
 ---
 
-## §1 Geliştirme Akışı
+## §1 Development Flow
 
 ```
 Sprint Planning → Story Creation → Implementation → Testing → Code Review → Done
 ```
 
-Her aşama bir öncekinin çıktısına bağlıdır.
+Each stage depends on the output of the previous one.
 
 ---
 
-## §2 Sprint Planning (Mod D)
+## §2 Sprint Planning (Mode D)
 
-### §2.1 Sprint Oluşturma
-- `bmad-sprint-planning` ile `sprint-status.yaml` oluşturulur
-- Sprint durumu: `backlog → in-progress → done`
+### §2.1 Sprint Creation
+- `sprint-status.yaml` is created with `bmad-sprint-planning`
+- Sprint status: `backlog → in-progress → done`
 
-### §2.2 Story Sıralaması
-- Story'ler epic sırasına göre işlenir
-- Her story bağımsız olarak tamamlanabilir
-- Önceki story learnings'i sonraki story'ye aktarılır
+### §2.2 Story Sequencing
+- Stories are processed in epic order
+- Each story can be completed independently
+- The previous story's learnings are carried over to the next story
 
-### §2.3 Sprint Status Formatu
+### §2.3 Sprint Status Format
 ```yaml
 development_status:
   epic-1: backlog
@@ -37,15 +37,15 @@ development_status:
 
 ---
 
-## §3 Story Creation (Mod C)
+## §3 Story Creation (Mode C)
 
-### §3.1 Story Oluşturma
-- `bmad-create-story` ile story dosyası oluşturulur
-- Story metadata'sı zorunlu: Experiment, Type, Measured, Verify
-- Task↔AC eşleştirme zorunlu
-- DoD identifier zorunlu
+### §3.1 Story Creation
+- The story file is created with `bmad-create-story`
+- Story metadata is required: Experiment, Type, Measured, Verify
+- Task↔AC mapping is required
+- DoD identifier is required
 
-### §3.2 Story Formatı
+### §3.2 Story Format
 ```markdown
 # Story X.Y: Title
 
@@ -53,7 +53,7 @@ Status: ready-for-dev
 experiment_refs:
   - id: E-001
     scope: AC-001, AC-002
-    status: ONAYLANDI
+    status: APPROVED
 
 ## Acceptance Criteria
 
@@ -76,67 +76,67 @@ experiment_refs:
 
 ## Quality Record (QR)
 
-| DoD Item | Durum | Kanit | Tarih |
+| DoD Item | Status | Evidence | Date |
 |----------|-------|-------|-------|
 | DoD-001 | ⏳ pending | — | — |
 ```
 
-### §3.3 Story Doğrulama
-- Guard hook'u story metadata'sını doğrular
-- Eksik metadata durumunda doğrulama **DENY** sonucu verilir
-- Hipotez AC'ler implemente edilemez
+### §3.3 Story Validation
+- The guard hook validates the story metadata
+- If metadata is missing, validation returns **DENY**
+- Hypothesis ACs cannot be implemented
 
-### §3.4 Deney Onayı (Experiment Approval Gate)
-- Story implementasyonuna geçiş prerequisite: tüm `experiment_refs[].status` alanları **`ONAYLANDI`** olmalıdır
-- `ONAYLANDI` durumu olmayan story'ler `bmad-dev-story` (Mod A) tarafından kabul edilmez
-- Guard hook, her experiment referansının durumunu `ONAYLANDI` olarak doğrular
-- Deney onayı olmadan kod yazma izni verilmez
+### §3.4 Experiment Approval Gate
+- Prerequisite for proceeding to story implementation: all `experiment_refs[].status` fields must be **`APPROVED`**
+- Stories without `APPROVED` status are not accepted by `bmad-dev-story` (Mode A)
+- The guard hook verifies each experiment reference's status as `APPROVED`
+- No code writing permission is granted without experiment approval
 
 ---
 
-## §4 Implementation (Mod A)
+## §4 Implementation (Mode A)
 
-### §4.1 Kod Yazma Kuralları
-- Red-green-refactor döngüsü
+### §4.1 Code Writing Rules
+- Red-green-refactor loop
 - Test first development
-- AC bazında implementasyon
-- **Belgesel karar kod yazma izni VERMEZ**
+- Implementation on a per-AC basis
+- **A documentary decision does NOT grant code writing permission**
 
-### §4.1.1 Git İşlemleri
-- Her implementasyon adımında değişiklikler commit edilmeli
-- Commit mesajı formatı: `[Story X.Y] <değişiklik açıklaması>`
-- Implementasyon tamamlandığında tüm değişikliklerin commit'lenmiş olması zorunludur
-- Commit olmaksızın Testing (§5) aşamasına geçilemez
+### §4.1.1 Git Operations
+- Changes must be committed at each implementation step
+- Commit message format: `[Story X.Y] <change description>`
+- When implementation is complete, all changes must be committed
+- Without a commit, the Testing (§5) stage cannot be reached
 
-### §4.2 Guard Hook Entegrasyonu
-- Kod yazma izni: Onaylı deney kaydı gerektirir
-- Story metadata doğrulaması
-- Experiment referansı kontrolü
+### §4.2 Guard Hook Integration
+- Code writing permission: requires an approved experiment record
+- Story metadata validation
+- Experiment reference check
 
-### §4.3 Kod Kalite Standartları
-- Mevcut testler geçmeli
-- Yeni testler eklenmeli
-- Linting ve static analysis
-- Code review sonrası düzeltmeler
+### §4.3 Code Quality Standards
+- Existing tests must pass
+- New tests must be added
+- Linting and static analysis
+- Fixes after code review
 
 ---
 
-## §5 Testing (Mod A)
+## §5 Testing (Mode A)
 
-### §5.1 Test Stratejisi
-- **Unit tests:** İş mantığı, core functionality
-- **Integration tests:** Bileşen etkileşimleri
-- **E2E tests:** Kullanıcı akışları
-- **Regression tests:** Mevcut fonksiyonellik
+### §5.1 Test Strategy
+- **Unit tests:** Business logic, core functionality
+- **Integration tests:** Component interactions
+- **E2E tests:** User flows
+- **Regression tests:** Existing functionality
 
-### §5.2 AC Doğrulama
-- Her AC'nin Verify yöntemi çalıştırılır
-- Sonuçlar story dosyasına kaydedilir
-- Başarısız AC = implementasyon durdurulur
+### §5.2 AC Verification
+- Each AC's Verify method is executed
+- Results are saved to the story file
+- Failed AC = implementation is stopped
 
-### §5.3 Test Formatları
+### §5.3 Test Formats
 ```markdown
-## Test Sonuçları
+## Test Results
 
 ### Unit Tests
 - X passed, Y failed
@@ -144,8 +144,8 @@ experiment_refs:
 ### Integration Tests
 - X passed, Y failed
 
-### AC Doğrulama
-| AC | Durum | Method | Evidence |
+### AC Verification
+| AC | Status | Method | Evidence |
 |----|-------|--------|----------|
 | AC-001 | ✅ verified | curl | response body |
 | AC-002 | ❌ failed | test | error log |
@@ -153,21 +153,21 @@ experiment_refs:
 
 ---
 
-## §6 Code Review (Mod A)
+## §6 Code Review (Mode A)
 
-### §6.1 Review Süreci
-- `bmad-code-review` ile adversarial review
+### §6.1 Review Process
+- Adversarial review with `bmad-code-review`
 - Parallel review layers:
-  - **Blind Hunter:** Genel kod kalitesi
-  - **Edge Case Hunter:** Edge case analizi
-  - **Acceptance Auditor:** AC metadata + Task↔AC + DoD kontrolü
+  - **Blind Hunter:** General code quality
+  - **Edge Case Hunter:** Edge case analysis
+  - **Acceptance Auditor:** AC metadata + Task↔AC + DoD check
 
-### §6.2 Review Sonucu
-- **Approve:** Story done — Approve sonrası §9 Oturum Kapanışı adımları tetiklenir
-- **Changes Requested:** Düzeltilir → Tekrar review
-- **Blocked:** Engeller kaldırılır → Tekrar review
+### §6.2 Review Outcome
+- **Approve:** Story done — After Approve, §9 Session Closure steps are triggered
+- **Changes Requested:** Fixed → Review again
+- **Blocked:** Obstacles removed → Review again
 
-### §6.3 Review Bulguları
+### §6.3 Review Findings
 ```markdown
 ## Senior Developer Review (AI)
 
@@ -175,88 +175,88 @@ experiment_refs:
 **Date:** 2026-08-20
 
 ### Action Items
-- [ ] High: AC metadata eksik (AC-003)
-- [x] Medium: Task↔AC eşleştirmesi düzeltilmiş
-- [ ] Low: DoD-002 Verify alanı boş
+- [ ] High: AC metadata missing (AC-003)
+- [x] Medium: Task↔AC mapping fixed
+- [ ] Low: DoD-002 Verify field empty
 ```
 
 ---
 
-## §7 Quality Record (QR) (Mod A)
+## §7 Quality Record (QR) (Mode A)
 
-### §7.1 QR Oluşturma
-- Story tamamlandığında QR kaydı oluşturulur
-- Her DoD item'ı için durum, kanıt ve tarih
-- Kayıt zinciri: S → QR → PR
+### §7.1 QR Creation
+- A QR record is created when the story is completed
+- Status, evidence and date for each DoD item
+- Record chain: S → QR → PR
 
-### §7.2 QR Formatı
+### §7.2 QR Format
 ```markdown
-# Quality Record: QR-<sira>
+# Quality Record: QR-<sequence>
 
-| Alan | Değer |
+| Field | Value |
 |------|-------|
 | Story | <story_key> |
-| Tarih | YYYY-MM-DD |
+| Date | YYYY-MM-DD |
 | QR Status | pass | fail | partial |
 
-## DoD Doğrulama Sonuçları
+## DoD Verification Results
 
-| DoD Item | Durum | Kanit | Tarih |
+| DoD Item | Status | Evidence | Date |
 |----------|-------|-------|-------|
 | DoD-001 | ✅ passed | curl output | 2026-08-20 |
 | DoD-002 | ❌ failed | test output | 2026-08-20 |
 ```
 
-### §7.3 QR Onayı
-- Tüm DoD maddeleri passed = QR onaylı
-- Kısmi onay = eksik maddeler listelenir
-- Red = düzeltilmesi gereken maddeler
+### §7.3 QR Approval
+- All DoD items passed = QR approved
+- Partial approval = missing items are listed
+- Rejection = items that need to be fixed
 
 ---
 
-## §8 Metodoloji Uyumluluğu
+## §8 Methodology Compliance
 
-### §8.1 Guard Hook Uyumluluğu
-- Kod yazma izni: Deney onayı gerektirir
-- Story metadata doğrulaması
-- Experiment referansı kontrolü
+### §8.1 Guard Hook Compliance
+- Code writing permission: requires experiment approval
+- Story metadata validation
+- Experiment reference check
 
-### §8.2 Skill Uyumluluğu
-| Skill | Mod | KÖPRÜ |
+### §8.2 Skill Compliance
+| Skill | Mode | BRIDGE |
 |-------|-----|-------|
-| bmad-create-story | Mod C | #1 |
-| bmad-dev-story | Mod A | #2 + #3 |
-| bmad-code-review | Mod A | — |
-| bmad-sprint-planning | Mod D | — |
-| bmad-create-epics-and-stories | Mod C | — |
+| bmad-create-story | Mode C | #1 |
+| bmad-dev-story | Mode A | #2 + #3 |
+| bmad-code-review | Mode A | — |
+| bmad-sprint-planning | Mode D | — |
+| bmad-create-epics-and-stories | Mode C | — |
 
-### §8.3 Kayıt Zinciri Uyumluluğu
+### §8.3 Record Chain Compliance
 ```
 E (Experiment) → IR (Implementation Readiness) → SP (Sprint Planning) → S (Story) → QR (Quality Record) → PR (Production Readiness)
 ```
 
-Her aşama bir öncekinin çıktısına bağlıdır. Zincirin her halkası onay gerektirir.
+Each stage depends on the output of the previous one. Every link of the chain requires approval.
 
-**Not:** Implementation aşamasında her adımın ardından git commit yapılması zorunludur (§4.1.1). Commit olmadan Testing (§5) aşamasına geçilemez.
+**Note:** During the implementation stage, a git commit is required after every step (§4.1.1). Without a commit, the Testing (§5) stage cannot be reached.
 
-### §8.4 Kritik Kapı ve Kavramlar
+### §8.4 Critical Gates and Concepts
 
-| Kavram | Tanım | Detay |
+| Concept | Definition | Detail |
 |--------|-------|-------|
-| **ONAYLANDI** | Experiment onay durumu | §3.4 - Story impl. prerequisite |
-| **DENY** | Guard/stop hook engelleme kararı | Kod yazma veya oturum kapanışı engellenir |
-| **Hipotez** | Deney onayı bekleyen AC | `[HYPOTHESIS]` etiketi, implemente edilemez |
-| **QR** | Quality Record | `docs/quality/QR-XXX.md`, done sonrası zorunlu |
-| **IR** | Implementation Readiness | `docs/development/IR-XXX.md`, Kapi 1 |
-| **PR** | Production Readiness | `docs/development/PR-XXX.md`, Kapi 4 |
+| **APPROVED** | Experiment approval status | §3.4 - Story impl. prerequisite |
+| **DENY** | Guard/stop hook blocking decision | Code writing or session closure is blocked |
+| **Hypothesis** | AC awaiting experiment approval | `[HYPOTHESIS]` tag, cannot be implemented |
+| **QR** | Quality Record | `docs/quality/QR-XXX.md`, required after done |
+| **IR** | Implementation Readiness | `docs/development/IR-XXX.md`, Gate 1 |
+| **PR** | Production Readiness | `docs/development/PR-XXX.md`, Gate 4 |
 
 ---
 
-## §9 Oturum Kapanışı
+## §9 Session Closure
 
-Bir story tamamlandığında ve kod incelemesi onaylandığında oturum kapatılır. Bu işlem şu adımları içerir:
-- Kalite Kaydı (QR) oluşturulur ve onaylanır (§7)
-- Story durumu "done" olarak işaretlenir (§6.2)
-- Gerekirse sprint durumu güncellenir (§2.1)
+When a story is completed and the code review is approved, the session is closed. This process includes the following steps:
+- A Quality Record (QR) is created and approved (§7)
+- The story status is marked as "done" (§6.2)
+- The sprint status is updated if necessary (§2.1)
 
-Oturum kapatılması, geliştirme döngüsünün son adımıdır ve bir sonraki story'ye geçiş için zorunludur.
+Session closure is the final step of the development cycle and is required to move on to the next story.
