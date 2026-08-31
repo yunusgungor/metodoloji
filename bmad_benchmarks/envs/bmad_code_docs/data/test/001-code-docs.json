@@ -1,7 +1,7 @@
 [
   {
     "id": "codoc-test-learning",
-    "scenario": "Deney E-005 tamamlandı. Hipotez: 'latency <= 100ms'. Ölçüm: 'latency=85ms (50/50)'. Deney onaylandı. Sonuç: Optimizasyon başarılı, Redis cache kullanımı latency'yi düşürdü.",
+    "scenario": "Experiment E-005 was completed. Hypothesis: 'latency <= 100ms'. Measurement: 'latency=85ms (50/50)'. The experiment was approved. Result: the optimization succeeded; using Redis cache reduced latency.",
     "expected_type": "L",
     "expected_tags": [
       "performance",
@@ -18,13 +18,13 @@
     "context": {
       "tool_name": "terminal",
       "command": "python3 run_experiment.py --record docs/experiments/E-005.md --run \"python bench_latency.py\"",
-      "output_summary": "ONAYLANDI"
+      "output_summary": "APPROVED"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-test-api",
-    "scenario": "bmad-index-docs skill'inin API'si: 'def generate_index(target_dir: str, output_path: str = None) -> str'. Fonksiyon belirtilen dizindeki tüm .md dosyalarını tarar, gruplar ve index.md oluşturur. Kullanım: index = generate_index('docs/code-docs/')",
+    "scenario": "The API of the bmad-index-docs skill: 'def generate_index(target_dir: str, output_path: str = None) -> str'. The function scans all .md files in the given directory, groups them, and creates index.md. Usage: index = generate_index('docs/code-docs/')",
     "expected_type": "A",
     "expected_tags": [
       "api",
@@ -46,7 +46,7 @@
   },
   {
     "id": "codoc-test-pattern",
-    "scenario": "SkillOpt training pipeline'da config-driven eval pattern kullanılıyor: default.yaml config → adapter → dataloader → rollout → scoring. Her benchmark kendi config'ini override eder, base config'den miras alır.",
+    "scenario": "The config-driven eval pattern is used in the SkillOpt training pipeline: default.yaml config → adapter → dataloader → rollout → scoring. Each benchmark overrides its own config and inherits from the base config.",
     "expected_type": "P",
     "expected_tags": [
       "training",
@@ -70,7 +70,7 @@
   },
   {
     "id": "codoc-test-pending",
-    "scenario": "Kodda '# HACK: geçici çözüm — E-149 sonrası kalıcı fix ekle' yorumu var. Bu bir teknik borç ve planlanan düzeltme.",
+    "scenario": "The code has the comment '# HACK: temporary workaround — add permanent fix after E-149'. This is technical debt and a planned fix.",
     "expected_type": "X",
     "expected_tags": [
       "hack",
@@ -86,13 +86,13 @@
     "context": {
       "tool_name": "file_editor",
       "path": "src/utils/cache.py",
-      "content_preview": "# HACK: geçici çözüm"
+      "content_preview": "# HACK: temporary workaround"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-test-pending-priority",
-    "scenario": "Kullanıcı 'Acil: Guard hook security vulnerability fix' dedi. Bu yüksek öncelikli bir güvenlik sorunu.",
+    "scenario": "The user said 'Urgent: Guard hook security vulnerability fix'. This is a high-priority security issue.",
     "expected_type": "X",
     "expected_tags": [
       "security",
@@ -114,7 +114,7 @@
   },
   {
     "id": "codoc-test-pending-update",
-    "scenario": "X-002-test-coverage-artır pending işi tamamlandı. Status: pending → done olarak güncelle. Tamamlanma tarihini ekle.",
+    "scenario": "The X-002-test-coverage-artır pending item was completed. Update Status: pending → done. Add the completion date.",
     "expected_type": "X",
     "expected_tags": [
       "testing",
@@ -136,7 +136,7 @@
   },
   {
     "id": "codoc-test-decision",
-    "scenario": "Proje için logging sistemi kararı alındı: structured logging (JSON format) kullanılacak. Gerekçe: production'da log analizi kolaylaşacak. Deney E-006 ile test edildi.",
+    "scenario": "A decision was made for the project's logging system: structured logging (JSON format) will be used. Rationale: log analysis in production will become easier. Tested with experiment E-006.",
     "expected_type": "D",
     "expected_tags": [
       "logging",
@@ -152,13 +152,13 @@
     "context": {
       "tool_name": "file_editor",
       "path": "docs/bmad/architecture/logging-decision.md",
-      "content_preview": "Structured logging kararı alındı"
+      "content_preview": "Decision made to use structured logging"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-test-troubleshooting",
-    "scenario": "Redis bağlantısı kopuyor: 'ConnectionRefusedError: [Errno 111] Connection refused'. Çözüm: Redis pool boyutunu artırdık ve reconnect mekanizması ekledik.",
+    "scenario": "The Redis connection is dropping: 'ConnectionRefusedError: [Errno 111] Connection refused'. Solution: we increased the Redis pool size and added a reconnect mechanism.",
     "expected_type": "T",
     "expected_tags": [
       "redis",

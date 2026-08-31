@@ -2,7 +2,7 @@
   {
     "id": "story-billing",
     "epic": "Epic: Billing System. As a platform owner, I want automated billing so that customers are charged correctly. ACs: monthly billing, usage-based, invoices, failed payment retry 3x, upgrade/downgrade proration.",
-    "experiments": "E-028 ONAYLANDI (proration math accuracy 100%). AC5 (upgrade/downgrade) measured. AC2 (usage-based) [HYPOTHESIS] pending E-029.",
+    "experiments": "E-028 APPROVED (proration math accuracy 100%). AC5 (upgrade/downgrade) measured. AC2 (usage-based) [HYPOTHESIS] pending E-029.",
     "architecture": "Billing microservice: FastAPI, PostgreSQL, Redis metering, Stripe webhooks, Kafka events.",
     "expected_fields": [
       "Date",

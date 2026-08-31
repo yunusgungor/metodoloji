@@ -1,7 +1,7 @@
 [
   {
     "id": "code-001",
-    "task_desc": "Code review adversarial deneyi. Kod inceleme sürecinin tüm bulgu kategorilerini (bug, security, performance, readability) kapsayıp kapsamadığını test et. Eksik kategori varsa review tamamlanmamalı.",
+    "task_desc": "Code review adversarial experiment. Test whether the code review process covers all finding categories (bug, security, performance, readability). If a category is missing, the review must not be considered complete.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -15,7 +15,7 @@
   },
   {
     "id": "code-002",
-    "task_desc": "Test design coverage ölçümü. Bir epic için test senaryoları tasarlanırken tüm acceptance criteria'ların kapsamlanması gerekiyor. Her AC için en az bir test senaryosu olmalı.",
+    "task_desc": "Test design coverage measurement. When designing test scenarios for an epic, all acceptance criteria must be covered. There must be at least one test scenario for each AC.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -29,7 +29,7 @@
   },
   {
     "id": "code-003",
-    "task_desc": "Custom TOML activation_steps deneyi. Bir custom TOML dosyasındaki activation_steps_append'in doğru formatta çalıştığını test et: adımlar sırayla çalışmalı, hata veren adımda süreç durmalı.",
+    "task_desc": "Custom TOML activation_steps experiment. Test that activation_steps_append in a custom TOML file works in the correct format: steps must run in order, and the process must stop at a failing step.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -43,7 +43,7 @@
   },
   {
     "id": "code-004",
-    "task_desc": "Hook engine config resolve deneyi. resolve_customization.py betiğinin TOML dosyalarını doğru sırayla (base → team → user) birleştirip birleştiremediğini test et. Deep merge doğru çalışmalı, scalars override edilmeli, arrays append edilmeli.",
+    "task_desc": "Hook engine config resolve experiment. Test whether resolve_customization.py merges TOML files in the correct order (base → team → user). Deep merge must work correctly: scalars must be overridden and arrays appended.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -57,7 +57,7 @@
   },
   {
     "id": "code-005",
-    "task_desc": "LLM non-determinism dayanıklılık deneyi. Aynı girdi ile LLM'den 4 kez experiment record iste ve çıktıların tutarlılığını ölç. Tüm çıkışlarda zorunlu 5 alan bulunmalı.",
+    "task_desc": "LLM non-determinism robustness experiment. Ask the LLM for an experiment record 4 times with the same input and measure the consistency of the outputs. All outputs must contain the 5 mandatory fields.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -71,7 +71,7 @@
   },
   {
     "id": "code-006",
-    "task_desc": "Pipeline entegrasyon deneyi. Tüm hook'ların (guard, stop, quality, deploy, audit) birlikte tutarlı çalıştığını test et: guard deny etse bile audit loglamalı, stop engellese bile audit loglamalı.",
+    "task_desc": "Pipeline integration experiment. Test that all hooks (guard, stop, quality, deploy, audit) work consistently together: even if guard denies, audit must log; even if stop blocks, audit must log.",
     "expected_fields": [
       "Theory",
       "Hypothesis",

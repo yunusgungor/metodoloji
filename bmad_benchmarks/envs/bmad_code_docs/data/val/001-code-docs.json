@@ -1,7 +1,7 @@
 [
   {
     "id": "codoc-val-pattern",
-    "scenario": "Yeni bir API fonksiyonu yazıldı: 'def create_methodology_record(story_path: str, output_dir: str) -> dict'. Fonksiyon story dosyasından metadata çıkarıp docs/development/stories/ altına S-XXX.md kaydı oluşturuyor. Bu kalıp其他 projelerde de kullanılabilir.",
+    "scenario": "A new API function was written: 'def create_methodology_record(story_path: str, output_dir: str) -> dict'. The function extracts metadata from the story file and creates an S-XXX.md record under docs/development/stories/. This pattern can also be used in other projects.",
     "expected_type": "P",
     "expected_tags": [
       "methodology",
@@ -24,7 +24,7 @@
   },
   {
     "id": "codoc-val-decision",
-    "scenario": "Proje için TOML config sistemi kararı alındı: base customize.toml → team {skill}.toml → user {skill}.user.toml sıralamasıyla deep-merge. Scalars override, arrays append. Bu yapı 74+ TOML dosyasıyla çalışıyor.",
+    "scenario": "A decision was made to use a TOML config system for the project: deep-merge in the order base customize.toml → team {skill}.toml → user {skill}.user.toml. Scalars override, arrays append. This setup works with 74+ TOML files.",
     "expected_type": "D",
     "expected_tags": [
       "config",
@@ -46,7 +46,7 @@
   },
   {
     "id": "codoc-val-troubleshooting",
-    "scenario": "SkillOpt training sırasında hata: 'ImportError: cannot import name _ENV_REGISTRY from scripts.train'. Modül yeniden yüklendiğinde registry temizleniyor. Çözüm: _register_bmad_adapters() her train_benchmark çağrısından sonra tekrar çağrılmalı.",
+    "scenario": "Error during SkillOpt training: 'ImportError: cannot import name _ENV_REGISTRY from scripts.train'. The registry is cleared when the module is reloaded. Solution: _register_bmad_adapters() must be called again after every train_benchmark call.",
     "expected_type": "T",
     "expected_tags": [
       "training",
@@ -69,7 +69,7 @@
   },
   {
     "id": "codoc-val-pending",
-    "scenario": "Kullanıcı 'Self-improvement döngüsü ekle — eğitim sistemi kendi sonuçlarından öğrenmeli' dedi. Bu henüz yapılmamış bir geliştirme planı.",
+    "scenario": "The user said 'Add a self-improvement loop — the training system should learn from its own results'. This is a development plan that has not been implemented yet.",
     "expected_type": "X",
     "expected_tags": [
       "training",
@@ -84,14 +84,14 @@
     ],
     "context": {
       "tool_name": "terminal",
-      "command": "echo 'Self-improvement döngüsü planlandı'",
-      "output_summary": "Self-improvement döngüsü ekle"
+      "command": "echo 'Self-improvement loop planned'",
+      "output_summary": "Add self-improvement loop"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-val-pending-priority",
-    "scenario": "Sprint planning toplantısında yüksek öncelikli bir iş belirlendi: 'Guard hook false-negative sorununu çöz'. Bu iş sprint'i bloke ediyor.",
+    "scenario": "A high-priority item was identified in the sprint planning meeting: 'Fix the guard hook false-negative problem'. This item is blocking the sprint.",
     "expected_type": "X",
     "expected_tags": [
       "guard",
@@ -106,14 +106,14 @@
     ],
     "context": {
       "tool_name": "terminal",
-      "command": "echo 'Sprint planning tamamlandı'",
-      "output_summary": "Guard hook false-negative sorunu"
+      "command": "echo 'Sprint planning completed'",
+      "output_summary": "Guard hook false-negative problem"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-val-pending-dependency",
-    "scenario": "Yeni API endpoint'i yazılacak ama önce rate limiting eklenmeli. Bağımlılık: rate limiting olmadan API doğrulanamaz.",
+    "scenario": "A new API endpoint will be written, but rate limiting must be added first. Dependency: the API cannot be validated without rate limiting.",
     "expected_type": "X",
     "expected_tags": [
       "api",
@@ -129,13 +129,13 @@
     "context": {
       "tool_name": "file_editor",
       "path": "src/api/new_endpoint.py",
-      "content_preview": "# TODO: rate limiting eklemeden önce test edilemez"
+      "content_preview": "# TODO: cannot be tested before adding rate limiting"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-val-learning",
-    "scenario": "Deney E-004 tamamlandı. Hipotez: 'error rate <= 0.05'. Ölçüm: 'error_rate=0.03 (97/100)'. Deney onaylandı. Sonuç: Retry mekanizması başarıyla çalışıyor.",
+    "scenario": "Experiment E-004 was completed. Hypothesis: 'error rate <= 0.05'. Measurement: 'error_rate=0.03 (97/100)'. The experiment was approved. Result: the retry mechanism works correctly.",
     "expected_type": "L",
     "expected_tags": [
       "retry",
@@ -152,13 +152,13 @@
     "context": {
       "tool_name": "terminal",
       "command": "python3 run_experiment.py --record docs/experiments/E-004.md --run \"python bench_retry.py\"",
-      "output_summary": "ONAYLANDI"
+      "output_summary": "APPROVED"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-val-api",
-    "scenario": "bmad-code-docs skill'inin API'si: 'def create_pending(title: str, description: str, priority: str = \"normal\") -> pathlib.Path'. Fonksiyon yeni bir pending doc oluşturur ve yolunu döndürür.",
+    "scenario": "The API of the bmad-code-docs skill: 'def create_pending(title: str, description: str, priority: str = \"normal\") -> pathlib.Path'. The function creates a new pending doc and returns its path.",
     "expected_type": "A",
     "expected_tags": [
       "api",

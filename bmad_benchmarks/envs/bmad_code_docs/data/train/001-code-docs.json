@@ -1,7 +1,7 @@
 [
   {
     "id": "codoc-detect-pattern",
-    "scenario": "Guard hook, file_editor ile hooks/engine/modules/guard.py dosyasına yazıyor. İçerik 'def is_free(path): ...' fonksiyonunu tanımlıyor — bir dosya yolunun free-zone olup olmadığını kontrol eden bir helper. Bu fonksiyon PostToolUse audit'te de kullanılıyor.",
+    "scenario": "The guard hook is writing to hooks/engine/modules/guard.py via file_editor. The content defines the function 'def is_free(path): ...' — a helper that checks whether a file path is in the free-zone. This function is also used in the PostToolUse audit.",
     "expected_type": "P",
     "expected_tags": [
       "guard",
@@ -25,7 +25,7 @@
   },
   {
     "id": "codoc-detect-troubleshooting",
-    "scenario": "Terminal komutu 'python3 run_experiment.py --record docs/experiments/E-001.md --run \"python bench.py\"' çalıştırıldı. Çıktı: 'gate key not configured (python3 run_experiment.py --init-secret)'. Kullanıcı hatayı düzeltti ve '--init-secret' çalıştırarak devam etti.",
+    "scenario": "The terminal command 'python3 run_experiment.py --record docs/experiments/E-001.md --run \"python bench.py\"' was executed. Output: 'gate key not configured (python3 run_experiment.py --init-secret)'. The user fixed the error and continued by running '--init-secret'.",
     "expected_type": "T",
     "expected_tags": [
       "gate",
@@ -47,7 +47,7 @@
   },
   {
     "id": "codoc-detect-decision",
-    "scenario": "Mimari toplantıda JWT yerine session-based auth kararı alındı. Kararın gerekçesi: XSS riskinin azaltılması, Redis ile state management kolaylığı, ve deney E-001 ile doğrulanması. Karar docs/bmad/architecture/ dosyasına kaydedildi.",
+    "scenario": "In the architecture meeting, a decision was made to use session-based auth instead of JWT. The rationale: reduced XSS risk, easier state management with Redis, and validation via experiment E-001. The decision was saved to the docs/bmad/architecture/ directory.",
     "expected_type": "D",
     "expected_tags": [
       "auth",
@@ -63,13 +63,13 @@
     "context": {
       "tool_name": "file_editor",
       "path": "docs/bmad/architecture/auth-decision.md",
-      "content_preview": "JWT yerine session-based auth kararı"
+      "content_preview": "Decision to use session-based auth instead of JWT"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-detect-learning",
-    "scenario": "Deney E-001 tamamlandı ve ONAYLANDI kararı alındı. Deney: Guard hook'un free-zone bypass'ını test etti. Sonuç: Free-zone kontrolü başarıyla çalışıyor,试验 cümlesi reddedildi. Teori: Guard hook fail-closed modda çalışmalı.",
+    "scenario": "Experiment E-001 was completed and APPROVED. The experiment tested the guard hook's free-zone bypass. Result: the free-zone check works correctly, the experiment sentence was rejected. Theory: the guard hook should operate in fail-closed mode.",
     "expected_type": "L",
     "expected_tags": [
       "experiment",
@@ -85,13 +85,13 @@
     "context": {
       "tool_name": "terminal",
       "command": "python3 run_experiment.py --record docs/experiments/E-001.md --run \"python bench.py\"",
-      "output_summary": "ONAYLANDI"
+      "output_summary": "APPROVED"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-detect-api",
-    "scenario": "run_experiment.py betiğinin API'si kullanılıyor. Fonksiyon imzası: 'def run_experiment(record: str, run: str = None, verify: bool = False, dry_run: bool = False) -> dict'. Kullanım: result = run_experiment(record='docs/experiments/E-001.md', run='python bench.py'). Dikkat: --dry-run ile önce test et.",
+    "scenario": "The API of the run_experiment.py script is being used. Function signature: 'def run_experiment(record: str, run: str = None, verify: bool = False, dry_run: bool = False) -> dict'. Usage: result = run_experiment(record='docs/experiments/E-001.md', run='python bench.py'). Note: test it first with --dry-run.",
     "expected_type": "A",
     "expected_tags": [
       "api",
@@ -113,7 +113,7 @@
   },
   {
     "id": "codoc-pattern-async-audit",
-    "scenario": "Audit hook PostToolUse'ta çalışıyor ve her tool kullanımından sonra .metodoloji/logs/hook-audit.log dosyasına JSON-lines formatında kayıt yazıyor. Non-blocking çalışıyor — hatalar loglanıyor ama tool kullanımı engellenmiyor.",
+    "scenario": "The audit hook runs in PostToolUse and writes a record in JSON-lines format to .metodoloji/logs/hook-audit.log after every tool use. It runs non-blocking — errors are logged but tool use is not blocked.",
     "expected_type": "P",
     "expected_tags": [
       "audit",
@@ -137,7 +137,7 @@
   },
   {
     "id": "codoc-troubleshooting-story-metadata",
-    "scenario": "Guard hook story dosyasını reddetti: 'Story file missing AC metadata (no [AC-XXX] identifiers)'. Hikaye dosyası Acceptance Criteria içeriyor ama [AC-001] formatında identifier'lar yok.",
+    "scenario": "The guard hook rejected the story file: 'Story file missing AC metadata (no [AC-XXX] identifiers)'. The story file contains Acceptance Criteria but has no identifiers in [AC-001] format.",
     "expected_type": "T",
     "expected_tags": [
       "guard",
@@ -160,7 +160,7 @@
   },
   {
     "id": "codoc-learning-experiment-gate",
-    "scenario": "Deney E-003 REDDEDİLDİ. Hipotez: 'accuracy >= 0.90'. Ölçüm sonucu: 'accuracy=0.78 (14/18)'. Deney başarısız oldu — teori revize edilmeli. Kullanıcı yeni hipotezle yeni deney açtı.",
+    "scenario": "Experiment E-003 was REJECTED. Hypothesis: 'accuracy >= 0.90'. Measurement result: 'accuracy=0.78 (14/18)'. The experiment failed — the theory must be revised. The user started a new experiment with a new hypothesis.",
     "expected_type": "L",
     "expected_tags": [
       "experiment",
@@ -177,13 +177,13 @@
     "context": {
       "tool_name": "terminal",
       "command": "python3 run_experiment.py --record docs/experiments/E-003.md --run \"python bench.py\"",
-      "output_summary": "REDDEDİLDİ"
+      "output_summary": "REJECTED"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-detect-pending-todo",
-    "scenario": "Kullanıcı bir Python dosyasına '# TODO: auth modülünü yeniden düzenle' yorumunu ekledi. Bu TODO既存 bir fonksiyonun refactor edilmesi gerektiğini gösteriyor.",
+    "scenario": "The user added the comment '# TODO: reorganize the auth module' to a Python file. This TODO indicates that an existing function needs to be refactored.",
     "expected_type": "X",
     "expected_tags": [
       "todo",
@@ -199,13 +199,13 @@
     "context": {
       "tool_name": "file_editor",
       "path": "src/auth.py",
-      "content_preview": "# TODO: auth modülünü yeniden düzenle"
+      "content_preview": "# TODO: reorganize the auth module"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-detect-pending-future",
-    "scenario": "LLM çıktısında 'Sonraki adım: test coverage'ı %80'e çıkarmak için Unit test ekle' ifadesi geçiyor. Bu henüz yapılmamış bir plan.",
+    "scenario": "The LLM output contains the phrase 'Next step: add Unit tests to raise test coverage to 80%'. This is a plan that has not been implemented yet.",
     "expected_type": "X",
     "expected_tags": [
       "testing",
@@ -221,13 +221,13 @@
     "context": {
       "tool_name": "terminal",
       "command": "python3 run_experiment.py --record docs/experiments/E-002.md --run \"python bench.py\"",
-      "output_summary": "Sonraki adım: test coverage'ı %80'e çıkarmak"
+      "output_summary": "Next step: raise test coverage to 80%"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-detect-pending-fixme",
-    "scenario": "Kodda '# FIXME: rate limiting eksik — E-148 deneyinden sonra eklenecek' yorumu var. Bu bir hata düzeltme planı.",
+    "scenario": "The code has the comment '# FIXME: rate limiting missing — to be added after experiment E-148'. This is a bug-fix plan.",
     "expected_type": "X",
     "expected_tags": [
       "rate-limiting",
@@ -249,7 +249,7 @@
   },
   {
     "id": "codoc-context-loading-auth",
-    "scenario": "Yeni bir authentication modülü yazılmaya başlanıyor. Daha önce E-001 deneyi ile session-based auth kararı alınmıştı. Görev: auth modülünü implement et. Bağlam: daha önceki kararları ve deney sonuçlarını hatırla.",
+    "scenario": "A new authentication module is being written. Previously, a session-based auth decision was made via experiment E-001. Task: implement the auth module. Context: recall the previous decisions and experiment results.",
     "expected_type": "D",
     "expected_tags": [
       "auth",
@@ -271,7 +271,7 @@
   },
   {
     "id": "codoc-context-loading-guard",
-    "scenario": "Guard hook'u test ediliyor. Daha önce P-001 guard-free-zone pattern'i kaydedilmişti. Aynı testi tekrarlama — mevcut kalıbı kullan. Bağlam: daha önceki pattern'ları hatırla.",
+    "scenario": "The guard hook is being tested. The P-001 guard-free-zone pattern was recorded previously. Don't repeat the same test — use the existing pattern. Context: recall the previous patterns.",
     "expected_type": "P",
     "expected_tags": [
       "guard",
@@ -295,7 +295,7 @@
   },
   {
     "id": "codoc-context-loading-troubleshoot",
-    "scenario": "Gate key hatası tekrar alınıyor. Daha önce T-001 gate-key-missing troubleshooting doc'u kaydedilmişti. Aynı hatayı tekrarlama — mevcut çözümü kullan.",
+    "scenario": "The gate key error is occurring again. The T-001 gate-key-missing troubleshooting doc was recorded previously. Don't repeat the same error — use the existing solution.",
     "expected_type": "T",
     "expected_tags": [
       "gate",
@@ -318,7 +318,7 @@
   },
   {
     "id": "codoc-pending-priority-high",
-    "scenario": "Deney E-003 REDDEDİLDİ. Hipotez başarısız oldu. Şimdi yüksek öncelikli bir pending iş var: 'Teoriyi revize et ve yeni hipotez oluştur'. Bu iş acil çünkü tüm geliştirme zinciri bekliyor.",
+    "scenario": "Experiment E-003 was REJECTED. The hypothesis failed. There is now a high-priority pending item: 'Revise the theory and create a new hypothesis'. This is urgent because the entire development chain is waiting.",
     "expected_type": "X",
     "expected_tags": [
       "experiment",
@@ -334,13 +334,13 @@
     "context": {
       "tool_name": "terminal",
       "command": "python3 run_experiment.py --record docs/experiments/E-003.md --run \"python bench.py\"",
-      "output_summary": "REDDEDİLDİ"
+      "output_summary": "REJECTED"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-pending-update-status",
-    "scenario": "Mevcut bir pending iş tamamlandı: 'X-001 auth refactor'. Şimdi bu işin durumunu 'pending' → 'done' olarak güncellemeli ve tamamlanma tarihini eklemeli.",
+    "scenario": "An existing pending item was completed: 'X-001 auth refactor'. Now its status must be updated from 'pending' → 'done' and a completion date added.",
     "expected_type": "X",
     "expected_tags": [
       "auth",
@@ -362,7 +362,7 @@
   },
   {
     "id": "codoc-pending-link-experiment",
-    "scenario": "Yeni bir deney planlanıyor: 'Guard hook false-negative testi'. Bu deney henüz başlamadı — planlama aşamasında. Pending olarak kaydet ve ilişkili deney referansını ekle.",
+    "scenario": "A new experiment is being planned: 'Guard hook false-negative test'. This experiment has not started yet — it is in the planning stage. Record it as pending and add the related experiment reference.",
     "expected_type": "X",
     "expected_tags": [
       "guard",
@@ -377,14 +377,14 @@
     ],
     "context": {
       "tool_name": "terminal",
-      "command": "echo 'Yeni deney planlandı'",
-      "output_summary": "Guard hook false-negative testi planlandı"
+      "command": "echo 'New experiment planned'",
+      "output_summary": "Guard hook false-negative test planned"
     },
     "task_type": "code-docs"
   },
   {
     "id": "codoc-pending-dependency",
-    "scenario": "Bir pending iş başka bir işe bağlı: 'Rate limiting ekle' işi, 'E-148 deneyi tamamlanana kadar' beklemeli. Bağımlılık ilişkisini pending doc'unda belirt.",
+    "scenario": "A pending item depends on another: the 'Add rate limiting' item must wait 'until experiment E-148 is completed'. Specify the dependency relationship in the pending doc.",
     "expected_type": "X",
     "expected_tags": [
       "rate-limiting",
@@ -400,7 +400,7 @@
     "context": {
       "tool_name": "file_editor",
       "path": "src/api/rate_limit.py",
-      "content_preview": "# TODO: E-148 deneyinden sonra ekle"
+      "content_preview": "# TODO: add after experiment E-148"
     },
     "task_type": "code-docs"
   },

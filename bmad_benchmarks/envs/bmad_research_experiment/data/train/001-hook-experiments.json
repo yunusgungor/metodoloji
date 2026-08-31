@@ -1,7 +1,7 @@
 [
   {
     "id": "hook-001",
-    "task_desc": "Guard hook'un kod yazma engelleme mekanizmasını test et. PreToolUse hook'u, kapsamı eşleşen VERIFIED deney kaydı olmadan terminalden dosya oluşturmayı engellemeli (fail-closed). Test: izinsiz dosya oluşturma komutu gönder, DENY sonucunu doğrula.",
+    "task_desc": "Test the guard hook's code-writing prevention mechanism. The PreToolUse hook must block file creation from the terminal unless there is a VERIFIED experiment record whose scope matches (fail-closed). Test: send an unauthorized file-creation command and verify the DENY result.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -15,7 +15,7 @@
   },
   {
     "id": "hook-002",
-    "task_desc": "Guard hook'un kapsam dışı dosyalara yazma izni verip vermediğini test et. scratch/ ve .metodoloji/ dizinleri serbest bölge olarak tanımlı — bu dizinlerdeki dosya işlemleri guard tarafından engellenmemeli. Test: scratch/test.txt oluştur, engellenmediğini doğrula.",
+    "task_desc": "Test whether the guard hook allows writing to out-of-scope files. The scratch/ and .metodoloji/ directories are defined as free zones — file operations in these directories must not be blocked by the guard. Test: create scratch/test.txt and verify it is not blocked.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -29,7 +29,7 @@
   },
   {
     "id": "hook-003",
-    "task_desc": "Stop hook'un tamamlanmamış story varken oturum kapanışını engelleme mekanizmasını test et. docs/development/stories/ altında in-progress veya review durumunda story dosyası varsa session kapanışı exit 2 ile engellenmeli.",
+    "task_desc": "Test the stop hook's mechanism for blocking session termination while there are unfinished stories. If a story file in in-progress or review status exists under docs/development/stories/, session termination must be blocked with exit 2.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -43,7 +43,7 @@
   },
   {
     "id": "hook-004",
-    "task_desc": "Audit hook'un denetim izi doğruluğunu test et. PostToolUse hook'u her terminal ve dosya düzenleme komutunu .metodoloji/logs/hook-audit.log dosyasına loglamalı. Test: 5 farklı komut çalıştır, log dosyasında 5 satır olduğunu doğrula.",
+    "task_desc": "Test the audit hook's audit-trail accuracy. The PostToolUse hook must log every terminal and file-editing command to .metodoloji/logs/hook-audit.log. Test: run 5 different commands and verify the log file has 5 lines.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -57,7 +57,7 @@
   },
   {
     "id": "hook-005",
-    "task_desc": "Quality hook'un git commit kalite kontrolünü test et. Quality hook'u, IR/QR/SP'siz story varken commit'i engellemeli (fail-closed). Test: eksik kayıtlı bir story ile commit denemesi yap, DENY sonucunu doğrula.",
+    "task_desc": "Test the quality hook's git commit quality control. The quality hook must block the commit while there is a story without IR/QR/SP (fail-closed). Test: attempt a commit with a story that has missing records and verify the DENY result.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -71,7 +71,7 @@
   },
   {
     "id": "hook-006",
-    "task_desc": "Deploy hook'un eksik PR ile deploy engellemesini test et. IR/QR/SP/PR eksik story ile terraform/kubectl deploy komutu gönder, DENY sonucunu doğrula.",
+    "task_desc": "Test the deploy hook's blocking of deployments with a missing PR. Send a terraform/kubectl deploy command with a story missing IR/QR/SP/PR and verify the DENY result.",
     "expected_fields": [
       "Theory",
       "Hypothesis",

@@ -1,7 +1,7 @@
 [
   {
     "id": "cplx-001",
-    "task_desc": "Brownfield projede hook entegrasyonu deneyi. Mevcut bir kod tabanına guard hook eklenirken mevcut test'lerin bozulmaması gerekiyor. Regression test coverage >= %90 olmalı.",
+    "task_desc": "Hook integration experiment in a brownfield project. When adding a guard hook to an existing codebase, existing tests must not break. Regression test coverage must be >= 90%.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -15,7 +15,7 @@
   },
   {
     "id": "cplx-002",
-    "task_desc": "Multi-agent sprint management deneyi. 3 agent aynı sprint'te çalışırken sprint-status.yaml'daki durum güncellemeleri race condition olmadan yapılmalı. Concurrent write testi.",
+    "task_desc": "Multi-agent sprint management experiment. While 3 agents work in the same sprint, status updates in sprint-status.yaml must happen without race conditions. Concurrent write test.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -29,7 +29,7 @@
   },
   {
     "id": "cplx-003",
-    "task_desc": "End-to-end deney döngüsü deneyi. Teori → Hipotez → Deney → Ölçüm → Kapı → Kod → Commit → Memory döngüsünü tek seferde uçtan uca çalıştır. Her adımda kalite kontrolü yap.",
+    "task_desc": "End-to-end experiment loop experiment. Run the Theory → Hypothesis → Experiment → Measurement → Gate → Code → Commit → Memory loop end to end in one pass. Perform quality checks at each step.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -43,7 +43,7 @@
   },
   {
     "id": "cplx-004",
-    "task_desc": "Performance benchmark deneyi. 1000 dosyalık bir projede guard hook'un dosya yazma işlemini ne kadar geciktirdiğini ölç. p95 latency < 100ms olmalı.",
+    "task_desc": "Performance benchmark experiment. Measure how much the guard hook delays file writes in a project with 1000 files. p95 latency must be < 100ms.",
     "expected_fields": [
       "Theory",
       "Hypothesis",

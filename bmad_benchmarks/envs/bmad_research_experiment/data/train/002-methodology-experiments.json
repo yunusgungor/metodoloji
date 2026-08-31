@@ -1,7 +1,7 @@
 [
   {
     "id": "meth-001",
-    "task_desc": "Story metadata tamlığı kontrol mekanizmasını test et. Guard hook story dosyasındaki AC metadata'sını (Experiment, Type, Measured, Verify alanları) kontrol etmeli. Eksik metadata varsa kod yazma izni vermemeli.",
+    "task_desc": "Test the story metadata completeness check mechanism. The guard hook must check the AC metadata in the story file (the Experiment, Type, Measured, Verify fields). If metadata is missing, it must not grant permission to write code.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -15,7 +15,7 @@
   },
   {
     "id": "meth-002",
-    "task_desc": "IR (Implementation Readiness) kaydının zorunlu alanlarını test et. Sprint Planning öncesi IR kaydının tüm alanları (hedef, kapsam, kısıtlar, bağımlılıklar) içermesi gerekiyor. Eksik alan varsa Sprint Planning başlatılmamalı.",
+    "task_desc": "Test the mandatory fields of the IR (Implementation Readiness) record. Before Sprint Planning, the IR record must contain all fields (goal, scope, constraints, dependencies). If a field is missing, Sprint Planning must not start.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -29,7 +29,7 @@
   },
   {
     "id": "meth-003",
-    "task_desc": "QR (Quality Record) üretimi deneyi. Story tamamlandığında QR kaydının tüm DoD item'ları için durum, kanıt ve tarih içermesi gerekiyor. Eksik QR alanı varsa story done kabul edilmemeli.",
+    "task_desc": "QR (Quality Record) production experiment. When a story is completed, the QR record must contain status, evidence, and date for every DoD item. If a QR field is missing, the story must not be accepted as done.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -43,7 +43,7 @@
   },
   {
     "id": "meth-004",
-    "task_desc": "Sprint planning flare deneyi. Sprint planning sırasında story'lerin doğru sıralanıp sıralanmadığını test et. Blocked story'lerin önünde dependency olan story olmamalı, her story'nin bir epic'i olmalı.",
+    "task_desc": "Sprint planning flare experiment. Test whether stories are ordered correctly during sprint planning. No story with a dependency should precede blocked stories, and every story must have an epic.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -57,7 +57,7 @@
   },
   {
     "id": "meth-005",
-    "task_desc": "PRD validate deneyi tasarla. Bir PRD dosyasının metodoloji uyumluluğunu kontrol et: PRD'deki her gereksinim bir story'ye bağlanmalı, test edilmemiş prototip test edilmedi olarak etiketlenmeli.",
+    "task_desc": "Design a PRD validation experiment. Check a PRD file's methodology compliance: every requirement in the PRD must be linked to a story, and untested prototypes must be labeled as not tested.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -71,7 +71,7 @@
   },
   {
     "id": "meth-006",
-    "task_desc": "Architecture spine üretimi deneyi. LLM'den bir proje için mimari spine üretmesini iste. Spine 5 invariant kategorisini (paradigm, boundary, dependency, state, ownership) içermeli.",
+    "task_desc": "Architecture spine generation experiment. Ask the LLM to generate an architecture spine for a project. The spine must contain the 5 invariant categories (paradigm, boundary, dependency, state, ownership).",
     "expected_fields": [
       "Theory",
       "Hypothesis",

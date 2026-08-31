@@ -1,7 +1,7 @@
 [
   {
     "id": "val-001",
-    "task_desc": "Guard hook'un hash mismatch kontrolünü test et. Kod yazma izni için bir deney onayı gerekiyor, ama deney record'u farklı bir dosya glob'u kapsıyorsa izin verilmemeli. Kapsam eşleşmesi zorunlu.",
+    "task_desc": "Test the guard hook's hash mismatch check. A verified experiment is required to write code, but if the experiment record covers a different file glob, permission must be denied. Scope matching is mandatory.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -15,7 +15,7 @@
   },
   {
     "id": "val-002",
-    "task_desc": "Stop hook'un timeout davranışı. Stop hook çalışırken故事 dosyası silinirse veya bozulursa hata ile başa çıkmalı ve session'ı kilitmemeli. Graceful degradation test et.",
+    "task_desc": "Stop hook timeout behavior. If the story file is deleted or corrupted while the stop hook is running, it must handle the error and not lock the session. Test graceful degradation.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -29,7 +29,7 @@
   },
   {
     "id": "val-003",
-    "task_desc": "QR kaydı ile PR kaydı arasındaki tutarlılık. QR'da tüm DoD'lar pass ise PR otomatik olarak HAZIR olmalı. QR partial ise PR BEKLİYOR olmalı.",
+    "task_desc": "Consistency between the QR record and the PR record. If all DoDs pass in the QR, the PR must automatically be READY. If the QR is partial, the PR must be PENDING.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -43,7 +43,7 @@
   },
   {
     "id": "val-004",
-    "task_desc": "Commit mesajı format doğrulama. Deney bazlı commit'lerin tümü standard bir format izlemeli: 'Add <feature> (E-NNN) — <claim>' başlığı, measured value ve GATE-OK token içermeli.",
+    "task_desc": "Commit message format validation. All experiment-based commits must follow a standard format: the 'Add <feature> (E-NNN) — <claim>' title, a measured value, and the GATE-OK token.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -57,7 +57,7 @@
   },
   {
     "id": "val-005",
-    "task_desc": "Mod seçimi deneyi. Bir görevin Mod A (kod) mı yoksa Mod C (tasarım) mı olduğunu otomatik sınıflandıran bir sistem tasarla. Yanlış sınıflandırma oranı < %10 olmalı.",
+    "task_desc": "Mode selection experiment. Design a system that automatically classifies whether a task is Mode A (code) or Mode C (design). The misclassification rate must be < 10%.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -71,7 +71,7 @@
   },
   {
     "id": "val-006",
-    "task_desc": "SkillOpt training pipeline hata yönetimi. Model API'si 404 döndüğünde eğitim sessizce başarısız olmamalı, error log'a yazmalı ve cooldown ile yeniden denemeli.",
+    "task_desc": "SkillOpt training pipeline error handling. When the model API returns 404, training must not fail silently; it must write to the error log and retry with a cooldown.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -85,7 +85,7 @@
   },
   {
     "id": "val-007",
-    "task_desc": "Seed determinism testi. Aynı seed ile iki kez eğitim çalıştırıldığında ilk 3 step'in rollout skorları birebir aynı olmalı (model deterministik olmasa bile seed controlled randomness).",
+    "task_desc": "Seed determinism test. When training is run twice with the same seed, the rollout scores of the first 3 steps must be identical (seed-controlled randomness even if the model is not deterministic).",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -99,7 +99,7 @@
   },
   {
     "id": "val-008",
-    "task_desc": "Regression guard testi. Eski bir deney record'uyla kod yazmaya çalışıldığında (record zaten karar vermiş ve kapalıysa) guard hook yeni deney talep etmeli.",
+    "task_desc": "Regression guard test. When trying to write code with an old experiment record (if the record has already reached a decision and is closed), the guard hook must request a new experiment.",
     "expected_fields": [
       "Theory",
       "Hypothesis",

@@ -1,7 +1,7 @@
 [
   {
     "id": "edge-001",
-    "task_desc": "Boş story dizini ile stop hook testi. docs/development/stories/ dizini yoksa veya boşsa stop hook engelleme yapmamalı. Normal kapanışa izin vermeli.",
+    "task_desc": "Stop hook test with an empty story directory. If docs/development/stories/ does not exist or is empty, the stop hook must not block. It should allow a normal shutdown.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -15,7 +15,7 @@
   },
   {
     "id": "edge-002",
-    "task_desc": "Birden fazla in-progress story ile stop hook testi. 3 in-progress story varsa ve hepsi farklı epic'lere bağlıysa, hangisinin öncelikli olduğunu ve hepsinin loglandığını test et.",
+    "task_desc": "Stop hook test with multiple in-progress stories. If there are 3 in-progress stories all linked to different epics, test which one takes priority and that all of them are logged.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -29,7 +29,7 @@
   },
   {
     "id": "edge-003",
-    "task_desc": "Concurrent deney kaydı testi. Aynı anda iki deney record'u ONAYLANDI durumunda olabilir mi? Guard hook hangisine öncelik vermeli?",
+    "task_desc": "Concurrent experiment record test. Can two experiment records be in APPROVED status at the same time? Which one should the guard hook prioritize?",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -43,7 +43,7 @@
   },
   {
     "id": "edge-004",
-    "task_desc": "FORGED token testi. Geçersiz veya sahte bir HMAC-SHA256 token ile verify çağrısı yapıldığında reject edilmeli. Token manipüle edilerek test edilmeli.",
+    "task_desc": "FORGED token test. When a verify call is made with an invalid or forged HMAC-SHA256 token, it must be rejected. The token should be tested by manipulating it.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -57,7 +57,7 @@
   },
   {
     "id": "edge-005",
-    "task_desc": "Küçük örneklem belirsizliği testi. n=2 ile bir deney ölçümü yapıldığında Wilson lower bound hesabı doğru yapılmalı ve recorded belief Wilson alt sınırı esik değerinin altında olmalı.",
+    "task_desc": "Small sample uncertainty test. When an experiment measurement is taken with n=2, the Wilson lower bound must be computed correctly, and the recorded belief's Wilson lower bound must be below the threshold value.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -71,7 +71,7 @@
   },
   {
     "id": "edge-006",
-    "task_desc": "Metrik uyumsuzluk testi. Hipotezde accuracy dediği ölçümde precision ölçülürse UYUMSUZ olarak işaretlenmeli ve verify ADVISORY-BLOCK döndürmeli.",
+    "task_desc": "Metric mismatch test. If the hypothesis says accuracy but the measurement measures precision, it must be marked as MISMATCH and verify must return ADVISORY-BLOCK.",
     "expected_fields": [
       "Theory",
       "Hypothesis",

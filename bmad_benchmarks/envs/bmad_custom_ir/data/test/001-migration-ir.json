@@ -1,9 +1,9 @@
 [
   {
     "id": "ir-monolith-migration",
-    "research_inputs": "E-025 ONAYLANDI (service extraction strategy), R-011 (brownfield migration risks). All approved.",
-    "design_docs": "PRD: docs/prd/migration.md, UX: yok, Mimari: docs/architecture/migration-spine.md",
-    "dependencies": "API: internal auth-service (ready). Altyapı: Kubernetes ready. Harici: none.",
+    "research_inputs": "E-025 APPROVED (service extraction strategy), R-011 (brownfield migration risks). All approved.",
+    "design_docs": "PRD: docs/prd/migration.md, UX: none, Architecture: docs/architecture/migration-spine.md",
+    "dependencies": "API: internal auth-service (ready). Infrastructure: Kubernetes ready. External: none.",
     "expected_fields": [
       "Date",
       "Status",

@@ -1,7 +1,7 @@
 [
   {
     "id": "test-001",
-    "task_desc": "Guard hook'un REDDEDİLDİ deney kaydıyla kod yazmayı engelleme testi. Kapı sonucu REDDEDİLDİ olan bir deney record'u ile dosya oluşturmayı dene, DENY al.",
+    "task_desc": "Test that the guard hook blocks code writing with a REJECTED experiment record. Try creating a file with an experiment record whose gate result is REJECTED, and receive DENY.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -15,7 +15,7 @@
   },
   {
     "id": "test-002",
-    "task_desc": "Tekrar karar verme testi. Zaten ONAYLANDI kararlı bir deney record'una yeni bir ölçüm eklenmeye çalışıldığında kapının reddetmesi gerekiyor. Tek ölçüm tek karar kuralı.",
+    "task_desc": "Repeat decision test. When a new measurement is attempted on an experiment record that already has an APPROVED decision, the gate must reject it. One measurement, one decision rule.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -29,7 +29,7 @@
   },
   {
     "id": "test-003",
-    "task_desc": "Wilson lower bound hesaplama testi. n=10, x=9 (başarı oranı 0.90) olduğunda Wilson 95% lower bound hesaplanmalı ve eşik değerinin altındaysa belirsizlik olarak işaretlenmeli.",
+    "task_desc": "Wilson lower bound calculation test. When n=10, x=9 (success rate 0.90), the Wilson 95% lower bound must be computed and, if it is below the threshold, marked as uncertain.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -43,7 +43,7 @@
   },
   {
     "id": "test-004",
-    "task_desc": "Sprint completion rate ölçümü. 10 story'lik bir sprint'te tamamlanan story oranı hesaplanmalı. Blocked story'ler hesaba katılmalı ama destacats haricindeki iptal edilen story'ler dahil edilmemeli.",
+    "task_desc": "Sprint completion rate measurement. In a 10-story sprint, the ratio of completed stories must be calculated. Blocked stories must be counted, but cancelled stories other than the designated ones must not be included.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -57,7 +57,7 @@
   },
   {
     "id": "test-005",
-    "task_desc": "Backward compatibility deneyi. Eski format (Ingilizce etiketli) deney kayıtları yeni kapıyla okunabilmeli ama otomatik olarak Türkçeye dönüştürülmeli veya uyarı verilmeli.",
+    "task_desc": "Backward compatibility experiment. Old-format experiment records (with English labels) must be readable by the new gate, but must be automatically converted to Turkish or produce a warning.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -71,7 +71,7 @@
   },
   {
     "id": "test-006",
-    "task_desc": "Error recovery testi. Audit hook log dosyası yazılabilir durumda değilse (readonly filesystem) hook sessizce başarısız olmalı, ana process'i block etmemeli.",
+    "task_desc": "Error recovery test. If the audit hook's log file is not writable (readonly filesystem), the hook must fail silently and must not block the main process.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -85,7 +85,7 @@
   },
   {
     "id": "test-007",
-    "task_desc": "Multiple gate pipeline testi. IR → SP → S → QR → PR zincirinde her kapı bir sonraki kapıyı açmalı. Eksik IR ile SP başlatılamaz, eksik QR ile PR yapılamaz.",
+    "task_desc": "Multiple gate pipeline test. In the IR → SP → S → QR → PR chain, each gate must open the next gate. SP cannot be started without IR, and PR cannot be made without QR.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
@@ -99,7 +99,7 @@
   },
   {
     "id": "test-008",
-    "task_desc": "Memory update correctness testi. Deney tamamlandığında project memory dosyası güncellenmeli: yeni kapasite listeye eklenmeli, deney sayısı artırılmalı, son commit hash kaydedilmeli.",
+    "task_desc": "Memory update correctness test. When an experiment is completed, the project memory file must be updated: the new capability must be added to the list, the experiment count incremented, and the latest commit hash recorded.",
     "expected_fields": [
       "Theory",
       "Hypothesis",
