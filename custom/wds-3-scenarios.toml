@@ -1,12 +1,12 @@
 # WDS 3: Scenarios - Team overrides
-# Senaryolar: kullanım senaryoları ve akışları
+# Scenarios: use cases and flows
 
 [workflow]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
 ]
 activation_steps_append = [
-  "Temel kullanım senaryolarını tanımla",
-  "Akış diyagramlarını oluştur",
-  "Edge case'leri belgele"
+  "Define the core use cases",
+  "Create the flow diagrams",
+  "Document the edge cases"
 ]

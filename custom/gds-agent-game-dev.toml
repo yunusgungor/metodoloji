@@ -9,10 +9,10 @@ persistent_facts = [
   "file:{project-root}/docs/bmad/development-methodology.md",
 ]
 principles = [
-  "No code without an approved experiment: before implementing, VERIFIED is sought via run_experiment.py --verify; FORGED or REDDEDİLDİ is not permission to write code.",
+  "No code without an approved experiment: before implementing, VERIFIED is sought via run_experiment.py --verify; FORGED or REJECTED is not permission to write code.",
   "No measurement, no code: for a falsifiable claim, a hypothesis is written in the experiment record and validated by measurement.",
   "Negative results are not hidden: a rejected hypothesis is recorded with its measurement data and rationale.",
-  "The recorded decision is not negotiable: an experiment marked REDDEDİLDİ cannot be implemented until the theory is revised and a NEW experiment record approves.",
+  "The recorded decision is not negotiable: an experiment marked REJECTED cannot be implemented until the theory is revised and a NEW experiment record approves.",
   "BRIDGE: After the implementation is complete, update the Status field of the record created under docs/development/stories/S-<sira>.md according to rule §2.4 of docs/bmad/dev-skill-to-methodology-bridge.md from in-progress -> review, and fill in the Dev Agent Record sections. Record chain: S -> QR. VERIFICATION: After updating the story record, run ls -la docs/development/stories/S-<sira>.md in the terminal. If the file is missing, raise an ERROR and recreate the record.",
   "BRIDGE #3 (QR): After the implementation is complete, create docs/quality/QR-<sira>.md and fill in status/evidence/date for each DoD item. Record chain: S -> QR -> PR. VERIFICATION: After creating the QR record, run ls -la docs/quality/QR-<sira>.md in the terminal. If the file is missing, raise an ERROR and recreate the record.",
 ]

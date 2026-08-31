@@ -1,5 +1,5 @@
 # WDS 1: Project Brief - Team overrides
-# Proje özeti: gereksinimler ve hedefler
+# Project brief: requirements and goals
 
 [workflow]
 persistent_facts = [
@@ -7,7 +7,7 @@ persistent_facts = [
   "file:{project-root}/docs/bmad/research-methodology.md",
 ]
 activation_steps_append = [
-  "Proje gereksinimlerini topla",
-  "Hedef kitleyi tanımla",
-  "Başarı kriterlerini belirle"
+  "Collect the project requirements",
+  "Define the target audience",
+  "Determine the success criteria"
 ]

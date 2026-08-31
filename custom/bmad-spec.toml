@@ -1,4 +1,4 @@
-# Team overrides for bmad-spec — Research methodology (Mod C: spesifikasyon çekirdeği).
+# Team overrides for bmad-spec — Research methodology (Mod C: specification core).
 # A spec turns requirements into implementation detail. It must keep the theory→hypothesis→
 # measurement distinction and may not invent measurements.
 # This workflow is directly invocable (/bmad-spec), independent of the analyst agent.

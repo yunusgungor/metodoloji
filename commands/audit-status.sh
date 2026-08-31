@@ -1,52 +1,52 @@
 #!/bin/sh
-# audit-status.sh — Periyodik denetim: metodoloji durumunu kontrol et
-# Kullanım: sh audit-status.sh
+# audit-status.sh — Periodic audit: check methodology status
+# Usage: sh audit-status.sh
 
-echo "=== BMAD Metodolojisi Durum Raporu ==="
-echo "Tarih: $(date)"
+echo "=== BMAD Methodology Status Report ==="
+echo "Date: $(date)"
 echo
 
-# 1. Gate Key Durumu
+# 1. Gate Key Status
 echo "1. Gate Key:"
 if [ -f "$HOME/.bmad/gate-key" ]; then
-    echo "   ✓ Kurulu ($(wc -c < "$HOME/.bmad/gate-key") bayt)"
+    echo "   ✓ Installed ($(wc -c < "$HOME/.bmad/gate-key") bytes)"
 else
-    echo "   ✗ Yok (python3 run_experiment.py --init-secret ile oluşturun)"
+    echo "   ✗ Missing (create with: python3 run_experiment.py --init-secret)"
 fi
 
-# 2. Deney Kayıtları
-echo "2. Deney Kayıtları:"
+# 2. Experiment Records
+echo "2. Experiment Records:"
 if [ -d "docs/experiments" ]; then
     COUNT=$(ls -1 docs/experiments/*.md 2>/dev/null | wc -l)
-    echo "   $COUNT kayıt var"
+    echo "   $COUNT records present"
     ls -1 docs/experiments/*.md 2>/dev/null | head -5
 else
-    echo "   ✗ docs/experiments/ dizini yok"
+    echo "   ✗ docs/experiments/ directory missing"
 fi
 
-# 3. Hook Log Durumu
-echo "3. Hook Logları:"
+# 3. Hook Log Status
+echo "3. Hook Logs:"
 if [ -f ".metodoloji/logs/hook-audit.log" ]; then
     LINES=$(wc -l < ".metodoloji/logs/hook-audit.log")
-    echo "   $LINES satır log var"
+    echo "   $LINES log lines present"
 else
-    echo "   ✗ Log dosyası yok"
+    echo "   ✗ Log file missing"
 fi
 
-# 4. Plugin Dizin Yapısı
-echo "4. Plugin Yapısı:"
-echo "   Skills: $(ls -1 skills/ 2>/dev/null | wc -l) adet"
-echo "   Custom TOML: $(ls -1 custom/*.toml 2>/dev/null | wc -l) adet"
-echo "   Commands: $(ls -1 commands/*.md 2>/dev/null | wc -l) adet"
+# 4. Plugin Directory Structure
+echo "4. Plugin Structure:"
+echo "   Skills: $(ls -1 skills/ 2>/dev/null | wc -l)"
+echo "   Custom TOML: $(ls -1 custom/*.toml 2>/dev/null | wc -l)"
+echo "   Commands: $(ls -1 commands/*.md 2>/dev/null | wc -l)"
 
-# 5. Guard Hook Testi
-echo "5. Guard Hook Testi:"
+# 5. Guard Hook Test
+echo "5. Guard Hook Test:"
 RESULT=$(echo '{"tool_name": "terminal", "tool_input": {"command": "ls"}}' | python3 hooks/engine/main.py guard 2>/dev/null)
 if echo "$RESULT" | grep -q '"allow"'; then
-    echo "   ✓ Guard hook çalışıyor"
+    echo "   ✓ Guard hook is working"
 else
-    echo "   ✗ Guard hook sorunlu: $RESULT"
+    echo "   ✗ Guard hook has an issue: $RESULT"
 fi
 
 echo
-echo "=== Rapor Sonu ==="
+echo "=== End of Report ==="

@@ -1,12 +1,12 @@
 # WDS 2: Trigger Mapping - Team overrides
-# Tetikleme eşleme: kullanıcı eylemleri ve tepkileri
+# Trigger mapping: user actions and responses
 
 [workflow]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
 ]
 activation_steps_append = [
-  "Kullanıcı eylemlerini listele",
-  "Tetikleme koşullarını tanımla",
-  "Sistem tepkilerini eşle"
+  "List the user actions",
+  "Define the trigger conditions",
+  "Map the system responses"
 ]

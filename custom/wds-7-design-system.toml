@@ -1,12 +1,12 @@
 # WDS 7: Design System - Team overrides
-# Tasarım sistemi: bileşenler ve stil kılavuzları
+# Design system: components and style guides
 
 [workflow]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
 ]
 activation_steps_append = [
-  "Tasarım token'larını tanımla",
-  "Bileşen kütüphanesini oluştur",
-  "Stil kılavuzunu dokümante et"
+  "Define the design tokens",
+  "Create the component library",
+  "Document the style guide"
 ]

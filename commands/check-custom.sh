@@ -1,36 +1,36 @@
 #!/bin/sh
-# check-custom.sh — custom/ köprü TOML'lerinin statik kalite denetimi.
+# check-custom.sh — static quality audit of custom/ bridge TOMLs.
 #
-#   0. TOML parse + tablo varlığı
-#   1. Persistent-facts üçlüsü  (research / development / project-context)
-#   2. activation_steps_append derinliği
-#        Gate uygulayıcılar (GATE_REQUIRED)  → >= 3 adım
-#        Diğer workflow'lar (MOD_A_RECORD_ONLY + araçlar) → >= 1 adım
-#   3. Hard-gate anahtar kelimeleri
-#        GATE_REQUIRED    → ONAYLANDI/REDDEDİLDİ/FORGED/VERIFIED olmalı
-#        GATE_REFERENCE_OK → referans olarak taşıyabilir (örn. bmad-tea)
-#        Diğerleri → sızıntı (yanlış katmanda) → fail
-#   4. Köprü DOGRULAMA kalıbı (gate uygulayıcılar: "ls -la ... HATA ver")
-#   5. gds-* Mod A köprü referansı (dev-skill-to-methodology-bridge zorunlu)
-#   6. config.toml [hooks] soft/hard sözleşmesi (DRY: §5b ile aynı parser)
-#   7. Köprü belge §N.N referans drift denetimi (bridge.md bölümleriyle senkron)
+#   0. TOML parse + table presence
+#   1. Persistent-facts trio  (research / development / project-context)
+#   2. activation_steps_append depth
+#        Gate enforcers (GATE_REQUIRED)  → >= 3 steps
+#        Other workflows (MOD_A_RECORD_ONLY + tools) → >= 1 step
+#   3. Hard-gate keywords
+#        GATE_REQUIRED    → must contain ONAYLANDI/REDDEDİLDİ/FORGED/VERIFIED
+#        GATE_REFERENCE_OK → may carry as reference (e.g. bmad-tea)
+#        Others → leak (wrong layer) → fail
+#   4. Bridge verify pattern (gate enforcers: "ls -la ... error and recreate")
+#   5. gds-* Mod A bridge reference (dev-skill-to-methodology-bridge required)
+#   6. config.toml [hooks] soft/hard contract (DRY: same parser as §5b)
+#   7. Bridge document §N.N reference drift audit (synced with bridge.md sections)
 #
-# Kullanım:  sh commands/check-custom.sh
+# Usage:  sh commands/check-custom.sh
 #            sh commands/check-custom.sh --negtest
-#            (yalnızca negatif test: §3 hard-gate + §7 bridge drift (2/2:
-#             §N.N sil, bolum N.N enjekte) → MISS yakala → geri yükle)
-# Çıkış:     her satırın başında [OK] / [UYARI] / [HATA]; sonunda genel durum.
+#            (negative-test only: §3 hard-gate + §7 bridge drift (2/2:
+#             delete §N.N, inject "bolum N.N") → catch MISS → restore)
+# Output:    [OK] / [WARNING] / [ERROR] at the start of each line; overall status at the end.
 set -u
 
 PROBLEMS=0
 
 if [ "${1:-}" = "--negtest" ]; then
-    # Negatif test 1: §3 hard-gate — bmad-dev-story.toml'dan hard-gate
-    # anahtar kelimelerini (ONAYLANDI / REDDEDİLDİ / FORGED / VERIFIED) geçici
-    # kaldır, §3 mantığının MISS ürettiğini doğrula, dosyayı geri yükle.
-    # Negatif test 2: §7 bridge drift — bridge.md'den "### §2.3" başlığını
-    # geçici kaldır, custom/ dosyalarındaki §2.3 referanslarından dolayı §7
-    # mantığının MISS ürettiğini doğrula, bridge'i geri yükle.
+    # Negative test 1: §3 hard-gate — temporarily remove the hard-gate
+    # keywords (ONAYLANDI / REDDEDİLDİ / FORGED / VERIFIED) from
+    # bmad-dev-story.toml, verify §3 logic produces a MISS, then restore the file.
+    # Negative test 2: §7 bridge drift — temporarily remove the "### §2.3" heading
+    # from bridge.md, verify §7 logic produces a MISS because of the §2.3
+    # references in custom/ files, then restore the bridge.
     SELF=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
     PLUGIN_ROOT=$(CDPATH= cd -- "$SELF/.." && pwd)
     PY=
@@ -38,7 +38,7 @@ if [ "${1:-}" = "--negtest" ]; then
         if command -v "$cand" >/dev/null 2>&1; then PY="$cand"; break; fi
     done
     if [ -z "$PY" ]; then
-        echo "[HATA] python3/python/py bulunamadı — negatif test çalışamaz." >&2
+        echo "[ERROR] python3/python/py not found — negative test cannot run." >&2
         exit 1
     fi
     PLUGIN_ROOT="$PLUGIN_ROOT" "$PY" - <<'PY'
@@ -48,7 +48,8 @@ from pathlib import Path
 PLUGIN = Path(os.environ["PLUGIN_ROOT"])
 toml = PLUGIN / "custom" / "bmad-dev-story.toml"
 bridge = PLUGIN / "docs" / "bmad" / "dev-skill-to-methodology-bridge.md"
-KEYWORDS = ("ONAYLANDI", "REDDEDİLDİ", "FORGED", "VERIFIED")
+# Accept both the legacy Turkish markers and the new English markers.
+KEYWORDS = ("APPROVED", "REJECTED", "FORGED", "VERIFIED", "ONAYLANDI", "REDDEDİLDİ")
 
 orig_toml = toml.read_text(encoding="utf-8")
 orig_bridge = bridge.read_text(encoding="utf-8")
@@ -69,30 +70,28 @@ def has_dev_story_gate_error(text: str) -> bool:
         toml.write_text(orig_toml, encoding="utf-8")
 
 if has_dev_story_gate_error(orig_toml):
-    print("[HATA] sağlam custom TOML'da bile hard-gate hatası görünüyor — test kurulumu bozuk")
+    print("[ERROR] hard-gate error visible even in intact custom TOML — test setup broken")
     sys.exit(1)
 
 broken_toml = "\n".join(
     l for l in orig_toml.splitlines()
     if not any(k in l for k in KEYWORDS)
 )
-removed = (orig_toml.count("ONAYLANDI") + orig_toml.count("REDDEDİLDİ")
-           + orig_toml.count("FORGED") + orig_toml.count("VERIFIED"))
-removed_after = (broken_toml.count("ONAYLANDI") + broken_toml.count("REDDEDİLDİ")
-                 + broken_toml.count("FORGED") + broken_toml.count("VERIFIED"))
+removed = sum(orig_toml.count(k) for k in KEYWORDS)
+removed_after = sum(broken_toml.count(k) for k in KEYWORDS)
 if removed == removed_after or removed == 0:
-    print("[HATA] anahtar kelimeler bulunamadı veya temizlenemedi — test kurulumu bozuk")
+    print("[ERROR] keywords not found or could not be removed — test setup broken")
     sys.exit(1)
 
 if not has_dev_story_gate_error(broken_toml):
-    print("[HATA] negatif test 1 başarısız: hard-gate silindiği halde §3 mantığı yakalamadı")
+    print("[ERROR] negative test 1 failed: §3 logic did not catch removed hard-gate")
     sys.exit(1)
-print("[OK]   negatif test 1/3: hard-gate anahtar kelimeleri silindi → §3 MISS yakalandı")
+print("[OK]   negative test 1/3: hard-gate keywords removed → §3 MISS caught")
 
 # ---- Test 2: §7 bridge drift ----
 def has_bridge_drift_error(bridge_text: str) -> bool:
-    """§7 drift: bridge'den §2.3 kaldırıldığında custom/ dosyalarındaki §2.3
-    referanslarından dolayı 'köprü §N.N drift' UYARI satırı çıkmalı."""
+    """§7 drift: when §2.3 is removed from the bridge, a 'bridge §N.N drift'
+    WARNING line must appear because of the §2.3 references in custom/ files."""
     bridge.write_text(bridge_text, encoding="utf-8")
     try:
         r = subprocess.run(
@@ -100,18 +99,18 @@ def has_bridge_drift_error(bridge_text: str) -> bool:
             capture_output=True, text=True, encoding="utf-8", timeout=30)
         out = r.stdout
         for line in out.splitlines():
-            if "köprü §N.N drift" in line or "bridge'de olmayan" in line:
+            if "bridge §N.N drift" in line or "not in bridge" in line:
                 return True
         return False
     finally:
         bridge.write_text(orig_bridge, encoding="utf-8")
 
 if has_bridge_drift_error(orig_bridge):
-    print("[HATA] sağlam bridge'de bile drift hatası görünüyor — test kurulumu bozuk")
+    print("[ERROR] drift error visible even in intact bridge — test setup broken")
     sys.exit(1)
 
-# bridge'den "### §2.3" bloğunu satır-bazlı sil: başlık satırından sonraki
-# `### ` veya `## ` başlığına kadar. Drift testinin minimum müdahalesi.
+# Remove the "### §2.3" block from the bridge line-by-line: up to the next
+# `### ` or `## ` heading. Minimal intervention for the drift test.
 def remove_section_23(text: str) -> str:
     lines = text.splitlines(keepends=True)
     out = []
@@ -128,17 +127,17 @@ def remove_section_23(text: str) -> str:
 
 broken_bridge = remove_section_23(orig_bridge)
 if "### §2.3" in broken_bridge or "§2.3" in broken_bridge:
-    print("[HATA] bridge'den §2.3 silinemedi — başlık farklı veya eşleşmedi")
+    print("[ERROR] §2.3 could not be removed from bridge — heading different or no match")
     sys.exit(1)
 
 if not has_bridge_drift_error(broken_bridge):
-    print("[HATA] negatif test 2 başarısız: §2.3 bridge'den silindiği halde §7 mantığı yakalamadı")
+    print("[ERROR] negative test 2 failed: §7 logic did not catch §2.3 removed from bridge")
     sys.exit(1)
-print("[OK]   negatif test 2/3: bridge §2.3 silindi → §7 MISS yakalandı → bridge geri yüklendi")
+print("[OK]   negative test 2/3: bridge §2.3 removed → §7 MISS caught → bridge restored")
 
-# ---- Test 3: §7 bolum N.N kalıbı ----
-# bmad-testarch-atdd.toml'a "bolum 99.99" enjekte et — bridge'de olmayan
-# bir bölüm, §7 "bolum" kalıbını da yakalamalı.
+# ---- Test 3: §7 bolum N.N pattern ----
+# Inject "bolum 99.99" into bmad-testarch-atdd.toml — a section not in the
+# bridge; §7's "bolum" pattern must also catch it.
 test_toml = PLUGIN / "custom" / "bmad-testarch-atdd.toml"
 orig_test_toml = test_toml.read_text(encoding="utf-8")
 
@@ -150,45 +149,45 @@ def has_bolum_drift_error(text: str) -> bool:
             capture_output=True, text=True, encoding="utf-8", timeout=30)
         out = r.stdout
         for line in out.splitlines():
-            if "bmad-testarch-atdd" in line and "bridge'de olmayan" in line:
+            if "bmad-testarch-atdd" in line and "not in bridge" in line:
                 return True
         return False
     finally:
         test_toml.write_text(orig_test_toml, encoding="utf-8")
 
 if has_bolum_drift_error(orig_test_toml):
-    print("[HATA] sağlam testarch TOML'da bile bolum drift hatası görünüyor — test kurulumu bozuk")
+    print("[ERROR] bolum drift error visible even in intact testarch TOML — test setup broken")
     sys.exit(1)
 
-# Yorum satırı olarak enjekte et ki TOML semantiği bozulmasın. Testarch
-# dosyası zaten bridge referansı taşıdığı için §7 onu denetliyor.
+# Inject as a comment line so TOML semantics are not broken. The testarch
+# file already carries a bridge reference, so §7 audits it.
 broken_toml = orig_test_toml + "\n# drift test: bolum 99.99\n"
 if not has_bolum_drift_error(broken_toml):
-    print("[HATA] negatif test 3 başarısız: 'bolum 99.99' enjekte edildiği halde §7 mantığı yakalamadı")
+    print("[ERROR] negative test 3 failed: §7 logic did not catch injected 'bolum 99.99'")
     sys.exit(1)
-print("[OK]   negatif test 3/3: 'bolum 99.99' enjekte edildi → §7 MISS yakalandı → testarch TOML geri yüklendi")
+print("[OK]   negative test 3/3: 'bolum 99.99' injected → §7 MISS caught → testarch TOML restored")
 sys.exit(0)
 PY
     exit $?
 fi
 
-# (Ana akış aşağıda)
+# (Main flow below)
 
 SELF=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 PLUGIN_ROOT=$(CDPATH= cd -- "$SELF/.." && pwd)
 export PLUGIN_ROOT
 
-# Python çözücü (check-plugin.sh ile aynı kural).
+# Python resolver (same rule as check-plugin.sh).
 PY=
 for cand in python3 python py; do
     if command -v "$cand" >/dev/null 2>&1; then PY="$cand"; break; fi
 done
 if [ -z "$PY" ]; then
-    echo "[HATA] python3/python/py bulunamadı — check-custom çalışamaz." >&2
+    echo "[ERROR] python3/python/py not found — check-custom cannot run." >&2
     exit 1
 fi
 
-echo "== 0) TOML parse + tablo varlığı =="
+echo "== 0) TOML parse + table presence =="
 "$PY" - <<'PY'
 import glob, os, sys, tomllib
 for _s in (sys.stdout, sys.stderr):
@@ -201,29 +200,29 @@ checked = 0
 for path in sorted(glob.glob(os.path.join(PLUGIN, "custom", "*.toml"))):
     name = os.path.basename(path)
     if name == "config.toml":
-        continue  # §6'da ayrı denetleniyor
+        continue  # audited separately in §6
     checked += 1
     try:
         data = tomllib.load(open(path, "rb"))
     except Exception as e:
-        problems.append("%s: parse hatası — %s" % (name, e))
+        problems.append("%s: parse error — %s" % (name, e))
         continue
     if not any(sec in data for sec in ("workflow", "agent")):
-        problems.append("%s: [workflow] veya [agent] tablosu yok" % name)
+        problems.append("%s: no [workflow] or [agent] table" % name)
 
-print("  denetlenen custom dosyası: %d" % checked)
+print("  checked custom files: %d" % checked)
 for p in problems:
     print("  MISS: %s" % p)
 raise SystemExit(1 if problems else 0)
 PY
 if [ $? -eq 0 ]; then
-    echo "[OK]   tüm custom TOML'leri parse ediyor ve tablo içeriyor"
+    echo "[OK]   all custom TOMLs parse and contain a table"
 else
-    echo "[UYARI] parse/tablo sorunu (yukarı bak)"
+    echo "[WARNING] parse/table issue (see above)"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 
-echo "== 1) Persistent-facts üçlüsü (research / development / project-context) =="
+echo "== 1) Persistent-facts trio (research / development / project-context) =="
 "$PY" - <<'PY'
 import glob, os, sys, tomllib
 for _s in (sys.stdout, sys.stderr):
@@ -231,12 +230,12 @@ for _s in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError): pass
 
 PLUGIN = os.environ.get("PLUGIN_ROOT") or "."
-# Geliştirme kanadı — bu listede olanlar üçlüyü (research + development +
-# project-context) yüklemeli. Listede olmayanlar için tek zorunluluk
-# project-context.md'dir; diğer manifesto işaretçileri opsiyonel kalır.
-# Not: bmad-eval-runner / bmad-research-experiment / bmad-review-* bilinçli
-# olarak listede değil — bunlar "kod yazmaz, ölçer/denetler" ve sadece
-# research manifestosunu yükler (deney kaydı üretir).
+# Development wing — those in this list must load the trio (research + development +
+# project-context). For those not in the list, the only requirement is
+# project-context.md; other manifesto pointers remain optional.
+# Note: bmad-eval-runner / bmad-research-experiment / bmad-review-* are
+# deliberately not in the list — they "don't write code, they measure/audit" and
+# only load the research manifesto (they produce experiment records).
 DEV_WING = {
     "bmad-check-implementation-readiness", "bmad-prd", "bmad-ux",
     "bmad-create-architecture", "bmad-sprint-planning", "bmad-create-story",
@@ -262,35 +261,35 @@ for path in sorted(glob.glob(os.path.join(PLUGIN, "custom", "*.toml"))):
     try:
         data = tomllib.load(open(path, "rb"))
     except Exception:
-        continue  # §0 zaten raporladı
+        continue  # §0 already reported
     checked += 1
     facts = []
     for sec in ("workflow", "agent"):
         facts += data.get(sec, {}).get("persistent_facts", []) or []
     if not facts:
-        problems.append("%s: persistent_facts yok" % name)
+        problems.append("%s: no persistent_facts" % name)
         continue
     if not any("project-context.md" in x for x in facts):
-        problems.append("%s: project-context.md işaretçisi yok" % name)
+        problems.append("%s: no project-context.md pointer" % name)
     if name in DEV_WING:
         if not any("research-methodology.md" in x for x in facts):
-            problems.append("%s: research-methodology.md işaretçisi yok (DEV kanat)" % name)
+            problems.append("%s: no research-methodology.md pointer (DEV wing)" % name)
         if not any("development-methodology.md" in x for x in facts):
-            problems.append("%s: development-methodology.md işaretçisi yok (DEV kanat)" % name)
+            problems.append("%s: no development-methodology.md pointer (DEV wing)" % name)
 
-print("  denetlenen: %d" % checked)
+print("  checked: %d" % checked)
 for p in problems:
     print("  MISS: %s" % p)
 raise SystemExit(1 if problems else 0)
 PY
 if [ $? -eq 0 ]; then
-    echo "[OK]   persistent_facts üçlüsü tüm yüzeylerde"
+    echo "[OK]   persistent_facts trio present on all surfaces"
 else
-    echo "[UYARI] persistent_facts eksik (yukarı bak)"
+    echo "[WARNING] persistent_facts missing (see above)"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 
-echo "== 2) activation_steps_append derinliği =="
+echo "== 2) activation_steps_append depth =="
 "$PY" - <<'PY'
 import glob, os, sys, tomllib
 for _s in (sys.stdout, sys.stderr):
@@ -298,16 +297,16 @@ for _s in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError): pass
 
 PLUGIN = os.environ.get("PLUGIN_ROOT") or "."
-# Gate UYGULAYAN yüzeyler (kod yazar / merge denetler) — min 3 adım:
-#   köprü talimatı + en az bir verify kalıbı + DOGRULAMA adımı
-# Gate uygulamayan Mod A yüzeyler (kayıt üretir ama kod yazmaz) — min 1 adım.
-# Bu ayrım, hard-gate sözleşmesinin fiilen kullanan dosyaları hedefler.
+# Gate-ENFORCING surfaces (write code / check merges) — min 3 steps:
+#   bridge instruction + at least one verify pattern + DOGRULAMA step
+# Gate-non-enforcing Mod A surfaces (produce records but don't write code) — min 1 step.
+# This distinction targets the files that actually use the hard-gate contract.
 GATE_REQUIRED = {
     "bmad-dev-story", "bmad-dev-auto", "bmad-quick-dev",
     "bmad-code-review", "bmad-agent-dev",
-    "bmad-create-story",   # AC'de experiment ONAYLANDI kontrolü = gate doğrulayıcısı
+    "bmad-create-story",   # ONAYLANDI check on AC experiments = gate verifier
     "gds-dev-story", "gds-quick-dev", "gds-code-review",
-    "gds-create-story",    # gds create-story de aynı şekilde doğrulayıcı
+    "gds-create-story",    # gds create-story is likewise a verifier
     "gds-agent-game-dev", "wds-agent-mimir-builder",
 }
 MOD_A_RECORD_ONLY = {
@@ -333,32 +332,32 @@ for path in sorted(glob.glob(os.path.join(PLUGIN, "custom", "*.toml"))):
     asa = data.get("workflow", {}).get("activation_steps_append", []) or []
     n = len(asa)
     if n == 0:
-        # [agent] dosyaları boş olabilir (activation_steps_append yok, normal).
+        # [agent]-only files may be empty (no activation_steps_append, that's fine).
         if "agent" in data and "workflow" not in data:
             continue
-        problems.append("%s: activation_steps_append boş (workflow dosyası)" % name)
+        problems.append("%s: empty activation_steps_append (workflow file)" % name)
         continue
     if name in GATE_REQUIRED:
         if n < MIN_GATE:
-            problems.append("%s: gate uygulayıcısı ama derinlik=%d (>= %d olmalı)" %
+            problems.append("%s: gate enforcer but depth=%d (must be >= %d)" %
                             (name, n, MIN_GATE))
     else:
         if n < MIN_RECORD:
-            problems.append("%s: derinlik=%d (>= %d olmalı)" % (name, n, MIN_RECORD))
+            problems.append("%s: depth=%d (must be >= %d)" % (name, n, MIN_RECORD))
 
-print("  denetlenen: %d" % checked)
+print("  checked: %d" % checked)
 for p in problems:
     print("  MISS: %s" % p)
 raise SystemExit(1 if problems else 0)
 PY
 if [ $? -eq 0 ]; then
-    echo "[OK]   activation_steps_append derinliği kurala uygun"
+    echo "[OK]   activation_steps_append depth conforms to the rule"
 else
-    echo "[UYARI] derinlik ihlali (yukarı bak)"
+    echo "[WARNING] depth violation (see above)"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 
-echo "== 3) Hard-gate anahtar kelimeleri (ONAYLANDI / REDDEDİLDİ / FORGED / VERIFIED) =="
+echo "== 3) Hard-gate keywords (APPROVED / REJECTED / FORGED / VERIFIED) =="
 "$PY" - <<'PY'
 import glob, os, re, sys, tomllib
 for _s in (sys.stdout, sys.stderr):
@@ -366,26 +365,27 @@ for _s in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError): pass
 
 PLUGIN = os.environ.get("PLUGIN_ROOT") or "."
-# Mod A: gate'i ÜRETEN veya UYGULAYAN yüzeyler — hard-gate kelimesi zorunlu.
-# Bu set, hard-gate'in fiilen kullanıldığı (kod yazan / merge denetleyen /
-# mekanik onaylayan) dosyaları kapsar. Belgesel üretim yapan (kayıt üreten
-# ama gate uygulamayan) yüzeyler burada DEĞİLDİR.
+# Mod A: surfaces that PRODUCE or ENFORCE the gate — hard-gate keyword required.
+# This set covers the files where hard-gate is actually used (writes code / checks
+# merges / mechanically approves). Surfaces that only produce documentary
+# records (produce records but don't enforce the gate) are NOT here.
 GATE_REQUIRED = {
     "bmad-dev-story", "bmad-dev-auto", "bmad-quick-dev",
     "bmad-code-review", "bmad-agent-dev",
-    "bmad-create-story",   # AC'de experiment ONAYLANDI kontrolü = gate doğrulayıcısı
+    "bmad-create-story",   # APPROVED check on AC experiments = gate verifier
     "gds-dev-story", "gds-quick-dev", "gds-code-review",
-    "gds-create-story",    # gds create-story de aynı şekilde doğrulayıcı
+    "gds-create-story",    # gds create-story is likewise a verifier
     "gds-agent-game-dev", "wds-agent-mimir-builder",
 }
-# Gate'i referans olarak taşıyan ama uygulamayan yüzeyler (prensip bildirimi
-# veya eğitim amaçlı). Bu listede olanlar için hard-gate kelimesi sızıntı
-# sayılmaz; başka hiçbir yüzeyde görünürse hata olur.
+# Surfaces that carry the gate as a reference but don't enforce it (principle
+# statement or for training). For those in this list the hard-gate keyword is
+# not counted as a leak; appearing anywhere else is an error.
 GATE_REFERENCE_OK = {
-    "bmad-tea",  # test stratejisi belgesel: "Mod A mekanik onayına bağlı" der
+    "bmad-tea",  # test strategy documentary: "depends on Mod A mechanical approval"
 }
-# Hem activation_steps_append'te hem principles'te geçebilir.
-KEYWORDS = ("ONAYLANDI", "REDDEDİLDİ", "FORGED", "VERIFIED")
+# May appear in both activation_steps_append and principles.
+# Accept both the legacy Turkish markers and the new English markers.
+KEYWORDS = ("APPROVED", "REJECTED", "FORGED", "VERIFIED", "ONAYLANDI", "REDDEDİLDİ")
 
 problems = []
 checked = 0
@@ -407,25 +407,25 @@ for path in sorted(glob.glob(os.path.join(PLUGIN, "custom", "*.toml"))):
     has_gate = any(k in blob for k in KEYWORDS)
     if name in GATE_REQUIRED:
         if not has_gate:
-            problems.append("%s: hard-gate uygulayıcısı ama anahtar kelime yok "
-                            "(%s bekleniyordu)" % (name, "|".join(KEYWORDS)))
+            problems.append("%s: hard-gate enforcer but no keyword "
+                            "(expected %s)" % (name, "|".join(KEYWORDS)))
     elif name not in GATE_REFERENCE_OK and has_gate:
-        problems.append("%s: Mod A dışı ama hard-gate anahtar kelimesi sızmış — "
-                        "yanlış katmanda; kontrol et" % name)
+        problems.append("%s: not Mod A but hard-gate keyword leaked — "
+                        "wrong layer; check it" % name)
 
-print("  denetlenen: %d" % checked)
+print("  checked: %d" % checked)
 for p in problems:
     print("  MISS: %s" % p)
 raise SystemExit(1 if problems else 0)
 PY
 if [ $? -eq 0 ]; then
-    echo "[OK]   hard-gate anahtar kelimeleri doğru katmanda"
+    echo "[OK]   hard-gate keywords in the correct layer"
 else
-    echo "[UYARI] hard-gate sızıntısı veya eksikliği (yukarı bak)"
+    echo "[WARNING] hard-gate leak or missing keyword (see above)"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 
-echo "== 4) Köprü DOGRULAMA kalıbı (Mod A) =="
+echo "== 4) Bridge DOGRULAMA pattern (Mod A) =="
 "$PY" - <<'PY'
 import glob, os, sys, tomllib
 for _s in (sys.stdout, sys.stderr):
@@ -433,11 +433,11 @@ for _s in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError): pass
 
 PLUGIN = os.environ.get("PLUGIN_ROOT") or "."
-# DOGRULAMA kalıbı: append içinde hem "DOGRULAMA" hem de "HATA ver" geçmeli.
-# Bu, LLM'in dosyayı oluşturduktan sonra terminal ile doğrulamasını zorunlu kılar.
-# Sadece gate uygulayan yüzeyler için (kod yazan / merge denetleyen / köprü
-# üreten); belgesel kayıt üreticiler (research-experiment, sprint-planning
-# vb.) kendi --validate hattına güvenir.
+# VERIFY pattern: the append must contain both "VERIFY" and "error and recreate".
+# This forces the LLM to verify the file via the terminal after creating it.
+# Only for gate-enforcing surfaces (write code / check merges / produce bridge);
+# documentary record producers (research-experiment, sprint-planning, etc.)
+# rely on their own --validate line.
 KOPRU = {
     "bmad-dev-story", "bmad-dev-auto", "bmad-quick-dev",
     "bmad-code-review", "bmad-create-story",
@@ -457,25 +457,29 @@ for name in sorted(KOPRU):
     checked += 1
     asa = data.get("workflow", {}).get("activation_steps_append", []) or []
     blob = "\n".join(asa)
-    if "DOGRULAMA" not in blob or "HATA ver" not in blob:
-        problems.append("%s: DOGRULAMA + 'HATA ver' kalıbı eksik" % name)
+    low = blob.lower()
+    # Accept both legacy Turkish markers and the new English markers.
+    has_verify = any(m in blob for m in ("DOGRULAMA", "VERIFY"))
+    has_error = any(m in low for m in ("hata ver", "error and recreate"))
+    if not has_verify or not has_error:
+        problems.append("%s: verify + error pattern missing" % name)
 
-print("  denetlenen köprü skill: %d" % checked)
+print("  checked bridge skills: %d" % checked)
 for p in problems:
     print("  MISS: %s" % p)
 raise SystemExit(1 if problems else 0)
 PY
 if [ $? -eq 0 ]; then
-    echo "[OK]   tüm köprü skill'lerinde DOGRULAMA+HATA kalıbı mevcut"
+    echo "[OK]   verify+error pattern present in all bridge skills"
 else
-    echo "[UYARI] DOGRULAMA kalıbı eksik (yukarı bak)"
+    echo "[WARNING] verify pattern missing (see above)"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 
-echo "== 5) gds-* Mod A köprü referansı (dev-skill-to-methodology-bridge) =="
-# Not: hard-gate anahtar kelimesi denetimi §3'te yapılıyor; burada sadece
-# bmm modülünün (gds) köprü dokümanına açık referans verip vermediğini
-# kontrol ediyoruz — DRY (hard-gate çift raporu yok).
+echo "== 5) gds-* Mod A bridge reference (dev-skill-to-methodology-bridge) =="
+# Note: the hard-gate keyword audit is done in §3; here we only check whether
+# the bmm module (gds) gives an explicit reference to the bridge document —
+# DRY (no duplicate hard-gate report).
 "$PY" - <<'PY'
 import glob, os, sys, tomllib
 for _s in (sys.stdout, sys.stderr):
@@ -506,21 +510,21 @@ for name in sorted(GDS_MOD_A):
         blob_parts += s.get("principles", []) or []
     blob = "\n".join(blob_parts)
     if "dev-skill-to-methodology-bridge" not in blob:
-        problems.append("%s: köprü referansı yok (gds Mod A bmm sözleşmesi)" % name)
+        problems.append("%s: no bridge reference (gds Mod A bmm contract)" % name)
 
-print("  denetlenen gds Mod A: %d" % checked)
+print("  checked gds Mod A: %d" % checked)
 for p in problems:
     print("  MISS: %s" % p)
 raise SystemExit(1 if problems else 0)
 PY
 if [ $? -eq 0 ]; then
-    echo "[OK]   gds Mod A köprü referansları mevcut"
+    echo "[OK]   gds Mod A bridge references present"
 else
-    echo "[UYARI] gds Mod A köprü referansı eksik (yukarı bak)"
+    echo "[WARNING] gds Mod A bridge reference missing (see above)"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 
-echo "== 6) config.toml [hooks] soft/hard sözleşmesi =="
+echo "== 6) config.toml [hooks] soft/hard contract =="
 "$PY" - <<'PY'
 import os, sys, tomllib
 for _s in (sys.stdout, sys.stderr):
@@ -530,12 +534,12 @@ for _s in (sys.stdout, sys.stderr):
 PLUGIN = os.environ.get("PLUGIN_ROOT") or "."
 cfg = os.path.join(PLUGIN, "custom", "config.toml")
 if not os.path.isfile(cfg):
-    print("  [HATA] %s yok" % cfg)
+    print("  [ERROR] %s missing" % cfg)
     sys.exit(1)
 try:
     d = tomllib.load(open(cfg, "rb"))
 except Exception as e:
-    print("  [HATA] config parse: %s" % e)
+    print("  [ERROR] config parse: %s" % e)
     sys.exit(1)
 h = d.get("hooks", {}) or {}
 qg = str(h.get("quality_gate", "soft")).strip().lower()
@@ -545,7 +549,7 @@ print("  deploy_guard: %s" % dg)
 problems = []
 for name, val in (("quality_gate", qg), ("deploy_guard", dg)):
     if val not in ("soft", "hard"):
-        problems.append("%s = %r (geçersiz — soft|hard olmalı)" % (name, val))
+        problems.append("%s = %r (invalid — must be soft|hard)" % (name, val))
 if problems:
     for p in problems:
         print("  MISS: %s" % p)
@@ -553,17 +557,17 @@ if problems:
 sys.exit(0)
 PY
 if [ $? -eq 0 ]; then
-    echo "[OK]   config soft/hard sözleşmesi geçerli"
+    echo "[OK]   config soft/hard contract valid"
 else
-    echo "[UYARI] config soft/hard sorunu (yukarı bak)"
+    echo "[WARNING] config soft/hard issue (see above)"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 
-echo "== 7) Köprü belge §N.N referans drift denetimi =="
-# dev-skill-to-methodology-bridge referansı taşıyan custom/*.toml dosyalarında
-# kullanılan §N.N (veya "bolum N.N" kalıbı) bridge.md'de gerçekten var olmalı.
-# Bu, bridge belgesi güncellendiğinde custom/'un drift'ini yakalar (silinen/
-# yeniden adlandırılan bölümlerden doğan yanlış referansları).
+echo "== 7) Bridge document §N.N reference drift audit =="
+# In custom/*.toml files carrying a dev-skill-to-methodology-bridge reference,
+# every §N.N used (or the "bolum N.N" pattern) must actually exist in bridge.md.
+# This catches drift in custom/ when the bridge document is updated (wrong
+# references born from deleted/renamed sections).
 "$PY" - <<'PY'
 import glob, os, re, sys, tomllib
 for _s in (sys.stdout, sys.stderr):
@@ -573,21 +577,21 @@ for _s in (sys.stdout, sys.stderr):
 PLUGIN = os.environ.get("PLUGIN_ROOT") or "."
 BRIDGE = os.path.join(PLUGIN, "docs", "bmad", "dev-skill-to-methodology-bridge.md")
 if not os.path.isfile(BRIDGE):
-    print("  [HATA] bridge belgesi yok: %s" % BRIDGE)
+    print("  [ERROR] bridge document missing: %s" % BRIDGE)
     sys.exit(1)
 
-# Bridge bölümlerini çıkar: ## §N veya ### §N.N[a-z]?
+# Extract bridge sections: ## §N or ### §N.N[a-z]?
 bridge_secs = set()
 with open(BRIDGE, encoding="utf-8") as f:
     for m in re.finditer(r'^(?:##|###) §([0-9]+(?:\.[0-9]+[a-z]?)?)', f.read(), re.M):
         bridge_secs.add(m.group(1))
 
-# Her dosyada iki kalıbı yakala: "§N.N" ve "bolum/bölüm N.N" (büyük-küçük
-# harf duyarsız). İkinci kalıp, § öneki unutulmuş yanlış yazımları yakalar
-# (örn. "bolum 1.1 ve 3.1 Faz 3" — 7 gds-* test dosyasında görüldü).
+# Catch three patterns in each file: "§N.N", "section N.N", and "bolum/bölüm N.N"
+# (case insensitive). The second and third patterns catch misspellings that
+# forgot the § prefix (e.g. "bolum 1.1 ve 3.1 Faz 3" — seen in 7 gds-* test files).
 SECTION_RE = re.compile(
     r'(?:§([0-9]+(?:\.[0-9]+[a-z]?)?)'
-    r'|(?:bol[uü]m)\s+([0-9]+(?:\.[0-9]+[a-z]?)?))',
+    r'|(?:section|bol[uü]m)\s+([0-9]+(?:\.[0-9]+[a-z]?)?))',
     re.IGNORECASE,
 )
 
@@ -602,8 +606,8 @@ for path in sorted(glob.glob(os.path.join(PLUGIN, "custom", "*.toml"))):
             text = f.read()
     except OSError:
         continue
-    # Bridge referansı taşımayan dosyalar muaf (farklı manifestolara atıf
-    # yapıyor olabilir — sadece bridge kullananları denetle).
+    # Files not carrying a bridge reference are exempt (they may reference
+    # different manifestos — audit only those that use the bridge).
     if "dev-skill-to-methodology-bridge" not in text:
         continue
     checked += 1
@@ -614,27 +618,27 @@ for path in sorted(glob.glob(os.path.join(PLUGIN, "custom", "*.toml"))):
             refs.add(sec)
     unknown = sorted(refs - bridge_secs)
     if unknown:
-        problems.append("%s: bridge'de olmayan §N.N → %s (yazım hatası veya "
-                        "eski bölüm; bridge.md'den kontrol et)" %
+        problems.append("%s: §N.N not in bridge → %s (typo or stale "
+                        "section; check bridge.md)" %
                         (name, ", ".join(unknown)))
 
-print("  denetlenen bridge kullanan: %d" % checked)
+print("  checked bridge users: %d" % checked)
 for p in problems:
     print("  MISS: %s" % p)
 raise SystemExit(1 if problems else 0)
 PY
 if [ $? -eq 0 ]; then
-    echo "[OK]   köprü §N.N referansları bridge ile senkron"
+    echo "[OK]   bridge §N.N references in sync with bridge.md"
 else
-    echo "[UYARI] köprü §N.N drift (yukarı bak)"
+    echo "[WARNING] bridge §N.N drift (see above)"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 
 echo
 if [ "${PROBLEMS:-0}" -eq 0 ]; then
-    echo "DURUM: SAĞLIKLI (custom/ tüm statik kontrolleri geçti)"
+    echo "STATUS: HEALTHY (custom/ passed all static checks)"
     exit 0
 else
-    echo "DURUM: ${PROBLEMS} sorun bulundu"
+    echo "STATUS: ${PROBLEMS} problems found"
     exit 1
 fi

@@ -1,5 +1,5 @@
 # WDS 8: Product Evolution - Team overrides
-# Ürün evrimi: iyileştirme ve optimizasyon
+# Product evolution: improvement and optimization
 
 [workflow]
 persistent_facts = [
@@ -7,7 +7,7 @@ persistent_facts = [
   "file:{project-root}/docs/bmad/metrics.md",
 ]
 activation_steps_append = [
-  "Metrikleri topla",
-  "İyileştirme fırsatlarını belirle",
-  "Optimizasyon planı oluştur"
+  "Collect the metrics",
+  "Identify improvement opportunities",
+  "Create an optimization plan"
 ]

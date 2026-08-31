@@ -1,4 +1,4 @@
-# Team overrides for bmad-validate-prd — Research methodology (Mod C: PRD doğrulama).
+# Team overrides for bmad-validate-prd — Research methodology (Mod C: PRD validation).
 # PRD validation must check that claims are hypotheses awaiting experiment, not asserted facts.
 # This workflow is directly invocable (/bmad-validate-prd), independent of the analyst agent.
 

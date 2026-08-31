@@ -15,14 +15,14 @@
 # Usage:  sh commands/check-plugin.sh   (from the plugin root or anywhere;
 #            target project root is cwd or $OPENHANDS_PROJECT_DIR)
 #            sh commands/check-plugin.sh --negtest
-#            (negative-test only: break the KÖPRÜ marker → catch §2b MISS → restore)
+#            (negative-test only: break the BRIDGE marker → catch §2b MISS → restore)
 # Output:    [OK] / [WARNING] / [ERROR] at the start of each line; overall status at the end.
 
 set -u
 
 if [ "${1:-}" = "--negtest" ]; then
     # Negative test (repo convention: break → catch MISS → restore).
-    # Temporarily removes the KÖPRÜ line from custom/bmad-dev-story.toml,
+    # Temporarily removes the BRIDGE line from custom/bmad-dev-story.toml,
     # verifies §2b logic produces a MISS, then restores the file.
     SELF=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
     PLUGIN_ROOT=$(CDPATH= cd -- "$SELF/.." && pwd)
@@ -84,8 +84,8 @@ try:
 finally:
     gitignore.write_text(orig_gitignore, encoding="utf-8")
 
-# Stage 3/3: KÖPRÜ removed from custom/bmad-dev-story.toml → §2b should catch a MISS
-print(f"[3/{total_stages}] does §2b emit a MISS when KÖPRÜ is removed from custom/bmad-dev-story.toml")
+# Stage 3/3: BRIDGE removed from custom/bmad-dev-story.toml → §2b should catch a MISS
+print(f"[3/{total_stages}] does §2b emit a MISS when BRIDGE is removed from custom/bmad-dev-story.toml")
 toml = PLUGIN / "custom" / "bmad-dev-story.toml"
 resolver = PLUGIN / "hooks" / "engine" / "resolve_customization.py"
 skill = PLUGIN / "skills" / "bmad-dev-story"
@@ -99,17 +99,17 @@ def bridge_visible(text: str) -> bool:
              "-k", "workflow.activation_steps_append"],
             capture_output=True, text=True, encoding="utf-8", timeout=15)
         d = json.loads(r.stdout)
-        return any("KÖPRÜ" in s for s in d.get("workflow.activation_steps_append", []))
+        return any("BRIDGE" in s for s in d.get("workflow.activation_steps_append", []))
     finally:
         toml.write_text(orig, encoding="utf-8")
 
 try:
-    broken = "\n".join(l for l in orig.splitlines() if "KÖPRÜ" not in l)
+    broken = "\n".join(l for l in orig.splitlines() if "BRIDGE" not in l)
     if not bridge_visible(orig):
-        print("  [ERROR] KÖPRÜ not visible even in intact custom TOML — test setup broken")
+        print("  [ERROR] BRIDGE not visible even in intact custom TOML — test setup broken")
         sys.exit(1)
     if bridge_visible(broken):
-        print("  [ERROR] §2b MISS expected, KÖPRÜ still visible after removal")
+        print("  [ERROR] §2b MISS expected, BRIDGE still visible after removal")
         sys.exit(1)
     print("  [OK] §2b MISS caught, custom TOML restored")
 finally:
@@ -417,7 +417,7 @@ else
 fi
 
 echo "== 2b) Bridge instructions visible at runtime? (resolve_customization merge) =="
-# The KÖPRÜ step in custom/{skill}.toml must merge with the skill-root customize.toml
+# The BRIDGE step in custom/{skill}.toml must merge with the skill-root customize.toml
 # via resolve_customization.py deep_merge (append). Append semantics are persistent.
 "$PY" - <<'PY'
 import json, os, subprocess, sys
@@ -451,8 +451,8 @@ for name in TOML_SKILLS:
             capture_output=True, text=True, encoding="utf-8", timeout=15)
         d = json.loads(r.stdout)
         asa = d.get("workflow.activation_steps_append", [])
-        if not any("KÖPRÜ" in s or "KOPRU" in s for s in asa):
-            missing.append("%s (KÖPRÜ absent after merge — custom toml append not working)" % name)
+        if not any("BRIDGE" in s or "KOPRU" in s for s in asa):
+            missing.append("%s (BRIDGE absent after merge — custom toml append not working)" % name)
     except Exception as e:
         missing.append("%s (resolve error: %s)" % (name, str(e)[:60]))
 print("  checked toml skills (installed): %d" % checked)
@@ -462,19 +462,19 @@ print("  problems: %d" % len(missing))
 raise SystemExit(1 if missing else 0)
 PY
 if [ $? -eq 0 ]; then
-    echo "[OK]   KÖPRÜ instructions visible at runtime (deep_merge append persistent)"
+    echo "[OK]   BRIDGE instructions visible at runtime (deep_merge append persistent)"
 else
-    echo "[WARNING] KÖPRÜ merge problem (see above)"
+    echo "[WARNING] BRIDGE merge problem (see above)"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 
-echo "== 2c) KÖPRÜ DOGRULAMA instructions present? =="
+echo "== 2c) BRIDGE verify instructions present? =="
 "$PY" - <<'PY'
 import json, os, subprocess, sys
 from pathlib import Path
 PLUGIN = Path(os.environ.get("PLUGIN_ROOT") or ".")
 RESOLVER = PLUGIN / "hooks" / "engine" / "resolve_customization.py"
-KOPRU_SKILLS = [
+BRIDGE_SKILLS = [
     "bmad-check-implementation-readiness", "bmad-sprint-planning",
     "bmad-create-story", "bmad-code-review",
     "bmad-dev-story", "bmad-quick-dev", "bmad-dev-auto",
@@ -484,7 +484,7 @@ KOPRU_SKILLS = [
 ]
 missing = []
 checked = 0
-for name in KOPRU_SKILLS:
+for name in BRIDGE_SKILLS:
     skill_dir = PLUGIN / "skills" / name
     if not skill_dir.is_dir():
         continue
@@ -496,21 +496,22 @@ for name in KOPRU_SKILLS:
             capture_output=True, text=True, encoding="utf-8", timeout=15)
         d = json.loads(r.stdout)
         asa = d.get("workflow.activation_steps_append", [])
-        has_verify = any("DOGRULAMA" in s for s in asa)
+        # Accept both legacy Turkish marker and new English marker.
+        has_verify = any(m in s for s in asa for m in ("DOGRULAMA", "VERIFY"))
         if not has_verify:
-            missing.append("%s (no DOGRULAMA in KÖPRÜ — LLM may skip the record)" % name)
+            missing.append("%s (no verify marker in BRIDGE — LLM may skip the record)" % name)
     except Exception as e:
         missing.append("%s (resolve error: %s)" % (name, str(e)[:60]))
-print("  checked KÖPRÜ skills: %d" % checked)
+print("  checked BRIDGE skills: %d" % checked)
 for m in missing:
     print("  MISS: %s" % m)
 print("  problems: %d" % len(missing))
 raise SystemExit(1 if missing else 0)
 PY
 if [ $? -eq 0 ]; then
-    echo "[OK]   KÖPRÜ DOGRULAMA instructions present (LLM will auto-verify)"
+    echo "[OK]   BRIDGE verify instructions present (LLM will auto-verify)"
 else
-    echo "[WARNING] KÖPRÜ DOGRULAMA missing (see above)"
+    echo "[WARNING] BRIDGE verify missing (see above)"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 
@@ -675,40 +676,38 @@ for rec in \
     [ -f "$rec" ] || continue
     DEVCHECKED=$((DEVCHECKED + 1))
     case "$(basename "$rec")" in
-        IR-*) ALLOWED="HAZIR EKSİK" ;;
-        QR-*) ALLOWED="ONAYLANDI REDDEDİLDİ REVİZE" ;;
-        PR-*) ALLOWED="HAZIR BEKLİYOR" ;;
-        SP-*) ALLOWED="planlandı devam ediyor tamamlandı iptal" ;;
+        IR-*) ALLOWED="READY INCOMPLETE HAZIR EKSİK" ;;
+        QR-*) ALLOWED="APPROVED REJECTED REVISED ONAYLANDI REDDEDİLDİ REVİZE" ;;
+        PR-*) ALLOWED="READY WAITING HAZIR BEKLİYOR" ;;
+        SP-*) ALLOWED="planned in-progress completed cancelled planlandı devam ediyor tamamlandı iptal" ;;
         S-*)  ALLOWED="backlog sprint in-progress review done blocked" ;;
-        PM-*) ALLOWED="açık investigation resolved closed" ;;
+        PM-*) ALLOWED="open investigation resolved closed açık" ;;
         *)    continue ;;
     esac
-    line=$(grep -m1 '\*\*Karar:\*\*' "$rec")
+    # Accept both English and legacy Turkish field labels.
+    line=$(grep -m1 '\*\*Decision:\*\*' "$rec" || grep -m1 '\*\*Status:\*\*' "$rec" || grep -m1 '\*\*Karar:\*\*' "$rec" || grep -m1 '\*\*Durum:\*\*' "$rec")
     if [ -z "$line" ]; then
-        line=$(grep -m1 '\*\*Durum:\*\*' "$rec")
-    fi
-    if [ -z "$line" ]; then
-        echo "[WARNING] $rec -> no Karar/Durum field"
+        echo "[WARNING] $rec -> no Decision/Status field"
         DEVPROBLEMS=$((DEVPROBLEMS + 1))
         continue
     fi
-    dec=$(echo "$line" | sed 's/.*\*\*\(Karar\|Durum\):\*\* *//; s/[|→].*//' | sed 's/^ *//; s/ *$//')
+    dec=$(echo "$line" | sed 's/.*\*\*\(Decision\|Status\|Karar\|Durum\):\*\* *//; s/[|→].*//' | sed 's/^ *//; s/ *$//')
     found=0
     case "$(basename "$rec")" in
-        IR-*) case "$dec" in HAZIR|EKSİK) found=1 ;; esac ;;
-        QR-*) case "$dec" in ONAYLANDI|REDDEDİLDİ|REVİZE) found=1 ;; esac ;;
-        PR-*) case "$dec" in HAZIR|BEKLİYOR) found=1 ;; esac ;;
-        SP-*) case "$dec" in planlandı|"devam ediyor"|tamamlandı|iptal) found=1 ;; esac ;;
+        IR-*) case "$dec" in READY|INCOMPLETE|HAZIR|EKSİK) found=1 ;; esac ;;
+        QR-*) case "$dec" in APPROVED|REJECTED|REVISED|ONAYLANDI|REDDEDİLDİ|REVİZE) found=1 ;; esac ;;
+        PR-*) case "$dec" in READY|WAITING|HAZIR|BEKLİYOR) found=1 ;; esac ;;
+        SP-*) case "$dec" in planned|"in-progress"|completed|cancelled|planlandı|"devam ediyor"|tamamlandı|iptal) found=1 ;; esac ;;
         S-*)  case "$dec" in backlog|sprint|in-progress|review|done|blocked) found=1 ;; esac ;;
-        PM-*) case "$dec" in açık|investigation|resolved|closed) found=1 ;; esac ;;
+        PM-*) case "$dec" in open|investigation|resolved|closed|açık) found=1 ;; esac ;;
     esac
     if [ "$found" -eq 0 ]; then
-        echo "[WARNING] $rec -> unexpected Karar/Durum: '$dec' (allowed: $ALLOWED)"
+        echo "[WARNING] $rec -> unexpected Decision/Status: '$dec' (allowed: $ALLOWED)"
         DEVPROBLEMS=$((DEVPROBLEMS + 1))
         continue
     fi
-    if ! grep -q '\*\*Tarih:\*\*' "$rec"; then
-        echo "[WARNING] $rec -> no Tarih field"
+    if ! grep -q '\*\*Date:\*\*' "$rec" && ! grep -q '\*\*Tarih:\*\*' "$rec"; then
+        echo "[WARNING] $rec -> no Date field"
         DEVPROBLEMS=$((DEVPROBLEMS + 1))
         continue
     fi

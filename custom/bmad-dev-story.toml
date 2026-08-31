@@ -13,7 +13,7 @@ activation_steps_prepend = [
   "Confirm the methodology manifesto is loaded: read {project-root}/docs/bmad/research-methodology.md if present. If it is missing, stop and tell the user this workflow requires it.",
 ]
 activation_steps_append = [
-  "Before implementing any story, verify its experiment approval: run `python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py --verify --record {project-root}/docs/experiments/<deney-id>.md` and require the VERIFIED output. FORGED or REDDEDİLDİ means no code — stop and request a valid approved experiment record.",
+  "Before implementing any story, verify its experiment approval: run `python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py --verify --record {project-root}/docs/experiments/<deney-id>.md` and require the VERIFIED output. FORGED or REJECTED means no code — stop and request a valid approved experiment record.",
   "AC DYNAMIC VALIDATION: When loading the story file, check each Acceptance Criterion's metadata fields: (1) is the experiment field filled? (2) is the Type field defined? (3) does the Measured field exist? (4) does the Verify field exist? (5) is the [HYPOTHESIS] label present? Exclude ACs marked as Hypothesis from implementation — do not write code for these ACs, only leave them as notes. After confirming all ACs match the experiment approval, start implementing.",
   "TASK↔AC DYNAMIC VALIDATION: Check whether each Technical Task has a reference (AC: AC-XXX). If a reference is missing, inform the user before implementation and have it corrected.",
   "DoD DYNAMIC VALIDATION: Check whether each Definition of Done item has a [DoD-XXX] identifier and a Verify field. If a field is missing, inform the user before implementation.",

@@ -1,4 +1,4 @@
-# Team overrides for bmad-prd — Research methodology (Mod C: gereksinim üretimi).
+# Team overrides for bmad-prd — Research methodology (Mod C: requirements generation).
 # A PRD turns research into requirements. Requirement claims about the problem are theories; a
 # PRD may not fabricate measurements for any claim. This is the bridge into the Kod phase.
 # This workflow is directly invocable (/bmad-prd), independent of the analyst agent.

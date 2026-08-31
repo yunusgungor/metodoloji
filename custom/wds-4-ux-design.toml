@@ -1,5 +1,5 @@
 # WDS 4: UX Design - Team overrides
-# UX tasarımı: kullanıcı deneyimi ve arayüz
+# UX design: user experience and interface
 
 [workflow]
 persistent_facts = [
@@ -7,7 +7,7 @@ persistent_facts = [
   "file:{project-root}/docs/bmad/design-system.md",
 ]
 activation_steps_append = [
-  "Wireframe'leri oluştur",
-  "Tasarım sistemini uygula",
-  "Erişilebilirlik kontrolü yap"
+  "Create the wireframes",
+  "Apply the design system",
+  "Run an accessibility check"
 ]
