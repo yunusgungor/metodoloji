@@ -43,7 +43,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
 ## Modes
 
-**Create.** Bind `{doc_workspace}` to `{workflow.ux_output_path}/{workflow.run_folder_pattern}/`. Create `.working/` and `imports/`; seed the memlog with `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {doc_workspace} --field topic="<product/UX>"`; create `DESIGN.md` (frontmatter only) and `EXPERIENCE.md` (frontmatter only). Run Discovery → Finalize.
+**Create.** Bind `{doc_workspace}` to `{workflow.ux_output_path}/{workflow.run_folder_pattern}/`. Create `.working/` and `imports/`; seed the memlog with `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {doc_workspace} --field purpose="<product/UX>" --field topic="<product/UX>"`; create `DESIGN.md` (frontmatter only) and `EXPERIENCE.md` (frontmatter only). `purpose` is the intent-bridge field the hook engine reads. Run Discovery → Finalize.
 
 **Update.** Read spines + memlog + sources. If `.memlog.md` is missing, init it with `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {doc_workspace}` — this update is entry one. Surface conflicts with prior decisions. Run Finalize.
 

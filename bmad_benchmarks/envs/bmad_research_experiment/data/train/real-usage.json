@@ -1,0 +1,47 @@
+[
+  {
+    "id": "real-E-001",
+    "task_desc": "Reproduce experiment E-001: The hook engine modules work correctly and the guard hook blocks (hypothesis: H-001: \"guard_block_rate >= 0.90\", metric: guard_block_rate >= 0.90). Write a complete methodology record with all required fields; the code scope is hooks/engine/*.py.",
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment",
+    "source": "experiment:E-001"
+  },
+  {
+    "id": "real-E-002",
+    "task_desc": "Reproduce experiment E-002: Modifying Python files requires an experiment approval. (hypothesis: H-001: \"block_without_approval = 1.00\", metric: block_without_approval >= 0.90). Write a complete methodology record with all required fields; the code scope is test.py.",
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment",
+    "source": "experiment:E-002"
+  },
+  {
+    "id": "real-E-003",
+    "task_desc": "Reproduce experiment E-003: The audit hook writes an audit trail after every file_editor and (hypothesis: H-001: \"audit_trail_rate >= 0.90\", metric: audit_trail_rate >= 0.90). Write a complete methodology record with all required fields; the code scope is hooks/engine/modules/audit.py.",
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment",
+    "source": "experiment:E-003"
+  }
+]

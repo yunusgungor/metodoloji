@@ -166,14 +166,30 @@ def _active_intent(root: str, env_override: bool = True) -> str:
     Priority:
       1. METODOLOJI_INTENT env (set by bootstrap.sh at SessionStart) — the
          same intent for every hook process in the session.
-      2. The most recently modified .memlog.md under the project root.
+      2. The most recently modified .memlog.md under the project root, read
+         from purpose, then topic, goal, or idea (the per-skill vocabulary
+         variants) so every skill's intent reaches the bridge.
     Returns '' when no intent is recorded.
     """
     if env_override:
         env_intent = os.environ.get("METODOLOJI_INTENT", "").strip()
         if env_intent:
             return env_intent
-    return str(_active_memlog_meta(root).get("purpose", "")).strip()
+    meta = _active_memlog_meta(root)
+    for key in ("purpose", "topic", "goal", "idea"):
+        val = str(meta.get(key, "")).strip()
+        if val:
+            return val
+    return ""
+
+
+def _active_progress(root: str) -> str:
+    """Return the session progress status from the active memlog.
+
+    Skills write it with `memlog.py set --key status --value complete` (or
+    active / in-progress). Returns '' when unset.
+    """
+    return str(_active_memlog_meta(root).get("status", "")).strip()
 
 
 def _active_scope(root: str, env_override: bool = True) -> str:

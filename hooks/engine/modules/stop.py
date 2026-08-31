@@ -66,9 +66,13 @@ def stop(json_in: dict) -> dict:
     root = repo_root(json_in)
 
     # 1. Check for incomplete stories (intent-aware: if the session intent
-    #    names a specific story, only that story blocks stop).
-    from .utils import _active_intent
+    #    names a specific story, only that story blocks stop). A memlog whose
+    #    status is 'complete' means the session's work is done — no story check.
+    from .utils import _active_intent, _active_progress
     intent = _active_intent(root)
+    progress = _active_progress(root)
+    if progress and progress.lower() in ("complete", "done", "completed"):
+        intent = ""  # work finished — don't block on in-progress stories
     should_block, reason = _check_story_status(root, intent=intent)
     if should_block:
         return {"decision": "deny", "reason": reason}

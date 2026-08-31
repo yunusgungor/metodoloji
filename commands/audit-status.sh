@@ -48,5 +48,25 @@ else
     echo "   ✗ Guard hook has an issue: $RESULT"
 fi
 
+# 6. Health snapshot — write machine-readable JSON for the optimization loop
+#    (bridge_real_usage.py, skillopt-sleep). Kept small and append-free:
+#    this is a snapshot, overwritten each run.
+HEALTH_DIR=".metodoloji/logs"
+mkdir -p "$HEALTH_DIR"
+HEALTH_JSON="$HEALTH_DIR/methodology-health.json"
+{
+    echo "{"
+    echo "  \"generated\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\","
+    echo "  \"gate_key\": $( [ -f "$HOME/.bmad/gate-key" ] && echo true || echo false ),"
+    echo "  \"experiments\": $( [ -d docs/experiments ] && ls -1 docs/experiments/*.md 2>/dev/null | wc -l || echo 0 ),"
+    echo "  \"audit_log_lines\": $( [ -f .metodoloji/logs/hook-audit.log ] && wc -l < .metodoloji/logs/hook-audit.log || echo 0 ),"
+    echo "  \"skills\": $(ls -1 skills/ 2>/dev/null | wc -l),"
+    echo "  \"custom_toml\": $(ls -1 custom/*.toml 2>/dev/null | wc -l),"
+    echo "  \"guard_ok\": $( echo "$RESULT" | grep -q '"allow"' && echo true || echo false )"
+    echo "}"
+} > "$HEALTH_JSON"
+echo
+echo "Health snapshot: $HEALTH_JSON"
+
 echo
 echo "=== End of Report ==="

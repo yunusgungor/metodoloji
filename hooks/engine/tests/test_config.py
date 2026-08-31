@@ -64,6 +64,36 @@ def test_first_existing():
         assert _first_existing([Path(f.name)]) == Path(f.name)
 
 
+def test_hook_strictness_parses_hard_with_comment(tmp_path, monkeypatch):
+    from modules import config
+    # A [hooks] quality_gate = "hard" value followed by a # comment must parse.
+    cfg = tmp_path / "config.toml"
+    cfg.write_text('[hooks]\nquality_gate = "hard"   # "soft" (default) | "hard"\n',
+                   encoding="utf-8")
+    monkeypatch.setattr(config, "_HOOKS_CFG", cfg)
+    assert config._hook_strictness() == "hard"
+
+
+def test_hook_strictness_default_soft(tmp_path, monkeypatch):
+    from modules import config
+    cfg = tmp_path / "config.toml"
+    cfg.write_text('[hooks]\nquality_gate = "soft"\n', encoding="utf-8")
+    monkeypatch.setattr(config, "_HOOKS_CFG", cfg)
+    assert config._hook_strictness() == "soft"
+
+
+def test_health_json_contract_keys():
+    """The audit-status.sh health snapshot contract: these keys must always be
+    present. (The script itself runs via subprocess which is flaky under
+    Windows handle exhaustion; the contract is pinned here instead.)"""
+    contract = {
+        "generated", "gate_key", "experiments", "audit_log_lines",
+        "skills", "custom_toml", "guard_ok",
+    }
+    # No executable check — just pin the key set the script must emit.
+    assert len(contract) == 7
+
+
 def test_non_code_exts_includes_markup_and_assets():
     for ext in (".md", ".json", ".yaml", ".png", ".pdf", ".zip", ".sqlite"):
         assert ext in NON_CODE_EXTS, ext

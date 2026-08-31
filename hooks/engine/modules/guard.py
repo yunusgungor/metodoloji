@@ -444,6 +444,7 @@ def guard(json_in: dict) -> dict:
     """PreToolUse guard: block code writes without approved experiment record."""
     tool_name = json_in.get("tool_name", "")
     tool_input = json_in.get("tool_input", {})
+    _soft_warnings: list[str] = []  # warn-only findings when quality_gate=soft
 
     # Determine targets based on tool
     targets: list[str] = []
@@ -493,27 +494,44 @@ def guard(json_in: dict) -> dict:
                     pass
 
                 if story_content:
-                    # 1. Validate experiment_refs in frontmatter
+                    # 1. Validate experiment_refs in frontmatter — ALWAYS deny:
+                    #    a story referencing an unapproved experiment must not be
+                    #    written, regardless of strictness.
                     valid, reason = _validate_story_experiment_refs(story_content, root)
                     if not valid:
                         return {
                             "decision": "deny",
                             "reason": f"Story experiment validation failed for {rel}: {reason}"
                         }
-                    # 2. Validate AC metadata + Task↔AC + DoD structure
-                    valid, reason = _validate_story_metadata(story_content)
-                    if not valid:
-                        return {
-                            "decision": "deny",
-                            "reason": f"Story metadata validation failed for {rel}: {reason}"
-                        }
-                    # 3. Validate methodology chain (QR for done, methodology record for review/done, SP if referenced)
-                    valid, reason = _validate_methodology_chain(story_content, rel, root)
-                    if not valid:
-                        return {
-                            "decision": "deny",
-                            "reason": f"Methodology chain validation failed for {rel}: {reason}"
-                        }
+                    # 2+3. Metadata + chain validation. Strictness comes from
+                    #      custom/config.toml [hooks] quality_gate:
+                    #      hard → deny (legacy), soft → warn-only.
+                    #      Read live so config changes apply per-call.
+                    from .config import _hook_strictness
+                    soft_gate = _hook_strictness() != "hard"
+                    if soft_gate:
+                        warnings = []
+                        valid, reason = _validate_story_metadata(story_content)
+                        if not valid:
+                            warnings.append(f"Story metadata: {reason}")
+                        valid, reason = _validate_methodology_chain(story_content, rel, root)
+                        if not valid:
+                            warnings.append(f"Methodology chain: {reason}")
+                        if warnings:
+                            _soft_warnings.extend(warnings)
+                    else:
+                        valid, reason = _validate_story_metadata(story_content)
+                        if not valid:
+                            return {
+                                "decision": "deny",
+                                "reason": f"Story metadata validation failed for {rel}: {reason}"
+                            }
+                        valid, reason = _validate_methodology_chain(story_content, rel, root)
+                        if not valid:
+                            return {
+                                "decision": "deny",
+                                "reason": f"Methodology chain validation failed for {rel}: {reason}"
+                            }
             except Exception as exc:
                 sys.stderr.write(f"metodoloji: story validation error for {rel}: {exc}\n")
             # Story validation passed — continue to next target
@@ -565,8 +583,10 @@ def guard(json_in: dict) -> dict:
     from .utils import _active_scope
     scope = _active_scope(root)
     intent_warnings = _intent_scope_warnings(scope=scope, targets=targets, root=root)
-    if intent_warnings:
-        return {"decision": "allow", "methodology_warnings": intent_warnings}
+
+    all_warnings = intent_warnings + _soft_warnings
+    if all_warnings:
+        return {"decision": "allow", "methodology_warnings": all_warnings}
 
     return {"decision": "allow"}
 

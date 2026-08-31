@@ -2,6 +2,7 @@
 testpaths = [
     "hooks/engine/tests",
     "bmad_benchmarks/tests",
+    "scripts/tests",
     "skills/bmad-architecture/scripts/tests",
     "skills/bmad-brainstorming/scripts/tests",
     "skills/bmad-customize/scripts/tests",

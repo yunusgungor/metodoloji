@@ -58,7 +58,7 @@ Deriving the contract from a living log instead of editing the contract in place
 
 Writes go through the shared script — `{metodoloji-root}/hooks/engine/memlog.py`, the same location as `resolve_customization.py` (atomic; never read it back except to resume):
 
-- `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {spec-folder} --field topic="<what is being specced>"` — once, at create.
+- `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {spec-folder} --field purpose="<what is being specced>" --field topic="<what is being specced>"` — once, at create. `purpose` is the intent-bridge field the hook engine reads.
 - `python3 {metodoloji-root}/hooks/engine/memlog.py append --workspace {spec-folder} --type <decision|constraint|capability|assumption|question|direction|note|event> --text "<one-line gist, reason included>"` — as each lands.
 - Terminal moments (a validation verdict, "spec finalized") are `--type event` entries; the memlog carries no status field.
 

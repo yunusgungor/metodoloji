@@ -203,19 +203,31 @@ The dataloader globs `*.json` from the split directory.
 
 ## SkillOpt-Sleep (Nightly Self-Evolution)
 
-For continuous improvement from real usage sessions:
+For continuous improvement from real usage sessions. The repo ships a launcher
+that bridges real usage (experiments, learnings, audit events) into the training
+data first, then runs the cycle:
 
 ```bash
-skillopt-sleep schedule    # Install nightly cron
-skillopt-sleep dry-run     # Test without staging
-skillopt-sleep run         # Full cycle → proposal staged
-skillopt-sleep status      # Check staged proposals
-skillopt-sleep adopt --all-skills  # Apply approved changes
+sh scripts/skillopt-sleep.sh dry-run     # bridge real usage + report only
+sh scripts/skillopt-sleep.sh run         # bridge + full cycle → proposal staged
+sh scripts/skillopt-sleep.sh status      # Check staged proposals
+sh scripts/skillopt-sleep.sh adopt       # Apply approved changes
+sh scripts/skillopt-sleep.sh schedule    # Install nightly cron/schtasks
+sh scripts/skillopt-sleep.sh unschedule  # Remove it
 ```
 
-Config at `~/.skillopt-sleep/config.json`:
+> **Prerequisite:** a skill must be trained first (`python scripts/train_bmad.py
+> --benchmark <name>`), producing `outputs/<benchmark>/best_skill.md` as the
+> live baseline. `skillopt-sleep` refuses to stage a proposal without a baseline
+> pin — that is by design (gate_no_regression).
+
+Config at `~/.skillopt-sleep/config.json` (installed by this repo):
 ```json
 {
+  "transcript_source": "claude",
+  "backend": "mock",
+  "skill_roots": ["C:/Users/ASUS/orca/openhands-metodoloji/skills"],
+  "target_skill_path": "C:/Users/ASUS/orca/openhands-metodoloji/skills",
   "gate_no_regression": true,
   "dream_rollouts": 3,
   "multi_skill_fanout": true

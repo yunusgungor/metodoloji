@@ -31,6 +31,7 @@ When this skill completes, the user should:
 
 - **Catalog**: `{metodoloji-root}/bmad/_config/bmad-help.csv` — assembled manifest of all installed module skills
 - **Config**: Run `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root}` and use the merged JSON to resolve `output-location` variables and read `core.communication_language` and `modules.bmm.project_knowledge`. The resolver merges `bmad/config.toml`, `bmad/config.user.toml`, `bmad/custom/config.toml`, and `bmad/custom/config.user.toml` in that order.
+- **Active intent**: Read the most recent `.memlog.md` under the project root (`{project-root}/bmad-output/`, `.metodoloji/`, `docs/`, or a recursive search) and its frontmatter — `purpose` (or `topic`/`goal`/`idea`), `scope`, and `status` (`active` / `in-progress` / `complete`). This tells you what the user is working on right now. If `METODOLOJI_INTENT` / `METODOLOJI_SCOPE` env vars are set (bootstrap.sh exports them at SessionStart), those win.
 - **Artifacts**: Files matching `outputs` patterns at resolved `output-location` paths reveal which steps are possibly completed; their content may also provide grounding context for recommendations
 - **Project knowledge**: If `project_knowledge` resolves to an existing path, read it for grounding context. Never fabricate project-specific details.
 - **Module docs**: Rows with `_meta` in the `skill` column carry a URL or path in `output-location` pointing to the module's documentation (e.g., llms.txt). Fetch and use these to answer general questions about that module.
@@ -62,6 +63,12 @@ module,skill,display-name,menu-code,description,action,args,phase,preceded-by,fo
 - User may also state completion explicitly, or it may be evident from the current conversation
 
 **Descriptions carry routing context** — some contain cycle info and alternate paths (e.g., "back to DS if fixes needed"). Read them as navigation hints, not just display text.
+
+**Intent-aware routing** — the active memlog frontmatter steers recommendations:
+- **`purpose` / `topic` / `goal`** names the subject — if a catalog row's description or skill name matches it, rank that skill first. E.g. a `purpose: PRD for billing` memlog points straight at `bmad-prd`.
+- **`scope`** names the touched area — when multiple skills fit, prefer the one whose `output-location` or description overlaps the scope.
+- **`status`** tells the phase: `active` / `in-progress` → the user is mid-work, recommend continuation skills (`preceded-by` already satisfied → `followed-by`); `complete` → the work is done, recommend what's next in the chain or the wrap-up skill.
+- Intent is a soft signal, never a gate: if the user's question contradicts the memlog, the question wins — but mention the mismatch ("your memlog says X; you're asking about Y — is this a new task?").
 
 ## Response Format
 

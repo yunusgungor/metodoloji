@@ -9,6 +9,7 @@ sys.path.insert(0, str(_HOOKS))
 
 from modules.utils import (  # noqa: E402
     _active_intent,
+    _active_progress,
     _active_scope,
     _story_key_from_intent,
     extract_story_key_from_content,
@@ -214,6 +215,93 @@ def test_active_scope_env_dedicated(tmp_path, monkeypatch):
     monkeypatch.setenv("METODOLOJI_SCOPE", "src/payments")
     monkeypatch.setenv("METODOLOJI_INTENT", "auth flow (scope: src/auth)")
     assert _active_scope(str(tmp_path)) == "src/payments"
+
+
+# --- _active_progress -------------------------------------------------------
+
+def test_active_progress_empty(tmp_path):
+    assert _active_progress(str(tmp_path)) == ""
+
+
+def test_active_progress_reads_status(tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/.memlog.md").write_text(
+        "---\npurpose: auth flow\nstatus: complete\n---\n- x\n", encoding="utf-8")
+    assert _active_progress(str(tmp_path)) == "complete"
+
+
+def test_active_progress_ignores_intent_and_scope(tmp_path):
+    # progress is its own field; purpose/scope present shouldn't leak into it.
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/.memlog.md").write_text(
+        "---\npurpose: x\nscope: src/a\nstatus: active\n---\n- x\n", encoding="utf-8")
+    assert _active_progress(str(tmp_path)) == "active"
+
+
+# --- intent fallback chain ---------------------------------------------------
+
+def test_active_intent_falls_back_topic(tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/.memlog.md").write_text(
+        "---\ntopic: PRD billing\n---\n- x\n", encoding="utf-8")
+    assert _active_intent(str(tmp_path)) == "PRD billing"
+
+
+def test_active_intent_falls_back_goal(tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/.memlog.md").write_text(
+        "---\ngoal: lift retention\n---\n- x\n", encoding="utf-8")
+    assert _active_intent(str(tmp_path)) == "lift retention"
+
+
+def test_active_intent_falls_back_idea(tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/.memlog.md").write_text(
+        "---\nidea: search autocomplete\n---\n- x\n", encoding="utf-8")
+    assert _active_intent(str(tmp_path)) == "search autocomplete"
+
+
+def test_active_intent_purpose_beats_topic(tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/.memlog.md").write_text(
+        "---\npurpose: auth flow\ntopic: something else\n---\n- x\n", encoding="utf-8")
+    assert _active_intent(str(tmp_path)) == "auth flow"
+
+
+def test_active_intent_no_fields(tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/.memlog.md").write_text("---\nstatus: active\n---\n- x\n",
+                                              encoding="utf-8")
+    assert _active_intent(str(tmp_path)) == ""
+
+
+# --- memlog discovery order ---------------------------------------------------
+
+def test_active_intent_finds_docs_memlog(tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/.memlog.md").write_text("---\npurpose: from docs\n---\n- x\n",
+                                              encoding="utf-8")
+    assert _active_intent(str(tmp_path)) == "from docs"
+
+
+def test_active_intent_finds_metodoloji_memlog(tmp_path):
+    (tmp_path / ".metodoloji").mkdir()
+    (tmp_path / ".metodoloji/.memlog.md").write_text(
+        "---\npurpose: from metodoloji\n---\n- x\n", encoding="utf-8")
+    assert _active_intent(str(tmp_path)) == "from metodoloji"
+
+
+def test_active_intent_newest_memlog_wins(tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "bmad-output").mkdir()
+    older = tmp_path / "docs/.memlog.md"
+    newer = tmp_path / "bmad-output/.memlog.md"
+    older.write_text("---\npurpose: old\n---\n- x\n", encoding="utf-8")
+    newer.write_text("---\npurpose: new\n---\n- x\n", encoding="utf-8")
+    # bump newer's mtime to guarantee it wins
+    import os
+    os.utime(newer, (newer.stat().st_atime, newer.stat().st_mtime + 10))
+    assert _active_intent(str(tmp_path)) == "new"
 
 
 # --- _story_key_from_intent -------------------------------------------------

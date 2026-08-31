@@ -263,3 +263,145 @@ def test_guard_intent_scope_never_denies(tmp_path, monkeypatch):
     assert any("outside the active scope" in w
                for w in res.get("methodology_warnings", []))
     monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+
+
+def test_guard_soft_gate_warns_not_denies(tmp_path, monkeypatch):
+    """With quality_gate=soft, story metadata gaps are warn-only, not deny."""
+    from modules.guard import guard
+    from modules import config
+    # Force the soft-gate branch regardless of custom/config.toml.
+    monkeypatch.setattr(config, "_hook_strictness", lambda: "soft")
+    stories = tmp_path / "docs/development/stories"
+    stories.mkdir(parents=True)
+    content = (
+        "## Story: S-001\n"
+        "## Acceptance Criteria\n"
+        "- [AC-001] Given X When Y Then Z\n"  # missing Type/Measured/Verify
+        "## Technical Tasks\n"
+        "- [ ] do it AC: AC-001\n"
+        "## Definition of Done\n"
+        "- [ ] DoD-001 Verify: manual\n"
+    )
+    (stories / "S-001.md").write_text(content, encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "docs/development/stories/S-001.md",
+                                "content": content}})
+    assert res["decision"] == "allow"
+    assert any("missing Type field" in w
+               for w in res.get("methodology_warnings", []))
+
+
+# --- guard combination matrix -------------------------------------------------
+
+def test_guard_hard_gate_denies_metadata(tmp_path, monkeypatch):
+    """quality_gate=hard → story metadata gaps are deny, not warn."""
+    from modules.guard import guard
+    from modules import config
+    monkeypatch.setattr(config, "_hook_strictness", lambda: "hard")
+    stories = tmp_path / "docs/development/stories"
+    stories.mkdir(parents=True)
+    content = (
+        "## Story: S-001\n"
+        "## Acceptance Criteria\n"
+        "- [AC-001] Given X When Y Then Z\n"  # missing Type/Measured/Verify
+        "## Technical Tasks\n"
+        "- [ ] do it AC: AC-001\n"
+        "## Definition of Done\n"
+        "- [ ] DoD-001 Verify: manual\n"
+    )
+    (stories / "S-001.md").write_text(content, encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "docs/development/stories/S-001.md",
+                                "content": content}})
+    assert res["decision"] == "deny"
+    assert "Story metadata validation failed" in res["reason"]
+
+
+def test_guard_soft_gate_still_denies_missing_experiment(tmp_path, monkeypatch):
+    """Even soft gate: a story whose frontmatter names a missing experiment is
+    DENY — experiment_refs validity is strictness-independent."""
+    from modules.guard import guard
+    from modules import config
+    monkeypatch.setattr(config, "_hook_strictness", lambda: "soft")
+    stories = tmp_path / "docs/development/stories"
+    stories.mkdir(parents=True)
+    content = (
+        "---\n"
+        "experiment_refs:\n"
+        "  - id: E-999\n"
+        "    status: APPROVED\n"
+        "---\n"
+        "## Story: S-001\n"
+        "## Acceptance Criteria\n"
+        "- [AC-001] Given X When Y Then Z\n"
+        "  - Experiment: E-999\n"
+        "  - Type: agent-verifiable\n"
+        "  - Measured: true\n"
+        "  - Verify: curl http://x\n"
+    )
+    (stories / "S-001.md").write_text(content, encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "docs/development/stories/S-001.md",
+                                "content": content}})
+    # E-999 record does not exist → experiment_refs invalid → DENY regardless
+    # of the soft gate.
+    assert res["decision"] == "deny"
+    assert "Story experiment validation failed" in res["reason"]
+
+
+def test_guard_soft_gate_combines_scope_and_metadata_warnings(tmp_path, monkeypatch):
+    """soft gate + out-of-scope write → warnings from both, still allow."""
+    from modules.guard import guard
+    from modules import config
+    monkeypatch.setattr(config, "_hook_strictness", lambda: "soft")
+    stories = tmp_path / "docs/development/stories"
+    stories.mkdir(parents=True)
+    content = (
+        "## Story: S-001\n"
+        "## Acceptance Criteria\n"
+        "- [AC-001] Given X When Y Then Z\n"
+        "## Technical Tasks\n"
+        "- [ ] do it AC: AC-001\n"
+        "## Definition of Done\n"
+        "- [ ] DoD-001 Verify: manual\n"
+    )
+    (stories / "S-001.md").write_text(content, encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.setenv("METODOLOJI_SCOPE", "src/auth")
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "docs/development/stories/S-001.md",
+                                "content": content}})
+    assert res["decision"] == "allow"
+    warns = res.get("methodology_warnings", [])
+    # Both the metadata warning and the out-of-scope warning present.
+    assert any("missing Type field" in w for w in warns)
+    assert any("outside the active scope" in w for w in warns)
+    monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
+
+
+def test_guard_scope_inside_no_warning(tmp_path, monkeypatch):
+    """A write inside the active scope gets no scope warning."""
+    from modules.guard import guard
+    from modules import config
+    monkeypatch.setattr(config, "_hook_strictness", lambda: "soft")
+    (tmp_path / "src/auth").mkdir(parents=True)
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.setenv("METODOLOJI_SCOPE", "src/auth")
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "src/auth/login.py", "content": "x"}})
+    # Free-zone? src/ is not free → needs approval → deny (no experiment record).
+    # The scope check itself must not add a scope warning when inside scope.
+    warns = res.get("methodology_warnings", [])
+    assert not any("outside the active scope" in w for w in warns)
+    monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)

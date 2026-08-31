@@ -28,7 +28,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
 ## Intent Modes
 
-**Create.** Bind `{doc_workspace}` to `{workflow.prd_output_path}/{workflow.run_folder_pattern}/`. Write `prd.md` with YAML frontmatter (title, status, created, updated — initial `status: draft`), and seed the memlog with `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {doc_workspace} --field topic="<PRD/product name>"` so subsequent decisions land in a known file. Tell the user the path. Run `## Discovery`, then `## Finalize`.
+**Create.** Bind `{doc_workspace}` to `{workflow.prd_output_path}/{workflow.run_folder_pattern}/`. Write `prd.md` with YAML frontmatter (title, status, created, updated — initial `status: draft`), and seed the memlog with `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {doc_workspace} --field purpose="<PRD/product name>" --field topic="<PRD/product name>"` so subsequent decisions land in a known file. `purpose` is the intent-bridge field the hook engine reads. Tell the user the path. Run `## Discovery`, then `## Finalize`.
 
 **Update.** Reconcile the PRD with a change signal. Source-extract against PRD, addendum, `.memlog.md`, and original inputs (extract, don't ingest). If `.memlog.md` is missing, init it with `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {doc_workspace}`, then spawn a one-time bootstrap subagent to reverse-engineer a thin log from the PRD (one `python3 {metodoloji-root}/hooks/engine/memlog.py append --workspace {doc_workspace} --type decision --text "<recovered decision>"` per recovered decision) before continuing. Surface conflicts with prior decisions before applying. Then `## Finalize`.
 

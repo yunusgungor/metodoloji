@@ -54,7 +54,7 @@ Tell the user they can say **"attack this"**, **"defend this"**, or **"switch ro
 ### Set up the session
 
 Derive a kebab-case `{slug}` for the idea and bind the session workspace `{workspace} = {workflow.forge_output_path}/{workflow.run_folder_pattern}` (the pattern fills with `{slug}`). Create the memlog once the goal is known:
-`python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {workspace} --field idea="<idea>" --field goal="<goal>"`
+`python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {workspace} --field purpose="<idea>" --field idea="<idea>" --field goal="<goal>"` — `purpose` is the intent-bridge field the hook engine reads.
 
 Tell the user the path; state is on disk now, so the session survives interruption. If init fails, don't abort — run the forge in-conversation and tell the user state won't persist this session.
 

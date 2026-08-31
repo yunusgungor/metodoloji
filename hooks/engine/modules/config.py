@@ -33,6 +33,40 @@ def log_file() -> str:
     # OpenHands plugin olarak her zaman .metodoloji/logs/ kullan
     return ".metodoloji/logs/hook-audit.log"
 
+
+# --- Gate strictness ---------------------------------------------------------
+# custom/config.toml [hooks] quality_gate / deploy_guard (soft|hard). The
+# comment there said "informational only" for the Claude runtime; the engine
+# now actually reads these so guard/quality/deploy can honor them.
+_HOOKS_CFG = _METHODOLOGY_ROOT / "custom" / "config.toml"
+
+def _hook_strictness() -> str:
+    """Return the hook strictness: 'hard' when custom/config.toml sets it,
+    else 'soft'. A malformed/missing config fails soft (permissive)."""
+    try:
+        text = _HOOKS_CFG.read_text(encoding="utf-8")
+    except OSError:
+        return "soft"
+    in_hooks = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("[hooks]"):
+            in_hooks = True
+            continue
+        if in_hooks and stripped.startswith("[") and not stripped.startswith("[hooks]"):
+            break
+        if in_hooks and "=" in stripped:
+            key, _, val = stripped.partition("=")
+            key = key.strip()
+            # Strip a trailing # comment and surrounding quotes.
+            val = val.split("#", 1)[0].strip().strip('"').strip("'")
+            if key in ("quality_gate", "deploy_guard") and val == "hard":
+                return "hard"
+    return "soft"
+
+
+QUALITY_GATE_HARD = _hook_strictness() == "hard"
+
 # Code classification
 NON_CODE_EXTS = {
     ".md", ".markdown", ".txt", ".rst", ".json", ".jsonc", ".toml", ".yaml", ".yml",
