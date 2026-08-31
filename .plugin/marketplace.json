@@ -7,7 +7,7 @@
     {
       "name": "metodoloji",
       "source": "./",
-      "description": "BMAD metodolojisi: kayıt zinciri, hard gate, 124 skill köprüsü",
+      "description": "BMAD methodology: record chain, hard gate, 124 skill bridges",
       "version": "1.0.0"
     }
   ]

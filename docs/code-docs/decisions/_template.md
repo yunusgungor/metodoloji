@@ -1,36 +1,36 @@
 ---
 id: D-NEW-<slug>
 type: decision
-title: "<karar başlığı>"
-date: <GG.AA.YYYY>
-tags: [<etiket1>, <etiket2>]
+title: "<decision title>"
+date: <DD.MM.YYYY>
+tags: [<tag1>, <tag2>]
 related_experiments: [<E-NNN>]
 related_stories: [<S-NNN>]
 status: active
 ---
 
-## Karar
+## Decision
 
-<Kararın ne olduğu — kısa ve net>
+<What the decision is — short and clear>
 
-## Gerekçe
+## Rationale
 
-- <Neden bu karar verildi — teknik gerekçeler>
-- <Hangi alternatifler değerlendirildi>
-- <Hangi deney/ölçüm bu kararı destekledi>
+- <Why this decision was made — technical reasons>
+- <Which alternatives were considered>
+- <Which experiment/measurement supported this decision>
 
-## Sonuçlar
+## Results
 
-- <Bu kararın somut sonuçları>
-- <Ölçülen iyileştirmeler veya değişimler>
+- <Concrete results of this decision>
+- <Measured improvements or changes>
 
-## İlişkili Kayıtlar
+## Related Records
 
-- Deney: [E-NNN](../../experiments/E-NNN.md)
+- Experiment: [E-NNN](../../experiments/E-NNN.md)
 - Story: [S-NNN](../../development/stories/S-NNN.md)
 
-## Değişiklik Geçmişi
+## Change History
 
-| Tarih | Değişiklik | Yapılan |
+| Date | Change | Made by |
 |-------|-----------|---------|
-| <tarih> | İlk kayıt | <isim> |
+| <date> | Initial record | <name> |

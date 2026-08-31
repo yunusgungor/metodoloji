@@ -1,33 +1,33 @@
 ---
 id: T-NEW-<slug>
 type: troubleshooting
-title: "<hata çözüm başlığı>"
-date: <GG.AA.YYYY>
-tags: [<etiket1>, <etiket2>]
+title: "<error resolution title>"
+date: <DD.MM.YYYY>
+tags: [<tag1>, <tag2>]
 related_experiments: [<E-NNN>]
 status: active
 ---
 
-## Hata
+## Error
 
-<Hata mesajı veya belirti>
+<Error message or symptom>
 
-## Neden
+## Cause
 
-<Hatanın kök nedeni — kısa açıklama>
+<Root cause of the error — short explanation>
 
-## Çözüm
+## Solution
 
-<Çözüm adımları — somut ve uygulanabilir>
+<Solution steps — concrete and actionable>
 
 ```bash
-# Çözüm komutları
+# Solution commands
 ```
 
-## Önleme
+## Prevention
 
-<Bu hatanın tekrarlanmaması için alınacak önlemler>
+<Precautions to take so this error does not recur>
 
-## İlişkili Kayıtlar
+## Related Records
 
-- Deney: [E-NNN](../../experiments/E-NNN.md)
+- Experiment: [E-NNN](../../experiments/E-NNN.md)

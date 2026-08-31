@@ -1,37 +1,37 @@
 ---
 id: P-NEW-<slug>
 type: pattern
-title: "<kalıp başlığı>"
-date: <GG.AA.YYYY>
-tags: [<etiket1>, <etiket2>]
+title: "<pattern title>"
+date: <DD.MM.YYYY>
+tags: [<tag1>, <tag2>]
 related_experiments: [<E-NNN>]
 status: active
 ---
 
-## Kalıp
+## Pattern
 
-<Kod kalıbının ne olduğu — kısa tanım>
+<What the code pattern is — short description>
 
-## Kullanım Senaryosu
+## Usage Scenario
 
-<Hangi durumlarda bu kalıp kullanılır>
+<In which situations this pattern is used>
 
-## Örnek
+## Example
 
 ```python
-# Kalıp örneği — gerçek koddan
+# Pattern example — from real code
 def example():
     pass
 ```
 
-## Avantajlar
+## Advantages
 
-- <Bu kalibin avantajları>
+- <Advantages of this pattern>
 
-## Dezavantajlar
+## Disadvantages
 
-- <Bu kalibin dezavantajları veya sınırlamaları>
+- <Disadvantages or limitations of this pattern>
 
-## İlişkili Kayıtlar
+## Related Records
 
-- Deney: [E-NNN](../../experiments/E-NNN.md)
+- Experiment: [E-NNN](../../experiments/E-NNN.md)

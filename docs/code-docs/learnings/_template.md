@@ -1,30 +1,30 @@
 ---
 id: L-NEW-<slug>
 type: learning
-title: "<ders başlığı>"
-date: <GG.AA.YYYY>
-tags: [<etiket1>, <etiket2>]
+title: "<lesson title>"
+date: <DD.MM.YYYY>
+tags: [<tag1>, <tag2>]
 related_experiments: [<E-NNN>]
 status: active
 ---
 
-## Öğrenilen
+## Learned
 
-<Hangi deneyden/hatadan ne öğrenildi — kısa ve net>
+<What was learned from which experiment/error — short and clear>
 
-## Bağlam
+## Context
 
-<Bu dersin geldiği bağlam — hangi deney, hangi durum>
+<The context this lesson came from — which experiment, which situation>
 
-## Kanıt
+## Evidence
 
-<Bu dersi destekleyen somut veri/ölçüm>
+<Concrete data/measurement supporting this lesson>
 
-## Uygulama
+## Application
 
-<Bu ders gelecekte nasıl kullanılacak — somut adımlar>
+<How this lesson will be used in the future — concrete steps>
 
-## İlişkili Kayıtlar
+## Related Records
 
-- Deney: [E-NNN](../../experiments/E-NNN.md)
+- Experiment: [E-NNN](../../experiments/E-NNN.md)
 - Story: [S-NNN](../../development/stories/S-NNN.md)

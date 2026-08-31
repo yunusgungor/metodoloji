@@ -1,49 +1,49 @@
-# Code Docs Dizini
+# Code Docs Index
 
-Proje geçmişini hatırlamak ve yeni bilgi üretmek için kullanılan yapılandırılmış dokümantasyon sistemi.
+Structured documentation system used to remember project history and generate new knowledge.
 
-## Kategoriler
+## Categories
 
-### [Kararlar](./decisions/) — 0 kayıt
+### [Decisions](./decisions/) — 0 records
 
-### [Kalıplar](./patterns/) — 0 kayıt
+### [Patterns](./patterns/) — 0 records
 
-### [Dersler](./learnings/) — 0 kayıt
+### [Learnings](./learnings/) — 0 records
 
-### [API Kullanımları](./api/) — 0 kayıt
+### [API Usages](./api/) — 0 records
 
-### [Sorun Giderme](./troubleshooting/) — 0 kayıt
+### [Troubleshooting](./troubleshooting/) — 0 records
 
-### [Bekleyen İşler](./pending/) — 0 kayıt
+### [Pending Items](./pending/) — 0 records
 
-## Otomatik Üretim
+## Automatic Generation
 
-Bu dosyalar hook'lar tarafından otomatik üretilir:
-- **Audit hook**: Önemli olayları tespit eder (deney onayı, mimari değişiklik, hata çözümü)
-- **Guard hook**: Deney onayından sonra learning doc üretir
-- **Skill**: `bmad-code-docs` ile manuel recall ve kayıt
+These files are generated automatically by hooks:
+- **Audit hook**: Detects important events (experiment approval, architecture change, error resolution)
+- **Guard hook**: Generates a learning doc after experiment approval
+- **Skill**: Manual recall and recording via `bmad-code-docs`
 
-## Arama
+## Search
 
-- Etikete göre: `recall_by_tag("auth")`
-- Deney ID'sine göre: `recall_by_experiment("E-001")`
-- Kategoriye göre: `docs/code-docs/decisions/` klasöründe listeleme
+- By tag: `recall_by_tag("auth")`
+- By experiment ID: `recall_by_experiment("E-001")`
+- By category: list in the `docs/code-docs/decisions/` folder
 
-## Otomatik Yükleme
+## Automatic Loading
 
-Görev başlangıcında ilgili doc'lar otomatik yüklenir:
+Relevant docs are loaded automatically at task start:
 
 ```python
-# Görev bağlamına göre
-context = load_context_for_task("Guard hook auth testini çalıştır")
+# Based on task context
+context = load_context_for_task("Run the guard hook auth test")
 
-# Son doc'lar
+# Recent docs
 recent = load_recent_docs(n=5)
 
-# Bekleyen işler
+# Pending items
 pending = load_pending_docs()
 ```
 
-## Son Güncelleme
+## Last Update
 
-Otomatik olarak güncellenir — elle düzenlenmesi gerekmez.
+Updated automatically — no manual editing needed.

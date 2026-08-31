@@ -1,35 +1,35 @@
 ---
 id: X-NEW-<slug>
 type: pending
-title: "<iş/niyet başlığı>"
-date: <GG.AA.YYYY>
-tags: [<etiket1>, <etiket2>]
+title: "<item/intention title>"
+date: <DD.MM.YYYY>
+tags: [<tag1>, <tag2>]
 related_experiments: [<E-NNN>]
 related_stories: [<S-NNN>]
 priority: <low|normal|high|urgent>
 status: pending
 ---
 
-## Açıklama
+## Description
 
-<Ne yapılması planlanıyor — kısa ve net>
+<What is planned to be done — short and clear>
 
-## Bağlam
+## Context
 
-<Bu işin geldiği bağlam — neden bekliyor, ne engelliyor>
+<The context this item came from — why it is waiting, what is blocking it>
 
-## Sonraki Adımlar
+## Next Steps
 
-- <Somut adım 1>
-- <Somut adım 2>
+- <Concrete step 1>
+- <Concrete step 2>
 
-## İlişkili Kayıtlar
+## Related Records
 
-- Deney: [E-NNN](../../experiments/E-NNN.md)
+- Experiment: [E-NNN](../../experiments/E-NNN.md)
 - Story: [S-NNN](../../development/stories/S-NNN.md)
 
-## Değişiklik Geçmişi
+## Change History
 
-| Tarih | Durum | Not |
+| Date | Status | Note |
 |-------|-------|-----|
-| <tarih> | Oluşturuldu | <isim> |
+| <date> | Created | <name> |

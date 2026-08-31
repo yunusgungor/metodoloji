@@ -1,37 +1,37 @@
 ---
 id: A-NEW-<slug>
 type: api
-title: "<API kullanım başlığı>"
-date: <GG.AA.YYYY>
-tags: [<etiket1>, <etiket2>]
+title: "<API usage title>"
+date: <DD.MM.YYYY>
+tags: [<tag1>, <tag2>]
 related_experiments: [<E-NNN>]
 status: active
 ---
 
 ## API
 
-<Hangi API/fonksiyon kullanıldı — kısa tanım>
+<Which API/function was used — short description>
 
-## İmza
+## Signature
 
 ```python
 def function_name(param1: type, param2: type) -> return_type:
     pass
 ```
 
-## Kullanım
+## Usage
 
 ```python
-# Gerçek kullanım örneği
+# Real usage example
 result = function_name(value1, value2)
 ```
 
-## Dikkat Edilecekler
+## Notes
 
-- <API kullanımıyla ilgili önemli notlar>
-- <Sınır durumları>
-- <Bilinen sorunlar>
+- <Important notes about API usage>
+- <Edge cases>
+- <Known issues>
 
-## İlişkili Kayıtlar
+## Related Records
 
-- Deney: [E-NNN](../../experiments/E-NNN.md)
+- Experiment: [E-NNN](../../experiments/E-NNN.md)
