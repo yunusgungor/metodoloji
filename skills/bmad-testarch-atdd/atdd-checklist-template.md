@@ -387,7 +387,7 @@ See `tea-index.csv` for complete knowledge fragment mapping.
 - Ask in team standup
 - Tag @{tea_agent_username} in Slack/Discord
 - Refer to `{metodoloji-root}/skills/bmad-tea/SKILL.md` for tea workflow documentation
-- Consult `{metodoloji-root}/skills/bmad-tea/resources/knowledge` for testing best practices (kanonik kaynak; bu skill kopya barındırmaz)
+- Consult `{metodoloji-root}/skills/bmad-tea/resources/knowledge` for testing best practices (canonical source; this skill holds no copies)
 
 ---
 
