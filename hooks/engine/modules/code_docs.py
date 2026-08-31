@@ -23,6 +23,16 @@ DOC_TYPES = {
     "pending": {**CODE_DOCS_TYPES.get("pending", {}), "template": "_template.md"},
 }
 
+# Human-readable category names (DRY: used by index generation and context formatting)
+TYPE_NAMES = {
+    "decision": "Decisions",
+    "pattern": "Patterns",
+    "learning": "Learnings",
+    "api": "API Usages",
+    "troubleshooting": "Troubleshooting",
+    "pending": "Pending Items",
+}
+
 
 def _get_project_root() -> pathlib.Path:
     """Get project root from standard environment variables.
@@ -98,22 +108,14 @@ def _update_index():
     new_lines = []
     in_categories = False
     for line in lines:
-        if line.startswith("## Kategoriler"):
+        if line.startswith("## Categories"):
             in_categories = True
             new_lines.append(line)
             new_lines.append("")
             for doc_type, info in DOC_TYPES.items():
                 type_dir = root / info["dir"]
                 docs = sorted(type_dir.glob(f"{info['prefix']}-*.md")) if type_dir.exists() else []
-                type_names = {
-                    "decision": "Decisions",
-                    "pattern": "Patterns",
-                    "learning": "Learnings",
-                    "api": "API Usages",
-                    "troubleshooting": "Troubleshooting",
-                    "pending": "Pending Items",
-                }
-                new_lines.append(f"### [{type_names[doc_type]}](./{info['dir']}/) — {len(docs)} records")
+                new_lines.append(f"### [{TYPE_NAMES[doc_type]}](./{info['dir']}/) — {len(docs)} records")
                 for doc in docs[:5]:  # Show latest 5
                     content = doc.read_text(encoding="utf-8")
                     title_match = re.search(r"title:\s*\"(.+?)\"", content)
@@ -123,7 +125,7 @@ def _update_index():
                     new_lines.append(f"- ... and {len(docs) - 5} more")
                 new_lines.append("")
             continue
-        if in_categories and line.startswith("## ") and not line.startswith("## Kategoriler"):
+        if in_categories and line.startswith("## ") and not line.startswith("## Categories"):
             in_categories = False
         if not in_categories:
             new_lines.append(line)
@@ -141,15 +143,7 @@ Structured documentation system used to remember project history and generate ne
 
 """
     for doc_type, info in DOC_TYPES.items():
-        type_names = {
-            "decision": "Decisions",
-            "pattern": "Patterns",
-            "learning": "Learnings",
-            "api": "API Usages",
-            "troubleshooting": "Troubleshooting",
-            "pending": "Pending Items",
-        }
-        content += f"### [{type_names[doc_type]}](./{info['dir']}/) — 0 records\n\n"
+        content += f"### [{TYPE_NAMES[doc_type]}](./{info['dir']}/) — 0 records\n\n"
 
     content += """## Automatic Generation
 
@@ -745,17 +739,8 @@ def _format_context(docs: list[dict]) -> str:
             by_type[t] = []
         by_type[t].append(doc)
 
-    type_names = {
-        "decision": "Decisions",
-        "pattern": "Patterns",
-        "learning": "Learnings",
-        "api": "API Usages",
-        "troubleshooting": "Troubleshooting",
-        "pending": "Pending Items",
-    }
-
     for doc_type, type_docs in by_type.items():
-        lines.append(f"### {type_names.get(doc_type, doc_type)}")
+        lines.append(f"### {TYPE_NAMES.get(doc_type, doc_type)}")
         for doc in type_docs:
             title = doc.get("title", "No title")
             doc_id = doc.get("id", "")
