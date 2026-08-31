@@ -5,11 +5,13 @@ Covers the output schema, the tiktoken path and the forced-fallback path
 agreeing within tolerance, the CLI over a file and over stdin, and argument
 guards. Run with: python3 -m pytest test_count_tokens.py
 (or plain `python3 test_count_tokens.py` to run a lightweight self-check).
+
+CLI tests call main() in-process (no subprocess) so the suite is deterministic
+on Windows — subprocess-heavy tests hit DuplicateHandle (WinError 6) exhaustion.
 """
 import builtins
 import importlib.util
 import json
-import subprocess
 import sys
 from pathlib import Path
 
@@ -90,63 +92,55 @@ def test_paths_agree_within_tolerance():
     )
 
 
-def test_cli_file_output_schema(tmp_path):
+def test_cli_file_output_schema(tmp_path, monkeypatch, capsys):
     f = tmp_path / "sample.md"
     f.write_text(SAMPLE, encoding="utf-8")
-    out = subprocess.run(
-        [sys.executable, str(SCRIPT), str(f)],
-        capture_output=True, text=True, encoding="utf-8",
-                    errors="replace", check=True,
-    ).stdout
-    data = json.loads(out)
+    mod = _load_module()
+    monkeypatch.setattr(sys, "stdin", sys.stdin)  # keep real stdin
+    rc = mod.main([str(f)])
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
     assert set(data.keys()) == {"tokens", "method"}
     assert isinstance(data["tokens"], int)
     assert data["method"] in ("tiktoken", "fallback")
     assert data["tokens"] > 0
 
 
-def test_cli_stdin_output_schema():
-    out = subprocess.run(
-        [sys.executable, str(SCRIPT), "--stdin"],
-        input=SAMPLE, capture_output=True, text=True, encoding="utf-8",
-                    errors="replace", check=True,
-    ).stdout
-    data = json.loads(out)
+def test_cli_stdin_output_schema(monkeypatch, capsys):
+    mod = _load_module()
+    monkeypatch.setattr(sys, "stdin", __import__("io").StringIO(SAMPLE))
+    rc = mod.main(["--stdin"])
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
     assert set(data.keys()) == {"tokens", "method"}
     assert isinstance(data["tokens"], int)
     assert data["method"] in ("tiktoken", "fallback")
 
 
-def test_cli_file_and_stdin_agree():
+def test_cli_file_and_stdin_agree(tmp_path, monkeypatch, capsys):
     """The CLI over a file and over stdin produce the same count for same text."""
-    import tempfile, os
-    fd, name = tempfile.mkstemp(suffix=".md")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            fh.write(SAMPLE)
-        file_out = json.loads(subprocess.run(
-            [sys.executable, str(SCRIPT), name],
-            capture_output=True, text=True, encoding="utf-8",
-                    errors="replace", check=True,
-        ).stdout)
-    finally:
-        os.unlink(name)
-    stdin_out = json.loads(subprocess.run(
-        [sys.executable, str(SCRIPT), "--stdin"],
-        input=SAMPLE, capture_output=True, text=True, encoding="utf-8",
-                    errors="replace", check=True,
-    ).stdout)
+    f = tmp_path / "sample.md"
+    f.write_text(SAMPLE, encoding="utf-8")
+    mod = _load_module()
+    rc = mod.main([str(f)])
+    assert rc == 0
+    file_out = json.loads(capsys.readouterr().out)
+    monkeypatch.setattr(sys, "stdin", __import__("io").StringIO(SAMPLE))
+    rc = mod.main(["--stdin"])
+    assert rc == 0
+    stdin_out = json.loads(capsys.readouterr().out)
     assert file_out == stdin_out
 
 
 def test_cli_requires_an_input():
-    """No file and no --stdin is a usage error (exit 2 from argparse)."""
-    res = subprocess.run(
-        [sys.executable, str(SCRIPT)],
-        capture_output=True, text=True, encoding="utf-8",
-                    errors="replace",
-    )
-    assert res.returncode != 0
+    """No file and no --stdin is a usage error (nonzero exit from argparse)."""
+    mod = _load_module()
+    try:
+        mod.main([])
+    except SystemExit as exc:
+        assert exc.code != 0
+    else:
+        raise AssertionError("expected argparse usage error")
 
 
 def _run_all():

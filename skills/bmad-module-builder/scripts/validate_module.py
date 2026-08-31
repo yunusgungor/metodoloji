@@ -106,6 +106,8 @@ def parse_csv_rows(csv_text: str) -> tuple[list[str], list[dict[str, str]], list
 
 def validate(module_dir: Path, verbose: bool = False) -> dict:
     """Run all structural validations. Returns JSON-serializable result."""
+    if not module_dir.is_dir():
+        return {"status": "error", "message": f"Not a directory: {module_dir}"}
     findings: list[dict] = []
     info: dict = {}
 
@@ -335,11 +337,11 @@ def main() -> int:
     args = parser.parse_args()
 
     module_path = Path(args.module_dir)
-    if not module_path.is_dir():
-        print(json.dumps({"status": "error", "message": f"Not a directory: {module_path}"}))
-        return 2
 
     result = validate(module_path, verbose=args.verbose)
+    if result["status"] == "error":
+        print(json.dumps(result))
+        return 2
     print(json.dumps(result, indent=2))
     return 0 if result["status"] == "pass" else 1
 

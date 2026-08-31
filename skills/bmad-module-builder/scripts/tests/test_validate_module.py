@@ -2,15 +2,21 @@
 # /// script
 # requires-python = ">=3.10"
 # ///
-"""Tests for validate-module.py"""
+"""Tests for validate_module.py.
 
-import json
-import subprocess
+Calls validate() directly (import, no subprocess) so the suite is
+deterministic on Windows — subprocess-heavy tests hit DuplicateHandle
+(WinError 6) exhaustion.
+"""
+
 import sys
 import tempfile
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parent.parent / "validate-module.py"
+SCRIPTS_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+from validate_module import validate  # noqa: E402
 
 CSV_HEADER = "module,skill,display-name,menu-code,description,action,args,phase,preceded-by,followed-by,required,output-location,outputs\n"
 LEGACY_CSV_HEADER = "module,skill,display-name,menu-code,description,action,args,phase,after,before,required,output-location,outputs\n"
@@ -42,16 +48,11 @@ def create_module(tmp: Path, skills: list[str] | None = None, csv_rows: str = ""
 
 
 def run_validate(module_dir: Path) -> tuple[int, dict]:
-    """Run the validation script and return (exit_code, parsed_json)."""
-    result = subprocess.run(
-        [sys.executable, str(SCRIPT), str(module_dir)],
-        capture_output=True, text=True, encoding="utf-8", errors="replace",
-    )
-    try:
-        data = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        data = {"raw_stdout": result.stdout, "raw_stderr": result.stderr}
-    return result.returncode, data
+    """Call validate() and return (exit_code, result dict)."""
+    data = validate(module_dir)
+    if data["status"] == "error":
+        return 2, data
+    return (0 if data["status"] == "pass" else 1), data
 
 
 def test_valid_module():
@@ -180,7 +181,7 @@ def test_canonical_header_accepted():
 def test_legacy_after_before_header_flagged():
     """A module-help.csv using the old after/before column names must be flagged as
     a header mismatch — canonical is preceded-by/followed-by (matches the templates
-    and bmad-help). Regression for the CSV_HEADER drift in validate-module.py."""
+    and bmad-help). Regression for the CSV_HEADER drift in validate_module.py."""
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         module_dir = tmp / "module"
@@ -415,12 +416,8 @@ def test_multi_skill_not_detected_as_standalone():
 
 def test_nonexistent_directory():
     """Nonexistent path should return error."""
-    result = subprocess.run(
-        [sys.executable, str(SCRIPT), "/nonexistent/path"],
-        capture_output=True, text=True, encoding="utf-8", errors="replace",
-    )
-    assert result.returncode == 2
-    data = json.loads(result.stdout)
+    code, data = run_validate(Path("/nonexistent/path"))
+    assert code == 2
     assert data["status"] == "error"
 
 

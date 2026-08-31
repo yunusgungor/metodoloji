@@ -30,7 +30,7 @@ Detect user's intent:
 
 - **Ideate / Plan** keywords or no path argument → Load `./references/ideate-module.md`
 - **Create / Scaffold** keywords, a folder path, or a path to a single SKILL.md file → Load `./references/create-module.md`
-- **Validate / Check** keywords → Load `./references/validate-module.md`
+- **Validate / Check** keywords → Load `./references/validate_module.md`
 - **Unclear** → Present options:
   - **Ideate Module (IM)** — "I have an idea for a module and want to brainstorm and plan it"
   - **Create Module (CM)** — "I've already built my skills and want to package them as a module"

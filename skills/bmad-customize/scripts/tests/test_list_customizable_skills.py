@@ -204,49 +204,36 @@ class ScannerTest(unittest.TestCase):
         self.assertTrue(any("skills root does not exist" in e for e in result["errors"]))
 
     def test_cli_emits_valid_json_and_exits_zero(self):
+        import contextlib
+        import io
         _make_skill(
             self.skills,
             "bmad-agent-pm",
             "[agent]\nicon = \"x\"\n",
             "---\nname: bmad-agent-pm\ndescription: PM.\n---\n",
         )
-        proc = subprocess.run(
-            [
-                sys.executable,
-                str(SCRIPT),
-                "--project-root",
-                str(self.root),
-                "--skills-root",
-                str(self.skills),
-            ],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-        )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        payload = json.loads(proc.stdout)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = MODULE.main([
+                "--project-root", str(self.root),
+                "--skills-root", str(self.skills),
+            ])
+        self.assertEqual(rc, 0)
+        payload = json.loads(buf.getvalue())
         self.assertEqual(len(payload["agents"]), 1)
 
     def test_cli_exits_two_on_missing_project_root(self):
-        proc = subprocess.run(
-            [
-                sys.executable,
-                str(SCRIPT),
-                "--project-root",
-                str(self.root / "does-not-exist"),
-                "--skills-root",
-                str(self.skills),
-            ],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=False,
-        )
-        self.assertEqual(proc.returncode, 2)
-        self.assertIn("does not exist", proc.stderr)
+        import contextlib
+        import io
+        out_buf = io.StringIO()
+        err_buf = io.StringIO()
+        with contextlib.redirect_stdout(out_buf), contextlib.redirect_stderr(err_buf):
+            rc = MODULE.main([
+                "--project-root", str(self.root / "does-not-exist"),
+                "--skills-root", str(self.skills),
+            ])
+        self.assertEqual(rc, 2)
+        self.assertIn("does not exist", err_buf.getvalue())
 
 
 if __name__ == "__main__":

@@ -2,20 +2,25 @@
 # /// script
 # requires-python = ">=3.10"
 # ///
-"""Tests for scaffold-setup-skill.py"""
+"""Tests for scaffold_setup_skill.py.
 
-import json
-import subprocess
+Calls scaffold_setup_skill() directly (import, no subprocess) so the suite is
+deterministic on Windows — subprocess-heavy tests hit DuplicateHandle
+(WinError 6) exhaustion.
+"""
+
 import sys
 import tempfile
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parent.parent / "scaffold-setup-skill.py"
-TEMPLATE_DIR = Path(__file__).resolve().parent.parent.parent / "assets" / "setup-skill-template"
+SCRIPTS_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+from scaffold_setup_skill import TEMPLATE_DIR, scaffold_setup_skill  # noqa: E402
 
 
 def run_scaffold(tmp: Path, **kwargs) -> tuple[int, dict]:
-    """Run the scaffold script and return (exit_code, parsed_json)."""
+    """Call scaffold_setup_skill() and return (exit_code, result dict)."""
     target_dir = kwargs.get("target_dir", str(tmp / "output"))
     Path(target_dir).mkdir(parents=True, exist_ok=True)
 
@@ -33,22 +38,10 @@ def run_scaffold(tmp: Path, **kwargs) -> tuple[int, dict]:
         )
     )
 
-    cmd = [
-        sys.executable,
-        str(SCRIPT),
-        "--target-dir", target_dir,
-        "--module-code", module_code,
-        "--module-name", module_name,
-        "--module-yaml", str(yaml_path),
-        "--module-csv", str(csv_path),
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace")
-    try:
-        data = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        data = {"raw_stdout": result.stdout, "raw_stderr": result.stderr}
-    return result.returncode, data
+    data = scaffold_setup_skill(
+        target_dir, module_code, module_name, str(yaml_path), str(csv_path),
+    )
+    return (0 if data["status"] == "success" else 2), data
 
 
 def test_basic_scaffold():
@@ -155,25 +148,13 @@ def test_missing_target_dir():
         tmp = Path(tmp)
         nonexistent = tmp / "nonexistent"
 
-        # Write valid source files
         yaml_path = tmp / "module.yaml"
         csv_path = tmp / "module-help.csv"
         yaml_path.write_text('code: tst\nname: "Test"\n')
         csv_path.write_text("header\n")
 
-        cmd = [
-            sys.executable,
-            str(SCRIPT),
-            "--target-dir", str(nonexistent),
-            "--module-code", "tst",
-            "--module-name", "Test",
-            "--module-yaml", str(yaml_path),
-            "--module-csv", str(csv_path),
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace")
-        assert result.returncode == 2
-        data = json.loads(result.stdout)
+        data = scaffold_setup_skill(
+            str(nonexistent), "tst", "Test", str(yaml_path), str(csv_path))
         assert data["status"] == "error"
 
 
@@ -184,25 +165,12 @@ def test_missing_source_file():
         target_dir = tmp / "output"
         target_dir.mkdir()
 
-        # Remove the yaml after creation to simulate missing file
-        yaml_path = tmp / "module.yaml"
         csv_path = tmp / "module-help.csv"
         csv_path.write_text("header\n")
-        # Don't create yaml_path
+        yaml_path = tmp / "module.yaml"  # does not exist
 
-        cmd = [
-            sys.executable,
-            str(SCRIPT),
-            "--target-dir", str(target_dir),
-            "--module-code", "tst",
-            "--module-name", "Test",
-            "--module-yaml", str(yaml_path),
-            "--module-csv", str(csv_path),
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace")
-        assert result.returncode == 2
-        data = json.loads(result.stdout)
+        data = scaffold_setup_skill(
+            str(target_dir), "tst", "Test", str(yaml_path), str(csv_path))
         assert data["status"] == "error"
 
 

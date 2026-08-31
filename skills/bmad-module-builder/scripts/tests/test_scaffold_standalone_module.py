@@ -2,15 +2,22 @@
 # /// script
 # requires-python = ">=3.10"
 # ///
-"""Tests for scaffold-standalone-module.py"""
+"""Tests for scaffold_standalone_module.py.
+
+Calls scaffold_standalone() directly (import, no subprocess) so the suite is
+deterministic on Windows — subprocess-heavy tests hit DuplicateHandle
+(WinError 6) exhaustion.
+"""
 
 import json
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parent.parent / "scaffold-standalone-module.py"
+SCRIPTS_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+from scaffold_standalone_module import scaffold_standalone  # noqa: E402
 
 
 def make_skill_dir(tmp: Path, name: str = "my-skill") -> Path:
@@ -31,26 +38,14 @@ def make_skill_dir(tmp: Path, name: str = "my-skill") -> Path:
 
 
 def run_scaffold(skill_dir: Path, **kwargs) -> tuple[int, dict]:
-    """Run the standalone scaffold script and return (exit_code, parsed_json)."""
-    cmd = [
-        sys.executable,
-        str(SCRIPT),
-        "--skill-dir", str(skill_dir),
-        "--module-code", kwargs.get("module_code", "tst"),
-        "--module-name", kwargs.get("module_name", "Test Module"),
-    ]
-    if "marketplace_dir" in kwargs:
-        cmd.extend(["--marketplace-dir", str(kwargs["marketplace_dir"])])
-    if kwargs.get("verbose"):
-        cmd.append("--verbose")
-
-    result = subprocess.run(cmd, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace")
-    try:
-        data = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        data = {"raw_stdout": result.stdout, "raw_stderr": result.stderr}
-    return result.returncode, data
+    """Call scaffold_standalone() and return (exit_code, result dict)."""
+    data = scaffold_standalone(
+        str(skill_dir),
+        kwargs.get("module_code", "tst"),
+        kwargs.get("module_name", "Test Module"),
+        kwargs.get("marketplace_dir"),
+    )
+    return (0 if data["status"] == "success" else 2), data
 
 
 def test_basic_scaffold():
@@ -166,16 +161,7 @@ def test_missing_skill_dir():
         tmp = Path(tmp)
         nonexistent = tmp / "nonexistent-skill"
 
-        cmd = [
-            sys.executable, str(SCRIPT),
-            "--skill-dir", str(nonexistent),
-            "--module-code", "tst",
-            "--module-name", "Test",
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace")
-        assert result.returncode == 2
-        data = json.loads(result.stdout)
+        data = scaffold_standalone(str(nonexistent), "tst", "Test")
         assert data["status"] == "error"
 
 
@@ -188,16 +174,7 @@ def test_missing_skill_md():
         (skill_dir / "assets").mkdir()
         (skill_dir / "assets" / "module.yaml").write_text("code: tst\n")
 
-        cmd = [
-            sys.executable, str(SCRIPT),
-            "--skill-dir", str(skill_dir),
-            "--module-code", "tst",
-            "--module-name", "Test",
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace")
-        assert result.returncode == 2
-        data = json.loads(result.stdout)
+        data = scaffold_standalone(str(skill_dir), "tst", "Test")
         assert data["status"] == "error"
         assert "SKILL.md" in data["message"]
 
@@ -210,16 +187,7 @@ def test_missing_module_yaml():
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text("---\nname: test\n---\n")
 
-        cmd = [
-            sys.executable, str(SCRIPT),
-            "--skill-dir", str(skill_dir),
-            "--module-code", "tst",
-            "--module-name", "Test",
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace")
-        assert result.returncode == 2
-        data = json.loads(result.stdout)
+        data = scaffold_standalone(str(skill_dir), "tst", "Test")
         assert data["status"] == "error"
         assert "module.yaml" in data["message"]
 

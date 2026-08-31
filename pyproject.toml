@@ -2,7 +2,15 @@
 testpaths = [
     "hooks/engine/tests",
     "bmad_benchmarks/tests",
-    "scripts/tests",
+    "skills/bmad-architecture/scripts/tests",
+    "skills/bmad-brainstorming/scripts/tests",
+    "skills/bmad-customize/scripts/tests",
+    "skills/bmad-eval-runner/scripts/tests",
+    "skills/bmad-forge-idea/scripts/tests",
+    "skills/bmad-module-builder/scripts/tests",
+    "skills/bmad-party-mode/scripts/tests",
+    "skills/bmad-research-experiment/scripts/tests",
+    "skills/bmad-workflow-builder/scripts/tests",
 ]
 python_files = "test_*.py"
 python_functions = "test_*"

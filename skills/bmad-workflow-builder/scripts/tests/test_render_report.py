@@ -6,10 +6,13 @@ placeholder subject, the --md archival rendering, and that both shipped
 shells carry a parseable placeholder island.
 Run with: python3 -m pytest test_render_report.py
 (or plain `python3 test_render_report.py` for a lightweight self-check).
+
+Renders are run in-process (import render_report, swap sys.argv, call main())
+so the suite is deterministic on Windows — subprocess-heavy tests hit
+DuplicateHandle (WinError 6) exhaustion.
 """
 import json
 import re
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -62,25 +65,39 @@ VALID_DATA = {
 }
 
 
-def run_render(args):
-    return subprocess.run(
-        [sys.executable, str(SCRIPT), *[str(a) for a in args]],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+def _load_render_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("render_report_mod", SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
-def test_valid_island_injection():
+def run_render(args, capsys):
+    """Run render_report.main() in-process; return (rc, stdout).
+
+    fail() raises SystemExit(1), so a failing render surfaces as an exception
+    here — the callers assert that via pytest.raises(SystemExit).
+    """
+    mod = _load_render_module()
+    old_argv = sys.argv
+    sys.argv = ["render_report.py", *[str(a) for a in args]]
+    try:
+        rc = mod.main()
+    finally:
+        sys.argv = old_argv
+    return rc, capsys.readouterr().out
+
+
+def test_valid_island_injection(capsys):
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         findings = tmp / "findings.json"
         out = tmp / "report.html"
         findings.write_text(json.dumps(VALID_DATA), encoding="utf-8")
 
-        result = run_render([findings, "--shell", SHELLS[0], "-o", out])
-        assert result.returncode == 0, result.stderr
+        rc, stdout = run_render([findings, "--shell", SHELLS[0], "-o", out], capsys)
+        assert rc == 0
         html = out.read_text(encoding="utf-8")
 
         match = ISLAND_RE.search(html)
@@ -91,25 +108,29 @@ def test_valid_island_injection():
         assert island["standards"]["canon"].endswith("prompt-quality-canon.md")
         assert "__PLACEHOLDER__" not in match.group(1)
 
-        stdout = json.loads(result.stdout)
-        assert stdout["counts"] == {"critical": 0, "high": 1, "medium": 0, "low": 0}
-        assert stdout["grade"] == "good"
+        parsed = json.loads(stdout)
+        assert parsed["counts"] == {"critical": 0, "high": 1, "medium": 0, "low": 0}
+        assert parsed["grade"] == "good"
 
 
-def test_refuses_bad_json():
+def test_refuses_bad_json(capsys):
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         findings = tmp / "findings.json"
         out = tmp / "report.html"
         findings.write_text("{ this is not json", encoding="utf-8")
 
-        result = run_render([findings, "--shell", SHELLS[0], "-o", out])
-        assert result.returncode != 0
-        assert "not valid JSON" in result.stderr
+        try:
+            run_render([findings, "--shell", SHELLS[0], "-o", out], capsys)
+        except SystemExit as exc:
+            assert exc.code != 0
+        else:
+            raise AssertionError("expected refusal (SystemExit)")
+        assert "not valid JSON" in capsys.readouterr().err
         assert not out.exists(), "refused render must not write output"
 
 
-def test_refuses_placeholder_subject():
+def test_refuses_placeholder_subject(capsys):
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         findings = tmp / "findings.json"
@@ -117,13 +138,17 @@ def test_refuses_placeholder_subject():
         data = dict(VALID_DATA, subject="__PLACEHOLDER__")
         findings.write_text(json.dumps(data), encoding="utf-8")
 
-        result = run_render([findings, "--shell", SHELLS[0], "-o", out])
-        assert result.returncode != 0
-        assert "placeholder" in result.stderr.lower()
+        try:
+            run_render([findings, "--shell", SHELLS[0], "-o", out], capsys)
+        except SystemExit as exc:
+            assert exc.code != 0
+        else:
+            raise AssertionError("expected refusal (SystemExit)")
+        assert "placeholder" in capsys.readouterr().err.lower()
         assert not out.exists(), "refused render must not write output"
 
 
-def test_md_output():
+def test_md_output(capsys):
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         findings = tmp / "findings.json"
@@ -131,8 +156,8 @@ def test_md_output():
         md = tmp / "report.md"
         findings.write_text(json.dumps(VALID_DATA), encoding="utf-8")
 
-        result = run_render([findings, "--shell", SHELLS[0], "-o", out, "--md", md])
-        assert result.returncode == 0, result.stderr
+        rc, _ = run_render([findings, "--shell", SHELLS[0], "-o", out, "--md", md], capsys)
+        assert rc == 0
         text = md.read_text(encoding="utf-8")
         assert "# Analysis Report: skills/example-skill" in text
         assert "**Grade: Good**" in text
@@ -164,10 +189,8 @@ def test_render_script_copies_identical():
 
 
 if __name__ == "__main__":
-    test_valid_island_injection()
-    test_refuses_bad_json()
-    test_refuses_placeholder_subject()
-    test_md_output()
+    # The capsys-parameterized tests run under pytest; the __main__ self-check
+    # covers the two subprocess-free tests.
     test_shipped_shells_carry_placeholder_island()
     test_render_script_copies_identical()
-    print("ok: render_report tests passed")
+    print("ok: render_report self-check passed (run full suite with pytest)")

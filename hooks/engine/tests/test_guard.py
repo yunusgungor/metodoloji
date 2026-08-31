@@ -135,3 +135,104 @@ def test_parse_ac_metadata():
     assert acs[0]["experiment"] == "E-001"
     assert acs[0]["type"] == "agent-verifiable"
     assert acs[1]["is_hypothesis"] is True
+
+
+def test_parse_ac_metadata_no_section():
+    assert _parse_ac_metadata("no ac here") == []
+
+
+def test_parse_task_ac_refs():
+    from modules.guard import _parse_task_ac_refs
+    content = """## Technical Tasks
+- [ ] implement login AC: AC-001
+- [x] fix bug AC: AC-002 AC: AC-003
+  - nested subtask AC: AC-999 (not a top-level task)
+"""
+    tasks = _parse_task_ac_refs(content)
+    # Only top-level '- [ ]' / '- [x]' lines are captured; indented subtasks are not.
+    assert len(tasks) == 2
+    assert tasks[0]["ac_refs"] == ["AC-001"]
+    assert tasks[1]["ac_refs"] == ["AC-002", "AC-003"]
+
+
+def test_validate_story_metadata_missing_fields():
+    from modules.guard import _validate_story_metadata
+    content = """## Story: S-001
+## Acceptance Criteria
+- [AC-001] Given X When Y Then Z
+"""
+    valid, reason = _validate_story_metadata(content)
+    assert valid is False
+    assert "missing Type field" in reason
+
+
+def test_validate_story_metadata_ok():
+    from modules.guard import _validate_story_metadata
+    content = """## Story: S-001
+---
+experiment_refs:
+  - id: E-001
+    status: APPROVED
+---
+## Acceptance Criteria
+- [AC-001] Given X When Y Then Z
+  - Experiment: E-001
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: curl http://x
+## Technical Tasks
+- [ ] do it AC: AC-001
+## Definition of Done
+- [ ] DoD-001 Verify: manual
+"""
+    valid, reason = _validate_story_metadata(content)
+    assert valid is True, reason
+
+
+def test_validate_story_metadata_hypothesis_skips_experiment():
+    from modules.guard import _validate_story_metadata
+    content = """## Acceptance Criteria
+- [AC-001] Given X When Y Then Z
+  - Experiment: —
+  - Type: user-evaluable
+  - Measured: false
+  - Verify: manual
+  - [HYPOTHESIS]
+"""
+    # With no experiment_refs and a [HYPOTHESIS] AC, the missing Experiment
+    # field is not flagged.
+    valid, reason = _validate_story_metadata(content)
+    assert valid is True, reason
+
+
+def test_is_git_commit():
+    from modules.guard import _is_git_commit
+    assert _is_git_commit("git commit -am 'x'") is True
+    assert _is_git_commit("git commit --amend") is True
+    assert _is_git_commit("git status") is False
+    assert _is_git_commit("ls") is False
+
+
+def test_find_done_stories_without_ir():
+    from modules.guard import _find_done_stories_without_ir
+    td, root = _make_project(stories=[("S-001", "done")])
+    try:
+        missing = _find_done_stories_without_ir(td.name)
+        assert "S-001" in missing
+        (root / "docs/development").mkdir(exist_ok=True)
+        (root / "docs/development/IR-001.md").write_text("# IR\n", encoding="utf-8")
+        assert _find_done_stories_without_ir(td.name) == []
+    finally:
+        td.cleanup()
+
+
+def test_find_done_stories_without_qr_excludes_templates():
+    from modules.guard import _find_done_stories_without_qr
+    td, root = _make_project(stories=[("S-001", "done"), ("_template", "done")])
+    try:
+        # _template.md is not an S-NNN file; only real stories are checked.
+        missing = _find_done_stories_without_qr(td.name)
+        assert "S-001" in missing
+        assert "_template" not in missing
+    finally:
+        td.cleanup()
