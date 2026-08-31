@@ -679,14 +679,20 @@ addopts = "-v --tb=short"
 | 1+9 (templates + gate) | ✅ Done — all 8 templates English, gate selfcheck passes |
 | 2 (hook engine) | ✅ Done — guard/audit/code_docs/scripts translated |
 | 3 (custom TOML) | ✅ Done — 120 TOMLs English, check-custom HEALTHY |
-| 4 (benchmark rollouts + data) | 🔄 Data scenario text in progress |
-| 5 (skill SKILL.md) | ✅ Done — 95 SKILL.md files + bridge notes translated |
+| 4 (benchmark rollouts + data) | ✅ Done — all 17 benchmarks + JSON data English (116 scenario strings translated) |
+| 5 (skill SKILL.md + sub-files) | ✅ Done — 95 SKILL.md + 57 sub-files + templates translated |
 | 6 (commands) | ✅ Done — 4 command docs English |
-| 7 (docs) | ✅ Done — USAGE-GUIDE.md + 3 manifestos English |
+| 7 (docs) | ✅ Done — USAGE-GUIDE.md + 3 manifestos + code-docs templates English |
 | 8 (top-level) | ✅ Done — README, plugin.json, marketplace, configs |
-| 10 (validation) | 🔄 check-plugin HEALTHY except expected warnings |
-| 11 (code quality refactor) | ⬜ Pending |
-| 12 (test coverage) | ⬜ Pending |
+| 10 (validation) | ✅ check-custom/check-techdebt HEALTHY; check-plugin clean except 2 expected warnings |
+| 11 (code quality refactor) | ✅ Done — guard.py dedup, code_docs TYPE_NAMES |
+| 12 (test coverage) | 🔄 19 tests added; more suite tests optional |
+
+**Final Turkish sweep:** all remaining Turkish-character hits are verified
+intentional — multilingual examples (Swedish `Öland`, German/French, accented-char
+test data), legacy status markers in check scripts for backward compatibility,
+Turkish trigger phrases in forge-idea SKILL.md, and historical `KÖPRÜ` mention in a
+past-tense tech-debt record.
 
 **Remaining pre-existing issues fixed along the way:**
 - Bridge doc was missing §2.6 (PR creation) that TOMLs referenced — added
