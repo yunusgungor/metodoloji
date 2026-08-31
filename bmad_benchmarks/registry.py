@@ -155,12 +155,16 @@ def run_benchmark(name: str, build_argv, module_name: str, label: str) -> bool:
     sys.argv = build_argv(name, cfg)
     print(f"\n{label}: {name}")
     try:
-        for mod in list(sys.modules):
-            if mod == module_name or mod.startswith(module_name + "."):
-                del sys.modules[mod]
-        register_all_adapters()
+        # Register adapters into the SAME module instance SkillOpt will use.
+        # Deleting scripts.train from sys.modules and re-importing creates a
+        # SECOND module object whose _ENV_REGISTRY starts empty — the adapters
+        # registered on the first instance are lost and get_adapter raises
+        # "Unknown environment". So import the entry ONCE, register onto it,
+        # and call main() on that same instance. No delete.
         from importlib import import_module
-        import_module(module_name).main()
+        entry = import_module(module_name)
+        register_all_adapters()
+        entry.main()
         return True
     except SystemExit as exc:
         return exc.code == 0

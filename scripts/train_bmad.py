@@ -39,6 +39,10 @@ def main():
     register_all_adapters()
 
     names = BENCHMARKS if args.benchmark == "all" else [args.benchmark]
+    # Output dirs are created on demand so a fresh checkout trains without
+    # pre-creating outputs/<benchmark>/.
+    for name in names:
+        (REPO_ROOT / "outputs" / name).mkdir(parents=True, exist_ok=True)
     extra_args = []
     if args.epochs != 3:
         extra_args.extend(["--num_epochs", str(args.epochs)])
