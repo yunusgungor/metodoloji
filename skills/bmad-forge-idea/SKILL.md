@@ -1,7 +1,7 @@
 ---
 name: bmad-forge-idea
-description: Pressure-test an idea through persona-driven interrogation until it hardens, proves out, or dies cheaply. Also engages proactively when the user shares a half-formed idea — run a brainstorm with meaningful inferences and surface explicit decisions. Use when the user says 'forge an idea', 'pressure-test this idea', 'stress-test my thinking', 'harden this idea', or shares an idea with 'I have an idea', 'I was thinking about', 'bir fikrim var', 'şöyle bir şey düşünüyorum'.
-triggers: ["bmad-forge-idea", "/bmad-forge-idea", "forge-idea", "forge an idea", "pressure-test this idea", "stress-test my thinking", "harden this idea", "I have an idea", "I was thinking about", "bir fikrim var", "şöyle bir şey düşünüyorum", "fikir"]
+description: Pressure-test an idea through persona-driven interrogation until it hardens, proves out, or dies cheaply. Also engages proactively when the user shares a half-formed idea — run a brainstorm with meaningful inferences and surface explicit decisions. Use when the user says 'forge an idea', 'pressure-test this idea', 'stress-test my thinking', 'harden this idea', or shares an idea with 'I have an idea', 'I was thinking about'.
+triggers: ["bmad-forge-idea", "/bmad-forge-idea", "forge-idea", "forge an idea", "pressure-test this idea", "stress-test my thinking", "harden this idea", "I have an idea", "I was thinking about"]
 ---
 
 # BMad Forge Idea

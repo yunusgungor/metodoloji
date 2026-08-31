@@ -1,7 +1,7 @@
 ---
 name: bmad-dev-story
 description: 'Execute story implementation following a context filled story spec file. Use when the user says "dev this story [story file]" or "implement the next story in the sprint plan"'
-triggers: ["bmad-dev-story", "/bmad-dev-story", "dev-story", "dev this story [story file]", "hikayeyi gelistir", "story giristir", "siradaki hikaye"]
+triggers: ["bmad-dev-story", "/bmad-dev-story", "dev-story", "dev this story [story file]"]
 ---
 
 # Dev Story Workflow

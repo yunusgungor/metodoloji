@@ -1,7 +1,7 @@
 ---
 name: bmad-sprint-planning
 description: 'Generate sprint status tracking from epics. Use when the user says "run sprint planning" or "generate sprint plan"'
-triggers: ["bmad-sprint-planning", "/bmad-sprint-planning", "sprint-planning", "run sprint planning", "sprint planla", "sprint olustur", "planlama yap"]
+triggers: ["bmad-sprint-planning", "/bmad-sprint-planning", "sprint-planning", "run sprint planning"]
 ---
 
 # Sprint Planning Workflow

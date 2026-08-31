@@ -1,7 +1,7 @@
 ---
 name: bmad-research-experiment
 description: 'Run the research methodology gate — Theory → Hypothesis → Experiment → Measurement → Approval. Use when the user says they want to run an experiment, test a hypothesis, verify a claim, or follow the research methodology.'
-triggers: ["bmad-research-experiment", "/bmad-research-experiment", "research-experiment", "record chain", "hard gate", "guard code", "methodology"]
+triggers: ["bmad-research-experiment", "/bmad-research-experiment", "research-experiment"]
 ---
 
 # Research Experiment Workflow
