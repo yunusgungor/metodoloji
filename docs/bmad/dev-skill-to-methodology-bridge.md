@@ -182,6 +182,27 @@ When all DoD items are verified in `bmad-dev-story` Step 9, the QR record is cre
    - The QR Record Path field is filled in
 4. The record chain is completed: S → QR → PR
 
+### §2.6 Production Readiness (PR) Record Creation (BRIDGE #4)
+
+Before a production deploy, the deploy guard (Gate 4) requires a Production Readiness
+record at `docs/development/PR-<sequence>.md`. This bridge step produces it from the
+deployment surface (dev-story, quick-dev, agent-dev):
+
+1. The `docs/development/PR-<sequence>.md` file is created
+2. Copy the template from `docs/development/_template_PR.md` and fill the fields with
+   English labels:
+   - **Date**, **Status**: `preparing` | `READY` | `PENDING`
+   - **Release type**: Major | Minor | Patch | Hotfix
+   - **Version**, **Release scope** (QR-id list)
+   - **Staging Test**, **Rollback Plan**, **Monitoring and Alerting**
+   - **Feature Flags**, **Runbook**, **Incident Response**
+   - **Decision**: `READY` | `PENDING` + rationale
+   - **Next step**: `production deploy` | `complete the gaps`
+3. The Decision field must be one of the allowed values and the Date field must be
+   present (`scripts/check-methodology.sh §6` checks this).
+4. The record chain is completed: QR → PR, satisfying the deploy guard's Gate 4
+   enforcement.
+
 ---
 
 ## §3 Guard Hook Integration

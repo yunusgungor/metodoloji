@@ -1,137 +1,137 @@
-# Teknik Borç Takibi
+# Technical Debt Tracking
 
-> Bu dosya, projede birikmiş teknik borçları ve geri ödeme planını takip eder.
-> Her sprint'te teknik borç için time-box ayrılmalıdır.
+> This file tracks technical debt accumulated in the project and the repayment plan.
+> A time-box should be reserved for technical debt in every sprint.
 
-**Son güncelleme:** 2026-08-26
+**Last updated:** 2026-08-26
 
-> **2026-08-26 — SkillOpt-tech-debt entegrasyonu tamamlandı.** 12 commit (957e5c2..8f2eb93) ile
-> tüm 6 manifestodaki borç ödendi (TD-001/002/003/010/011/012), SkillOpt `techdebt` task
-> kategorisi eklendi (6/6 benchmark), `commands/check-techdebt.sh` envanteri 5 bölümde
-> mekanik denetliyor, baseline.json repoda (66/66), 151 test PASS, 3/3 negtest. Aktif
-> borç: **0**. Bir sonraki borç döngüsü yeni P3 kayıtlarıyla başlayacak.
+> **2026-08-26 — SkillOpt tech-debt integration completed.** With 12 commits (957e5c2..8f2eb93),
+> all debt in all 6 manifests was paid (TD-001/002/003/010/011/012), the SkillOpt `techdebt` task
+> category was added (6/6 benchmarks), `commands/check-techdebt.sh` inventory checks mechanically in
+> 5 sections, baseline.json is in the repo (66/66), 151 tests PASS, 3/3 negtest. Active
+> debt: **0**. The next debt cycle will start with new P3 records.
 
 ---
 
-## Aktif Teknik Borçlar
+## Active Technical Debts
 
-### Kritik Öncelik (P0)
+### Critical Priority (P0)
 
-| ID | Tanım | Neden Eklendi | Ekleme Tarihi | Etki | Sahibi | Hedef Sprint |
+| ID | Description | Why Added | Date Added | Impact | Owner | Target Sprint |
 |----|-------|---------------|---------------|------|--------|--------------|
 | —    | —     | —             | —             | —    | —      | —            |
 
-### Yüksek Öncelik (P1)
+### High Priority (P1)
 
-| ID | Tanım | Neden Eklendi | Ekleme Tarihi | Etki | Sahibi | Hedef Sprint |
+| ID | Description | Why Added | Date Added | Impact | Owner | Target Sprint |
 |----|-------|---------------|---------------|------|--------|--------------|
 | —    | —     | —             | —             | —    | —      | —            |
 
-### Orta Öncelik (P2)
+### Medium Priority (P2)
 
-| ID | Tanım | Neden Eklendi | Ekleme Tarihi | Etki | Sahibi | Hedef Sprint |
+| ID | Description | Why Added | Date Added | Impact | Owner | Target Sprint |
 |----|-------|---------------|---------------|------|--------|--------------|
 | —    | —     | —             | —             | —    | —      | —            |
 
-### Düşük Öncelik (P3)
+### Low Priority (P3)
 
-| ID | Tanım | Neden Eklendi | Ekleme Tarihi | Etki | Sahibi | Hedef Sprint |
+| ID | Description | Why Added | Date Added | Impact | Owner | Target Sprint |
 |----|-------|---------------|---------------|------|--------|--------------|
 | — | — | — | — | — | — | — |
 
 ---
 
-## Ödenmiş Borçlar (Tamamlanan)
+## Paid Debts (Completed)
 
-| ID | Tanım | Çözüm | Tamamlanma Tarihi | Sprint | PR/QR |
+| ID | Description | Solution | Completion Date | Sprint | PR/QR |
 |----|-------|-------|-------------------|--------|-------|
-| TD-001 | Kırık test olarak işaretlenen `test_marketplace_json_content` (bmad-module-builder) — manifestoda P0 olarak duruyordu | 2026-08-26'da pytest ile doğrulandı: 9/9 test-scaffold-standalone-module + 7/7 test-scaffold-setup-skill + 21/21 test-validate-module (toplam 37/37) PASS. Scaffold `marketplace_name = f"bmad-{args.module_code}"` üretiyor, test `bmad-exc` bekliyor — uyumlu. Borç kaydı eski (2026-08-19) ve initial commit'ten beri scaffold doğru çalışıyordu; kayıt hatalı güncellenmiş | 2026-08-26 | — | 1fcc9fd |
-| TD-003 | Diğer yüklenmiş skill'lerin test süitleri (bmad-workflow-builder hariç) hiç koşulmamış | 2026-08-26'da pytest ile doğrulandı — 9 test dosyası, **114/114 PASS**: bmad-architecture (28) + bmad-brainstorming (27) + bmad-customize (13) + bmad-eval-runner (4+11=15) + bmad-forge-idea (16) + bmad-workflow-builder (2+7+6=15). Tüm aktif skill testleri deterministik ve yeşil | 2026-08-26 | — | 1fcc9fd |
-| TD-002 | Monitör false-positive: `tech-debt.md` şablon placeholder'ları gerçek borç sanılıyordu (`sprint-status.sh`/`tech-debt-monitor.sh` "4 aktif borç, P0:1" gösteriyordu) | `commands/check-techdebt.sh` 5 bölüm: (1) şablon/canlı özdeşlik, (2) aktif ID benzersiz + sıralı, (3) P0 hard limit (<=5), (4) aktif/ödenmiş çakışma yok, (5) orphan TODO; 3 aşamalı `--negtest`; `check-plugin.sh §6b` olarak entegre | 2026-08-26 | — | 1de54b1 |
-| TD-010 | Tüm Python script'lerinde Windows UTF-8 bozulması (cp1254) | `subprocess.run(..., text=True)` çağrılarına `encoding="utf-8", errors="replace"` eklendi (14 dosya, 19 çağrı) | 2026-08-19 | — | — |
-| TD-011 | `check-methodology.sh` §2b köprü denetimi false-positive (KÖPRÜ merge "yok" sanılıyordu) | §2b subprocess'ine `encoding="utf-8"` eklendi; `DURUM: SAĞLIKLI` | 2026-08-19 | — | — |
-| TD-012 | SkillOpt API anahtarı kaynak kodunda hard-coded (`sk-*` setdefault fallback'leri) — güvenlik borcu + deterministik eğitimi bozuyor | 4 adım: (1) `.env.example` şablonu + `.gitignore` `.env` koruması, (2) `optimization/train.py` + `cli.py` + `envs/bmad/adapter.py` setdefault fallback'leri kaldırıldı, (3) `train._require_llm_env()` ile `--benchmark` dışı yollarda eksik env hata verir, (4) `check-plugin.sh §6a` 4 alt-kontrol + 3 aşamalı `--negtest` eklendi | 2026-08-26 | — | cf679ea |
+| TD-001 | `test_marketplace_json_content` (bmad-module-builder) marked as broken test — still listed as P0 in the manifest | Verified with pytest on 2026-08-26: 9/9 test-scaffold-standalone-module + 7/7 test-scaffold-setup-skill + 21/21 test-validate-module (total 37/37) PASS. Scaffold produces `marketplace_name = f"bmad-{args.module_code}"`, test expects `bmad-exc` — compatible. Debt record was old (2026-08-19) and scaffold had been working correctly since the initial commit; the record was incorrectly updated | 2026-08-26 | — | 1fcc9fd |
+| TD-003 | Test suites of other installed skills (except bmad-workflow-builder) had never been run | Verified with pytest on 2026-08-26 — 9 test files, **114/114 PASS**: bmad-architecture (28) + bmad-brainstorming (27) + bmad-customize (13) + bmad-eval-runner (4+11=15) + bmad-forge-idea (16) + bmad-workflow-builder (2+7+6=15). All active skill tests deterministic and green | 2026-08-26 | — | 1fcc9fd |
+| TD-002 | Monitor false-positive: `tech-debt.md` template placeholders were mistaken for real debt (`sprint-status.sh`/`tech-debt-monitor.sh` showed "4 active debts, P0:1") | `commands/check-techdebt.sh` 5 sections: (1) template/live identity, (2) active ID unique + sequential, (3) P0 hard limit (<=5), (4) no active/paid overlap, (5) orphan TODO; 3-stage `--negtest`; integrated as `check-plugin.sh §6b` | 2026-08-26 | — | 1de54b1 |
+| TD-010 | Windows UTF-8 corruption in all Python scripts (cp1254) | Added `encoding="utf-8", errors="replace"` to `subprocess.run(..., text=True)` calls (14 files, 19 calls) | 2026-08-19 | — | — |
+| TD-011 | `check-methodology.sh` §2b bridge check false-positive (KÖPRÜ merge seemed "absent") | Added `encoding="utf-8"` to §2b subprocess; `STATUS: HEALTHY` | 2026-08-19 | — | — |
+| TD-012 | SkillOpt API key hard-coded in source (`sk-*` setdefault fallbacks) — security debt + breaking deterministic training | 4 steps: (1) `.env.example` template + `.gitignore` `.env` protection, (2) removed setdefault fallbacks in `optimization/train.py` + `cli.py` + `envs/bmad/adapter.py`, (3) `train._require_llm_env()` errors on missing env in non-`--benchmark` paths, (4) added `check-plugin.sh §6a` 4 sub-checks + 3-stage `--negtest` | 2026-08-26 | — | cf679ea |
 
 ---
 
-## Teknik Borç Kategorileri
+## Technical Debt Categories
 
 ### 1. Code Quality
-- **Tanım:** Kötü yazılmış kod, code smell'ler, duplicate kod
-- **Örnekler:**
-  - Kompleks fonksiyonlar (cyclomatic complexity yüksek)
-  - Dead code (kullanılmayan fonksiyonlar/sınıflar)
-  - Magic numbers (hardcoded sabitler)
-  - God object'ler (çok fazla sorumluluk)
+- **Definition:** Poorly written code, code smells, duplicate code
+- **Examples:**
+  - Complex functions (high cyclomatic complexity)
+  - Dead code (unused functions/classes)
+  - Magic numbers (hardcoded constants)
+  - God objects (too many responsibilities)
 
 ### 2. Test Debt
-- **Tanım:** Eksik testler, flaky testler, düşük coverage
-- **Örnekler:**
-  - Unit test coverage < %80
-  - Integration test eksikliği
-  - E2E test coverage yetersiz
-  - Flaky testler (intermittent failures)
+- **Definition:** Missing tests, flaky tests, low coverage
+- **Examples:**
+  - Unit test coverage < 80%
+  - Missing integration tests
+  - Insufficient E2E test coverage
+  - Flaky tests (intermittent failures)
 
 ### 3. Documentation Debt
-- **Tanım:** Eksik veya güncel olmayan dokümantasyon
-- **Örnekler:**
-  - API dokümantasyonu eksik
-  - Code comment'ler yetersiz
-  - README güncel değil
-  - Runbook eksik veya eski
+- **Definition:** Missing or outdated documentation
+- **Examples:**
+  - Missing API documentation
+  - Insufficient code comments
+  - README not up to date
+  - Runbook missing or outdated
 
 ### 4. Architecture Debt
-- **Tanım:** Mimari kararlar, tight coupling, scalability sorunları
-- **Örnekler:**
-  - Monolith'ten microservice'e geçiş gerekli
-  - Tight coupling (bağımlılıklar çok fazla)
-  - Database schema normalizasyon sorunu
-  - Scalability bottleneck'leri
+- **Definition:** Architecture decisions, tight coupling, scalability issues
+- **Examples:**
+  - Monolith to microservice migration needed
+  - Tight coupling (too many dependencies)
+  - Database schema normalization issue
+  - Scalability bottlenecks
 
 ### 5. Infrastructure Debt
-- **Tanım:** Altyapı, deployment, monitoring eksiklikleri
-- **Örnekler:**
-  - Manual deployment adımları (otomasyon eksik)
-  - Monitoring yetersiz
-  - Log aggregation eksik
-  - Disaster recovery planı yok
+- **Definition:** Infrastructure, deployment, monitoring gaps
+- **Examples:**
+  - Manual deployment steps (missing automation)
+  - Insufficient monitoring
+  - Missing log aggregation
+  - No disaster recovery plan
 
 ### 6. Dependency Debt
-- **Tanım:** Eski bağımlılıklar, security vulnerability'ler
-- **Örnekler:**
-  - Deprecated kütüphaneler
-  - Bilinen güvenlik açıkları
-  - End-of-life teknolojiler
+- **Definition:** Outdated dependencies, security vulnerabilities
+- **Examples:**
+  - Deprecated libraries
+  - Known security vulnerabilities
+  - End-of-life technologies
 
 ### 7. Performance Debt
-- **Tanım:** Performans optimizasyonları, memory leak'ler
-- **Örnekler:**
-  - N+1 query problemi
+- **Definition:** Performance optimizations, memory leaks
+- **Examples:**
+  - N+1 query problem
   - Memory leak
   - Inefficient algorithm (O(n²) → O(n log n))
-  - Caching eksikliği
+  - Missing caching
 
 ---
 
-## Teknik Borç Metrikleri
+## Technical Debt Metrics
 
-### Mevcut Durum
-- **Toplam aktif borç:** [X item]
-  - P0 (Kritik): [Y item]
-  - P1 (Yüksek): [Z item]
-  - P2 (Orta): [W item]
-  - P3 (Düşük): [V item]
-- **Tahmini geri ödeme süresi:** [X sprint / Y hafta]
+### Current State
+- **Total active debt:** [X items]
+  - P0 (Critical): [Y items]
+  - P1 (High): [Z items]
+  - P2 (Medium): [W items]
+  - P3 (Low): [V items]
+- **Estimated repayment time:** [X sprint / Y weeks]
 
 ### Sprint Allocation
-- **Sprint başına teknik borç time-box:** [%20 veya X story points]
-- **Son 3 sprint'te ödenen borç:** [X item]
-- **Son 3 sprint'te eklenen borç:** [Y item]
-- **Net borç değişimi:** [X - Y = Z] (pozitif = borç azalıyor, negatif = borç artıyor)
+- **Technical debt time-box per sprint:** [20% or X story points]
+- **Debt paid in the last 3 sprints:** [X items]
+- **Debt added in the last 3 sprints:** [Y items]
+- **Net debt change:** [X - Y = Z] (positive = debt decreasing, negative = debt increasing)
 
 ### Trend
 ```
-Sprint    | Yeni Borç | Ödenen Borç | Net Değişim | Toplam Borç
+Sprint    | New Debt | Paid Debt | Net Change | Total Debt
 ----------|-----------|-------------|-------------|-------------
 SP-001    | 5         | 2           | -3          | 15
 SP-002    | 3         | 4           | +1          | 14
@@ -140,96 +140,96 @@ SP-003    | 2         | 3           | +1          | 13
 
 ---
 
-## Geri Ödeme Stratejisi
+## Repayment Strategy
 
-### Prensip: Boy Scout Rule
-> "Kodu bulduğundan daha temiz bırak." Her PR'da küçük iyileştirmeler yaparak borcu azalt.
+### Principle: Boy Scout Rule
+> "Leave the code cleaner than you found it." Reduce debt by making small improvements in every PR.
 
 ### Time-Box Allocation
-- **Her sprint:** %20 kapasiteyi teknik borç için ayır
-- **Kritik borç (P0):** Acil sprint'e al, feature'dan önce
-- **Yüksek borç (P1):** Önümüzdeki 2 sprint içinde planla
-- **Orta/Düşük borç (P2/P3):** Opportunistic olarak ele al (refactoring sırasında)
+- **Every sprint:** Reserve 20% capacity for technical debt
+- **Critical debt (P0):** Take into the immediate sprint, before features
+- **High debt (P1):** Plan within the next 2 sprints
+- **Medium/Low debt (P2/P3):** Handle opportunistically (during refactoring)
 
-### Borç Önceliklendirme Kriterleri
-1. **Güvenlik riski:** Güvenlik açığı varsa P0
-2. **Production incident riski:** Incident çıkarabilirse P0/P1
-3. **Geliştirme hızı etkisi:** Yeni feature geliştirmeyi yavaşlatıyorsa P1
-4. **Bakım maliyeti:** Sürekli bug üretiyorsa P1
-5. **Code smell:** Sadece kötü kod ise P2/P3
-
----
-
-## Borç Ekleme Kuralları
-
-### Borç Eklenebilir Mi?
-- ✓ **Evet:** Hızlı deliver etmek için geçici kestirme alındıysa (bilinçli karar)
-- ✓ **Evet:** Test coverage geçici olarak düşürüldüyse (geri ödeme planıyla)
-- ✗ **Hayır:** "Daha sonra düzeltiriz" diye kalitesiz kod yazılırsa (kabul edilemez)
-- ✗ **Hayır:** Borç kaydedilmeden bırakılırsa (gizli borç yasaktır)
-
-### Borç Ekleme Süreci
-1. QR (Quality Review) sırasında tespit edildi
-2. `tech-debt.md` dosyasına eklendi (ID, tanım, gerekçe, öncelik)
-3. Code'da `// TODO: [TD-XXX] ...` comment eklendi
-4. Hedef sprint belirlendi (P0/P1 için zorunlu)
-
-### Borç Limiti
-- **Hard limit:** P0 borç sayısı > 5 ise yeni feature alınmaz, önce borç ödenir
-- **Soft limit:** Toplam aktif borç > 30 ise borç ödeme sprint'i düzenlenir
+### Debt Prioritization Criteria
+1. **Security risk:** If there is a vulnerability, P0
+2. **Production incident risk:** If it could cause an incident, P0/P1
+3. **Development speed impact:** If it slows down new feature development, P1
+4. **Maintenance cost:** If it continuously produces bugs, P1
+5. **Code smell:** If it's just bad code, P2/P3
 
 ---
 
-## TODO Comment Standardı
+## Debt Addition Rules
+
+### Can Debt Be Added?
+- ✓ **Yes:** If a temporary shortcut was taken to deliver quickly (conscious decision)
+- ✓ **Yes:** If test coverage was temporarily lowered (with a repayment plan)
+- ✗ **No:** If poor quality code is written saying "we'll fix it later" (unacceptable)
+- ✗ **No:** If debt is left unrecorded (hidden debt is forbidden)
+
+### Debt Addition Process
+1. Identified during QR (Quality Review)
+2. Added to `tech-debt.md` (ID, description, rationale, priority)
+3. `// TODO: [TD-XXX] ...` comment added in code
+4. Target sprint determined (mandatory for P0/P1)
+
+### Debt Limit
+- **Hard limit:** If P0 debt count > 5, no new features; pay off debt first
+- **Soft limit:** If total active debt > 30, a debt repayment sprint is scheduled
+
+---
+
+## TODO Comment Standard
 
 ```python
-# TODO: [TD-XXX] <Kısa açıklama>
-# Detay: <Neyi düzeltmek gerekiyor>
-# Ekleme: <YYYY-MM-DD> - <@username>
+# TODO: [TD-XXX] <Short description>
+# Detail: <What needs to be fixed>
+# Added: <YYYY-MM-DD> - <@username>
 ```
 
-**Örnek:**
+**Example:**
 ```python
-# TODO: [TD-042] BFS algorithm'i O(n²), O(n log n)'e optimize edilmeli
-# Detay: Nested loop yerine heap kullanarak priority queue implementasyonu
-# Ekleme: 2026-08-15 - @ahmet
+# TODO: [TD-042] BFS algorithm is O(n²), should be optimized to O(n log n)
+# Detail: Priority queue implementation using a heap instead of nested loop
+# Added: 2026-08-15 - @ahmet
 def bfs(graph):
-    # Geçici implementation
+    # Temporary implementation
     pass
 ```
 
 ---
 
-## Gözden Geçirme
+## Review
 
-### Haftalık Review
-- **Sahibi:** Tech Lead
-- **Ne:** Yeni eklenen borçlar review edilir, öncelik güncellenir
-- **Aksiyon:** Kritik borçlar sprint'e alınır
+### Weekly Review
+- **Owner:** Tech Lead
+- **What:** Newly added debt is reviewed, priorities updated
+- **Action:** Critical debt is taken into the sprint
 
-### Aylık Health Check
-- **Sahibi:** Takım + Engineering Manager
-- **Ne:** Teknik borç metrikleri gözden geçirilir, trend analizi yapılır
-- **Aksiyon:** Borç ödeme stratejisi ayarlanır
+### Monthly Health Check
+- **Owner:** Team + Engineering Manager
+- **What:** Technical debt metrics reviewed, trend analysis done
+- **Action:** Debt repayment strategy adjusted
 
 ### Quarterly Audit
-- **Sahibi:** Tüm mühendislik organizasyonu
-- **Ne:** Tüm teknik borçlar audit edilir, hangileri hâlâ geçerli
-- **Aksiyon:** Eski/irrelevant borçlar silinir, yenileri eklenir
+- **Owner:** Entire engineering organization
+- **What:** All technical debt audited, which ones are still valid
+- **Action:** Old/irrelevant debt removed, new ones added
 
 ---
 
-## Notlar
+## Notes
 
-- Teknik borç **gizlenemez** (geliştirme dürüstlük kuralı 3)
-- Her QR'da teknik borç kontrol edilir ve varsa kaydedilir
-- Borç ödemesi **feature delivery kadar önemlidir**
-- "Hızlı git ve kır" değil, "sürdürülebilir hızda git" prensibi
+- Technical debt **cannot be hidden** (development honesty rule 3)
+- Technical debt is checked at every QR and recorded if present
+- Debt repayment is **as important as feature delivery**
+- Principle: not "move fast and break things" but "move at a sustainable pace"
 
 ---
 
-## İlgili Dökümanlar
+## Related Documents
 
-- [Geliştirme Metodolojisi](../bmad/development-methodology.md)
+- [Development Methodology](../bmad/development-methodology.md)
 - [Quality Review Template](_template_QR.md)
 - [Sprint Template](_template_SP.md)

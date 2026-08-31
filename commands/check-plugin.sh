@@ -340,11 +340,12 @@ if not os.path.isfile(BRIDGE):
     missing.append("%s (bridge document missing — native output not translated to methodology record)" % BRIDGE)
 
 # Phase-1 bridge skills: each must produce docs/development/<record>-*.md.
+# QR records may live under docs/quality/ (new) or docs/development/ (legacy).
 BRIDGE_SKILLS = {
     "bmad-check-implementation-readiness": ("IR", "docs/development/", "create"),
     "bmad-sprint-planning": ("SP", "docs/development/", "create"),
     "bmad-create-story": ("S", "docs/development/stories/", "create"),
-    "bmad-code-review": ("QR", "docs/development/", "create"),
+    "bmad-code-review": ("QR", "docs/quality/QR", "create"),
     "bmad-dev-story": ("S", "docs/development/stories/", "update"),
     "bmad-quick-dev": ("S", "docs/development/stories/", "update"),
     "bmad-dev-auto": ("S", "docs/development/stories/", "update"),
@@ -378,7 +379,7 @@ for skill in QR_FEEDERS_SKILLMD:
         continue
     if "dev-skill-to-methodology-bridge" not in txt:
         missing.append("%s (no bridge reference in SKILL.md)" % skill)
-    if "docs/development/QR" not in txt:
+    if "docs/quality/QR" not in txt and "docs/development/QR" not in txt:
         missing.append("%s (no QR feed target in SKILL.md)" % skill)
 
 # Phase-3 QR feeders — ones working via custom/{skill}.toml activation_steps_append.
@@ -400,7 +401,7 @@ for skill in QR_FEEDERS_TOML:
         continue
     if "dev-skill-to-methodology-bridge" not in txt:
         missing.append("%s (no bridge reference in append)" % skill)
-    if "docs/development/QR" not in txt:
+    if "docs/quality/QR" not in txt and "docs/development/QR" not in txt:
         missing.append("%s (no QR feed target in append)" % skill)
 
 print("  checked surfaces: %d, excluded (non-methodology tool): %d" % (checked, excluded))
@@ -496,8 +497,8 @@ for name in BRIDGE_SKILLS:
             capture_output=True, text=True, encoding="utf-8", timeout=15)
         d = json.loads(r.stdout)
         asa = d.get("workflow.activation_steps_append", [])
-        # Accept both legacy Turkish marker and new English marker.
-        has_verify = any(m in s for s in asa for m in ("DOGRULAMA", "VERIFY"))
+        # Accept legacy Turkish marker and both English markers.
+        has_verify = any(m in s for s in asa for m in ("DOGRULAMA", "VERIFICATION", "VERIFY"))
         if not has_verify:
             missing.append("%s (no verify marker in BRIDGE — LLM may skip the record)" % name)
     except Exception as e:
@@ -520,12 +521,14 @@ FOUND=0
 for rec in "$PROJECT_ROOT"/docs/experiments/*.md; do
     [ -f "$rec" ] || continue
     case "$(basename "$rec")" in _template.md) continue ;; esac
-    if grep -q "Karar:\*\*[[:space:]]*ONAYLANDI" "$rec"; then
+    # Detect the approved decision in both the new English format
+    # (**Decision:** APPROVED / Status: APPROVED) and the legacy Turkish one.
+    if grep -qE '\*\*(Decision|Karar):\*\*[[:space:]]*(APPROVED|ONAYLANDI)|^Status:[[:space:]]*(APPROVED|ONAYLANDI)' "$rec"; then
         if "$PY" "$GATE" --verify --record "$rec" >/dev/null 2>&1; then
             echo "[OK]   $rec -> VERIFIED"
             FOUND=$((FOUND + 1))
         else
-            echo "[ERROR] $rec -> ONAYLANDI but --verify failed (FORGED?)"
+            echo "[ERROR] $rec -> approved but --verify failed (FORGED?)"
             PROBLEMS=$((PROBLEMS + 1))
         fi
     fi

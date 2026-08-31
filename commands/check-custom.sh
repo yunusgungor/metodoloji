@@ -459,7 +459,7 @@ for name in sorted(KOPRU):
     blob = "\n".join(asa)
     low = blob.lower()
     # Accept both legacy Turkish markers and the new English markers.
-    has_verify = any(m in blob for m in ("DOGRULAMA", "VERIFY"))
+    has_verify = any(m in blob for m in ("DOGRULAMA", "VERIFICATION", "VERIFY"))
     has_error = any(m in low for m in ("hata ver", "error and recreate"))
     if not has_verify or not has_error:
         problems.append("%s: verify + error pattern missing" % name)

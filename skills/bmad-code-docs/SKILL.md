@@ -16,6 +16,7 @@ triggers: ["bmad-code-docs", "/bmad-code-docs", "recall", "remember", "find", "d
 - `{metodoloji-root}` = plugin root (`~/.openhands/plugins/installed/metodoloji`).
 - `{code-docs-root}` = `{project-root}/docs/code-docs/`.
 - `{user_name}` and `{communication_language}` come from `bmad/config.user.toml`.
+- Load `{project-root}/docs/bmad/research-methodology.md` if present — code-docs trace to experiment records.
 
 ## On Activation
 
