@@ -1109,6 +1109,6 @@ When ready to plan new features, run the PRD workflow and provide this index as 
 
 <action>Display: "State file saved: {{output_folder}}/project-scan-report.json"</action>
 
-<action>Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME — if the resolved value is non-empty, follow it as the final terminal instruction before exiting.</action>
+<action>Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — the OpenHands terminal tool accepts only the command parameter; do NOT add description — if the resolved value is non-empty, follow it as the final terminal instruction before exiting.</action>
 
 </workflow>

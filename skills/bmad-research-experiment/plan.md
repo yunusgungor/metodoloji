@@ -1,65 +1,66 @@
-# bmad-research-experiment — Plan (bmad-builder formatı)
+# bmad-research-experiment — Plan (bmad-builder format)
 
-- **Skill adı:** bmad-research-experiment
-- **Tip:** workflow skill (tek workflow, tek kullanım alanı)
-- **Modül:** bmm (software-development)
-- **Amaç:** Bilimsel metodolojinin kalbi olan **Teori→Hipotez→Deney→Ölçüm→Onay** akışını
-  eksiksiz yürütür. Onay kapısı PASS vermeden çıktı "ONAYLANDI" olamaz.
-- **Kurulum yeri:** `{metodoloji-root}/skills/bmad-research-experiment/`
-- **Çıktılar:** `docs/experiments/<deney-id>.md` + `docs/experiments/<deney-id>/raw/` (ham veri)
-- **Kapı araçları:** onay mekanizmasını HİÇBİR şekilde test etmeden (assert-based `__main__`
-  doğrulaması olmadan) yazmayı REDDET — test edilmemiş kapı, metodolojiyi koruyamaz.
+- **Skill name:** bmad-research-experiment
+- **Type:** workflow skill (single workflow, single use case)
+- **Module:** bmm (software-development)
+- **Purpose:** Fully executes the **Theory→Hypothesis→Experiment→Measurement→Approval** flow at the
+  heart of the scientific methodology. The output cannot be "APPROVED" unless the approval gate passes.
+- **Install location:** `{metodoloji-root}/skills/bmad-research-experiment/`
+- **Outputs:** `docs/experiments/<deney-id>.md` + `docs/experiments/<deney-id>/raw/` (raw data)
+- **Gate tools:** REFUSE to write the approval mechanism without testing it in ANY way (without an
+  assert-based `__main__` verification) — an untested gate cannot protect the methodology.
 
-## Bileşenler
+## Components
 
-| Dosya | Amaç |
+| File | Purpose |
 |-------|------|
-| `SKILL.md` | Aktivasyon + 6 adım akışı (Teori→Hipotez→Deney→Ölçüm→Onay→Sonuç) + dürüstlük kuralları |
-| `customize.toml` | Yüzey: `persistent_facts` manifesto yükleme, `activation_steps_append` (manifesto + Stage-6 doğrulama) |
-| `experiment-log.md` | Zorunlu deney kaydı şablonu (manifestodaki format) |
-| `scripts/run_experiment.py` | Ölçüm çalıştırıcısı: hipotez eşiğine karşı mekanik onay kapısı (assert tabanlı) |
+| `SKILL.md` | Activation + 6-step flow (Theory→Hypothesis→Experiment→Measurement→Approval→Result) + honesty rules |
+| `customize.toml` | Surface: `persistent_facts` manifesto loading, `activation_steps_append` (manifesto + Stage-6 verification) |
+| `experiment-log.md` | Mandatory experiment record template (format from the manifesto) |
+| `scripts/run_experiment.py` | Measurement runner: mechanical approval gate against the hypothesis threshold (assert-based) |
 
-## Deney kaydı şablonu (zorunlu alanlar)
+## Experiment record template (required fields)
 
-- `deney-id`, `tarih`, `durum`
-- `teori`, `hipotez` (H-id, yanlışlanabilir iddia, **eşik değer**)
-- `ölçüm metrikleri` (metrik adı + eşik), `deney tasarımı`
-- `ham sonuçlar` (sayılar — olduğu gibi)
-- `karar` (ONAYLANDI / REDDEDİLDİ + gerekçe), `sonraki adım`
+- `deney-id`, `date`, `status`
+- `theory`, `hypothesis` (H-id, falsifiable claim, **threshold value**)
+- `measurement metrics` (metric name + threshold), `experiment design`
+- `raw results` (numbers — as-is)
+- `decision` (APPROVED / REJECTED + rationale), `next step`
 
-## Onay kapısı mantığı (mekanik)
+## Approval gate logic (mechanical)
 
-Ölçüm değeri vs hipotez eşiği karşılaştırması:
+Comparison of the measured value against the hypothesis threshold:
 
-- `PASS`: ölçüm eşiği geçti → karar `ONAYLANDI`
-- `FAIL`: ölçüm eşiği karşılamadı → karar `REDDEDİLDİ`, gerekçe kaydedilir
-- Kapı komutu çıktısı `PASS` değilse skill, çıktıyı `ONAYLANDI` olarak İŞARETLEYEMEZ.
-- **Sahtekarlık koruması:** kapı komutu hipotez eşiğini kullanır; hipotezi sonradan değiştirip
-  "kabul edildi" demek geçersizdir (kayıttaki `hipotez` alanı değişmez — yeni hipotez → yeni deney).
-- **Kayda bağlı kapı:** `--verify`, kayıttaki `Hipotez` claim'ini `Kapı kanıtı`'ndaki claim ile
-  çapraz doğrular. Onay sonrası eşiği değiştirip jetonu koruyan kayıt, token jetonla eşleşse bile
-  `FORGED` döner.
-- **Örneklem/CI (kural 4, mekanik):** kapı `--run` çıktısındaki `(x/y)` paydasını örneklem `n`
-  olarak ayrıştırır, %95 Wilson alt sınırını hesaplar; eşiğin altındaysa kayda `Belirsizlik`
-  satırı yazar (`örneklem küçük`), yeterliyse `yok`, payda yoksa `n bilinmiyor`. Tavsiye amaçlıdır,
-  red değil; jeton `n`'yi içermez (mevcut token'lar geçerli kalır). `--measured` için `--n` veya
-  `Örneklem n` alanı.
+- `PASS`: the measurement passed the threshold → decision `APPROVED`
+- `FAIL`: the measurement did not meet the threshold → decision `REJECTED`, the rationale is recorded
+- If the gate command output is not `PASS`, the skill CANNOT mark the output as `APPROVED`.
+- **Fraud protection:** the gate command uses the hypothesis threshold; changing the hypothesis afterwards
+  and saying "accepted" is invalid (the `hypothesis` field in the record does not change — a new
+  hypothesis → a new experiment).
+- **Record-bound gate:** `--verify` cross-validates the `Hypothesis` claim in the record against the
+  claim in `Gate Evidence`. A record that changes the threshold after approval and keeps the token
+  returns `FORGED`, even if the token matches.
+- **Sample/CI (rule 4, mechanical):** the gate parses the `(x/y)` denominator in the `--run` output as
+  the sample `n` and computes the 95% Wilson lower bound; if it is below the threshold it writes an
+  `Uncertainty` row to the record (`sample too small`), if sufficient `none`, if no denominator
+  `n unknown`. Advisory, not a rejection; the token does not include `n` (existing tokens remain valid).
+  For `--measured`, use `--n` or the `Sample n` field.
 
-## dürüstlük kuralları (bölüm 2'den alıntı)
+## Honesty rules (quoted from section 2)
 
-- Reddedilen hipotez silinmez/gizlenmez; kaydedilir, raporlanır.
-- Ham veri olduğu gibi saklanır.
-- Belirsizlik itiraf edilir.
-- "Denemedik, denemiş gibi gösterdik" yasaktır.
-- Negatif sonuç da sonuçtur.
+- A rejected hypothesis is not deleted/hidden; it is recorded and reported.
+- Raw data is stored as-is.
+- Uncertainty is acknowledged.
+- "We didn't try it, but made it look like we did" is forbidden.
+- A negative result is still a result.
 
-## Doğrulama (bmad-customize Step 6)
+## Verification (bmad-customize Step 6)
 
-- `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME
-- Kapı betiği: `python3 scripts/run_experiment.py` kendi `__main__` doğrulamasıyla test edilir
-  (PASS ve FAIL yolları, assert tabanlı).
+- `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — the OpenHands terminal tool accepts only the command parameter; do NOT add description
+- Gate script: `python3 scripts/run_experiment.py` is tested with its own `__main__` verification
+  (PASS and FAIL paths, assert-based).
 
-## Kapanış koşulu
+## Closing condition
 
-- Skill dosyaları yazıldı, resolver override'ı doğruladı, kapı betiği testi geçti.
-- Kullanıcı özeti aldı.
+- Skill files written, the resolver verified the override, the gate script test passed.
+- The user received a summary.

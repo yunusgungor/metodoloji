@@ -55,7 +55,7 @@ The full discipline (what goes where, the two-tier flow from session log to MEMO
 {if-customizable}
 ### Resolve the Agent Block
 
-Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key agent` — OpenHands terminal tool yalnızca command parametresi alır; description EKLEME
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key agent` — the OpenHands terminal tool accepts only the command parameter; do NOT add description
 
 If the script fails, resolve the `agent` block yourself by reading these three files in base → team → user order and applying structural merge rules: `{skill-root}/customize.toml`, `{metodoloji-root}/custom/{skill-name}.toml`, `{metodoloji-root}/custom/{skill-name}.user.toml`. Scalars override, tables deep-merge, arrays of tables keyed by `code`/`id` replace matching entries and append new ones, all other arrays append.
 

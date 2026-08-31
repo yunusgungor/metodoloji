@@ -1,30 +1,30 @@
-# Deney Kaydı Şablonu — docs/experiments/<deney-id>.md
+# Experiment Record Template — docs/experiments/<deney-id>.md
 
-Bu şablon zorunludur. Her alan doldurulur; boş alan deneyin o aşamadan geçmediği anlamına
-gelir. `Ham sonuçlar`, `Belirsizlik`, `Metrik`, `Karar`, `Kapı kanıtı`, `Sonraki adım` ve
-`durum` alanlarını onay kapısı yazar — elle doldurulmaz.
+This template is mandatory. Every field is filled; an empty field means the experiment
+did not pass that stage. The `Raw results`, `Uncertainty`, `Metric`, `Decision`, `Gate Evidence`, `Next Step` and
+`status` fields are written by the approval gate — they are not filled manually.
 
 ```
-## Deney: <deney-id> — <kısa başlık>
-- **Tarih:** <GG.AA.YYYY>
-- **Durum:** planlandı | yürütülüyor | tamamlandı | REDDEDİLDİ
-- **Teori:** <hangi teoriden/çerçeveden geldiği — "merak ettim" yeterli değil>
-- **Hipotez:** H-NNN: "metrik >= eşik"   <!-- ör. H-001: "accuracy >= 0.90" — yanlışlanabilir iddia, eşik birimsiz sayısal -->
-- **Ölçüm metrikleri:** <metrik adı + eşik, ör. "latency <= 100" (birimsiz sayısal eşik kullanın)
-- **Deney tasarımı:** <girdiler, prosedür, kontrol değişkenleri, tekrarlanabilirlik>
-- **Örneklem n:** <opsiyonel — örneklem büyüklüğü; yoksa kapı "n bilinmiyor" uyarısı yazar>
-- **Ham sonuçlar:** <sayılar/çıktılar — olduğu gibi; ham dosyalar: docs/experiments/<deney-id>/raw/>
-- **Belirsizlik:** <kapı yazar: örneklem küçük | yok | n bilinmiyor — elle doldurulmaz>
-- **Metrik:** <kapı yazar: uyumlu | UYUMSUZ | n/a>
-- **Karar:** <kapı yazar: ONAYLANDI | REDDEDİLDİ — gerekçe>
-- **Kapı kanıtı:** <GATE-OK-... jetonu — kapı betiği tarafından yazılır>
-- **Sonraki adım:** Kod'a geç | Teori'ye dön | Ek deney
+## Experiment: <deney-id> — <short title>
+- **Date:** <GG.AA.YYYY>
+- **Status:** planned | in-progress | completed | REJECTED
+- **Theory:** <which theory/framework it comes from — "I was curious" is not enough>
+- **Hypothesis:** H-NNN: "metric >= threshold"   <!-- e.g. H-001: "accuracy >= 0.90" — falsifiable claim; threshold is a unitless number -->
+- **Measurement Metrics:** <metric name + threshold, e.g. "latency <= 100" (use a unitless numeric threshold)>
+- **Experiment Design:** <inputs, procedure, control variables, repeatability>
+- **Sample n:** <optional — sample size; if absent, the gate writes an "n unknown" warning>
+- **Raw Results:** <numbers/outputs — as-is; raw files: docs/experiments/<deney-id>/raw/>
+- **Uncertainty:** <gate writes: sample too small | none | n unknown — not filled manually>
+- **Metric:** <gate writes: compliant | NON-COMPLIANT | n/a>
+- **Decision:** <gate writes: APPROVED | REJECTED — rationale>
+- **Gate Evidence:** <GATE-OK-... token — written by the gate script>
+- **Next Step:** Move to Code | Return to Theory | Additional experiment
 ```
 
-## Notlar
+## Notes
 
-- `karar`, `{skill-root}/scripts/run_experiment.py` çıktısına (PASS/FAIL) dayanır.
-  Kapı PASS vermeden `ONAYLANDI` yazılamaz.
-- `REDDEDİLDİ` kararı silinmez, gizlenmez; olduğu gibi raporlanır.
-- Yeni hipotez → yeni deney id'si (`H-002`, `E-002`, ...). Aynı deney kaydı yeniden
-  yazılarak hipotez değiştirilmez — bu sahtekarlıktır.
+- `decision` is based on the output (PASS/FAIL) of `{skill-root}/scripts/run_experiment.py`.
+  `APPROVED` cannot be written unless the gate passes.
+- A `REJECTED` decision is not deleted or hidden; it is reported as-is.
+- A new hypothesis → a new experiment id (`H-002`, `E-002`, ...). The same experiment record is not
+  rewritten to change the hypothesis — that is fraud.

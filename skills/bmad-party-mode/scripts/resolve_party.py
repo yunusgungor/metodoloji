@@ -59,10 +59,10 @@ def _run_json(cmd):
 
 
 def _plugin_root() -> Path:
-    """Plugin kökü — bu script'in konumundan türetilir (scripts/ altında).
-    Plugin kurulduğunda hedef projede {project-root}/bmad yoktur; script'ler
-    plugin içinde yaşar. `project_root` parametresi yalnızca hedef projedir."""
-    return Path(__file__).resolve().parent.parent.parent.parent  # .../skills/<skill>/scripts → plugin kökü
+    """Plugin root — derived from this script's location (under scripts/).
+    When the plugin is installed, the target project has no {project-root}/bmad;
+    the scripts live inside the plugin. `project_root` is only the target project."""
+    return Path(__file__).resolve().parent.parent.parent.parent  # .../skills/<skill>/scripts → plugin root
 
 
 def load_agents(project_root: Path):

@@ -2,20 +2,20 @@
 
 Status: ready-for-dev
 
-<!-- YAML Frontmatter (otomatik doldurulur) -->
+<!-- YAML Frontmatter (auto-filled) -->
 <!--
 baseline_commit: {{commit_hash}}
 experiment_refs:
   - id: E-001
     scope: "AC-001, AC-002"
-    status: ONAYLANDI  # ONAYLANDI | BEKLİYOR | REDDEDİLDİ
+    status: APPROVED  # APPROVED | PENDING | REJECTED
   - id: E-002
     scope: "AC-003"
-    status: ONAYLANDI
+    status: APPROVED
 -->
 
-<!-- Metodoloji kaydi: (bmad-create-story tarafindan otomatik doldurulur) -->
-<!-- Metodoloji kaydi yolu: docs/development/stories/S-<sira>.md -->
+<!-- Methodology record: (auto-filled by bmad-create-story) -->
+<!-- Methodology record path: docs/development/stories/S-<sira>.md -->
 
 ## Story
 
@@ -25,16 +25,16 @@ so that {{benefit}}.
 
 ## Acceptance Criteria
 
-<!-- ZORUNLU: Her AC icin asagidaki metadata alanlari doldurulmalidir.
-     Eksik metadata = story validate edilemez.
+<!-- REQUIRED: The following metadata fields must be filled for each AC.
+     Missing metadata = the story cannot be validated.
      
-     alan aciklamalari:
-     - [AC-XXX]       : Benzersiz AC identifier (hikaye icinde benzersiz olmali)
-     - Experiment     : Bagli deney kayit ID'si (E-XXX) veya — (henuz baglanmadi)
+     field descriptions:
+     - [AC-XXX]       : Unique AC identifier (must be unique within the story)
+     - Experiment     : Related experiment record ID (E-XXX) or — (not yet linked)
      - Type           : agent-verifiable | user-evaluable | hybrid
-     - Measured       : true | false (deney sonucu olup olmadigi)
-     - Verify         : Dogrulama yontemi (curl, puppeteer, lighthouse, manual, vs.)
-     - [HYPOTHESIS]   : Deney onaysiz AC icin zorunlu etiket
+     - Measured       : true | false (whether it is an experiment result)
+     - Verify         : Verification method (curl, puppeteer, lighthouse, manual, etc.)
+     - [HYPOTHESIS]   : Required tag for an AC without experiment approval
 -->
 
 1. [AC-001] **Given** {{precondition}} **When** {{action}} **Then** {{expected_outcome}}
@@ -51,10 +51,10 @@ so that {{benefit}}.
 
 ## Technical Tasks
 
-<!-- ZORUNLU: Her task'in hangi AC'yi hedefledigini belirt (AC: # formatinda).
-     Bir task birden fazla AC'yi hedefleyebilir.
-     Bir AC birden fazla task ile karsilanabilir.
-     AC referansi olmayan task = validation'da uyari verir.
+<!-- REQUIRED: Specify which AC each task targets (AC: # format).
+     A task can target multiple ACs.
+     An AC can be satisfied by multiple tasks.
+     A task without an AC reference triggers a validation warning.
 -->
 
 - [ ] Task 1: {{task_description}} (AC: AC-001)
@@ -65,24 +65,24 @@ so that {{benefit}}.
 
 ## Definition of Done
 
-<!-- ZORUNLU: Her DoD item'i asagidaki formatinda olmalidir.
-     AC ile iliskili maddeler icin AC-XXX referansi zorunludur.
-     Dogrulama yontemi tanimlanmali (otomatik test, manual kontrol, vs.)
+<!-- REQUIRED: Each DoD item must follow the format below.
+     An AC-XXX reference is required for items related to an AC.
+     A verification method must be defined (automated test, manual check, etc.)
 -->
 
-- [ ] DoD-001: Tüm acceptance criteria karşılandı (AC: AC-001, AC-002, AC-003)
-  - Verify: Otomatik test + curl/puppeteer dogrulama
+- [ ] DoD-001: All acceptance criteria met (AC: AC-001, AC-002, AC-003)
+  - Verify: Automated test + curl/puppeteer verification
   - Evidence: {{test_output_or_screenshot}}
-- [ ] DoD-002: Birim testleri eklendi ve geçiyor (AC: AC-001)
-  - Verify: `npm test` veya `pytest` ciktisi
+- [ ] DoD-002: Unit tests added and passing (AC: AC-001)
+  - Verify: `npm test` or `pytest` output
   - Evidence: {{test_output}}
-- [ ] DoD-003: Regression testleri geciyor
-  - Verify: Mevcut test suite'in tamami pass
+- [ ] DoD-003: Regression tests passing
+  - Verify: Full existing test suite passes
   - Evidence: {{test_output}}
-- [ ] DoD-004: Code review tamamlandi
-  - Verify: QR kaydi olusturuldu
+- [ ] DoD-004: Code review completed
+  - Verify: QR record created
   - Evidence: {{qr_record_path}}
-- [ ] DoD-005: Canli ortamda dogrulandı (gerekirse)
+- [ ] DoD-005: Verified in production environment (if needed)
   - Verify: {{verification_method}}
   - Evidence: {{evidence}}
 
@@ -117,13 +117,13 @@ so that {{benefit}}.
 
 ## Quality Record (QR)
 
-<!-- Implementasyon tamamlandiktan sonra doldurulur.
-     QR kaydi, DoD maddelerinin kanitini icerir.
-     Kayit zinciri: S → QR → PR
+<!-- Filled in after implementation is complete.
+     The QR record contains the evidence for the DoD items.
+     Record chain: S → QR → PR
 -->
 
-| DoD Item | Durum | Kanit | Tarih |
-|----------|-------|-------|-------|
+| DoD Item | Status | Evidence | Date |
+|----------|--------|----------|------|
 | DoD-001 | ⏳ pending | — | — |
 | DoD-002 | ⏳ pending | — | — |
 | DoD-003 | ⏳ pending | — | — |
