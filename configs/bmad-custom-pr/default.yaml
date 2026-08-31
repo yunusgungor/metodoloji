@@ -4,14 +4,15 @@ model:
   target: cmc/deepseek/deepseek-v4-flash
   optimizer: cmc/deepseek/deepseek-v4-flash
 
-env: bmad-custom-pr
-skill_init: bmad_benchmarks/envs/bmad_custom_pr/skills/initial.md
-split_mode: split_dir
-split_dir: bmad_benchmarks/envs/bmad_custom_pr/data
-workers: 2
-max_completion_tokens: 4096
-limit: 0
-out_root: outputs/bmad-custom-pr
+env:
+  name: bmad-custom-pr
+  skill_init: bmad_benchmarks/envs/bmad_custom_pr/skills/initial.md
+  out_root: outputs/bmad-custom-pr
+  limit: 0
+  split_mode: split_dir
+  split_dir: bmad_benchmarks/envs/bmad_custom_pr/data
+  max_completion_tokens: 4096
+  workers: 2
 
 train:
   batch_size: 3

@@ -4,14 +4,15 @@ model:
   target: cmc/deepseek/deepseek-v4-flash
   optimizer: cmc/deepseek/deepseek-v4-flash
 
-env: bmad-custom-qr
-skill_init: bmad_benchmarks/envs/bmad_custom_qr/skills/initial.md
-split_mode: split_dir
-split_dir: bmad_benchmarks/envs/bmad_custom_qr/data
-workers: 2
-max_completion_tokens: 4096
-limit: 0
-out_root: outputs/bmad-custom-qr
+env:
+  name: bmad-custom-qr
+  skill_init: bmad_benchmarks/envs/bmad_custom_qr/skills/initial.md
+  out_root: outputs/bmad-custom-qr
+  limit: 0
+  split_mode: split_dir
+  split_dir: bmad_benchmarks/envs/bmad_custom_qr/data
+  max_completion_tokens: 4096
+  workers: 2
 
 train:
   batch_size: 3

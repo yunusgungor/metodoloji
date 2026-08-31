@@ -115,23 +115,21 @@ def train_benchmark(name: str, extra_args: list[str] | None = None):
         "--config", str(config_path),
         "--env", name,
     ]
-    if _cfg.get("split_dir"):
-        sys.argv.extend(["--split_dir", str(_cfg["split_dir"])])
-    if _cfg.get("split_mode"):
-        sys.argv.extend(["--split_mode", str(_cfg["split_mode"])])
-    if _cfg.get("skill_init"):
-        sys.argv.extend(["--skill_init", str(_cfg["skill_init"])])
-    # Set TARGET_DEPLOYMENT so SkillOpt uses the correct model
-    target = _cfg.get("model", {}).get("target", "")
-    if target:
-        os.environ["TARGET_DEPLOYMENT"] = target
-    optimizer = _cfg.get("model", {}).get("optimizer", "")
-    if optimizer:
-        os.environ["OPTIMIZER_DEPLOYMENT"] = optimizer
-    # Pass through fields that SkillOpt reads from CLI, not from config
+    if _cfg.get("env", {}).get("split_dir") or _cfg.get("split_dir"):
+        sys.argv.extend(["--split_dir", str(_cfg.get("env", {}).get("split_dir") or _cfg.get("split_dir"))])
+    if _cfg.get("env", {}).get("split_mode") or _cfg.get("split_mode"):
+        sys.argv.extend(["--split_mode", str(_cfg.get("env", {}).get("split_mode") or _cfg.get("split_mode"))])
+    if _cfg.get("env", {}).get("skill_init") or _cfg.get("skill_init"):
+        sys.argv.extend(["--skill_init", str(_cfg.get("env", {}).get("skill_init") or _cfg.get("skill_init"))])
+    # Pass through fields that SkillOpt reads from CLI, not from config.
+    # Support both structured (env.key) and flat (key) config formats.
     for key in ("seed", "workers", "limit", "out_root",
                 "minibatch_size", "edit_budget"):
-        val = _cfg.get(key)
+        val = None
+        if isinstance(_cfg.get("env"), dict):
+            val = _cfg["env"].get(key)
+        if val is None:
+            val = _cfg.get(key)
         if val is not None:
             sys.argv.extend([f"--{key}", str(val)])
     # Pass through train.* fields

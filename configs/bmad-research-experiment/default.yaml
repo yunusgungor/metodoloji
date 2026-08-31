@@ -6,13 +6,15 @@ model:
   target: cmc/deepseek/deepseek-v4-flash
   optimizer: cmc/deepseek/deepseek-v4-flash
 
-skill_init: bmad_benchmarks/envs/bmad_research_experiment/skills/initial.md
-split_mode: split_dir
-split_dir: bmad_benchmarks/envs/bmad_research_experiment/data
-workers: 2
-max_completion_tokens: 4096
-limit: 0
-out_root: outputs/bmad-research-experiment
+env:
+  name: bmad-research-experiment
+  skill_init: bmad_benchmarks/envs/bmad_research_experiment/skills/initial.md
+  split_mode: split_dir
+  split_dir: bmad_benchmarks/envs/bmad_research_experiment/data
+  workers: 2
+  max_completion_tokens: 4096
+  limit: 0
+  out_root: outputs/bmad-research-experiment
 
 train:
   batch_size: 8

@@ -15,36 +15,51 @@ modifying model weights**.
 | `bmad-architecture` | Architecture spine quality | Invariant category coverage |
 | `bmad-prd` | PRD completeness | Section coverage |
 | `bmad-test-design` | Test plan comprehensiveness | Test category coverage |
+| `bmad-custom-ir` | Incident record methodology | Record field completeness |
+| `bmad-custom-sp` | Sprint planning methodology | Planning field completeness |
+| `bmad-custom-story` | Story methodology | Story field completeness |
+| `bmad-custom-qr` | Quality record methodology | Record field completeness |
+| `bmad-custom-pr` | Production readiness record | Record field completeness |
+| `bmad-meta-mod` | Mod classification (A/B/C/D) | Category + direction accuracy |
+| `bmad-meta-chain` | Chain operation sequencing | Sequence correctness |
+| `bmad-meta-guard` | Guard rule validation | Rule match accuracy |
+| `bmad-meta-root` | Root classification (project vs plugin) | Root + direction accuracy |
+| `bmad-meta-path` | Path resolution correctness | Path classification accuracy |
+| `bmad-research-experiment` | Experiment methodology | Record completeness |
+| `bmad-code-docs` | Code documentation quality | Doc coverage |
 
 ## Architecture
 
 ```
 bmad_benchmarks/envs/
-├── _base_/default.yaml          # Shared hyperparameters
-├── bmad_code_review/
-│   ├── adapter.py               # EnvAdapter implementation
-│   ├── dataloader.py            # SplitDataLoader (JSON items)
-│   ├── rollout.py               # Rollout + scoring functions
-│   ├── skills/initial.md        # Seed skill (starting point)
-│   └── data/{train,val,test}/   # Training, validation, test splits
-├── bmad_create_story/           # Same structure
+├── _base_/default.yaml              # Shared hyperparameters
+├── bmad_code_review/                # adapter.py, dataloader.py, rollout.py, skills/, data/
+├── bmad_create_story/
 ├── bmad_architecture/
 ├── bmad_prd/
-└── bmad_test_design/
+├── bmad_test_design/
+├── bmad_custom_ir/                  # Custom TOML methodology benchmarks
+├── bmad_custom_sp/
+├── bmad_custom_story/
+├── bmad_custom_qr/
+├── bmad_custom_pr/
+├── bmad_meta_mod/                   # docs/bmad meta benchmarks
+├── bmad_meta_chain/
+├── bmad_meta_guard/
+├── bmad_meta_root/
+├── bmad_meta_path/
+├── bmad_code_docs/
+└── bmad_research_experiment/
 
 configs/
-├── bmad-code-review/default.yaml
-├── bmad-create-story/default.yaml
-├── bmad-architecture/default.yaml
-├── bmad-prd/default.yaml
-└── bmad-test-design/default.yaml
+├── bmad-code-review/default.yaml    # All configs use structured env: section
+├── bmad-create-story/default.yaml   # (see Config Format below)
+├── ...                              # One config per benchmark
+└── bmad-research-experiment/default.yaml
 
 scripts/
-├── train_bmad.py                # Training entry point
-└── eval_bmad.py                 # Evaluation entry point
-
-bmad_benchmarks/
-└── envs/                        # Benchmark environments (adapters register inline in train_bmad/eval_bmad)
+├── train_bmad.py                    # Training entry point
+└── eval_bmad.py                     # Evaluation entry point
 ```
 
 ## Quick Start
@@ -90,6 +105,39 @@ python scripts/eval_bmad.py --benchmark all
 The best skill is saved at `outputs/<benchmark>/best_skill.md`.
 Replace the corresponding `SKILL.md` in `skills/` with the optimized version.
 
+## Config Format
+
+Each benchmark config uses a **structured `env` section**. This keeps
+environment-specific settings grouped and allows `apply_overrides` to
+correctly patch nested keys via `--cfg-options env.key=value`:
+
+```yaml
+_base_: ../../bmad_benchmarks/envs/_base_/default.yaml
+
+model:
+  target: cmc/deepseek/deepseek-v4-flash
+  optimizer: cmc/deepseek/deepseek-v4-flash
+
+env:
+  name: bmad-meta-root                      # adapter registry key
+  skill_init: bmad_benchmarks/envs/bmad_meta_root/skills/initial.md
+  split_mode: split_dir
+  split_dir: bmad_benchmarks/envs/bmad_meta_root/data
+  workers: 2
+  max_completion_tokens: 4096
+  limit: 0
+  out_root: outputs/bmad-meta-root
+
+train:
+  batch_size: 3
+  num_epochs: 3
+```
+
+> **Why structured?** A flat `env: bmad-meta-root` string breaks
+> `apply_overrides` (it tries `cfg["env"]["name"] = ...` on a string).
+> The structured format lets CLI overrides like `--cfg-options
+> env.name=new-name` work correctly.
+
 ## How It Works
 
 1. **Seed**: Each benchmark starts with a compact `initial.md` extracted from
@@ -134,6 +182,18 @@ Each benchmark uses JSON items with this structure:
 | architecture | ≥80% invariant categories covered | Fraction of invariant categories found |
 | prd | ≥80% sections present | Fraction of sections found |
 | test-design | ≥80% test categories covered | Fraction of test categories found |
+| custom-ir | All record fields present | Fraction of fields found |
+| custom-sp | All sprint planning fields present | Fraction of fields found |
+| custom-story | All story fields present | Fraction of fields found |
+| custom-qr | All quality record fields present | Fraction of fields found |
+| custom-pr | All production readiness fields present | Fraction of fields found |
+| meta-mod | Correct mod + direction classification | Per-component accuracy |
+| meta-chain | Correct sequence ordering | Per-step accuracy |
+| meta-guard | Correct rule match | Per-rule accuracy |
+| meta-root | Correct root + direction classification | Per-component accuracy |
+| meta-path | Correct path classification | Per-component accuracy |
+| research-experiment | Record completeness + gate validity | Field coverage |
+| code-docs | Documentation coverage | Per-section coverage |
 
 ## Adding More Training Data
 
