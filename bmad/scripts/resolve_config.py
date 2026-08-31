@@ -151,12 +151,12 @@ def main():
     args = parser.parse_args()
 
     project_root = Path(args.project_root).resolve()
-    # {metodoloji-root} = bu script'in konumundan türetilir (plugin kökü).
-    # Plugin kurulduğunda config'ler plugin içinde yaşar ({metodoloji-root}/bmad,
-    # {metodoloji-root}/custom) — hedef projede {project-root}/bmad diye bir
-    # dizin olmayabilir. Hedef proje yalnızca {project-root} ile geçilir.
+    # {metodoloji-root} = derived from this script's location (plugin root).
+    # When the plugin is installed, configs live inside the plugin ({metodoloji-root}/bmad,
+    # {metodoloji-root}/custom) — the target project may not have a {project-root}/bmad
+    # directory. The target project is only passed via {project-root}.
     _script_dir = Path(__file__).resolve().parent  # .../bmad/scripts
-    metodoloji_root = _script_dir.parent.parent     # plugin kökü
+    metodoloji_root = _script_dir.parent.parent     # plugin root
     bmad_dir = metodoloji_root / "bmad"
     custom_dir = metodoloji_root / "custom"
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Create methodology story record (S-XXX.md) from native story file.
 
-This script implements KÖPRÜ #1 from the bridge document.
+This script implements bridge #1 from the bridge document.
 It reads a native story file and creates a methodology record.
 
 Usage:
@@ -141,7 +141,7 @@ def create_methodology_record(meta: dict, sira: int, project_root: Path) -> Path
         template = template_path.read_text(encoding="utf-8")
     else:
         # Minimal template if file doesn't exist
-        template = "# Metodoloji Kaydı: S-{{sira}}\n\n| Alan | Değer |\n|------|-------|\n| Tarih | {{tarih}} |\n| Durum | {{durum}} |\n"
+        template = "# Methodology Record: S-{{sira}}\n\n| Field | Value |\n|------|-------|\n| Date | {{tarih}} |\n| Status | {{durum}} |\n"
 
     # Build AC table
     ac_table = ""
@@ -168,22 +168,22 @@ def create_methodology_record(meta: dict, sira: int, project_root: Path) -> Path
     from datetime import date
     today = date.today().isoformat()
 
-    record = f"""# Metodoloji Kaydı: S-{sira:03d}
+    record = f"""# Methodology Record: S-{sira:03d}
 
-| Alan | Değer |
+| Field | Value |
 |------|-------|
-| Tarih | {today} |
-| Durum | backlog |
-| Story Başlığı | {meta.get('title', '—')} |
+| Date | {today} |
+| Status | backlog |
+| Story Title | {meta.get('title', '—')} |
 | Epic | {meta.get('epic', '—')} |
 | Experiment Refs | {exp_refs_str} |
-| Dosya Listesi | — (implementasyon sonrası doldurulur) |
+| File List | — (filled after implementation) |
 | Sprint Ref | sprint-status.yaml |
 | Native Story | {meta.get('native_story_path', '—')} |
 
-## Acceptance Criteria Detayları
+## Acceptance Criteria Details
 
-| AC | Durum | Experiment | Type | Measured | Verify |
+| AC | Status | Experiment | Type | Measured | Verify |
 |----|-------|------------|------|----------|--------|
 {ac_table}
 ## Technical Tasks
@@ -192,7 +192,7 @@ def create_methodology_record(meta: dict, sira: int, project_root: Path) -> Path
 
 ## Definition of Done
 
-| DoD Item | Durum | Kanit | Tarih |
+| DoD Item | Status | Evidence | Date |
 |----------|-------|-------|-------|
 {dod_table}
 ## Dev Agent Record
@@ -211,7 +211,7 @@ def create_methodology_record(meta: dict, sira: int, project_root: Path) -> Path
 
 ## Quality Record (QR)
 
-| DoD Item | Durum | Kanit | Tarih |
+| DoD Item | Status | Evidence | Date |
 |----------|-------|-------|-------|
 {dod_table}
 ### QR Summary
@@ -238,7 +238,7 @@ def update_story_with_reference(story_path: Path, methodology_path: Path, projec
         return
 
     # Add reference after frontmatter or at top
-    ref_comment = f"\n<!-- Metodoloji kaydı: {rel_methodology} -->\n"
+    ref_comment = f"\n<!-- Methodology record: {rel_methodology} -->\n"
 
     # Find insertion point (after frontmatter --- block)
     fm_end = re.search(r"^---\s*\n.*?\n---", content, re.DOTALL | re.MULTILINE)

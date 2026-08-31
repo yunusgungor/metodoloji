@@ -1,20 +1,22 @@
-# /metodoloji:kapi-kur — Kapı anahtarını üret (gate-key init)
+# /metodoloji:gate-setup — Generate the gate key (gate-key init)
 
-Metodolojinin mekanik kapıları (Mod A onayı, QR/PR hard modu) `~/.bmad/gate-key` dosyasındaki
-makine-yerel anahtarla HMAC doğrulaması yapar. Bu dosya **repo dışında, 0600 izinli** olmalı
-ve asla commit edilmez.
+The methodology's mechanical gates (Mode A approval, QR/PR hard mode) perform HMAC
+verification with the machine-local key in `~/.bmad/gate-key`. This file must be
+**outside the repo, with 0600 permissions**, and is never committed.
 
-## Adımlar
+## Steps
 
-1. `~/.bmad/gate-key` varsa: "zaten kurulu" de, bitir (üzerine yazma — eski kanıtlar bozulur).
+1. If `~/.bmad/gate-key` exists: say "already installed" and finish (do not overwrite —
+   old evidence would break).
 
-2. Yoksa şu komutu çalıştır:
+2. If not, run this command:
    ```sh
    python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py --init-secret
    ```
 
-3. Sonucu doğrula: dosya var mı, izni 0600 mı? Anahtar içeriğini **asla** yazdırma,
-   kopyalama veya başka dosyaya taşıma — guard bu izleri engeller.
+3. Verify the result: does the file exist, is its permission 0600? **Never** print,
+   copy, or move the key content — the guard blocks such traces.
 
-4. Çıktıda `GATE-OK-...` token örneği görünüyorsa kurulum tamam. Sıradaki adım:
-   ilk deney kaydı (`docs/experiments/E-001.md`) ile guard-code'un kod yazımına izin vermesi.
+4. If a `GATE-OK-...` token example appears in the output, setup is complete. Next step:
+   create the first experiment record (`docs/experiments/E-001.md`) so the guard-code
+   allows code writing.

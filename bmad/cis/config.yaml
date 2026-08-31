@@ -8,6 +8,6 @@ visual_tools: intermediate
 # Core Configuration Values
 user_name: Yunus
 project_name: graph-engineering-arge
-communication_language: Türkçe
-document_output_language: Türkçe
+communication_language: English
+document_output_language: English
 output_folder: "{project-root}/bmad-output"

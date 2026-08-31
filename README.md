@@ -1,88 +1,90 @@
 # metodoloji (OpenHands plugin)
 
-BMAD metodolojisinin OpenHands SDK plugin karşılığı: 125 skill + 74 köprü TOML +
-mekanik kapılar (guard/stop/quality/deploy) + kayıt zinciri (E → IR → SP → S → QR → PR).
+The OpenHands SDK plugin implementation of the BMAD methodology: 125 skills + 74 bridge
+TOMLs + mechanical gates (guard/stop/quality/deploy) + record chain
+(E → IR → SP → S → QR → PR).
 
-## Ne yapar
+## What it does
 
-| Parça | İşlev |
+| Part | Function |
 |---|---|
-| `skills/` | 122 BMAD skill'i (native gövde) |
-| `custom/` | 74 köprü TOML (`activation_steps_append` → native çıktıları metodoloji kaydına bağlar) + `config.toml` (soft/hard) |
-| `hooks/` | PreToolUse/PostToolUse/Stop/SessionStart hook'ları; modüler motor yapısı |
-| `hooks/engine/` | Python motoru: `main.py` (giriş), `modules/` (guard, audit, stop, utils, config) |
-| `bmad/` | eski `_bmad/` modül verisi (bmm, cis, gds, wds, tea, core, bmb) |
-| `templates/` | IR/SP/QR/PR/S/E/README/tech-debt kayıt şablonları |
-| `commands/` | `/metodoloji:init`, `/metodoloji:kapi-kur`, `/metodoloji:dogrula`, `/metodoloji:denetim` |
+| `skills/` | 122 BMAD skills (native body) |
+| `custom/` | 74 bridge TOMLs (`activation_steps_append` links native outputs to methodology records) + `config.toml` (soft/hard) |
+| `hooks/` | PreToolUse/PostToolUse/Stop/SessionStart hooks; modular engine structure |
+| `hooks/engine/` | Python engine: `main.py` (entry point), `modules/` (guard, audit, stop, utils, config) |
+| `bmad/` | legacy `_bmad/` module data (bmm, cis, gds, wds, tea, core, bmb) |
+| `templates/` | IR/SP/QR/PR/S/E/README/tech-debt record templates |
+| `commands/` | `/metodoloji:init`, `/metodoloji:gate-setup`, `/metodoloji:verify`, `/metodoloji:audit` |
 
-## Kurulum
+## Installation
 
 ```python
 from openhands.sdk.plugin import Plugin
 p = Plugin.load("github:yunusgungor/metodoloji", repo_path="openhands/metodoloji")
 ```
 
-veya yerel: `Plugin.load("<repo>/openhands/metodoloji")`.
+or local: `Plugin.load("<repo>/openhands/metodoloji")`.
 
-İlk oturumda: `/metodoloji:init` (şablonları kurar) ve `/metodoloji:kapi-kur`
-(`~/.bmad/gate-key` üretir — makine-yerel, commit edilmez).
+On the first session: `/metodoloji:init` (installs templates) and `/metodoloji:gate-setup`
+(generates `~/.bmad/gate-key` — machine-local, not committed).
 
-## Yol değişkenleri
+## Path variables
 
-- `{project-root}` — hedef proje kökü (`$OPENHANDS_PROJECT_DIR`) — metodoloji çıktıları burada
-- `{metodoloji-root}` — bu plugin'in kökü (kurulum kökü `~/.openhands/plugins/installed/metodoloji`) — salt okunur kaynak
+- `{project-root}` — target project root (`$OPENHANDS_PROJECT_DIR`) — methodology outputs go here
+- `{metodoloji-root}` — this plugin's root (install root `~/.openhands/plugins/installed/metodoloji`) — read-only source
 
-**Kural:** Tüm metodoloji çıktıları (kayıtlar, bmad-output, artifact'lar) `{project-root}` üzerinde oluşturulur — `{metodoloji-root}` üzerinde değil.
+**Rule:** All methodology outputs (records, bmad-output, artifacts) are created under `{project-root}` — never `{metodoloji-root}`.
 
-## Modüler Motor Yapısı
+## Modular Engine Structure
 
 ```
 hooks/engine/
-├── main.py              # Ana giriş noktası
+├── main.py              # Main entry point
 ├── modules/
-│   ├── __init__.py      # Modül ihracatları
-│   ├── config.py        # Sabit yapılandırma
-│   ├── utils.py         # Yardımcı fonksiyonlar
-│   ├── archive.py       # Arşiv işleme (tar/zip)
-│   ├── bash_targets.py  # Bash komut hedef tespiti
-│   ├── guard.py         # PreToolUse mantığı
-│   ├── audit.py         # PostToolUse denetim izi
-│   └── stop.py          # Stop mantığı
-└── resolve_customization.py  # Skill TOML deep_merge köprü çözücüsü
+│   ├── __init__.py      # Module exports
+│   ├── config.py        # Constant configuration
+│   ├── utils.py         # Helper functions
+│   ├── archive.py       # Archive handling (tar/zip)
+│   ├── bash_targets.py  # Bash command target detection
+│   ├── guard.py         # PreToolUse logic
+│   ├── audit.py         # PostToolUse audit trail
+│   └── stop.py          # Stop logic
+└── resolve_customization.py  # Skill TOML deep_merge bridge resolver
 ```
 
-## Sağlık kontrolü
+## Health check
 
 ```sh
-sh commands/check-plugin.sh            # tam denetim (§0–§6 + §2b + §5b + §5c + drift)
-sh commands/check-plugin.sh --negtest  # negatif test: KÖPRÜ boz → yakala → geri yükle
-sh commands/check-custom.sh            # sadece custom/ statik kalite denetimi (§0–§6)
+sh commands/check-plugin.sh            # full audit (§0–§6 + §2b + §5b + §5c + drift)
+sh commands/check-plugin.sh --negtest  # negative test: BREAK bridge → catch → restore
+sh commands/check-custom.sh            # custom/ static quality audit only (§0–§6)
 ```
 
-## Doğruluk kaynağı ve drift
+## Source of truth and drift
 
-Hook motorunun canonical kopyası bu repo'nun `hooks/engine/` ağacıdır (modüler motor:
-`main.py` + `modules/`). Kurulu plugin kopyası repo ile aynı olmalı — `check-plugin.sh`
-§5 bütünlüğü denetler. Değişiklik her zaman repoda yapılır, kurulu plugin `git pull`
-ile güncellenir (eski tek-dosya `bmad-hooks.py` kaldırılmıştır; referans vermeyin).
+The hook engine's canonical copy is this repo's `hooks/engine/` tree (modular engine:
+`main.py` + `modules/`). The installed plugin copy must match the repo — `check-plugin.sh`
+§5 audits integrity. Changes are always made in the repo; the installed plugin is updated
+with `git pull` (the old single-file `bmad-hooks.py` is removed; do not reference it).
 
 ## Hard gate
 
-OpenHands runtime'da denetim zinciri **beş** hook noktasından çalışır (hooks.json):
+In the OpenHands runtime the audit chain runs from **five** hook points (hooks.json):
 
-| Hook | Mod | Matcher | Eşik | Davranış |
-|------|-----|---------|------|----------|
-| **guard** | PreToolUse | file_editor, terminal | — | Deney onaysız kod yazımı → DENY (fail-closed) |
-| **quality** | PreToolUse | terminal | — | `git commit` IR/QR/SP'siz story varsa → DENY (fail-closed) |
-| **deploy** | PreToolUse | terminal | — | Deploy komutu + IR/QR/SP/PR eksikse → DENY (fail-closed) |
-| **stop** | Stop | — | — | Tamamlanmamış story/onaysız kod → DENY (fail-closed) |
-| **audit** | PostToolUse | file_editor, terminal | — | Her çağrıyı log'a yazar (fail-open) |
+| Hook | Mode | Matcher | Threshold | Behavior |
+|------|-----|---------|----------|----------|
+| **guard** | PreToolUse | file_editor, terminal | — | Code writing without an approved experiment → DENY (fail-closed) |
+| **quality** | PreToolUse | terminal | — | `git commit` with done stories lacking IR/QR/SP → DENY (fail-closed) |
+| **deploy** | PreToolUse | terminal | — | Deploy command + missing IR/QR/SP/PR → DENY (fail-closed) |
+| **stop** | Stop | — | — | Incomplete story/unapproved code → DENY (fail-closed) |
+| **audit** | PostToolUse | file_editor, terminal | — | Logs every call (fail-open) |
 
-`custom/config.toml [hooks]` altındaki `quality_gate`/`deploy_guard` (`"soft"` varsayılan |
-`"hard"`) değerleri artık hook seviyesinde zorlanır: guard/stop kalitesiz commit/deploy'i
-mekanik olarak engeller.
+The `quality_gate`/`deploy_guard` values (`"soft"` default | `"hard"`) under
+`custom/config.toml [hooks]` are now enforced at hook level: guard/stop mechanically
+block low-quality commits/deploys.
 
-## Durum
+## Status
 
-Kurulum/yol katmanı birleşti; canlı akış (ilk E→IR→SP→S→QR üretimi gerçek LLM
-oturumunda) kanıtlanmadan "tam birleşti" denmez. Kapanış kapısı: Faz 8.
+The installation/path layer is merged; the live flow (first E→IR→SP→S→QR production in
+a real LLM session) is not proven, so it cannot be called "fully merged". Closing gate:
+Phase 8.

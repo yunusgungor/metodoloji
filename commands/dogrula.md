@@ -1,21 +1,21 @@
-# /metodoloji:dogrula — Deney kaydını doğrula (verify)
+# /metodoloji:verify — Verify an experiment record
 
-`{project-root}/docs/experiments/<deney-id>.md` kaydının ONAYLANDI olup olmadığını ve
-kapı kanıtının (gate token) sahte olmadığını doğrular.
+Verifies whether the `{project-root}/docs/experiments/<experiment-id>.md` record is
+APPROVED and whether the gate token is not forged.
 
-## Kullanım
+## Usage
 
 ```sh
 python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py \
-  --verify --record {project-root}/docs/experiments/<deney-id>.md
+  --verify --record {project-root}/docs/experiments/<experiment-id>.md
 ```
 
-## Çıktıların anlamı
+## Meaning of outputs
 
-| Çıktı | Anlam | Ne yapmalı |
+| Output | Meaning | What to do |
 |---|---|---|
-| `VERIFIED` | Kayıt ONAYLANDI ve token geçerli | guard bu kaydın `Kod kapsamı` alanındaki glob'larla kod yazımına izin verir |
-| `FORGED` | Token anahtarla uyuşmuyor | kayıt geçersiz — kod yazılamaz; kaydı yeniden üret (`--record ... --run <komut>`) |
-| `REDDEDİLDİ` / başka | Kapıdan geçmemiş | hipotezi revize et, yeniden ölç |
+| `VERIFIED` | Record is APPROVED and token is valid | the guard allows code writes matching the globs in the record's `Code Scope` field |
+| `FORGED` | Token does not match the key | record invalid — no code can be written; regenerate the record (`--record ... --run <command>`) |
+| `REJECTED` / other | Did not pass the gate | revise the hypothesis, measure again |
 
-Kod yazmadan önce guard zaten bu doğrulamayı yapar; bu komut manuel kontrol içindir.
+The guard already performs this verification before code is written; this command is for manual checks.

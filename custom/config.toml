@@ -6,12 +6,11 @@
 # [agents.bmad-agent-pm]
 # description = "Prefers short, bulleted PRDs over narrative drafts."
 
-# --- Artifact yolları: hedef projeye yönlendir (PLUGIN'e değil!) ---
-# Plugin kurulduğunda {metodoloji-root} = plugin dizini, {project-root} = hedef repo.
-# Metodoloji çıktıları (story, deney, planning, test artifact'ları) HER ZAMAN
-# hedef repoda oluşturulmalı — plugin üzerinde değil.
-# Bu override, installer'ın yazdığı bmad/config.toml'daki hatalı
-# {metodoloji-root}/bmad-output yollarını ezer.
+# --- Artifact paths: point to the target project (NOT the plugin!) ---
+# When the plugin is installed, {metodoloji-root} = plugin dir, {project-root} = target repo.
+# Methodology outputs (story, experiment, planning, test artifacts) must ALWAYS be
+# created in the target repo — never on the plugin.
+# This override corrects the wrong {metodoloji-root}/bmad-output paths the installer writes.
 [core]
 output_folder = "{project-root}/bmad-output"
 
@@ -36,10 +35,10 @@ project_knowledge = "{project-root}/docs"
 design_artifacts = "{project-root}/design-artifacts"
 
 # --- Hook enforcement modu (Faz 2 hard gate) ---
-# OpenHands runtime: guard (PreToolUse) + stop (Stop) fail-closed çalışır —
-# onaylı deney kaydı olmadan kod yazımı ve oturum kapanışı DENY döner.
-# quality-gate/deploy-guard değerleri burada yalnızca bilgi amaçlıdır (Claude
-# runtime kalıntısı; OpenHands hooks.json'ında bağlı değil).
+# OpenHands runtime: guard (PreToolUse) + stop (Stop) run fail-closed —
+# code writing and session close without an approved experiment record return DENY.
+# quality-gate/deploy-guard values here are informational only (Claude runtime
+# legacy; not bound in OpenHands hooks.json).
 [hooks]
-quality_gate = "soft"   # "soft" (varsayılan) | "hard"
-deploy_guard = "soft"   # "soft" (varsayılan) | "hard"
+quality_gate = "soft"   # "soft" (default) | "hard"
+deploy_guard = "soft"   # "soft" (default) | "hard"

@@ -1,19 +1,20 @@
-# /metodoloji:init — Kayıt iskeletini hedef projeye kur
+# /metodoloji:init — Install the record skeleton into the target project
 
-Bu komut metodoloji kayıt zinciri için gereken dizinleri ve şablonları **{project-root}**
-altına kurar. {metodoloji-root} = bu plugin'in kurulum kökü (`~/.openhands/plugins/installed/metodoloji`).
+This command installs the directories and templates required for the methodology
+record chain under **{project-root}**. {metodoloji-root} = this plugin's installation
+root (`~/.openhands/plugins/installed/metodoloji`).
 
-## Adımlar
+## Steps
 
-1. Şu dizinleri oluştur (varsa dokunma):
-   - `docs/experiments/` — Mod A deney kayıtları (E-NNN.md)
-   - `docs/development/stories/` — story kayıtları (S-NNN.md)
-   - `docs/research/` — Mod B/D belgesel kayıtlar
-   - `docs/design/` — Mod C belgesel kayıtlar
-   - `docs/bmad/` — manifesto ve köprü kopyaları
-   - `scratch/` — keşif kodu serbest bölgesi
+1. Create these directories (skip if they exist):
+   - `docs/experiments/` — Mode A experiment records (E-NNN.md)
+   - `docs/development/stories/` — story records (S-NNN.md)
+   - `docs/research/` — Mode B/D documentary records
+   - `docs/design/` — Mode C documentary records
+   - `docs/bmad/` — manifestos and bridge copies
+   - `scratch/` — free zone for exploration code
 
-2. Şablonları kopyala (üzerine yazma — varsa koru):
+2. Copy templates (do not overwrite — preserve existing):
    - `{metodoloji-root}/templates/_template_E.md` → `docs/experiments/_template.md`
    - `{metodoloji-root}/templates/_template_IR.md` → `docs/development/_template_IR.md`
    - `{metodoloji-root}/templates/_template_SP.md` → `docs/development/_template_SP.md`
@@ -23,10 +24,10 @@ altına kurar. {metodoloji-root} = bu plugin'in kurulum kökü (`~/.openhands/pl
    - `{metodoloji-root}/templates/README.md` → `docs/development/README.md`
    - `{metodoloji-root}/templates/tech-debt.md` → `docs/development/tech-debt.md`
 
-3. Manifesto kopyaları (kaynak: plugin'deki referans kopyalar yerine repo metinleri):
-   - `docs/bmad/` altına bu metodoloji paketinin köprü ve manifesto kopyaları varsa kur.
+3. Manifesto copies (source: repo texts instead of the plugin's reference copies):
+   - Install the bridge and manifesto copies of this methodology package under `docs/bmad/` if present.
 
-4. Kapı anahtarı yoksa uyar: `/metodoloji:kapi-kur` çalıştır.
+4. If no gate key exists, warn: run `/metodoloji:gate-setup`.
 
-5. Özet yaz: kurulan dizinler, atlanan (mevcut) dosyalar, sıradaki adım
-   (`/metodoloji:denetim` ile sağlık kontrolü).
+5. Print a summary: installed directories, skipped (existing) files, next step
+   (`/metodoloji:audit` health check).

@@ -12,7 +12,7 @@
 
 [core]
 project_name = "graph-engineering-arge"
-document_output_language = "Türkçe"
+document_output_language = "English"
 output_folder = "{project-root}/bmad-output"
 
 [modules.bmm]

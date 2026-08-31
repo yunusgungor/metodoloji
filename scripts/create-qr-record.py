@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Create Quality Record (QR-XXX.md) from story file DoD validation.
 
-This script implements KÖPRÜ #3 from the bridge document.
+This script implements bridge #3 from the bridge document.
 It reads a story file and creates a QR record.
 
 Usage:
@@ -130,35 +130,35 @@ def create_qr_record(
 
     record = f"""# Quality Record: QR-{sira:03d}
 
-| Alan | Değer |
+| Field | Value |
 |------|-------|
 | Story | {meta.get('story_key', '—')} |
 | Story Title | {meta.get('title', '—')} |
-| Tarih | {today} |
+| Date | {today} |
 | QR Status | {qr_status} |
 
-## DoD Doğrulama Sonuçları
+## DoD Verification Results
 
-| DoD Item | Durum | Kanit | Tarih |
+| DoD Item | Status | Evidence | Date |
 |----------|-------|-------|-------|
 {dod_table}
-## AC Doğrulama Sonuçları
+## AC Verification Results
 
-| AC | Durum | Method | Evidence |
+| AC | Status | Method | Evidence |
 |----|-------|--------|----------|
 | — | — | — | — |
 
-## Test Özeti
+## Test Summary
 
 - Unit tests: —
 - Integration tests: —
 - Regression: —
 
-## Dosya Listesi
+## File List
 
 - —
 
-## Değişiklik Özeti
+## Change Summary
 
 - —
 

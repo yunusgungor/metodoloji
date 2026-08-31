@@ -16,6 +16,6 @@ primary_platform:
 # Core Configuration Values
 project_name: graph-engineering-arge
 user_name: Yunus
-communication_language: Türkçe
-document_output_language: Türkçe
+communication_language: English
+document_output_language: English
 output_folder: "{project-root}/bmad-output"

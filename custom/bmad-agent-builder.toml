@@ -1,6 +1,6 @@
-# Team overrides for bmad-agent-builder -- Research methodology (meta: yeni yetenek uretimi -- manifestoyu miras alir).
-# Takim yuzeyi manifestoyu yukler ve kendi modunun belgesel kapisina baglanir.
-# Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayina baglidir.
+# Team overrides for bmad-agent-builder -- Research methodology (meta: new capability generation -- inherits the manifesto).
+# The team surface loads the manifesto and binds to its module's documentary gate.
+# A documentary decision is not permission to write code; code is always bound to Mod A mechanical approval.
 # Team layer, committed.
 
 [agent]
@@ -9,7 +9,7 @@ persistent_facts = [
   "file:{project-root}/docs/bmad/research-methodology.md",
 ]
 principles = [
-  "Uretilen yeni yuzeyler manifestoyu miras alir: metodoloji kapsami disinda yuzey uretilmez.",
-  "Uretilen yuzeyin kablolamasi uctur: persistent_facts (ozellestirme hatti) veya SKILL.md isaretcisi.",
-  "Kod her durumda Mod A mekanik onayini ister (guard-code.sh + --verify); uretici yuzeyler de bundan muaftir degildir."
+  "Generated surfaces inherit the manifesto: no surface is produced outside the methodology scope.",
+  "A generated surface is wired via: persistent_facts (customization line) or a SKILL.md pointer.",
+  "Code always requires Mod A mechanical approval (guard-code.sh + --verify); generator surfaces are not exempt from this either."
 ]
