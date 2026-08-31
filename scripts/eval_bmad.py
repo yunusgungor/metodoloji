@@ -14,6 +14,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 OUTPUTS_DIR = REPO_ROOT / "outputs"
 sys.path.insert(0, str(REPO_ROOT))
+os.chdir(REPO_ROOT)
 
 try:
     from dotenv import load_dotenv
@@ -22,44 +23,11 @@ except ImportError:
     pass
 
 from bmad_benchmarks.registry import (
-    BENCHMARKS, register_all_adapters, load_benchmark_config, build_eval_argv,
+    BENCHMARKS, register_all_adapters, build_eval_argv, run_benchmarks,
 )
 
 
-def eval_benchmark(name, skill_path=None, split="test"):
-    os.chdir(REPO_ROOT)
-    if not skill_path:
-        skill_path = str(OUTPUTS_DIR / name / "best_skill.md")
-    if not Path(skill_path).exists():
-        print(f"[ERROR] Skill not found: {skill_path}")
-        return False
-
-    try:
-        cfg = load_benchmark_config(name)
-    except FileNotFoundError as exc:
-        print(f"[ERROR] {exc}")
-        return False
-
-    sys.argv = build_eval_argv(name, cfg, skill_path, split)
-
-    print(f"\nEvaluating: {name} | skill: {skill_path} | split: {split}")
-    try:
-        for mod in list(sys.modules):
-            if mod.startswith("scripts.eval_only"):
-                del sys.modules[mod]
-        register_all_adapters()
-        from scripts.eval_only import main as eval_main
-        eval_main()
-        return True
-    except SystemExit as exc:
-        return exc.code == 0
-    except Exception as exc:
-        print(f"[ERROR] {name}: {exc}")
-        return False
-
-
 def main():
-    os.chdir(REPO_ROOT)
     parser = argparse.ArgumentParser(description="Evaluate trained BMAD skills")
     parser.add_argument("--benchmark", choices=BENCHMARKS + ["all"],
                         default="bmad-code-review")
@@ -67,18 +35,23 @@ def main():
     parser.add_argument("--split", default="test", help="Data split to evaluate")
     args = parser.parse_args()
 
-    print("Registering BMAD adapters...")
     register_all_adapters()
 
-    benchmarks = BENCHMARKS if args.benchmark == "all" else [args.benchmark]
-    results = {}
-    for name in benchmarks:
-        results[name] = eval_benchmark(name, skill_path=args.skill, split=args.split)
+    names = BENCHMARKS if args.benchmark == "all" else [args.benchmark]
+    if args.skill:
+        skill_path = args.skill
+        if not Path(skill_path).exists():
+            print(f"[ERROR] Skill not found: {skill_path}")
+            raise SystemExit(1)
+    else:
+        skill_path = None  # each benchmark falls back to its own best_skill.md
 
-    print("\n" + "=" * 60 + "\nEVAL RESULTS\n" + "=" * 60)
-    for name, ok in results.items():
-        print(f"  [{'PASS' if ok else 'FAIL'}] {name}")
-    sys.exit(0 if all(results.values()) else 1)
+    def build_argv(name, cfg):
+        chosen = skill_path or str(OUTPUTS_DIR / name / "best_skill.md")
+        return build_eval_argv(name, cfg, chosen, args.split)
+
+    ok = run_benchmarks(names, build_argv, "scripts.eval_only", "EVAL RESULTS")
+    raise SystemExit(0 if ok else 1)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ Eliminates duplication between train_bmad.py and eval_bmad.py.
 
 import importlib
 import os
+import sys
 from pathlib import Path
 
 import yaml
@@ -138,3 +139,41 @@ def build_eval_argv(name: str, cfg: dict, skill_path: str, split: str = "test") 
         if val is not None:
             argv.extend([f"--{key}", str(val)])
     return argv
+
+
+def run_benchmark(name: str, build_argv, module_name: str, label: str) -> bool:
+    """Load config, set argv, run one SkillOpt main under fresh module state.
+
+    build_argv(name, cfg, ...) -> list[str]; module_name is the SkillOpt entry
+    ('scripts.train' or 'scripts.eval_only'); label is the log line prefix.
+    """
+    try:
+        cfg = load_benchmark_config(name)
+    except FileNotFoundError as exc:
+        print(f"[ERROR] {exc}")
+        return False
+    sys.argv = build_argv(name, cfg)
+    print(f"\n{label}: {name}")
+    try:
+        for mod in list(sys.modules):
+            if mod == module_name or mod.startswith(module_name + "."):
+                del sys.modules[mod]
+        register_all_adapters()
+        from importlib import import_module
+        import_module(module_name).main()
+        return True
+    except SystemExit as exc:
+        return exc.code == 0
+    except Exception as exc:
+        print(f"[ERROR] {name}: {exc}")
+        return False
+
+
+def run_benchmarks(names, build_argv, module_name, label) -> bool:
+    """Run a list of benchmarks, printing a PASS/FAIL summary; True if all pass."""
+    results = {name: run_benchmark(name, build_argv, module_name, label)
+               for name in names}
+    print("\n" + "=" * 60 + f"\n{label.upper()}\n" + "=" * 60)
+    for name, ok in results.items():
+        print(f"  [{'PASS' if ok else 'FAIL'}] {name}")
+    return all(results.values())

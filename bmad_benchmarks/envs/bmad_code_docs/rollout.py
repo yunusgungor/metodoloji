@@ -135,42 +135,11 @@ def _extra_result(output_text, item):
 
 
 def run_batch(items, skill_content, out_dir, workers=1, max_completion_tokens=4096):
-    def _score_fn(text, item):
-        return _score(text, item)
-
-    def _prompt_fn(item, sc):
-        return _prompt(item, sc)
-
-    from .._base_.rollout import rollout_one
-    import concurrent.futures
-    import json
-    import pathlib
-
-    out_dir = pathlib.Path(out_dir)
-
-    def _safe(item):
-        try:
-            sys_p, usr_p = _prompt_fn(item, skill_content)
-            return rollout_one(item, skill_content, out_dir, sys_p, usr_p,
-                               _score_fn, max_completion_tokens,
-                               extra_result=_extra_result)
-        except Exception as exc:
-            return {
-                "id": item["id"], "hard": 0, "soft": 0.0,
-                "task_type": item.get("task_type", "code-docs"),
-                "error": str(exc), "n_turns": 0,
-            }
-
-    if workers > 1 and len(items) > 1:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
-            results = list(ex.map(_safe, items))
-    else:
-        results = [_safe(item) for item in items]
-
-    (out_dir / "rollouts.json").parent.mkdir(parents=True, exist_ok=True)
-    (out_dir / "rollouts.json").write_text(
-        json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
-    return results
+    return _run_batch(
+        items, skill_content, out_dir, _score, _prompt,
+        max_completion_tokens=max_completion_tokens, workers=workers,
+        default_task_type="code-docs", extra_result=_extra_result,
+    )
 
 
 def _selfcheck():

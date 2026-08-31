@@ -49,7 +49,8 @@ def rollout_one(item, skill_content, out_dir, system_prompt, user_prompt,
 
 
 def run_batch(items, skill_content, out_dir, score_fn, prompt_fn,
-              max_completion_tokens=4096, workers=1, default_task_type="unknown"):
+              max_completion_tokens=4096, workers=1, default_task_type="unknown",
+              extra_result=None):
     """Parallel batch rollout with ThreadPoolExecutor.
 
     Args:
@@ -61,6 +62,7 @@ def run_batch(items, skill_content, out_dir, score_fn, prompt_fn,
         max_completion_tokens: LLM max tokens
         workers: number of parallel workers (1 = serial)
         default_task_type: fallback task_type for error results
+        extra_result: (output_text, item) -> dict, merged into each result
     """
     out_dir = pathlib.Path(out_dir)
 
@@ -69,7 +71,7 @@ def run_batch(items, skill_content, out_dir, score_fn, prompt_fn,
             sys_prompt, usr_prompt = prompt_fn(item, skill_content)
             return rollout_one(
                 item, skill_content, out_dir, sys_prompt, usr_prompt,
-                score_fn, max_completion_tokens,
+                score_fn, max_completion_tokens, extra_result=extra_result,
             )
         except Exception as exc:
             return {
@@ -125,3 +127,39 @@ def score_field_presence(output_text, expected_fields, threshold=0.9):
     soft = found / len(expected_fields) if expected_fields else 1.0
     hard = 1 if soft >= threshold else 0
     return hard, soft
+
+
+def build_custom_prompt(item, skill_content, record_name, fields,
+                        outro="Produce the complete record with all fields."):
+    """Shared prompt builder for the custom_* methodology benchmarks.
+
+    record_name is the human title of the record type (e.g. "Implementation
+    Readiness (IR)"); fields is an ordered list of (section_title, item_key)
+    pairs rendered as '## <title>' headers.
+    """
+    system = (
+        f"{skill_content}\n\n"
+        f"You are producing a {record_name} methodology record. "
+        f"Follow the template fields exactly, in English field labels."
+    )
+    sections = "".join(f"## {title}\n\n{item[key]}\n\n" for title, key in fields)
+    user = f"{sections}{outro}"
+    return system, user
+
+
+def run_custom_batch(items, skill_content, out_dir, record_name, fields,
+                     default_task_type, workers=1, max_completion_tokens=4096,
+                     outro="Produce the complete record with all fields."):
+    """Shared batch runner for the custom_* methodology benchmarks.
+
+    Scores by field-label presence and builds the prompt from record_name + fields.
+    """
+    def _score(output_text, item):
+        return score_field_presence(output_text, item["expected_fields"])
+
+    def _prompt(item, skill_content):
+        return build_custom_prompt(item, skill_content, record_name, fields, outro)
+
+    return run_batch(items, skill_content, out_dir, _score, _prompt,
+                     max_completion_tokens=max_completion_tokens,
+                     workers=workers, default_task_type=default_task_type)
