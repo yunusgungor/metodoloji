@@ -566,9 +566,16 @@ for rec in "$PROJECT_ROOT"/docs/experiments/*.md; do
     # Detect the approved decision in both the new English format
     # (**Decision:** APPROVED / Status: APPROVED) and the legacy Turkish one.
     if grep -qE '\*\*(Decision|Karar):\*\*[[:space:]]*(APPROVED|ONAYLANDI)|^Status:[[:space:]]*(APPROVED|ONAYLANDI)' "$rec"; then
-        if "$PY" "$GATE" --verify --record "$rec" >/dev/null 2>&1; then
+        "$PY" "$GATE" --verify --record "$rec" >/dev/null 2>&1
+        vrc=$?
+        if [ "$vrc" -eq 0 ]; then
             echo "[OK]   $rec -> VERIFIED"
             FOUND=$((FOUND + 1))
+        elif [ "$vrc" -eq 2 ]; then
+            # ADVISORY-BLOCK: token genuine but sample too small — genuine, not forged.
+            # Does not open code writing, so not counted in FOUND (guard stayed closed),
+            # but must NOT be reported as FORGED.
+            echo "[OK]   $rec -> VERIFIED (ADVISORY-BLOCK: genuine token, small sample — code stayed closed)"
         else
             echo "[ERROR] $rec -> approved but --verify failed (FORGED?)"
             PROBLEMS=$((PROBLEMS + 1))
@@ -717,7 +724,8 @@ DEVCHECKED=0
 for rec in \
     "$PROJECT_ROOT"/docs/development/IR-*.md "$PROJECT_ROOT"/docs/development/SP-*.md \
     "$PROJECT_ROOT"/docs/development/QR-*.md "$PROJECT_ROOT"/docs/development/PR-*.md \
-    "$PROJECT_ROOT"/docs/development/stories/S-*.md "$PROJECT_ROOT"/docs/development/incidents/PM-*.md; do
+    "$PROJECT_ROOT"/docs/development/stories/S-*.md "$PROJECT_ROOT"/docs/development/incidents/PM-*.md \
+    "$PROJECT_ROOT"/docs/quality/QR-*.md; do
     [ -f "$rec" ] || continue
     DEVCHECKED=$((DEVCHECKED + 1))
     case "$(basename "$rec")" in
@@ -736,7 +744,7 @@ for rec in \
         DEVPROBLEMS=$((DEVPROBLEMS + 1))
         continue
     fi
-    dec=$(echo "$line" | sed 's/.*\*\*\(Decision\|Status\|Karar\|Durum\):\*\* *//; s/[|→].*//' | sed 's/^ *//; s/ *$//')
+    dec=$(echo "$line" | sed -E 's/.*\*\*(Decision|Status|Karar|Durum):\*\* *//; s/[|→—].*//' | sed 's/^ *//; s/ *$//')
     found=0
     case "$(basename "$rec")" in
         IR-*) case "$dec" in READY|INCOMPLETE|HAZIR|EKSİK) found=1 ;; esac ;;

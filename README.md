@@ -86,6 +86,10 @@ commit/deploy gates warn (allow + `methodology_warnings`) instead of blocking;
 
 ## Status
 
-The installation/path layer is merged; the live flow (first E→IR→SP→S→QR production in
-a real LLM session) is not proven, so it cannot be called "fully merged". Closing gate:
-Phase 8.
+The installation/path layer is merged. The full E→IR→SP→S→QR chain has been
+**produced mechanically** — E-005 went through the mechanical gate (measured
+0.98, APPROVED, `--verify` → VERIFIED) and IR-001/SP-001/S-001/QR-001 were
+generated from the record templates and pass `check-plugin.sh` §3/§6. What
+remains unproven is the same chain produced live by a real LLM session invoking
+those BRIDGE steps end to end; that live-session production is the closing gate
+and is not yet merged.

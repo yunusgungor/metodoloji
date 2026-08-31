@@ -201,6 +201,16 @@ HONESTY_FIELDS = {
 }
 DECISION_RE = re.compile(r"^(APPROVED|REJECTED|REVISED|DEFERRED)")
 
+# A draft record leaves its Decision/Gate Evidence/Next Step as a placeholder
+# (gate hasn't written yet). Two placeholder forms exist in the codebase: the
+# template's '<gate writes: ...>' angle bracket and the em-dash '— (gate writes)'
+# used by the record writers (bridge_real_usage.py treats both as undecided).
+# A placeholder must NOT count as a decision — otherwise a draft copy would be
+# rejected as "already decided" or flagged FORGED.
+def _is_placeholder(value: str) -> bool:
+    v = value.strip()
+    return not v or bool(re.fullmatch(r"<.*>", v)) or v.startswith("—")
+
 
 def validate_doc(path: str) -> int:
     """Validate a Mod B/C/D record for completeness and honesty. 0=OK, 1=issues, 2=not a doc."""
@@ -226,14 +236,14 @@ def validate_doc(path: str) -> int:
     problems = []
     for f in DOC_FIELDS[kind]:
         val = fields.get(f, "").strip()
-        if not val or re.fullmatch(r"<.*>", val):
+        if _is_placeholder(val):
             problems.append(f"missing/empty '{f}'")
     karar = fields.get("Decision", "").strip()
-    if karar and not re.fullmatch(r"<.*>", karar) and not DECISION_RE.search(karar):
+    if karar and not _is_placeholder(karar) and not DECISION_RE.search(karar):
         problems.append(f"Invalid Decision format: '{karar[:40]}'")
     for f in HONESTY_FIELDS[kind]:
         val = fields.get(f, "").strip()
-        if not val or re.fullmatch(r"<.*>", val):
+        if _is_placeholder(val):
             problems.append(f"honesty field '{f}' is empty")
 
     for p in problems:
@@ -496,11 +506,12 @@ def main() -> int:
               "every bench change goes through the approval gate.", file=sys.stderr)
         return 2
 
-    # Template placeholder ('<...>') is NOT a decision — the gate hasn't written yet.
-    # Only a real APPROVED/REJECTED value counts as "decided"; otherwise a template
-    # copy would be rejected as "already decided" (record-format trap).
+    # Template placeholder (angle bracket '<...>' or em-dash '— (gate writes)')
+    # is NOT a decision — the gate hasn't written yet. Only a real APPROVED/REJECTED
+    # value counts as "decided"; otherwise a template copy would be rejected as
+    # "already decided" (record-format trap).
     decision_val = fields.get("Decision", "").strip()
-    if decision_val and not re.fullmatch(r"<.*>", decision_val):
+    if decision_val and not _is_placeholder(decision_val):
         print(f"ERROR: record already decided ('{decision_val[:60]}'). "
               "Open a new experiment record for a new measurement.", file=sys.stderr)
         return 2
@@ -629,10 +640,11 @@ def verify(path: str) -> int:
     decision = fields.get("Decision", "").strip()
     evidence = fields.get("Gate Evidence", "")
 
-    # Template placeholder ('<...>') is not a decision — even if it contains 'APPROVED'
-    # (as in `<gate writes: APPROVED | REJECTED — reason>`) it must NOT get a FORGED
-    # stamp; the gate hasn't written yet, so it counts as "undecided".
-    if re.fullmatch(r"<.*>", decision):
+    # Template placeholder (angle bracket '<...>' or em-dash '— (gate writes)') is
+    # not a decision — even if it contains 'APPROVED' (as in
+    # `<gate writes: APPROVED | REJECTED — reason>`) it must NOT get a FORGED stamp;
+    # the gate hasn't written yet, so it counts as "undecided".
+    if _is_placeholder(decision):
         decision = ""
 
     if "APPROVED" in decision:
