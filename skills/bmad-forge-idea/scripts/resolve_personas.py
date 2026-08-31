@@ -121,14 +121,15 @@ def load_party_workflow(project_root: Path, party_skill: Path):
     return wf if isinstance(wf, dict) else {}
 
 
-def load_party_overrides(project_root: Path):
+def load_party_overrides(project_root: Path, custom_dir: Path | None = None):
     """Custom personas/parties when party-mode itself isn't installed.
 
     Reads only the user's override TOMLs (team then personal, personal wins on
     scalars). No base roster exists in this path, so a shallow merge is enough.
+    Defaults to the plugin's custom/ directory; tests may inject a temp dir.
     """
     root = Path(__file__).resolve().parent.parent.parent.parent  # plugin root
-    custom = root / "custom"
+    custom = custom_dir or (root / "custom")
     team = _load_toml(custom / f"{PARTY_SKILL}.toml").get("workflow", {})
     user = _load_toml(custom / f"{PARTY_SKILL}.user.toml").get("workflow", {})
     team = team if isinstance(team, dict) else {}

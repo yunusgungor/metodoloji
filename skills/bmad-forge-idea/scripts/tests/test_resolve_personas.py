@@ -129,7 +129,7 @@ class TestOverrideMergeFallback(unittest.TestCase):
             (custom / "bmad-party-mode.user.toml").write_text(
                 '[workflow]\ndefault_party = "b"\n'
                 '[[workflow.party_members]]\ncode = "y"\nname = "Y"\n')
-            wf = rp.load_party_overrides(Path(d))
+            wf = rp.load_party_overrides(Path(d), custom_dir=custom)
             self.assertEqual(wf["default_party"], "b")  # personal wins
             self.assertEqual([m["code"] for m in wf["party_members"]], ["x", "y"])  # appended
 
