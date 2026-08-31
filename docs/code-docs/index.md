@@ -19,8 +19,7 @@ Structured documentation system used to remember project history and generate ne
 ## Automatic Generation
 
 These files are generated automatically by hooks:
-- **Audit hook**: Detects important events (experiment approval, architecture change, error resolution)
-- **Guard hook**: Generates a learning doc after experiment approval
+- **Audit hook**: Detects important events (experiment approval → learning, architecture change → decision, error in tool output → troubleshooting, TODO/future plans → pending)
 - **Skill**: Manual recall and recording via `bmad-code-docs`
 
 ## Search

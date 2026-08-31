@@ -6,7 +6,7 @@ import pathlib
 import re
 import time
 
-from .config import RUNTIME, log_file, CODE_DOCS_DIR
+from .config import log_file
 
 
 def _detect_notable_events(tool_name: str, tool_input: dict, tool_output: dict) -> list[dict]:
