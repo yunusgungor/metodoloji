@@ -30,13 +30,13 @@
 
 ### What Does the Plugin Do?
 
-`metodoloji` is the OpenHands SDK plugin implementation of the **BMAD (Build Methodology for Agent-Driven development)** methodology. It ships with 124 skills + 119 bridge TOMLs (33 BRIDGE active) + mechanical gates + a record chain.
+`metodoloji` is the OpenHands SDK plugin implementation of the **BMAD (Build Methodology for Agent-Driven development)** methodology. It ships with 123 skills + 119 bridge TOMLs (33 BRIDGE active) + mechanical gates + a record chain.
 
 Core functions:
 
 | Component | Function |
 |-----------|----------|
-| `skills/` | 122 BMAD skills (native body) |
+| `skills/` | 123 BMAD skills (native body) |
 | `custom/` | 119 bridge TOMLs (33 active with BRIDGE: `activation_steps_append`/`principles` → links native outputs to methodology records) + `config.toml` (soft/hard) |
 | `hooks/` | PreToolUse / PostToolUse / Stop / SessionStart hooks; modular engine structure |
 | `hooks/engine/` | Python engine: `main.py` (entry point), `modules/` (guard, audit, stop, utils, config) |
@@ -88,8 +88,8 @@ metodoloji/
 │   └── scripts/
 │       ├── bootstrap.sh         # SessionStart: gate-key + missing directories + context
 │       └── hook-entry.sh        # Single dispatch point: mode-selection + routing to Python
-├── skills/                      # 124+ BMAD skill directories
-├── custom/                      # 74 bridge TOMLs + config.toml
+├── skills/                      # 123 BMAD skill directories
+├── custom/                      # 119 bridge TOMLs (33 BRIDGE active) + config.toml
 ├── bmad/                        # Module data (bmm, cis, gds, wds, tea, core, bmb)
 ├── templates/                   # Record templates
 ├── commands/                    # Command definitions + check-plugin.sh
@@ -895,7 +895,7 @@ sh commands/check-plugin.sh
 | §0 | Is the gate key installed | `--init-secret` |
 | §1 | Hook engine selfcheck | `--selfcheck` |
 | §2 | Manifesto + bridge wiring | TOML parse + consume check |
-| §2b | Is the bridge visible at runtime (29 skills) | `resolve_customization` deep_merge |
+| §2b | Is the bridge visible at runtime (33 skills) | `resolve_customization` deep_merge (30 workflow + 3 agent-principles) |
 | §2c | Does the bridge VERIFY instruction exist (13 skills) | Search for VERIFY within BRIDGE |
 | §3 | Approved experiment inventory | Each E record via `--verify` |
 | §4 | Documentary record completeness | B/C/D records via `--validate` |

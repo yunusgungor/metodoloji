@@ -35,7 +35,9 @@ Phase 5 is **menu-driven**, not linear. The user picks an activity.
 
 ### 1. Configuration Loading
 
-Load and read full config from `{metodoloji-root}/bmad/wds/config.yaml` and resolve:
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — the OpenHands terminal tool accepts only the command parameter; do NOT add description. Follow the resolved `workflow.activation_steps_append` (includes the BRIDGE steps that create/update the S-<sira>.md and QR-<sira>.md methodology records) and `workflow.persistent_facts`.
+
+Then load and read full config from `{metodoloji-root}/bmad/wds/config.yaml` and resolve:
 - `project_name`, `output_folder`, `user_name`
 - `communication_language`, `document_output_language`
 

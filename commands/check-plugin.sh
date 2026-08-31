@@ -40,7 +40,7 @@ from pathlib import Path
 
 PLUGIN = Path(os.environ["PLUGIN_ROOT"])
 check_script = PLUGIN / "commands" / "check-plugin.sh"
-total_stages = 3
+total_stages = 4
 
 # Stage 1/3: .env.example deleted → §6a.2 should catch a WARNING
 print(f"[1/{total_stages}] does §6a emit a WARNING when .env.example is deleted")
@@ -114,6 +114,36 @@ try:
     print("  [OK] §2b MISS caught, custom TOML restored")
 finally:
     toml.write_text(orig, encoding="utf-8")
+
+# Stage 4/4: BRIDGE removed from an agent-principles surface → §2b should catch a MISS
+print(f"[4/{total_stages}] does §2b emit a MISS when BRIDGE is removed from custom/bmad-agent-dev.toml (agent.principles)")
+atoml = PLUGIN / "custom" / "bmad-agent-dev.toml"
+askill = PLUGIN / "skills" / "bmad-agent-dev"
+aorig = atoml.read_text(encoding="utf-8")
+
+def agent_bridge_visible(text: str) -> bool:
+    atoml.write_text(text, encoding="utf-8")
+    try:
+        r = subprocess.run(
+            [sys.executable, str(resolver), "-s", str(askill),
+             "-k", "agent.principles"],
+            capture_output=True, text=True, encoding="utf-8", timeout=15)
+        d = json.loads(r.stdout)
+        return any("BRIDGE" in s for s in d.get("agent.principles", []))
+    finally:
+        atoml.write_text(aorig, encoding="utf-8")
+
+try:
+    abroken = "\n".join(l for l in aorig.splitlines() if "BRIDGE" not in l)
+    if not agent_bridge_visible(aorig):
+        print("  [ERROR] agent BRIDGE not visible even in intact custom TOML — test setup broken")
+        sys.exit(1)
+    if agent_bridge_visible(abroken):
+        print("  [ERROR] §2b MISS expected for agent.principles, BRIDGE still visible after removal")
+        sys.exit(1)
+    print("  [OK] agent-principles §2b MISS caught, custom TOML restored")
+finally:
+    atoml.write_text(aorig, encoding="utf-8")
 
 print(f"[OK] all {total_stages} negtest stages successful")
 sys.exit(0)
@@ -437,23 +467,35 @@ TOML_SKILLS = [
     "gds-check-implementation-readiness", "gds-sprint-planning", "gds-create-story",
     "gds-test-automate", "gds-test-design", "gds-test-framework",
     "gds-test-review", "gds-e2e-scaffold", "gds-performance-test", "gds-playtest-plan",
+    "wds-5-agentic-development",
+]
+# Agent-BRIDGE surfaces: BRIDGE lives in [agent].principles, not workflow steps.
+AGENT_TOML_SKILLS = [
+    "bmad-agent-dev", "gds-agent-game-dev", "gds-agent-game-solo-dev",
 ]
 missing = []
 checked = 0
-for name in TOML_SKILLS:
+for name in TOML_SKILLS + AGENT_TOML_SKILLS:
     skill_dir = PLUGIN / "skills" / name
     if not skill_dir.is_dir():
+        missing.append("%s (skill directory missing — BRIDGE override can never load)" % name)
+        continue
+    # resolve_customization hard-requires the skill-root customize.toml ("must
+    # contain customize.toml"); a team override with no root file silently
+    # dead-ends. Flag it instead of skipping (was silently passing before).
+    if not (skill_dir / "customize.toml").is_file():
+        missing.append("%s (no root customize.toml — team BRIDGE override never merges)" % name)
         continue
     checked += 1
+    key = "agent.principles" if name in AGENT_TOML_SKILLS else "workflow.activation_steps_append"
     try:
         r = subprocess.run(
-            [sys.executable, str(RESOLVER), "-s", str(skill_dir),
-             "-k", "workflow.activation_steps_append"],
+            [sys.executable, str(RESOLVER), "-s", str(skill_dir), "-k", key],
             capture_output=True, text=True, encoding="utf-8", timeout=15)
         d = json.loads(r.stdout)
-        asa = d.get("workflow.activation_steps_append", [])
+        asa = d.get(key, [])
         if not any("BRIDGE" in s or "KOPRU" in s for s in asa):
-            missing.append("%s (BRIDGE absent after merge — custom toml append not working)" % name)
+            missing.append("%s (%s BRIDGE absent after merge)" % (name, key))
     except Exception as e:
         missing.append("%s (resolve error: %s)" % (name, str(e)[:60]))
 print("  checked toml skills (installed): %d" % checked)
