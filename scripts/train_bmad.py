@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Train BMAD skills using SkillOpt.
 
-Wraps SkillOpt's train.py, registering BMAD adapters first.
-
 Usage:
     python scripts/train_bmad.py --benchmark bmad-code-review
     python scripts/train_bmad.py --benchmark all
@@ -10,149 +8,40 @@ Usage:
 """
 
 import argparse
-import importlib
 import os
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CONFIGS_DIR = REPO_ROOT / "configs"
+sys.path.insert(0, str(REPO_ROOT))
 
-# Load .env so AZURE_OPENAI_* vars are available to SkillOpt
 try:
     from dotenv import load_dotenv
     load_dotenv(REPO_ROOT / ".env", override=True)
 except ImportError:
     pass
 
-# MUST add repo root before any local imports
-sys.path.insert(0, str(REPO_ROOT))
-
-BENCHMARKS = [
-    "bmad-code-review",
-    "bmad-create-story",
-    "bmad-architecture",
-    "bmad-prd",
-    "bmad-test-design",
-    # Custom TOML methodology benchmarks
-    "bmad-custom-ir",
-    "bmad-custom-sp",
-    "bmad-custom-story",
-    "bmad-custom-qr",
-    "bmad-custom-pr",
-    # docs/bmad meta benchmarks
-    "bmad-meta-mod",
-    "bmad-meta-chain",
-    "bmad-meta-guard",
-    "bmad-meta-root",
-    "bmad-meta-path",
-    # Research methodology benchmark
-    "bmad-research-experiment",
-    # Code docs benchmark
-    "bmad-code-docs",
-]
-
-# Adapter class mapping
-_ADAPTERS = {
-    "bmad-code-review": ("bmad_benchmarks.envs.bmad_code_review.adapter", "BmadCodeReviewAdapter"),
-    "bmad-create-story": ("bmad_benchmarks.envs.bmad_create_story.adapter", "BmadCreateStoryAdapter"),
-    "bmad-architecture": ("bmad_benchmarks.envs.bmad_architecture.adapter", "BmadArchitectureAdapter"),
-    "bmad-prd": ("bmad_benchmarks.envs.bmad_prd.adapter", "BmadPrdAdapter"),
-    "bmad-test-design": ("bmad_benchmarks.envs.bmad_test_design.adapter", "BmadTestDesignAdapter"),
-    # Custom TOML methodology benchmarks
-    "bmad-custom-ir": ("bmad_benchmarks.envs.bmad_custom_ir.adapter", "BmadCustomIrAdapter"),
-    "bmad-custom-sp": ("bmad_benchmarks.envs.bmad_custom_sp.adapter", "BmadCustomSpAdapter"),
-    "bmad-custom-story": ("bmad_benchmarks.envs.bmad_custom_story.adapter", "BmadCustomStoryAdapter"),
-    "bmad-custom-qr": ("bmad_benchmarks.envs.bmad_custom_qr.adapter", "BmadCustomQRAdapter"),
-    "bmad-custom-pr": ("bmad_benchmarks.envs.bmad_custom_pr.adapter", "BmadCustomPrAdapter"),
-    # docs/bmad meta benchmarks
-    "bmad-meta-mod": ("bmad_benchmarks.envs.bmad_meta_mod.adapter", "BmadMetaModAdapter"),
-    "bmad-meta-chain": ("bmad_benchmarks.envs.bmad_meta_chain.adapter", "BmadMetaChainAdapter"),
-    "bmad-meta-guard": ("bmad_benchmarks.envs.bmad_meta_guard.adapter", "BmadMetaGuardAdapter"),
-    "bmad-meta-root": ("bmad_benchmarks.envs.bmad_meta_root.adapter", "BmadMetaRootAdapter"),
-    "bmad-meta-path": ("bmad_benchmarks.envs.bmad_meta_path.adapter", "BmadMetaPathAdapter"),
-    # Research methodology benchmark
-    "bmad-research-experiment": ("bmad_benchmarks.envs.bmad_research_experiment.adapter", "BmadResearchExperimentAdapter"),
-    # Code docs benchmark
-    "bmad-code-docs": ("bmad_benchmarks.envs.bmad_code_docs.adapter", "BmadCodeDocsAdapter"),
-}
+from bmad_benchmarks.registry import (
+    BENCHMARKS, register_all_adapters, load_benchmark_config, build_train_argv,
+)
 
 
-def _register_bmad_adapters():
-    """Register BMAD adapters into SkillOpt's environment registry."""
-    # Import SkillOpt's train module to access its registry
-    from scripts import train as skillopt_train
-
-    for name, (module_path, class_name) in _ADAPTERS.items():
-        try:
-            mod = importlib.import_module(module_path)
-            cls = getattr(mod, class_name)
-            skillopt_train._ENV_REGISTRY[name] = cls
-            print(f"  [registered] {name}")
-        except Exception as exc:
-            print(f"  [skip] {name}: {exc}")
-
-
-def train_benchmark(name: str, extra_args: list[str] | None = None):
-    config_path = CONFIGS_DIR / name / "default.yaml"
-    if not config_path.exists():
-        print(f"[ERROR] Config not found: {config_path}")
+def train_benchmark(name, extra_args=None):
+    os.chdir(REPO_ROOT)
+    try:
+        cfg = load_benchmark_config(name)
+    except FileNotFoundError as exc:
+        print(f"[ERROR] {exc}")
         return False
 
-    # out_root is set in the YAML config per benchmark
-    import yaml as _yaml
-    with open(config_path) as _f:
-        _cfg = _yaml.safe_load(_f)
-    # Set TARGET_DEPLOYMENT BEFORE SkillOpt modules load (they read it at import time)
-    target = _cfg.get("model", {}).get("target", "")
-    if target:
-        os.environ["TARGET_DEPLOYMENT"] = target
-    optimizer = _cfg.get("model", {}).get("optimizer", "")
-    if optimizer:
-        os.environ["OPTIMIZER_DEPLOYMENT"] = optimizer
-    sys.argv = [
-        "train.py",
-        "--config", str(config_path),
-        "--env", name,
-    ]
-    if _cfg.get("env", {}).get("split_dir") or _cfg.get("split_dir"):
-        sys.argv.extend(["--split_dir", str(_cfg.get("env", {}).get("split_dir") or _cfg.get("split_dir"))])
-    if _cfg.get("env", {}).get("split_mode") or _cfg.get("split_mode"):
-        sys.argv.extend(["--split_mode", str(_cfg.get("env", {}).get("split_mode") or _cfg.get("split_mode"))])
-    if _cfg.get("env", {}).get("skill_init") or _cfg.get("skill_init"):
-        sys.argv.extend(["--skill_init", str(_cfg.get("env", {}).get("skill_init") or _cfg.get("skill_init"))])
-    # Pass through fields that SkillOpt reads from CLI, not from config.
-    # Support both structured (env.key) and flat (key) config formats.
-    for key in ("seed", "workers", "limit", "out_root",
-                "minibatch_size", "edit_budget"):
-        val = None
-        if isinstance(_cfg.get("env"), dict):
-            val = _cfg["env"].get(key)
-        if val is None:
-            val = _cfg.get(key)
-        if val is not None:
-            sys.argv.extend([f"--{key}", str(val)])
-    # Pass through train.* fields
-    train = _cfg.get("train", {})
-    for key in ("batch_size", "num_epochs"):
-        val = train.get(key)
-        if val is not None:
-            sys.argv.extend([f"--{key}", str(val)])
-    if extra_args:
-        sys.argv.extend(extra_args)
+    sys.argv = build_train_argv(name, cfg, extra_args)
 
-    print(f"\n{'='*60}")
-    print(f"Training: {name}")
-    print(f"Config:   {config_path}")
-    print(f"{'='*60}\n")
-
+    print(f"\n{'='*60}\nTraining: {name}\n{'='*60}\n")
     try:
-        # Re-import to pick up the fresh sys.argv
         if "scripts.train" in sys.modules:
             del sys.modules["scripts.train"]
+        register_all_adapters()
         from scripts.train import main as train_main
-        # Re-register adapters after module reload (module init clears registry)
-        _register_bmad_adapters()
         train_main()
         return True
     except SystemExit as exc:
@@ -163,23 +52,19 @@ def train_benchmark(name: str, extra_args: list[str] | None = None):
 
 
 def main():
-    # Resolve all relative config paths (split_dir, skill_init, out_root) against
-    # the methodology root, regardless of the caller's cwd.
     os.chdir(REPO_ROOT)
-
     parser = argparse.ArgumentParser(description="Train BMAD skills with SkillOpt")
     parser.add_argument("--benchmark", choices=BENCHMARKS + ["all"],
-                        default="bmad-code-review", help="Benchmark to train")
+                        default="bmad-code-review")
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--lr", type=int, default=3, help="Learning rate (max edits)")
     parser.add_argument("--batch-size", type=int, default=8)
     args, extra = parser.parse_known_args()
 
     print("Registering BMAD adapters...")
-    _register_bmad_adapters()
+    register_all_adapters()
 
     benchmarks = BENCHMARKS if args.benchmark == "all" else [args.benchmark]
-
     extra_args = []
     if args.epochs != 3:
         extra_args.extend(["--num_epochs", str(args.epochs)])
@@ -191,18 +76,12 @@ def main():
 
     results = {}
     for name in benchmarks:
-        ok = train_benchmark(name, extra_args=extra_args)
-        results[name] = ok
+        results[name] = train_benchmark(name, extra_args=extra_args)
 
-    print("\n" + "=" * 60)
-    print("RESULTS")
-    print("=" * 60)
+    print("\n" + "=" * 60 + "\nRESULTS\n" + "=" * 60)
     for name, ok in results.items():
-        status = "PASS" if ok else "FAIL"
-        print(f"  [{status}] {name}")
-
-    all_pass = all(results.values())
-    sys.exit(0 if all_pass else 1)
+        print(f"  [{'PASS' if ok else 'FAIL'}] {name}")
+    sys.exit(0 if all(results.values()) else 1)
 
 
 if __name__ == "__main__":

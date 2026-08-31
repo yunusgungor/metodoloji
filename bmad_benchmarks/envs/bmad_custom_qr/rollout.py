@@ -1,109 +1,26 @@
-"""Rollout + scoring for bmad-custom-qr benchmark.
-
-Task: given a review scenario, produce a QR methodology record.
-Scoring: hard = all expected fields present; soft = fraction present.
-"""
-
-import json
-import pathlib
-from skillopt.model import chat_target
+from .._base_.rollout import run_batch as _run_batch, score_field_presence
 
 
-def _normalize_field(field: str) -> str:
-    """Normalize a Turkish field label for matching: strip punctuation, handle
-    singular/plural, accents. 'Test Sonuçları' matches 'test sonucu'."""
-    import unicodedata
-    f = field.lower()
-    # singularize common Turkish plurals (lar/ler) — careful not to strip real suffixes
-    for plural, singular in [("sonuçları", "sonucu"), ("kriterleri", "kriter"), ("bağımlılıkları", "bağımlılık")]:
-        f = f.replace(plural, singular)
-    # strip trailing -lar/-ler
-    if f.endswith("lar"):
-        f = f[:-3]
-    elif f.endswith("ler"):
-        f = f[:-3]
-    return f.strip()
+def _score(output_text, item):
+    return score_field_presence(output_text, item["expected_fields"])
 
 
-def _score(output_text: str, expected_fields: list[str]) -> tuple[int, float]:
-    output_lower = output_text.lower()
-    # Normalize both sides for matching
-    norm_output = _normalize_field(output_lower)
-    found = 0
-    for f in expected_fields:
-        norm_f = _normalize_field(f)
-        if norm_f in output_lower or norm_f in norm_output:
-            found += 1
-    soft = found / len(expected_fields) if expected_fields else 1.0
-    hard = 1 if soft >= 0.9 else 0
-    return hard, soft
-
-
-def _rollout_one(item: dict, skill_content: str, out_dir: pathlib.Path,
-                  max_completion_tokens: int = 4096) -> dict:
-    system_prompt = (
+def _prompt(item, skill_content):
+    system = (
         f"{skill_content}\n\n"
         f"You are producing a Quality Review (QR) methodology record. "
         f"Follow the template fields exactly, in Turkish field labels."
     )
-    user_prompt = (
+    user = (
         f"## Story\n\n{item['story_summary']}\n\n"
         f"## Diff Summary\n\n{item['diff_summary']}\n\n"
         f"## Test Results\n\n{item['test_results']}\n\n"
         f"Produce the complete QR record (docs/quality/QR-XXX.md) with all fields."
     )
-
-    output_text, meta = chat_target(
-        system=system_prompt,
-        user=user_prompt,
-        max_completion_tokens=max_completion_tokens,
-    )
-
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt},
-        {"role": "assistant", "content": output_text},
-    ]
-
-    hard, soft = _score(output_text, item["expected_fields"])
-
-    pred_dir = out_dir / "predictions" / item["id"]
-    pred_dir.mkdir(parents=True, exist_ok=True)
-    (pred_dir / "conversation.json").write_text(
-        json.dumps(messages, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-
-    return {
-        "id": item["id"],
-        "hard": hard,
-        "soft": soft,
-        "task_type": item.get("task_type", "custom-qr"),
-        "predicted_output_length": len(output_text),
-        "n_expected_fields": len(item["expected_fields"]),
-        "target_system_prompt": system_prompt[:500],
-        "target_user_prompt": user_prompt[:500],
-        "n_turns": 1,
-    }
+    return system, user
 
 
-def run_batch(items: list[dict], skill_content: str, out_dir,
-              workers: int = 1, max_completion_tokens: int = 4096) -> list[dict]:
-    out_dir = pathlib.Path(out_dir)
-    results = []
-    for item in items:
-        try:
-            result = _rollout_one(item, skill_content, out_dir,
-                                  max_completion_tokens=max_completion_tokens)
-        except Exception as exc:
-            result = {
-                "id": item["id"], "hard": 0, "soft": 0.0,
-                "task_type": item.get("task_type", "custom-qr"),
-                "error": str(exc), "n_turns": 0,
-            }
-        results.append(result)
-
-    (out_dir / "rollouts.json").parent.mkdir(parents=True, exist_ok=True)
-    (out_dir / "rollouts.json").write_text(
-        json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    return results
+def run_batch(items, skill_content, out_dir, workers=1, max_completion_tokens=4096):
+    return _run_batch(items, skill_content, out_dir, _score, _prompt,
+                      max_completion_tokens=max_completion_tokens,
+                      workers=workers, default_task_type="custom-qr")
