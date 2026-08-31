@@ -17,3 +17,4 @@ env:
 train:
   batch_size: 3
   num_epochs: 3
+  seed: 42
