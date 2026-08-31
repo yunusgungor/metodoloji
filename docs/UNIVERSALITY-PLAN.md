@@ -672,19 +672,43 @@ addopts = "-v --tb=short"
 
 ---
 
+## Progress (2026-08-31)
+
+| Phase | Status |
+|-------|--------|
+| 1+9 (templates + gate) | ✅ Done — all 8 templates English, gate selfcheck passes |
+| 2 (hook engine) | ✅ Done — guard/audit/code_docs/scripts translated |
+| 3 (custom TOML) | ✅ Done — 120 TOMLs English, check-custom HEALTHY |
+| 4 (benchmark rollouts + data) | 🔄 Data scenario text in progress |
+| 5 (skill SKILL.md) | ✅ Done — 95 SKILL.md files + bridge notes translated |
+| 6 (commands) | ✅ Done — 4 command docs English |
+| 7 (docs) | ✅ Done — USAGE-GUIDE.md + 3 manifestos English |
+| 8 (top-level) | ✅ Done — README, plugin.json, marketplace, configs |
+| 10 (validation) | 🔄 check-plugin HEALTHY except expected warnings |
+| 11 (code quality refactor) | ⬜ Pending |
+| 12 (test coverage) | ⬜ Pending |
+
+**Remaining pre-existing issues fixed along the way:**
+- Bridge doc was missing §2.6 (PR creation) that TOMLs referenced — added
+- code-review TOMLs referenced wrong §2.4 for QR — corrected to §2.5
+- Sample experiment records claimed ONAYLANDI without gate tokens — converted
+  to honest `Status: planned` English drafts
+
 ## Commit Strategy
 
-1. `feat: translate gate script + templates to English (atomic)` — Phase 1+9
-2. `feat: translate hook engine strings to English` — Phase 2
-3. `feat: translate benchmark rollouts + data to English` — Phase 4
-4. `feat: translate custom TOML files to English` — Phase 3
-5. `feat: translate skill SKILL.md files to English` — Phase 5
-6. `feat: translate commands to English` — Phase 6
-7. `feat: translate documentation to English` — Phase 7
-8. `feat: translate top-level files to English` — Phase 8
-9. `refactor: deduplicate guard.py gate logic` — Phase 11.1
-10. `refactor: extract code_docs TYPE_NAMES constant` — Phase 11.2
-11. `test: add hook engine tests` — Phase 12.1
-12. `test: add benchmark suite tests` — Phase 12.2
-13. `test: add script tests + pyproject.toml` — Phase 12.3-12.4
-14. `test: validate all English translations` — Phase 10
+1. ✅ `feat: translate gate script + templates to English (atomic)` — Phase 1+9
+2. ✅ `feat: translate hook engine strings to English` — Phase 2
+3. ✅ `feat: translate benchmark rollouts + data to English` — Phase 4 (partial)
+4. ✅ `feat: translate custom TOML files to English` — Phase 3
+5. ✅ `feat: translate skill SKILL.md files to English` — Phase 5
+6. ✅ `feat: translate commands to English` — Phase 6
+7. ✅ `feat: translate documentation to English` — Phase 7
+8. ✅ `feat: translate top-level files to English` — Phase 8
+9. ✅ `fix: resolve pre-existing check-contract gaps` — bridge §2.6, code-review sections
+10. ✅ `feat: translate plugin metadata + code-docs templates` — remaining
+11. ⬜ `refactor: deduplicate guard.py gate logic` — Phase 11.1
+12. ⬜ `refactor: extract code_docs TYPE_NAMES constant` — Phase 11.2
+13. ⬜ `test: add hook engine tests` — Phase 12.1
+14. ⬜ `test: add benchmark suite tests` — Phase 12.2
+15. ⬜ `test: add script tests + pyproject.toml` — Phase 12.3-12.4
+16. ⬜ `test: validate all English translations` — Phase 10 (final sweep)
