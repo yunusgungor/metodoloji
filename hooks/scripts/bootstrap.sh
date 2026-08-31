@@ -19,7 +19,57 @@ fi
 mkdir -p "$WS/docs/experiments"
 mkdir -p "$WS/.metodoloji/logs"
 
-# Short context: gate-key status + record chain reminder.
+# Intent bridge: read the active .memlog.md purpose (if any) and export it so
+# every hook process in this session shares the same intent. Parses frontmatter
+# inline (no memlog import); converts the workspace path to a Windows-native
+# form when cygpath is available so Python resolves it under Git Bash.
+PYWS="$WS"
+if command -v cygpath >/dev/null 2>&1; then
+    PYWS=$(cygpath -w "$WS" 2>/dev/null || echo "$WS")
+fi
+# Forward-slash form: Windows Python accepts both, but backslashes would be
+# escaped as unicode sequences in the inline string literal below.
+PYWS=$(printf '%s' "$PYWS" | tr '\\' '/')
+INTENT_AND_SCOPE=$(python3 -c "
+import pathlib, os, sys
+def _fields(root):
+    cands = []
+    for base in ('bmad-output', '.metodoloji', 'docs', ''):
+        p = pathlib.Path(root) / base / '.memlog.md'
+        if p.is_file(): cands.append(p)
+    if not cands:
+        try:
+            cands = list(pathlib.Path(root).rglob('.memlog.md'))[:5]
+        except OSError:
+            cands = []
+    if not cands: return '', ''
+    newest = max(cands, key=lambda p: p.stat().st_mtime)
+    text = newest.read_text(encoding='utf-8', errors='replace')
+    lines = text.splitlines()
+    if not lines or lines[0] != '---': return '', ''
+    purpose = scope = ''
+    for ln in lines[1:]:
+        if ln == '---': break
+        if ln.startswith('purpose:'):
+            purpose = ln.split(':', 1)[1].strip()
+        elif ln.startswith('scope:'):
+            scope = ln.split(':', 1)[1].strip()
+    return purpose, scope
+try:
+    p, s = _fields('$PYWS')
+    print(p)
+    print(s)
+except Exception:
+    print(''); print('')
+" 2>/dev/null || printf '\n\n')
+INTENT=$(printf '%s\n' "$INTENT_AND_SCOPE" | sed -n '1p')
+SCOPE=$(printf '%s\n' "$INTENT_AND_SCOPE" | sed -n '2p')
+export METODOLOJI_INTENT="$INTENT"
+export METODOLOJI_SCOPE="$SCOPE"
+
+# Short context: gate-key status + record chain reminder + active intent.
 if [ -f "$HOME/.bmad/gate-key" ]; then KEY="present"; else KEY="MISSING — python3 run_experiment.py --init-secret"; fi
-printf '%s\n' "{\"additionalContext\":\"METODOLOJI active (plugin: $SYNCED). Record chain: E → IR → SP → S → QR → PR. Before writing code you need a scope-matching VERIFIED experiment approval; gate key: $KEY. Record templates: /metodoloji:init\"}"
+if [ -n "$INTENT" ]; then INTENT_CTX=" Active intent: $INTENT."; else INTENT_CTX=""; fi
+if [ -n "$SCOPE" ]; then SCOPE_CTX=" Active scope: $SCOPE."; else SCOPE_CTX=""; fi
+printf '%s\n' "{\"additionalContext\":\"METODOLOJI active (plugin: $SYNCED). Record chain: E → IR → SP → S → QR → PR. Before writing code you need a scope-matching VERIFIED experiment approval; gate key: $KEY.$INTENT_CTX$SCOPE_CTX Record templates: /metodoloji:init\"}"
 exit 0

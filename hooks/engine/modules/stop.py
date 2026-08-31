@@ -17,11 +17,20 @@ _SKIP_DIRS = frozenset({
 })
 
 
-def _check_story_status(root: str) -> tuple[bool, str]:
-    """Check if any story is in-progress but incomplete.
+def _check_story_status(root: str, intent: str = "") -> tuple[bool, str]:
+    """Check if a story is in-progress but incomplete.
+
+    When `intent` names a story (e.g. "S-003'ü bitir" → S-003), only that
+    story is checked — other stale in-progress stories don't block. Without
+    intent, every in-progress story blocks (legacy behavior).
 
     Returns (should_block, reason).
     """
+    target_key = ""
+    if intent:
+        from .utils import _story_key_from_intent
+        target_key = _story_key_from_intent(intent)
+
     # Look for sprint-status.yaml. Canonical path is bmad-output/ (config.toml);
     # _bmad-output kept only as a legacy fallback for pre-migration projects.
     for candidate in [
@@ -34,7 +43,14 @@ def _check_story_status(root: str) -> tuple[bool, str]:
                 content = candidate.read_text(encoding="utf-8", errors="replace")
                 # Check for in-progress stories
                 in_progress = re.findall(r"^\s+(\d+-\d+-[a-z][a-z0-9-]+):\s+in-progress", content, re.MULTILINE)
-                if in_progress:
+                if target_key:
+                    # Intent names a specific story: only block if it's in-progress.
+                    if any(target_key == k for k in in_progress):
+                        return True, (
+                            f"Story {target_key} is in-progress but stop requested. "
+                            f"Complete it before stopping."
+                        )
+                elif in_progress:
                     return True, (
                         f"Story in-progress but stop requested: {', '.join(in_progress)}. "
                         f"Complete the story before stopping."
@@ -49,8 +65,11 @@ def stop(json_in: dict) -> dict:
     from .utils import repo_root
     root = repo_root(json_in)
 
-    # 1. Check for incomplete stories
-    should_block, reason = _check_story_status(root)
+    # 1. Check for incomplete stories (intent-aware: if the session intent
+    #    names a specific story, only that story blocks stop).
+    from .utils import _active_intent
+    intent = _active_intent(root)
+    should_block, reason = _check_story_status(root, intent=intent)
     if should_block:
         return {"decision": "deny", "reason": reason}
 

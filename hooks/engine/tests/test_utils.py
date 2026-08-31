@@ -8,6 +8,9 @@ _HOOKS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_HOOKS))
 
 from modules.utils import (  # noqa: E402
+    _active_intent,
+    _active_scope,
+    _story_key_from_intent,
     extract_story_key_from_content,
     is_code_target,
     is_free,
@@ -148,3 +151,82 @@ def test_extract_story_key_space():
 
 def test_extract_story_key_no_match():
     assert extract_story_key_from_content("## Title\nbody") == ""
+
+
+# --- _active_intent ---------------------------------------------------------
+
+def test_active_intent_no_memlog(tmp_path, monkeypatch):
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    assert _active_intent(str(tmp_path)) == ""
+
+
+def test_active_intent_reads_purpose(tmp_path, monkeypatch):
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/.memlog.md").write_text(
+        "---\npurpose: auth flow\nscope: src/auth\n---\n- (event) started\n",
+        encoding="utf-8",
+    )
+    assert _active_intent(str(tmp_path)) == "auth flow"
+
+
+def test_active_intent_empty_when_only_scope(tmp_path, monkeypatch):
+    # Scope is a separate field; purpose-only intent is empty when only scope is set.
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/.memlog.md").write_text(
+        "---\nscope: src/auth\n---\n- (event) started\n", encoding="utf-8")
+    assert _active_intent(str(tmp_path)) == ""
+    assert _active_scope(str(tmp_path)) == "src/auth"
+
+
+def test_active_intent_env_priority(tmp_path, monkeypatch):
+    monkeypatch.setenv("METODOLOJI_INTENT", "from-env")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/.memlog.md").write_text(
+        "---\npurpose: from-memlog\n---\n- x\n", encoding="utf-8")
+    assert _active_intent(str(tmp_path)) == "from-env"
+
+
+# --- _active_scope ----------------------------------------------------------
+
+def test_active_scope_no_memlog(tmp_path, monkeypatch):
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    assert _active_scope(str(tmp_path)) == ""
+
+
+def test_active_scope_reads_memlog_scope(tmp_path, monkeypatch):
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs/.memlog.md").write_text(
+        "---\npurpose: auth flow\nscope: src/auth\n---\n- x\n", encoding="utf-8")
+    assert _active_scope(str(tmp_path)) == "src/auth"
+
+
+def test_active_scope_env_extracts_scope(tmp_path, monkeypatch):
+    # purpose stays the env value; scope is extracted from the scope: tag.
+    monkeypatch.setenv("METODOLOJI_INTENT", "auth flow (scope: src/auth)")
+    assert _active_scope(str(tmp_path)) == "src/auth"
+
+
+def test_active_scope_env_dedicated(tmp_path, monkeypatch):
+    # METODOLOJI_SCOPE (set by bootstrap.sh) wins over the intent tag.
+    monkeypatch.setenv("METODOLOJI_SCOPE", "src/payments")
+    monkeypatch.setenv("METODOLOJI_INTENT", "auth flow (scope: src/auth)")
+    assert _active_scope(str(tmp_path)) == "src/payments"
+
+
+# --- _story_key_from_intent -------------------------------------------------
+
+def test_story_key_from_intent_s_key():
+    assert _story_key_from_intent("S-003'ü bitir") == "S-003"
+    assert _story_key_from_intent("finish S-003 now") == "S-003"
+
+
+def test_story_key_from_intent_slug_key():
+    assert _story_key_from_intent("finish 1-2-login") == "1-2-login"
+
+
+def test_story_key_from_intent_no_match():
+    assert _story_key_from_intent("auth flow") == ""
+    assert _story_key_from_intent("") == ""

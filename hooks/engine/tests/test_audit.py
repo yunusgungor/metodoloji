@@ -185,3 +185,35 @@ def test_audit_writes_warnings(tmp_path, monkeypatch):
     })
     assert res["decision"] == "allow"
     assert "methodology_warnings" in res
+
+
+def test_audit_log_stamps_intent(tmp_path, monkeypatch):
+    import json
+    root = tmp_path
+    (root / "docs").mkdir()
+    (root / "docs/.memlog.md").write_text(
+        "---\npurpose: payment refactor\n---\n- (event) started\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(root))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    audit({"tool_name": "terminal", "tool_input": {"command": "ls"},
+           "tool_output": "ok"})
+    log = root / ".metodoloji/logs/hook-audit.log"
+    assert log.exists()
+    line = json.loads(log.read_text(encoding="utf-8").splitlines()[-1])
+    assert line.get("intent") == "payment refactor"
+
+
+def test_audit_log_intent_empty_when_no_memlog(tmp_path, monkeypatch):
+    import json
+    root = tmp_path
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(root))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    audit({"tool_name": "terminal", "tool_input": {"command": "ls"},
+           "tool_output": "ok"})
+    log = root / ".metodoloji/logs/hook-audit.log"
+    line = json.loads(log.read_text(encoding="utf-8").splitlines()[-1])
+    assert line.get("intent") == ""

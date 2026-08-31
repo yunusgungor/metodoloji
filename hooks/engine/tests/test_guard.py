@@ -236,3 +236,30 @@ def test_find_done_stories_without_qr_excludes_templates():
         assert "_template" not in missing
     finally:
         td.cleanup()
+
+
+def test_intent_scope_warnings_outside_scope():
+    from modules.guard import _intent_scope_warnings
+    w = _intent_scope_warnings("src/auth", ["src/auth/login.py", "docs/README.md"], "/proj")
+    assert any("docs/README.md" in x for x in w)
+    assert not any("src/auth/login.py" in x for x in w)
+
+
+def test_intent_scope_warnings_no_scope():
+    from modules.guard import _intent_scope_warnings
+    assert _intent_scope_warnings("", ["docs/x.md"], "/proj") == []
+    assert _intent_scope_warnings("S-003", ["docs/other.md"], "/proj") == []
+
+
+def test_guard_intent_scope_never_denies(tmp_path, monkeypatch):
+    from modules.guard import guard
+    # Scope outside → allow + warning, not deny.
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.setenv("METODOLOJI_INTENT", "scope: src/auth")
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "docs/x.md", "content": "hi"}})
+    assert res["decision"] == "allow"
+    assert any("outside the active scope" in w
+               for w in res.get("methodology_warnings", []))
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)

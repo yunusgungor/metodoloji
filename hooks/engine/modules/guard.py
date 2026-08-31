@@ -558,7 +558,43 @@ def guard(json_in: dict) -> dict:
                           f"run_experiment.py --record docs/experiments/E-XXX.md --run <cmd>"
             }
 
+    # --- Intent-scope check (warn-only) ---
+    # If the active scope (e.g. "scope: src/auth" in the memlog) exists, a
+    # write outside that scope is a warning, never a deny — the
+    # experiment-approval logic above stays authoritative.
+    from .utils import _active_scope
+    scope = _active_scope(root)
+    intent_warnings = _intent_scope_warnings(scope=scope, targets=targets, root=root)
+    if intent_warnings:
+        return {"decision": "allow", "methodology_warnings": intent_warnings}
+
     return {"decision": "allow"}
+
+
+def _intent_scope_warnings(scope: str, targets: list, root: str = "") -> list[str]:
+    """Warn-only list of writes outside the active scope.
+
+    scope is a path (e.g. "src/auth"). A target outside that path gets a
+    warning. Never denies. Story keys (S-003, 1-2-login) and empty scope
+    return [].
+    """
+    scope = (scope or "").strip()
+    if not scope or scope.startswith("S-") or re.fullmatch(r"\d+-\d+-[a-z][\w-]*", scope):
+        return []  # no path scope, or a story key — nothing to check
+    if not root:
+        from .utils import repo_root
+        root = repo_root({})
+    from .utils import rel_to_root, norm_path
+    scope_norm = norm_path(scope).rstrip("/")
+    warnings = []
+    for t in targets:
+        rel = rel_to_root(root, str(t))
+        if rel and not (rel == scope_norm or rel.startswith(scope_norm + "/")):
+            warnings.append(
+                f"Write to {rel} is outside the active scope '{scope}'. "
+                f"If this is a different task, update the memlog purpose."
+            )
+    return warnings
 
 
 # --- Quality Gate (PreToolUse, terminal) ---

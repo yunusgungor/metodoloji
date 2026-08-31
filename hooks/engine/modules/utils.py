@@ -3,6 +3,7 @@
 import os
 import pathlib
 import re
+import sys
 
 from .config import (
     CODE_BASENAMES,
@@ -104,3 +105,116 @@ def rel_to_root(root: str, p: str, cwd: str | None = None) -> str:
     if r and (f.startswith(r.rstrip("/") + "/") or f.startswith(r)):
         f = f[len(r.rstrip("/")):].lstrip("/")
     return f
+
+
+# --- Intent bridge -----------------------------------------------------------
+
+_MEMLOG_IMPORTED = None
+
+
+def _memlog_split(text: str) -> dict:
+    """Parse .memlog.md frontmatter via bmad/scripts/memlog.split().
+
+    Loaded lazily so hooks that never need intent don't pay the import cost,
+    and so a broken memlog module can't break unrelated hook paths.
+    """
+    global _MEMLOG_IMPORTED
+    if _MEMLOG_IMPORTED is None:
+        try:
+            from .config import _METHODOLOGY_ROOT
+            _scripts = pathlib.Path(_METHODOLOGY_ROOT) / "bmad" / "scripts"
+            if str(_scripts) not in sys.path:
+                sys.path.insert(0, str(_scripts))
+            import memlog as _m
+            _MEMLOG_IMPORTED = _m
+        except Exception:
+            _MEMLOG_IMPORTED = False
+    if not _MEMLOG_IMPORTED:
+        return {}
+    try:
+        meta, _ = _MEMLOG_IMPORTED.split(text)
+        return meta
+    except Exception:
+        return {}
+
+
+def _active_memlog_meta(root: str) -> dict:
+    """Return the frontmatter of the most recent .memlog.md under root ({} if none)."""
+    root = os.path.abspath(root)
+    cands: list[pathlib.Path] = []
+    for base in ("bmad-output", ".metodoloji", "docs", ""):
+        p = pathlib.Path(root) / base / ".memlog.md"
+        if p.is_file():
+            cands.append(p)
+    # Also scan recursively for any .memlog.md under the root (bounded).
+    if not cands:
+        for p in pathlib.Path(root).rglob(".memlog.md"):
+            try:
+                if p.is_file():
+                    cands.append(p)
+            except OSError:
+                continue
+    if not cands:
+        return {}
+    newest = max(cands, key=lambda p: p.stat().st_mtime)
+    return _memlog_split(newest.read_text(encoding="utf-8", errors="replace"))
+
+
+def _active_intent(root: str, env_override: bool = True) -> str:
+    """Return the active intent (purpose) for this session.
+
+    Priority:
+      1. METODOLOJI_INTENT env (set by bootstrap.sh at SessionStart) — the
+         same intent for every hook process in the session.
+      2. The most recently modified .memlog.md under the project root.
+    Returns '' when no intent is recorded.
+    """
+    if env_override:
+        env_intent = os.environ.get("METODOLOJI_INTENT", "").strip()
+        if env_intent:
+            return env_intent
+    return str(_active_memlog_meta(root).get("purpose", "")).strip()
+
+
+def _active_scope(root: str, env_override: bool = True) -> str:
+    """Return the active scope (a path scope from the memlog or env).
+
+    Scope is separate from purpose: a memlog can carry `purpose: auth flow`
+    and `scope: src/auth`. This returns the path scope so enforcement (e.g.
+    guard) can check writes against it.
+
+    Priority:
+      1. METODOLOJI_SCOPE env (set by bootstrap.sh at SessionStart).
+      2. A scope: tag inside METODOLOJI_INTENT (for older bootstrap versions).
+      3. The scope field of the most recent .memlog.md.
+    """
+    if env_override:
+        env_scope = os.environ.get("METODOLOJI_SCOPE", "").strip()
+        if env_scope:
+            return env_scope
+        env_intent = os.environ.get("METODOLOJI_INTENT", "").strip()
+        if env_intent:
+            m = re.search(r"(?:scope|kapsam)\s*[:=]\s*([\w\-./]+(?:/[\w\-./]+)*)", env_intent)
+            if m:
+                return m.group(1).strip()
+    return str(_active_memlog_meta(root).get("scope", "")).strip()
+
+
+_STORY_KEY_IN_INTENT = re.compile(
+    r"(?i)\b(S-\d+|(?:\d+-\d+-[a-z][a-z0-9-]*))\.md\b|"
+    r"\b(S-\d+|(?:\d+-\d+-[a-z][a-z0-9-]*))\b")
+
+
+def _story_key_from_intent(intent: str) -> str:
+    """Extract a story key (S-003 or 1-2-login) from an intent string.
+
+    Returns '' when the intent doesn't name a story. E.g.
+    "S-003'ü bitir" → "S-003", "finish 1-2-login" → "1-2-login".
+    """
+    if not intent:
+        return ""
+    m = _STORY_KEY_IN_INTENT.search(intent)
+    if not m:
+        return ""
+    key = (m.group(1) or m.group(2) or m.group(3) or m.group(4) or "").rstrip(".md")
+    return key.strip()
