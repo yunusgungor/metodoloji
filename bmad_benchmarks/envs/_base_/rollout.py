@@ -3,7 +3,7 @@
 Provides:
   - rollout_one(): call LLM, score, save conversation
   - run_batch(): parallel batch rollout with error handling
-  - normalize_turkish_field(): Turkish singular/plural normalization
+  - normalize_field_label(): singular/plural normalization
   - score_field_presence(): field-presence scoring for custom_* benchmarks
 """
 
@@ -95,39 +95,32 @@ def run_batch(items, skill_content, out_dir, score_fn, prompt_fn,
 
 
 # ---------------------------------------------------------------------------
-# Turkish field normalization — shared by custom_ir, custom_sp, custom_story,
+# Field label normalization — shared by custom_ir, custom_sp, custom_story,
 # custom_qr, custom_pr rollouts
 # ---------------------------------------------------------------------------
 
-def normalize_turkish_field(field: str) -> str:
-    """Normalize a Turkish field label for matching.
+def normalize_field_label(field: str) -> str:
+    """Normalize a field label for matching.
 
-    Handles singular/plural (sonuçları→sonucu, kriterleri→kriter,
-    bağımlılıkları→bağımlılık) and strips trailing -lar/-ler.
+    Handles common singular/plural and punctuation variants, then lowercases.
     """
     f = field.lower()
-    for plural, singular in [
-        ("sonuçları", "sonucu"),
-        ("kriterleri", "kriter"),
-        ("bağımlılıkları", "bağımlılık"),
-    ]:
-        f = f.replace(plural, singular)
-    if f.endswith("lar") or f.endswith("ler"):
-        f = f[:-3]
+    # Normalize parentheses and colons: "(E-XXX)" -> "E-XXX", "Durum:" -> "durum"
+    f = f.replace("(", "").replace(")", "").replace(":", "")
     return f.strip()
 
 
 def score_field_presence(output_text, expected_fields, threshold=0.9):
-    """Score output against expected Turkish field labels.
+    """Score output against expected field labels.
 
     Returns (hard, soft) where hard=1 iff soft >= threshold.
     """
     output_lower = output_text.lower()
-    norm_output = normalize_turkish_field(output_lower)
+    norm_output = normalize_field_label(output_lower)
     found = sum(
         1 for f in expected_fields
-        if normalize_turkish_field(f) in output_lower
-        or normalize_turkish_field(f) in norm_output
+        if normalize_field_label(f) in output_lower
+        or normalize_field_label(f) in norm_output
     )
     soft = found / len(expected_fields) if expected_fields else 1.0
     hard = 1 if soft >= threshold else 0

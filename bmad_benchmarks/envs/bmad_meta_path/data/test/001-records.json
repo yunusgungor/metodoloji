@@ -1,7 +1,7 @@
 [
   {
     "id": "path-qr-test",
-    "stage": "Code review sonrası kalite kaydı oluşturulacak",
+    "stage": "A quality record will be created after code review",
     "expected_root": "project-root",
     "expected_path": "docs/quality/QR-",
     "expected_status": "pass | fail | partial",
@@ -9,10 +9,10 @@
   },
   {
     "id": "path-pr-test",
-    "stage": "Deploy öncesi production readiness kaydı oluşturulacak",
+    "stage": "A production readiness record will be created before deploy",
     "expected_root": "project-root",
     "expected_path": "docs/development/PR-",
-    "expected_status": "HAZIR | BEKLİYOR",
+    "expected_status": "READY | WAITING",
     "task_type": "meta-path"
   }
 ]

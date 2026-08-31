@@ -14,20 +14,20 @@ Each stage depends on the previous one. Every link requires approval.
 
 | Record | Path | Allowed Status Values |
 |--------|------|-----------------------|
-| **E** (Deney) | `docs/experiments/E-XXX.md` | planlandı → ONAYLANDI \| REDDEDİLDİ |
-| **IR** | `docs/development/IR-XXX.md` | HAZIR \| EKSİK |
-| **SP** | `docs/development/SP-XXX.md` | planlandı \| devam ediyor \| tamamlandı \| iptal |
+| **E** (Experiment) | `docs/experiments/E-XXX.md` | planned → APPROVED \| REJECTED |
+| **IR** | `docs/development/IR-XXX.md` | READY \| INCOMPLETE |
+| **SP** | `docs/development/SP-XXX.md` | planned \| in-progress \| completed \| cancelled |
 | **S** (Story) | `docs/development/stories/S-XXX.md` | backlog \| sprint \| in-progress \| review \| done \| blocked |
 | **QR** | `docs/quality/QR-XXX.md` | pass \| fail \| partial |
-| **PR** | `docs/development/PR-XXX.md` | HAZIR \| BEKLİYOR |
+| **PR** | `docs/development/PR-XXX.md` | READY \| WAITING |
 
 ## Chain Prerequisites
 
-- **IR** olmadan **Sprint Planning** başlatılamaz (Kapı 1)
-- **QR** olmadan story `done` kabul edilemez (Kapı 3)
-- **PR** olmadan deploy yapılamaz (Kapı 4)
-- Her onaylı geçiş git commit ile kalıcı kayıt altına alınır
-- Story, QR ve PR çıktılarında Deney Onayı alanı zorunludur
+- **Sprint Planning** cannot start without **IR** (Gate 1)
+- A story cannot be accepted as `done` without **QR** (Gate 3)
+- Deploy cannot happen without **PR** (Gate 4)
+- Every approved transition is recorded permanently with a git commit
+- The Experiment Approval field is mandatory in Story, QR, and PR outputs
 
 ## Output
 

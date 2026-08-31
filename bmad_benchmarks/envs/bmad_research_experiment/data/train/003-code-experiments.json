@@ -2,7 +2,13 @@
   {
     "id": "code-001",
     "task_desc": "Code review adversarial deneyi. Kod inceleme sürecinin tüm bulgu kategorilerini (bug, security, performance, readability) kapsayıp kapsamadığını test et. Eksik kategori varsa review tamamlanmamalı.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -10,7 +16,13 @@
   {
     "id": "code-002",
     "task_desc": "Test design coverage ölçümü. Bir epic için test senaryoları tasarlanırken tüm acceptance criteria'ların kapsamlanması gerekiyor. Her AC için en az bir test senaryosu olmalı.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -18,7 +30,13 @@
   {
     "id": "code-003",
     "task_desc": "Custom TOML activation_steps deneyi. Bir custom TOML dosyasındaki activation_steps_append'in doğru formatta çalıştığını test et: adımlar sırayla çalışmalı, hata veren adımda süreç durmalı.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -26,7 +44,13 @@
   {
     "id": "code-004",
     "task_desc": "Hook engine config resolve deneyi. resolve_customization.py betiğinin TOML dosyalarını doğru sırayla (base → team → user) birleştirip birleştiremediğini test et. Deep merge doğru çalışmalı, scalars override edilmeli, arrays append edilmeli.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -34,7 +58,13 @@
   {
     "id": "code-005",
     "task_desc": "LLM non-determinism dayanıklılık deneyi. Aynı girdi ile LLM'den 4 kez experiment record iste ve çıktıların tutarlılığını ölç. Tüm çıkışlarda zorunlu 5 alan bulunmalı.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -42,7 +72,13 @@
   {
     "id": "code-006",
     "task_desc": "Pipeline entegrasyon deneyi. Tüm hook'ların (guard, stop, quality, deploy, audit) birlikte tutarlı çalıştığını test et: guard deny etse bile audit loglamalı, stop engellese bile audit loglamalı.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"

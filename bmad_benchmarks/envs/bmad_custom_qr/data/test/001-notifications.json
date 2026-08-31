@@ -4,7 +4,16 @@
     "story_summary": "S-036: Notification system. Story: 'As a user, I want to receive notifications so that I stay informed.' ACs: in-app center, email, push, preferences, batch digest. AC4 preferences agent-verifiable.",
     "diff_summary": "Added src/notifications/service.py, src/notifications/channels.py, src/notifications/prefs.py. +390/-25 lines.",
     "test_results": "Unit: 61/64. Integration: 22/22. E2E: 6/6. Coverage: 89%. Lint: pass. Security: clean. Performance: notification send p95 = 120ms. Reviewer: @winston APPROVED.",
-    "expected_fields": ["Tarih", "Durum", "Story", "PR/MR", "Test Coverage", "Test Sonuçları", "Karar", "Sonraki adım"],
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Story",
+      "PR/MR",
+      "Test Coverage",
+      "Test Results",
+      "Decision",
+      "Next Step"
+    ],
     "task_type": "custom-qr"
   }
 ]

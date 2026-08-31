@@ -2,7 +2,13 @@
   {
     "id": "meth-001",
     "task_desc": "Story metadata tamlığı kontrol mekanizmasını test et. Guard hook story dosyasındaki AC metadata'sını (Experiment, Type, Measured, Verify alanları) kontrol etmeli. Eksik metadata varsa kod yazma izni vermemeli.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -10,7 +16,13 @@
   {
     "id": "meth-002",
     "task_desc": "IR (Implementation Readiness) kaydının zorunlu alanlarını test et. Sprint Planning öncesi IR kaydının tüm alanları (hedef, kapsam, kısıtlar, bağımlılıklar) içermesi gerekiyor. Eksik alan varsa Sprint Planning başlatılmamalı.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -18,7 +30,13 @@
   {
     "id": "meth-003",
     "task_desc": "QR (Quality Record) üretimi deneyi. Story tamamlandığında QR kaydının tüm DoD item'ları için durum, kanıt ve tarih içermesi gerekiyor. Eksik QR alanı varsa story done kabul edilmemeli.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -26,7 +44,13 @@
   {
     "id": "meth-004",
     "task_desc": "Sprint planning flare deneyi. Sprint planning sırasında story'lerin doğru sıralanıp sıralanmadığını test et. Blocked story'lerin önünde dependency olan story olmamalı, her story'nin bir epic'i olmalı.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -34,7 +58,13 @@
   {
     "id": "meth-005",
     "task_desc": "PRD validate deneyi tasarla. Bir PRD dosyasının metodoloji uyumluluğunu kontrol et: PRD'deki her gereksinim bir story'ye bağlanmalı, test edilmemiş prototip test edilmedi olarak etiketlenmeli.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -42,7 +72,13 @@
   {
     "id": "meth-006",
     "task_desc": "Architecture spine üretimi deneyi. LLM'den bir proje için mimari spine üretmesini iste. Spine 5 invariant kategorisini (paradigm, boundary, dependency, state, ownership) içermeli.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"

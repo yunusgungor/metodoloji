@@ -4,7 +4,17 @@
     "epic": "Epic: User Authentication. As a platform admin, I want secure auth so that only authorized users access the system. ACs: register, login+JWT, token expiry 24h, rate limit 5/15min, password complexity.",
     "experiments": "E-012 ONAYLANDI (bcrypt cost=12, login p95=45ms). All ACs map to measured experiments except rate limiting which is [HYPOTHESIS].",
     "architecture": "Stack: FastAPI, PostgreSQL, Redis. src/auth/ with bcrypt, JWT RS256. Rate limiter middleware (sliding window).",
-    "expected_fields": ["Tarih", "Durum", "Sprint", "User Story", "Acceptance Criteria", "Technical Tasks", "Definition of Done", "Bağımlılıklar", "Araştırma Girdileri"],
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Sprint",
+      "User Story",
+      "Acceptance Criteria",
+      "Technical Tasks",
+      "Definition of Done",
+      "Dependencies",
+      "Research Inputs"
+    ],
     "task_type": "custom-story"
   },
   {
@@ -12,7 +22,17 @@
     "epic": "Epic: Payment Processing. As a customer, I want to pay via card/PayPal so that I complete my purchase. ACs: card validation, Stripe, idempotency, retry 3x, 3D Secure (hypothesis).",
     "experiments": "E-021 BEKLİYOR (3D Secure not approved). AC5 (3D Secure) must be [HYPOTHESIS] until approved. Other ACs map to E-019 ONAYLANDI.",
     "architecture": "Payment module: src/payment/ with Stripe SDK, PayPal REST. Webhook handler. Redis idempotency keys.",
-    "expected_fields": ["Tarih", "Durum", "Sprint", "User Story", "Acceptance Criteria", "Technical Tasks", "Definition of Done", "Bağımlılıklar", "Araştırma Girdileri"],
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Sprint",
+      "User Story",
+      "Acceptance Criteria",
+      "Technical Tasks",
+      "Definition of Done",
+      "Dependencies",
+      "Research Inputs"
+    ],
     "task_type": "custom-story"
   },
   {
@@ -20,7 +40,17 @@
     "epic": "Epic: Search Autocomplete. As a user, I want suggestions as I type so that I find products faster. ACs: 2-char trigger, 10 suggestions, rank by popularity, recent searches, keyboard nav, debounce 300ms.",
     "experiments": "E-015 ONAYLANDI (index latency 2ms p95). All ACs agent-verifiable with measured experiments.",
     "architecture": "React frontend with debounced input. FastAPI endpoint. Elasticsearch completion suggester. Redis cache top 1000 queries.",
-    "expected_fields": ["Tarih", "Durum", "Sprint", "User Story", "Acceptance Criteria", "Technical Tasks", "Definition of Done", "Bağımlılıklar", "Araştırma Girdileri"],
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Sprint",
+      "User Story",
+      "Acceptance Criteria",
+      "Technical Tasks",
+      "Definition of Done",
+      "Dependencies",
+      "Research Inputs"
+    ],
     "task_type": "custom-story"
   }
 ]

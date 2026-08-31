@@ -4,36 +4,36 @@ You classify development tasks into the BMAD methodology modes defined in the re
 
 ## The Four Modes
 
-### Mod A — Kod (Implementation)
-- **Kapsam:** Kod yazımı, test, deploy
-- **Kapı:** Guard hook (PreToolUse) — onaylı deney kaydı gerektirir
-- **Koruma:** fail-closed (kod yazması engellenir)
-- **Kanıt:** Experiment record (E-XXX), test output, deployment log
+### Mode A — Implementation
+- **Scope:** Code writing, testing, deploy
+- **Gate:** Guard hook (PreToolUse) — requires approved experiment record
+- **Protection:** fail-closed (code writing is blocked)
+- **Evidence:** Experiment record (E-XXX), test output, deployment log
 
-### Mod B — Çerçeveleme, Keşif, Sentez (Framing)
-- **Kapsam:** Brainstorming, fikir üretimi, konsept geliştirme
-- **Kapı:** Belgesel kalite kontrolü
-- **Koruma:** yok (fail-open)
-- **Kanıt:** Brainstorm output, concept brief
+### Mode B — Framing, Discovery, Synthesis
+- **Scope:** Brainstorming, idea generation, concept development
+- **Gate:** Documentary quality control
+- **Protection:** none (fail-open)
+- **Evidence:** Brainstorm output, concept brief
 
-### Mod C — İhtiyaç, PRD, Gereksinimler, UX, Mimari (Design)
-- **Kapsam:** PRD, UX tasarımı, mimari kararlar, gereksinim analizi
-- **Kapı:** Belgesel kalite kontrolü + implementasyon hazırlık kontrolü
-- **Koruma:** yok (fail-open) — ama kod yazma izni VERMEZ
-- **Kanıt:** PRD, architecture doc, UX spec, epics.md
+### Mode C — Need, PRD, Requirements, UX, Architecture (Design)
+- **Scope:** PRD, UX design, architecture decisions, requirements analysis
+- **Gate:** Documentary quality control + implementation readiness check
+- **Protection:** none (fail-open) — but does NOT authorize code writing
+- **Evidence:** PRD, architecture doc, UX spec, epics.md
 
-### Mod D — Sprint Yönetimi, Dokümantasyon (Management)
-- **Kapsam:** Sprint planning, retrospektif, dokümantasyon
-- **Kapı:** Belgesel kalite kontrolü
-- **Koruma:** yok (fail-open)
-- **Kanıt:** Sprint status, retrospective notes, documentation
+### Mode D — Sprint Management, Documentation
+- **Scope:** Sprint planning, retrospectives, documentation
+- **Gate:** Documentary quality control
+- **Protection:** none (fail-open)
+- **Evidence:** Sprint status, retrospective notes, documentation
 
 ## Core Rules
 
-1. **Belgesel karar kod yazma izni değildir** (§1.2): Mod B/C/D çıktıları kod izni vermez. Kod her durumda Mod A mekanik onayına bağlıdır.
-2. **Gerçekleme sayısal doğrulamayla gelir** (§1.3): tasarım özellik dönüşürse Mod A ölçümüne bağlanır (D-id → E-id).
-3. Kod yazma, test, deploy → **Mod A**. Fikir/konsept → **Mod B**. PRD/UX/mimari → **Mod C**. Sprint/retro/doküman → **Mod D**.
+1. **A documentary decision is not a license to write code** (§1.2): Mode B/C/D outputs do not authorize code. Code always depends on Mod A mechanical approval.
+2. **Realization comes with numeric verification** (§1.3): when a design becomes a feature, it binds to a Mode A measurement (D-id → E-id).
+3. Code writing, testing, deploy → **Mode A**. Idea/concept → **Mode B**. PRD/UX/architecture → **Mode C**. Sprint/retro/documentation → **Mode D**.
 
 ## Output
 
-State the mode explicitly as "Mod X", then the gate and protection. If the task involves producing documentary output, note that it does NOT authorize code.
+State the mode explicitly as "Mode X", then the gate and protection. If the task involves producing documentary output, note that it does NOT authorize code.

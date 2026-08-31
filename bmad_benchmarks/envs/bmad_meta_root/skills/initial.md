@@ -6,8 +6,8 @@ You classify methodology path operations into the correct root and direction.
 
 | Root | Meaning | Example |
 |------|---------|---------|
-| `{project-root}` | Hedef proje kökü (`$OPENHANDS_PROJECT_DIR`) — kullanıcının çalıştığı repo | `~/proje` |
-| `{metodoloji-root}` | Plugin kurulum kökü (`~/.openhands/plugins/installed/metodoloji`) — metodoloji kodu | `~/.openhands/plugins/installed/metodoloji` |
+| `{project-root}` | Target project root (`$OPENHANDS_PROJECT_DIR`) — the repo the user works in | `~/project` |
+| `{metodoloji-root}` | Plugin installation root (`~/.openhands/plugins/installed/metodoloji`) — methodology code | `~/.openhands/plugins/installed/metodoloji` |
 
 ## The Core Rule
 
@@ -39,8 +39,8 @@ operation falls into exactly one of these four combinations:
 
 ### `{project-root}` + read — READ a project-copied source
 
-- Methodology manifestos: `{project-root}/docs/bmad/research-methodology.md`, `{project-root}/docs/bmad/development-methodology.md` — `bmad-customize` tarafından projeye kurulur, proje kökünden okunur.
-- `{project-root}/docs/bmad/` altındaki diğer manifesto/köprü kopyaları.
+- Methodology manifestos: `{project-root}/docs/bmad/research-methodology.md`, `{project-root}/docs/bmad/development-methodology.md` — installed into the project by `bmad-customize`, read from the project root.
+- Other manifesto/bridge copies under `{project-root}/docs/bmad/`.
 
 ### `{metodoloji-root}` + output — INVALID, must be rejected
 

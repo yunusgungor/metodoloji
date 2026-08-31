@@ -6,7 +6,7 @@ def _score(output_text, item):
     checks = []
     exp_root = item.get("expected_root", "project-root").lower()
     if exp_root == "project-root":
-        checks.append("project" in lower or ("hedef" in lower and "proje" in lower))
+        checks.append("project" in lower)
     else:
         checks.append("metodoloji" in lower or "plugin" in lower)
     checks.append(item["expected_path"].lower() in lower)
@@ -39,14 +39,14 @@ def run_batch(items, skill_content, out_dir, workers=1, max_completion_tokens=40
 def _selfcheck():
     item = {"expected_root": "project-root",
             "expected_path": "docs/development/stories/S-",
-            "expected_status": "planlandı | devam ediyor | tamamlandı"}
-    assert _score("Kayıt project-root/docs/development/stories/S-001.md olarak oluşturulur; "
-                  "durum: tamamlandı.", item) == (1, 1.0)
-    assert _score("Kayıt metodoloji-root/docs/development/stories/S-001.md; durum: tamamlandı.",
+            "expected_status": "planned | in-progress | completed"}
+    assert _score("Record created at project-root/docs/development/stories/S-001.md; "
+                  "status: completed.", item) == (1, 1.0)
+    assert _score("Record at metodoloji-root/docs/development/stories/S-001.md; status: completed.",
                   item)[0] == 0
-    assert _score("Kayıt project-root/docs/quality/QR-001.md; durum: tamamlandı.",
+    assert _score("Record at project-root/docs/quality/QR-001.md; status: completed.",
                   item)[0] == 0
-    assert _score("Kayıt project-root/docs/development/stories/S-001.md olarak oluşturulur.",
+    assert _score("Record created at project-root/docs/development/stories/S-001.md.",
                   item)[0] == 0
     print("selfcheck OK")
 

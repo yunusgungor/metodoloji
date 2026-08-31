@@ -1,37 +1,37 @@
 [
   {
     "id": "task-code-auth",
-    "task_desc": "Kullanıcı kimlik doğrulama sistemi için Python kod yazılacak, test edilecek ve deploy edilecek.",
+    "task_desc": "Python code for a user authentication system will be written, tested, and deploy edilecek.",
     "expected_mode": "A",
     "task_type": "meta-mod"
   },
   {
     "id": "task-brainstorm",
-    "task_desc": "Yeni bir ürün fikri üzerine beyin fırtınası yapılacak, konsept geliştirilecek.",
+    "task_desc": "A brainstorming session will be held on a new product idea, the concept will be developed.",
     "expected_mode": "B",
     "task_type": "meta-mod"
   },
   {
     "id": "task-prd",
-    "task_desc": "Yeni özellik için PRD oluşturulacak, UX tasarımı ve mimari kararlar alınacak.",
+    "task_desc": "A PRD will be created for the new feature, UX design and architecture decisions will be made.",
     "expected_mode": "C",
     "task_type": "meta-mod"
   },
   {
     "id": "task-sprint",
-    "task_desc": "Sprint planlama yapılacak, sprint-status.yaml oluşturulacak, retrospektif notları tutulacak.",
+    "task_desc": "Sprint planning will be done, sprint-status.yaml will be created, retrospective notes will be kept.",
     "expected_mode": "D",
     "task_type": "meta-mod"
   },
   {
     "id": "task-deploy",
-    "task_desc": "Production ortamına deploy yapılacak, deployment log kaydedilecek.",
+    "task_desc": "Deploy to the production environment will be done, deployment log will be recorded.",
     "expected_mode": "A",
     "task_type": "meta-mod"
   },
   {
     "id": "task-ux-spec",
-    "task_desc": "Kullanıcı arayüzü için UX spec ve mockup hazırlanacak.",
+    "task_desc": "UX spec and mockup will be prepared for the user interface.",
     "expected_mode": "C",
     "task_type": "meta-mod"
   }

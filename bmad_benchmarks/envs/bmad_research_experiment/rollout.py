@@ -5,11 +5,11 @@ import json
 import pathlib
 
 _FIELD_PATTERNS = {
-    "Teori": re.compile(r"##\s*Teori|###\s*Teori|\*\*Teori:", re.IGNORECASE),
-    "Hipotez": re.compile(r"Hipotez.*H-\d+|##\s*Hipotez|###\s*Hipotez|\*\*Hipotez:", re.IGNORECASE),
-    "Ölçüm metrikleri": re.compile(r"Ölçüm metrikleri|##\s*Ölçüm|###\s*Ölçüm|\*\*Ölçüm", re.IGNORECASE),
-    "Deney tasarımı": re.compile(r"Deney tasarımı|##\s*Deney|###\s*Deney tasarımı|\*\*Deney tasarımı", re.IGNORECASE),
-    "Kod kapsamı": re.compile(r"Kod kapsamı|##\s*Kod|###\s*Kod kapsamı|\*\*Kod kapsamı", re.IGNORECASE),
+    "Theory": re.compile(r"##\s*Theory|###\s*Theory|\*\*Theory:", re.IGNORECASE),
+    "Hypothesis": re.compile(r"Hypothesis.*H-\d+|##\s*Hypothesis|###\s*Hypothesis|\*\*Hypothesis:", re.IGNORECASE),
+    "Measurement Metrics": re.compile(r"Measurement Metrics|##\s*Measurement|###\s*Measurement|\*\*Measurement", re.IGNORECASE),
+    "Experiment Design": re.compile(r"Experiment Design|##\s*Experiment|###\s*Experiment Design|\*\*Experiment Design", re.IGNORECASE),
+    "Code Scope": re.compile(r"Code Scope|##\s*Code|###\s*Code Scope|\*\*Code Scope", re.IGNORECASE),
 }
 
 _HYPOTHESIS_RE = re.compile(r"H-\d+")
@@ -31,11 +31,11 @@ def _prompt(item, skill_content):
         f"{skill_content}\n\n"
         f"You are a research methodology expert. Generate a complete "
         f"experiment record following the methodology manifesto. "
-        f"The record MUST contain these fields in Turkish: "
-        f"Teori, Hipotez (H-NNN format), Ölçüm metrikleri, "
-        f"Deney tasarımı, Kod kapsamı."
+        f"The record MUST contain these fields: "
+        f"Theory, Hypothesis (H-NNN format), Measurement Metrics, "
+        f"Experiment Design, Code Scope."
     )
-    user = f"## Senaryo\n\n{item['task_desc']}\n\nBu senaryo için tam bir deney kaydı üret."
+    user = f"## Scenario\n\n{item['task_desc']}\n\nGenerate a complete experiment record for this scenario."
     return system, user
 
 

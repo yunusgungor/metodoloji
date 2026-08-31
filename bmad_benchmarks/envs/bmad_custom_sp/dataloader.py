@@ -7,6 +7,6 @@ class BmadCustomSpDataLoader(BmadDataLoader):
             "sprint_scope": raw.get("sprint_scope", ""),
             "capacity": raw.get("capacity", ""),
             "tech_debt": raw.get("tech_debt", ""),
-            "expected_fields": raw.get("expected_fields", ["Tarih", "Durum", "Sprint hedefi", "Story'ler", "Kapasite", "Teknik borc", "Blokerler", "Bagimliliklar"]),
+            "expected_fields": raw.get("expected_fields", ["Date", "Status", "Sprint Goal", "Stories", "Capacity", "Technical Debt", "Blockers", "Dependencies"]),
             "task_type": raw.get("task_type", "custom-sp"),
         }

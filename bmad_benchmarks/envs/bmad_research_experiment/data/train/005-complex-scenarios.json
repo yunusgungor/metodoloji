@@ -2,7 +2,13 @@
   {
     "id": "cplx-001",
     "task_desc": "Brownfield projede hook entegrasyonu deneyi. Mevcut bir kod tabanına guard hook eklenirken mevcut test'lerin bozulmaması gerekiyor. Regression test coverage >= %90 olmalı.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -10,7 +16,13 @@
   {
     "id": "cplx-002",
     "task_desc": "Multi-agent sprint management deneyi. 3 agent aynı sprint'te çalışırken sprint-status.yaml'daki durum güncellemeleri race condition olmadan yapılmalı. Concurrent write testi.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -18,7 +30,13 @@
   {
     "id": "cplx-003",
     "task_desc": "End-to-end deney döngüsü deneyi. Teori → Hipotez → Deney → Ölçüm → Kapı → Kod → Commit → Memory döngüsünü tek seferde uçtan uca çalıştır. Her adımda kalite kontrolü yap.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -26,7 +44,13 @@
   {
     "id": "cplx-004",
     "task_desc": "Performance benchmark deneyi. 1000 dosyalık bir projede guard hook'un dosya yazma işlemini ne kadar geciktirdiğini ölç. p95 latency < 100ms olmalı.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"

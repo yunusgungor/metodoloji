@@ -4,8 +4,8 @@ from .._base_.rollout import run_batch as _run_batch
 def _score(output_text, item):
     lower = output_text.lower()
     expected = item["expected_decision"].upper()
-    denied = "deny" in lower or "engelle" in lower or "reddet" in lower or "block" in lower
-    allowed = "allow" in lower or "izin" in lower or "serbest" in lower or "geçerli" in lower
+    denied = "deny" in lower or "block" in lower
+    allowed = "allow" in lower or "permit" in lower or "grant" in lower
     decided = "DENY" if denied else ("ALLOW" if allowed else None)
     correct = decided == expected
     return (1 if correct else 0), (1.0 if correct else 0.0)

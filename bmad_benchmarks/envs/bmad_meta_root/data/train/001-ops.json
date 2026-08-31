@@ -1,84 +1,84 @@
 [
   {
     "id": "root-story-output",
-    "operation": "bmad-create-story: story dosyasını oluştur ve docs/development/stories/S-001.md kaydını yaz",
+    "operation": "bmad-create-story: create the story file and write it to docs/development/stories/S-001.md record",
     "expected_root": "project-root",
     "expected_direction": "output",
     "task_type": "meta-root"
   },
   {
     "id": "root-experiment-output",
-    "operation": "run_experiment.py ile docs/experiments/E-001.md deney kaydını oluştur",
+    "operation": "create the experiment record docs/experiments/E-001.md with run_experiment.py",
     "expected_root": "project-root",
     "expected_direction": "output",
     "task_type": "meta-root"
   },
   {
     "id": "root-template-read",
-    "operation": "S kaydı oluştururken şablonu plugin kurulumundaki templates/_template_S.md'den kopyala",
+    "operation": "when creating the S record, copy the template from templates/_template_S.md in the plugin installationpyala",
     "expected_root": "metodoloji-root",
     "expected_direction": "read",
     "task_type": "meta-root"
   },
   {
     "id": "root-planning-output",
-    "operation": "planning artifact'larını bmad-output/planning-artifacts altına yaz",
+    "operation": "write planning artifacts under bmad-output/planning-artifacts",
     "expected_root": "project-root",
     "expected_direction": "output",
     "task_type": "meta-root"
   },
   {
     "id": "root-config-read",
-    "operation": "plugin yapılandırmasını plugin kökündeki bmad/config.toml'den oku",
+    "operation": "read the plugin configuration from bmad/config.toml in the plugin root",
     "expected_root": "metodoloji-root",
     "expected_direction": "read",
     "task_type": "meta-root"
   },
   {
     "id": "root-design-output",
-    "operation": "UX tasarım çıktılarını design-artifacts altına yaz",
+    "operation": "write UX design outputs under design-artifacts",
     "expected_root": "project-root",
     "expected_direction": "output",
     "task_type": "meta-root"
   },
   {
     "id": "root-manifesto-read",
-    "operation": "Metodoloji manifestosunu docs/bmad/research-methodology.md'den oku",
+    "operation": "Metodoloji manifestosunu docs/bmad/research-methodology.md'den read",
     "expected_root": "project-root",
     "expected_direction": "read",
     "task_type": "meta-root"
   },
   {
     "id": "root-project-template-copy-read",
-    "operation": "docs/development/stories/_template_S.md proje kopyasını oku ve kullan",
+    "operation": "read and use the project copy of docs/development/stories/_template_S.md",
     "expected_root": "project-root",
     "expected_direction": "read",
     "task_type": "meta-root"
   },
   {
     "id": "root-malformed-plugin-output",
-    "operation": "Bir komut {metodoloji-root}/bmad-output altına story yazmayı öneriyor",
+    "operation": "A command proposes writing a story under {metodoloji-root}/bmad-output",
     "expected_root": "project-root",
     "expected_direction": "output",
     "task_type": "meta-root"
   },
   {
     "id": "root-malformed-tilde",
-    "operation": "Şablonu ~/{metodoloji-root}/templates/_template_QR.md yolundan kopyala",
+    "operation": "copy the template from the path ~/{metodoloji-root}/templates/_template_QR.md",
     "expected_root": "metodoloji-root",
     "expected_direction": "read",
     "task_type": "meta-root"
   },
   {
     "id": "root-plugin-script-read",
-    "operation": "run_experiment.py kapı betiğini plugin kökündeki hooks/engine altından çalıştır",
+    "operation": "run the run_experiment.py gate script from hooks/engine in the plugin root",
     "expected_root": "metodoloji-root",
     "expected_direction": "read",
     "task_type": "meta-root"
   },
   {
     "id": "root-pr-output",
-    "operation": "docs/development/PR-001.md üretim hazırlık kaydını oluştur",
+    "operation": "create the production readiness record docs/development/PR-001.md",
     "expected_root": "project-root",
     "expected_direction": "output",
     "task_type": "meta-root"

@@ -1,37 +1,37 @@
 [
   {
     "id": "guard-no-experiment",
-    "scenario": "Geliştirici, kapsamı eşleşen onaylı deney kaydı olmayan src/auth/login.py dosyasına kod yazmak istiyor. Guard kararı ne olmalı?",
+    "scenario": "The developer wants to write code to src/auth/login.py with no scope-matching approved experiment record. What should the guard decision be?",
     "expected_decision": "DENY",
     "task_type": "meta-guard"
   },
   {
     "id": "guard-approved-experiment",
-    "scenario": "Geliştirici, docs/experiments/E-001.md kaydı ONAYLANDI ve kapsamı src/auth/** ile eşleşen src/auth/login.py'yi değiştirmek istiyor. Guard kararı ne olmalı?",
+    "scenario": "The developer has docs/experiments/E-001.md with status APPROVED and scope src/auth/** which matches src/auth/login.py and wants to change it. What should the guard decision be?",
     "expected_decision": "ALLOW",
     "task_type": "meta-guard"
   },
   {
     "id": "guard-hypothesis-ac",
-    "scenario": "Story'de bir AC [HYPOTHESIS] olarak işaretli, deney onayı yok. Geliştirici bu AC'yi implemente etmeye çalışıyor. Guard kararı?",
+    "scenario": "An AC in the story is tagged [HYPOTHESIS], no experiment approval. The developer is trying to implement this AC. Guard decision?",
     "expected_decision": "DENY",
     "task_type": "meta-guard"
   },
   {
     "id": "guard-missing-ac-metadata",
-    "scenario": "Story dosyasına yazılıyor ama AC-001'in Type, Measured, Verify alanları eksik. Guard kararı?",
+    "scenario": "Writing to the story file but AC-001's Type, Measured, Verify fields are missing. Guard decision?",
     "expected_decision": "DENY",
     "task_type": "meta-guard"
   },
   {
     "id": "guard-docs-free-zone",
-    "scenario": "Dokümantasyon güncelleniyor — docs/development/README.md'ye yazılıyor, kod değil. Guard kararı?",
+    "scenario": "Documentation is being updated — writing to docs/development/README.md, code unchanged. Guard decision?",
     "expected_decision": "ALLOW",
     "task_type": "meta-guard"
   },
   {
     "id": "guard-done-no-qr",
-    "scenario": "Story status 'done' olarak işaretleniyor ama docs/quality/QR-*.md kaydı yok. Guard kararı?",
+    "scenario": "The story status is being marked 'done' but no docs/quality/QR-*.md record exists. Guard decision?",
     "expected_decision": "DENY",
     "task_type": "meta-guard"
   }

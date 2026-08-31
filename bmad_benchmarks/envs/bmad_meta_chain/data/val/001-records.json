@@ -1,7 +1,7 @@
 [
   {
     "id": "chain-qr-val",
-    "stage": "Bir feature'ın kalite kaydı oluşturulacak, story done sayılması için. Hangi kayıt ve durum değerleri?",
+    "stage": "A quality record will be created for a feature, for the story to count as done. Which record and status values?",
     "expected_record": "QR",
     "expected_path": "docs/quality/QR-",
     "expected_status": "pass | fail | partial",
@@ -9,10 +9,10 @@
   },
   {
     "id": "chain-pr-val",
-    "stage": "Production'a çıkmadan önce operasyonel hazırlık kaydı gerekiyor. Hangi kayıt?",
+    "stage": "Operational readiness record is required before going to production. Which record?",
     "expected_record": "PR",
     "expected_path": "docs/development/PR-",
-    "expected_status": "HAZIR | BEKLİYOR",
+    "expected_status": "READY | WAITING",
     "task_type": "meta-chain"
   }
 ]

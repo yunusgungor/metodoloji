@@ -6,16 +6,16 @@ You state the exact path where each methodology record must be created.
 
 | Record | Path (under `{project-root}`) | Allowed Status |
 |--------|-------------------------------|----------------|
-| **E** (Deney) | `docs/experiments/E-XXX.md` | planlandı → ONAYLANDI \| REDDEDİLDİ |
-| **IR** | `docs/development/IR-XXX.md` | HAZIR \| EKSİK |
-| **SP** | `docs/development/SP-XXX.md` | planlandı \| devam ediyor \| tamamlandı \| iptal |
+| **E** (Experiment) | `docs/experiments/E-XXX.md` | planned → APPROVED \| REJECTED |
+| **IR** | `docs/development/IR-XXX.md` | READY \| INCOMPLETE |
+| **SP** | `docs/development/SP-XXX.md` | planned \| in-progress \| completed \| cancelled |
 | **S** (Story) | `docs/development/stories/S-XXX.md` | backlog \| sprint \| in-progress \| review \| done \| blocked |
 | **QR** | `docs/quality/QR-XXX.md` | pass \| fail \| partial |
-| **PR** | `docs/development/PR-XXX.md` | HAZIR \| BEKLİYOR |
+| **PR** | `docs/development/PR-XXX.md` | READY \| WAITING |
 
 ## Root Rules
 
-- **All record outputs** → `{project-root}` (hedef proje). Plugin'e asla.
+- **All record outputs** → `{project-root}` (target project). Never the plugin.
 - **Templates/config** → read from `{metodoloji-root}` (plugin).
 
 ## Key Distinctions

@@ -1,7 +1,7 @@
 [
   {
     "id": "path-story",
-    "stage": "Yeni bir story için metodoloji kaydı oluştur",
+    "stage": "Create the methodology record for a new story",
     "expected_root": "project-root",
     "expected_path": "docs/development/stories/S-",
     "expected_status": "backlog | sprint | in-progress | review | done | blocked",
@@ -9,15 +9,15 @@
   },
   {
     "id": "path-experiment",
-    "stage": "Bir deney kaydı oluştur",
+    "stage": "Create an experiment record",
     "expected_root": "project-root",
     "expected_path": "docs/experiments/E-",
-    "expected_status": "planlandı | ONAYLANDI | REDDEDİLDİ",
+    "expected_status": "planned | APPROVED | REJECTED",
     "task_type": "meta-path"
   },
   {
     "id": "path-qr",
-    "stage": "Kalite kaydı (QR) oluştur",
+    "stage": "Create the quality record (QR)",
     "expected_root": "project-root",
     "expected_path": "docs/quality/QR-",
     "expected_status": "pass | fail | partial",
@@ -25,26 +25,26 @@
   },
   {
     "id": "path-pr",
-    "stage": "Production readiness kaydı oluştur",
+    "stage": "Create the production readiness record",
     "expected_root": "project-root",
     "expected_path": "docs/development/PR-",
-    "expected_status": "HAZIR | BEKLİYOR",
+    "expected_status": "READY | WAITING",
     "task_type": "meta-path"
   },
   {
     "id": "path-ir",
-    "stage": "Implementation readiness kaydı oluştur",
+    "stage": "Create the implementation readiness record",
     "expected_root": "project-root",
     "expected_path": "docs/development/IR-",
-    "expected_status": "HAZIR | EKSİK",
+    "expected_status": "READY | INCOMPLETE",
     "task_type": "meta-path"
   },
   {
     "id": "path-sp",
-    "stage": "Sprint planning kaydı oluştur",
+    "stage": "Create the sprint planning record",
     "expected_root": "project-root",
     "expected_path": "docs/development/SP-",
-    "expected_status": "planlandı | devam ediyor | tamamlandı | iptal",
+    "expected_status": "planned | in-progress | completed | cancelled",
     "task_type": "meta-path"
   }
 ]

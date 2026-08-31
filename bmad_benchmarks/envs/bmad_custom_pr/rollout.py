@@ -9,7 +9,7 @@ def _prompt(item, skill_content):
     system = (
         f"{skill_content}\n\n"
         f"You are producing a Production Readiness (PR) methodology record. "
-        f"Follow the template fields exactly, in Turkish field labels."
+        f"Follow the template fields exactly, in English field labels."
     )
     user = (
         f"## Release Scope\n\n{item['release_scope']}\n\n"

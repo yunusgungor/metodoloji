@@ -4,7 +4,16 @@
     "sprint_scope": "Sprint 10: GDPR compliance (S-050), data retention (S-052). Sprint goal: 'Meet GDPR requirements and ship data retention policies.'",
     "capacity": "Team velocity: 18 pts. This sprint: 10 pts (legal review parallel). Stories: S-050 (6 pts), S-052 (4 pts) = 10 total. Under capacity (comfortable).",
     "tech_debt": "P0s: TD-010, TD-012. None planned this sprint (legal focus).",
-    "expected_fields": ["Tarih", "Durum", "Sprint hedefi", "Story'ler", "Kapasite", "Teknik borç", "Blokerler", "Bağımlılıklar"],
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Sprint Goal",
+      "Stories",
+      "Capacity",
+      "Technical Debt",
+      "Blockers",
+      "Dependencies"
+    ],
     "task_type": "custom-sp"
   }
 ]

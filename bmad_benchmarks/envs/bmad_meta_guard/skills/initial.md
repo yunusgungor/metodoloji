@@ -6,25 +6,25 @@ You decide whether the BMAD guard hook should DENY or ALLOW a tool call, per the
 
 The guard returns **DENY** when:
 
-1. **Onaysız deney**: Kod yazma izni bulunmayan dosyalara yazılıyor — kapsamı eşleşen VERIFIED deney onayı yok.
-2. **Eksik story metadata**: AC metadata tamlığı bozuk — `[AC-XXX]` identifier, `Experiment:`, `Type:`, `Measured:`, `Verify:` alanları eksik.
-3. **Hipotez AC'si**: `[HYPOTHESIS]` olarak işaretli AC implemente edilmeye çalışılıyor — deney onayı yoksa kod yazılamaz.
-4. **Task↔AC kopukluğu**: Technical Task'ta `AC: AC-XXX` referansı yok.
-5. **DoD yapısal hata**: DoD item'ında `[DoD-XXX]` identifier veya `Verify:` alanı yok.
-6. **Methodology chain kırık**: Story `done` ama QR kaydı yok; veya `review/done` ama metodoloji kaydı (S-XXX) yok.
-7. **Experiment refs onaysız**: Story frontmatter'daki `experiment_refs[].status` BEKLİYOR veya REDDEDİLDİ.
+1. **Unapproved experiment**: Writing to files without code-write permission — no scope-matching VERIFIED experiment approval.
+2. **Incomplete story metadata**: AC metadata completeness broken — missing `[AC-XXX]` identifier, `Experiment:`, `Type:`, `Measured:`, `Verify:` fields.
+3. **Hypothesis AC**: A `[HYPOTHESIS]`-tagged AC is being implemented — code cannot be written without experiment approval.
+4. **Task↔AC gap**: A Technical Task lacks the `AC: AC-XXX` reference.
+5. **DoD structural error**: A DoD item lacks `[DoD-XXX]` identifier or `Verify:` field.
+6. **Broken methodology chain**: Story is `done` but no QR record; or `review/done` but no methodology record (S-XXX).
+7. **Unapproved experiment refs**: `experiment_refs[].status` in story frontmatter is PENDING or REJECTED.
 
 ## ALLOW Conditions
 
-- **Free zone dosyaları (docs/, scratch/, .metodoloji/, tmp/, temp/, graft/): kod olsa bile izin verilir.** Guard free zone kontrolünü kod kontrolünden önce yapar — `is_free()` true ise `continue` (ALLOW), kod uzantısı fark etmez. Yalnızca secret scan bu muafiyetten önce çalışır.
-- Onaylı deney kaydı kapsamı eşleşen kod yazımı (free zone dışında)
-- Story metadata tam, Task↔AC ve DoD doğru, methodology chain sağlam
+- **Free-zone files (docs/, scratch/, .metodoloji/, tmp/, temp/, graft/): allowed even if code.** The guard checks the free zone before the code check — if `is_free()` is true, `continue` (ALLOW), regardless of code extension. Only the secret scan runs before this exemption.
+- Code writing (outside free zones) with a scope-matching approved experiment record
+- Story metadata complete, Task↔AC and DoD correct, methodology chain intact
 
 ## Core Rule (§1.2)
 
-> **Belgesel karar kod yazma izni değildir. Kod her durumda Mod A mekanik onayına bağlıdır.**
+> **A documentary decision is not a license to write code. Code always depends on Mod A mechanical approval.**
 
-Mod B/C/D belgesel çıktıları (PRD, mimari, UX) asla kod yazma izni vermez.
+Mod B/C/D documentary outputs (PRD, architecture, UX) never authorize code writing.
 
 ## Output
 

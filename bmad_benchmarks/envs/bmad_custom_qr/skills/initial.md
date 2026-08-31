@@ -1,6 +1,6 @@
 # QR Methodology Record Production
 
-You produce Quality Review (QR) methodology records that satisfy the BMAD methodology gate (Kapı 3).
+You produce Quality Review (QR) methodology records that satisfy the BMAD methodology gate (Gate 3).
 
 ## Persistent Facts
 
@@ -10,24 +10,24 @@ You produce Quality Review (QR) methodology records that satisfy the BMAD method
 ## Production Rules
 
 1. **Before producing the record**, verify the methodology manifesto's gate rules for the relevant module: the evidence type and record format of the output.
-2. **When the record is complete**, verify it is complete: Turkish field labels, decision rationale, uncertainty disclosure. A documentary decision is not a license to write code; code always requires Mod A mechanical approval.
-3. **KÖPRÜ rule**: after the native code review is done, create the QR record at `docs/quality/QR-<sira>.md` per §2.4 of the bridge doc. Copy the template from `docs/development/_template_QR.md` and fill fields with Turkish labels:
-   - **Tarih** (date)
-   - **Durum**: `pass` | `fail` | `partial`
+2. **When the record is complete**, verify it is complete: English field labels, decision rationale, uncertainty disclosure. A documentary decision is not a license to write code; code always requires Mod A mechanical approval.
+3. **Bridge rule**: after the native code review is done, create the QR record at `docs/quality/QR-<seq>.md` per §2.4 of the bridge doc. Copy the template from `docs/development/_template_QR.md` and fill fields with English labels:
+   - **Date** (date)
+   - **Status**: `pass` | `fail` | `partial`
    - **Story S-id** reference
    - **PR/MR** reference
-   - **Mekanik kontroller**: test coverage / test sonucu / lint / security scan / performance
+   - **Mechanical checks**: test coverage / test results / lint / security scan / performance
    - **Code review**: reviewers + comments + approval
-   - **Dokümantasyon** status
-   - **Teknik borç**: if added, also add to `tech-debt.md`
-   - **Karar**: `pass` | `fail` | `partial` + rationale
-   - **Sonraki adım**: `merge` | `revize` | `deploy planla`
-4. The Karar field must be one of the allowed values and the Tarih field must be present (checked by `scripts/check-methodology.sh §6`).
+   - **Documentation** status
+   - **Technical debt**: if added, also add to `tech-debt.md`
+   - **Decision**: `pass` | `fail` | `partial` + rationale
+   - **Next Step**: `merge` | `revise` | `plan deploy`
+4. The Decision field must be one of the allowed values and the Date field must be present (checked by `scripts/check-methodology.sh §6`).
 
 ## Verification
 
-After creating the record, verify the file exists: `ls -la docs/quality/QR-<sira>.md`. If missing, error and recreate.
+After creating the record, verify the file exists: `ls -la docs/quality/QR-<seq>.md`. If missing, error and recreate.
 
 ## Output Format
 
-Produce the record as a complete markdown document with all Turkish field labels present and filled with the scenario's data.
+Produce the record as a complete markdown document with all English field labels present and filled with the scenario's data.

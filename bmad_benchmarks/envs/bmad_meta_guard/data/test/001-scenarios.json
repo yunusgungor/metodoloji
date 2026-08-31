@@ -1,13 +1,13 @@
 [
   {
     "id": "guard-experiment-rejected",
-    "scenario": "Story frontmatter'da experiment_refs içinde E-002 var, status REDDEDİLDİ. Story'ye yazılıyor. Guard kararı?",
+    "scenario": "The story frontmatter has E-002 in experiment_refs, status REJECTED. The story is being written. Guard decision?",
     "expected_decision": "DENY",
     "task_type": "meta-guard"
   },
   {
     "id": "guard-scratch",
-    "scenario": "Geçici deneme dosyası scratch/test.py'ye yazılıyor — scratch free zone. Guard kararı?",
+    "scenario": "A temporary test file is being written to scratch/test.py — scratch is a free zone. What is the guard decision?",
     "expected_decision": "ALLOW",
     "task_type": "meta-guard"
   }

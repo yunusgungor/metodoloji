@@ -4,7 +4,20 @@
     "story_summary": "S-012: User authentication system. Story: 'As a user, I want to log in with email/password so that I can access my account.' ACs: login endpoint, JWT token, rate limiting (5 attempts/15min), password complexity. All ACs verified via integration tests.",
     "diff_summary": "Added src/auth/login.py, src/auth/token.py, src/auth/rate_limit.py. +320/-15 lines across 8 files. Modified: src/api/routes.py, src/config/settings.py, requirements.txt.",
     "test_results": "Unit tests: 42 passed / 44 total. Integration tests: 18 passed / 18 total. Coverage: 87%. Lint: pass. Security scan: clean (no known CVEs). Performance: login p95 = 45ms (baseline 40ms). Reviewer: @mary APPROVED.",
-    "expected_fields": ["Tarih", "Durum", "Story", "PR/MR", "Test Coverage", "Test Sonuçları", "Linter", "Security Scan", "Performance", "Code Review", "Karar", "Sonraki adım"],
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Story",
+      "PR/MR",
+      "Test Coverage",
+      "Test Results",
+      "Linter",
+      "Security Scan",
+      "Performance",
+      "Code Review",
+      "Decision",
+      "Next Step"
+    ],
     "task_type": "custom-qr"
   },
   {
@@ -12,7 +25,17 @@
     "story_summary": "S-018: Payment processing. Story: 'As a customer, I want to pay via credit card so that I can complete my purchase.' ACs: card validation, Stripe integration, idempotency keys, failure retry (3x). AC3 (3D Secure) marked [HYPOTHESIS] pending experiment E-021.",
     "diff_summary": "Added src/payment/processor.py, src/payment/webhooks.py, src/payment/idempotency.py. +410/-20 lines. Modified: src/api/routes.py, alembic/versions/004_payment_tables.py.",
     "test_results": "Unit tests: 38 passed / 40 total (2 pending HYPOTHESIS). Integration: 12/12 passed. Coverage: 82%. Lint: pass. Security: 1 medium CVE in stripe==6.0.0 (upgrade to 7.2.1). Reviewer: @winston APPROVED WITH COMMENTS (CVE must be resolved before merge).",
-    "expected_fields": ["Tarih", "Durum", "Story", "PR/MR", "Test Coverage", "Test Sonuçları", "Security Scan", "Karar", "Sonraki adım"],
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Story",
+      "PR/MR",
+      "Test Coverage",
+      "Test Results",
+      "Security Scan",
+      "Decision",
+      "Next Step"
+    ],
     "task_type": "custom-qr"
   },
   {
@@ -20,7 +43,17 @@
     "story_summary": "S-024: Search autocomplete. Story: 'As a user, I want search suggestions as I type so that I can find products faster.' ACs: suggestions after 2 chars, max 10, debounce 300ms, keyboard nav. All agent-verifiable.",
     "diff_summary": "Added src/search/suggest.py, src/search/rank.py, frontend/src/components/SearchBar.tsx. +285/-30 lines. Modified: src/api/routes.py.",
     "test_results": "Unit tests: 29/30 passed. Integration: 15/15. Coverage: 78% (below 80% threshold). Lint: 3 warnings. Security: clean. Reviewer: @mary CHANGES REQUESTED (coverage + lint warnings).",
-    "expected_fields": ["Tarih", "Durum", "Story", "PR/MR", "Test Coverage", "Test Sonuçları", "Linter", "Karar", "Sonraki adım"],
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Story",
+      "PR/MR",
+      "Test Coverage",
+      "Test Results",
+      "Linter",
+      "Decision",
+      "Next Step"
+    ],
     "task_type": "custom-qr"
   }
 ]

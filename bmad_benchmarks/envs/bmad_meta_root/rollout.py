@@ -2,9 +2,9 @@ import re
 from .._base_.rollout import run_batch as _run_batch
 
 _UNCERTAINTY_RE = re.compile(
-    r"(?:bilmiyorum|emin değilim|emin degilim|farkında değilim|"
-    r"not sure|unsure|i don't know|i dont know|unknown|sanırım|muhtemelen|"
-    r"tahminen|tahmin ederim|zannet|kararsızım)"
+    r"(?:i don't know|i dont know|not sure|unsure|unknown|"
+    r"not certain|not certain|cannot say|cant say|probably|maybe|i guess|"
+    r"i think|hesitant|undecided)"
 )
 
 
@@ -16,13 +16,13 @@ def _score(output_text, item):
     exp_dir = item["expected_direction"].lower()
     checks = []
     if exp_root == "project-root":
-        checks.append("project" in lower or ("hedef" in lower and "proje" in lower))
+        checks.append("project" in lower)
     else:
         checks.append("metodoloji" in lower or "plugin" in lower)
     if exp_dir == "output":
-        checks.append("output" in lower or "yaz" in lower or "oluştur" in lower or "üret" in lower)
+        checks.append("output" in lower or "write" in lower or "create" in lower or "generate" in lower)
     else:
-        checks.append("read" in lower or "oku" in lower or "yükle" in lower)
+        checks.append("read" in lower or "load" in lower or "consume" in lower)
     found = sum(checks)
     soft = found / len(checks) if checks else 1.0
     hard = 1 if soft >= 1.0 else 0
@@ -52,27 +52,27 @@ def run_batch(items, skill_content, out_dir, workers=1, max_completion_tokens=40
 
 
 def _selfcheck():
-    assert _score("Bu operasyon project-root altına story yazıyor — çıktı üretiyor.",
+    assert _score("This operation writes a story under project-root — produces output.",
                   {"expected_root": "project-root", "expected_direction": "output"}) == (1, 1.0)
-    assert _score("Manifestoyu project-root'taki docs/bmad kopyasından okuyorum — okuma işlemi.",
+    assert _score("I read the manifesto from the docs/bmad copy in project-root — a read operation.",
                   {"expected_root": "project-root", "expected_direction": "read"}) == (1, 1.0)
-    assert _score("Bu, plugin kurulumundaki config'i okuyor, metodoloji-root'tan.",
+    assert _score("This reads the config in the plugin installation, from metodoloji-root.",
                   {"expected_root": "metodoloji-root", "expected_direction": "read"}) == (1, 1.0)
-    assert _score("Plugin'e yazmak yanlış; kayıt project-root altına oluşturulur — çıktı.",
+    assert _score("Writing to the plugin is wrong; the record is created under project-root — output.",
                   {"expected_root": "project-root", "expected_direction": "output"}) == (1, 1.0)
-    assert _score("Kayıt project-root'a yazılır, plugin'e değil — oluşturma işlemi.",
+    assert _score("The record is written to project-root, not the plugin — an output operation.",
                   {"expected_root": "project-root", "expected_direction": "output"}) == (1, 1.0)
-    assert _score("Şablonu metodoloji-root'tan kopyalar; okuyan işlem, çıktı üretmez.",
+    assert _score("Copies the template from metodoloji-root; a reading operation, produces no output.",
                   {"expected_root": "metodoloji-root", "expected_direction": "read"}) == (1, 1.0)
     assert _score("The anchor is resolve and the operation writes.",
+                  {"expected_root": "project-root", "expected_direction": "output"}) == (0, 0.5)
+    assert _score("Sorry, I don't know.",
                   {"expected_root": "project-root", "expected_direction": "output"}) == (0, 0.0)
-    assert _score("Özür dilerim, bilmiyorum.",
-                  {"expected_root": "project-root", "expected_direction": "output"}) == (0, 0.0)
-    hard, soft = _score("Bu operasyon metodoloji-root'a yazılır.",
+    hard, soft = _score("This operation produces output, but the record is in metodoloji-root.",
                         {"expected_root": "project-root", "expected_direction": "output"})
     assert hard == 0 and soft == 0.5
     assert _score("project-root output", {"expected_root": "project-root", "expected_direction": "output"}) == (1, 1.0)
-    assert _score("metodoloji-root oku", {"expected_root": "metodoloji-root", "expected_direction": "read"}) == (1, 1.0)
+    assert _score("metodoloji-root read", {"expected_root": "metodoloji-root", "expected_direction": "read"}) == (1, 1.0)
     print("selfcheck OK")
 
 

@@ -2,7 +2,13 @@
   {
     "id": "edge-001",
     "task_desc": "Boş story dizini ile stop hook testi. docs/development/stories/ dizini yoksa veya boşsa stop hook engelleme yapmamalı. Normal kapanışa izin vermeli.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -10,7 +16,13 @@
   {
     "id": "edge-002",
     "task_desc": "Birden fazla in-progress story ile stop hook testi. 3 in-progress story varsa ve hepsi farklı epic'lere bağlıysa, hangisinin öncelikli olduğunu ve hepsinin loglandığını test et.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -18,7 +30,13 @@
   {
     "id": "edge-003",
     "task_desc": "Concurrent deney kaydı testi. Aynı anda iki deney record'u ONAYLANDI durumunda olabilir mi? Guard hook hangisine öncelik vermeli?",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -26,7 +44,13 @@
   {
     "id": "edge-004",
     "task_desc": "FORGED token testi. Geçersiz veya sahte bir HMAC-SHA256 token ile verify çağrısı yapıldığında reject edilmeli. Token manipüle edilerek test edilmeli.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -34,7 +58,13 @@
   {
     "id": "edge-005",
     "task_desc": "Küçük örneklem belirsizliği testi. n=2 ile bir deney ölçümü yapıldığında Wilson lower bound hesabı doğru yapılmalı ve recorded belief Wilson alt sınırı esik değerinin altında olmalı.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"
@@ -42,7 +72,13 @@
   {
     "id": "edge-006",
     "task_desc": "Metrik uyumsuzluk testi. Hipotezde accuracy dediği ölçümde precision ölçülürse UYUMSUZ olarak işaretlenmeli ve verify ADVISORY-BLOCK döndürmeli.",
-    "expected_fields": ["Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı"],
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
     "expected_hypothesis_format": true,
     "expected_metric_type": "accuracy",
     "task_type": "research-experiment"

@@ -4,7 +4,18 @@
     "research_inputs": "E-018 ONAYLANDI (dashboard load 2s p95), R-009 (analytics needs). All approved.",
     "design_docs": "PRD: docs/prd/analytics.md, UX: docs/ux/dashboard.md, Mimari: docs/architecture/analytics-spine.md",
     "dependencies": "API: ClickHouse (ready). Kütüphaneler: clickhouse-driver. Altyapı: ClickHouse cluster ready, Redis ready.",
-    "expected_fields": ["Tarih", "Durum", "Araştırma girdileri", "Tasarım belgeleri", "Başarı kriterleri", "Teknik bağımlılıklar", "Risk değerlendirmesi", "Eksikler", "Karar", "Sonraki adım"],
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Research Inputs",
+      "Design Documents",
+      "Success Criteria",
+      "Technical Dependencies",
+      "Risk Assessment",
+      "Gaps",
+      "Decision",
+      "Next Step"
+    ],
     "task_type": "custom-ir"
   }
 ]

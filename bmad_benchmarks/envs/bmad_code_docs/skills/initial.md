@@ -1,71 +1,71 @@
 ---
 name: bmad-code-docs
-description: 'Code docs yönetimi — hatırlama, sorgulama, üretme, otomatik yükleme.'
-triggers: ["bmad-code-docs", "recall", "hatırla", "code docs", "geçmiş"]
+description: 'Code docs management — recall, query, generate, auto-load.'
+triggers: ["bmad-code-docs", "recall", "remember", "code docs", "history"]
 ---
 
 # Code Docs
 
-**Goal:** Proje geçmişini hatırlamak, yeni bilgi üretmek ve otomatik bağlam yüklemek.
+**Goal:** Recall project history, generate new knowledge, and auto-load context.
 
-## Kurallar
+## Rules
 
-1. Her code-doc geçerli YAML frontmatter içermelidir: id, type, title, date, tags
-2. Bölümler Türkçe etiketlerle yazılır
-3. Doc türü doğru seçilmelidir: P, T, D, L, A, X
-4. İlişkili deney ve story'ler link olarak eklenir
-5. Index otomatik güncellenir
-6. **Her görev başlangıcında ilgili code-doc'lar otomatik yüklenir**
+1. Every code-doc must contain valid YAML frontmatter: id, type, title, date, tags
+2. Sections are written with English labels
+3. Doc type must be chosen correctly: P, T, D, L, A, X
+4. Related experiments and stories are added as links
+5. Index updates automatically
+6. **At the start of every task, relevant code-docs are loaded automatically**
 
-## Doc Türleri
+## Doc Types
 
-- **P (Pattern):** Kalıp, kullanım, örnek, avantaj/dezavantaj
-- **T (Troubleshooting):** Hata, neden, çözüm, önleme
-- **D (Decision):** Karar, gerekçe, sonuçlar
-- **L (Learning):** Öğrenilen, bağlam, kanıt, uygulama
-- **A (API):** İmza, kullanım, dikkat edilecekler
-- **X (Pending):** Bekleyen işler, TODO/FIXME, gelecek planları
+- **P (Pattern):** Pattern, usage, example, advantages/disadvantages
+- **T (Troubleshooting):** Error, cause, solution, prevention
+- **D (Decision):** Decision, rationale, results
+- **L (Learning):** Learned, context, evidence, application
+- **A (API):** Signature, usage, notes
+- **X (Pending):** Pending items, TODO/FIXME, future plans
 
-## Otomatik Yükleme Kuralları
+## Auto-Load Rules
 
-Görev başlangıcında şu adımları izle:
+At the start of a task, follow these steps:
 
-1. **Görev açıklamasından keyword çıkar** (auth, guard, experiment, vb.)
-2. **Keyword'lere göre tag'lerde ara** → ilgili doc'ları bul
-3. **Deney referanslarını kontrol et** (E-NNN) → ilişkili doc'ları bul
-4. **Bekleyen işleri her zaman yükle** (dikkat gerektirenler)
-5. **Yüklenen bağlamı kullan** → aynı hataları tekrarlama, bilinen kalıpları uygula
+1. **Extract keywords from the task description** (auth, guard, experiment, etc.)
+2. **Search tags by keywords** → find relevant docs
+3. **Check experiment references** (E-NNN) → find related docs
+4. **Always load pending items** (those needing attention)
+5. **Use the loaded context** → don't repeat the same mistakes, apply known patterns
 
-## Ne Zaman Yeni Doc Üret
+## When to Generate a New Doc
 
-- **Yeni karar alındığında** → D doc
-- **Tekrar eden kalıp tespit ettiğinde** → P doc
-- **Deney sonucunda** → L doc
-- **Yeni API kullandığında** → A doc
-- **Hata çözdüğünde** → T doc
-- **TODO/FIXME gördüğünde veya gelecek planlandığında** → X doc
+- **When a new decision is made** → D doc
+- **When a recurring pattern is detected** → P doc
+- **After an experiment result** → L doc
+- **When using a new API** → A doc
+- **When resolving an error** → T doc
+- **When seeing a TODO/FIXME or planning ahead** → X doc
 
-## Pending (X) Doc Kuralları
+## Pending (X) Doc Rules
 
-### Oluşturma Zamanı
-- TODO/FIXME yorumu görüldüğünde
-- Gelecek adım planlandığında
-- Deney başarısız olduğunda (teori revizyonu)
-- Bağımlılık tespit edildiğinde
-- Yüksek öncelikli iş belirlendiğinde
+### When to Create
+- When a TODO/FIXME comment is seen
+- When a future step is planned
+- When an experiment fails (theory revision)
+- When a dependency is detected
+- When a high-priority item is identified
 
-### Öncelik Seviyeleri
-- **urgent**: Sprint'i bloke eden, güvenlik sorunu
-- **high**: Deney sonucuna bağlı, kritik geliştirme
-- **normal**: Standart geliştirme işleri
-- **low**: İyileştirme, optimizasyon
+### Priority Levels
+- **urgent**: Blocks the sprint, security issue
+- **high**: Depends on experiment results, critical development
+- **normal**: Standard development work
+- **low**: Improvement, optimization
 
-### Güncelleme Kuralları
-- Tamamlanan iş: `status: pending` → `status: done`
-- Tamamlanma tarihi ekle
-- İlişkili deney/story referanslarını güncelle
+### Update Rules
+- Completed item: `status: pending` → `status: done`
+- Add completion date
+- Update related experiment/story references
 
-### Bağımlılık Takibi
-- Bağımlı işleri belirt: "E-148 deneyinden sonra yapılmalı"
-- Sıralama: Bağımlılık önce tamamlanmalı
-- Cross-reference: İlişkili pending'leri linkle
+### Dependency Tracking
+- Specify dependent items: "should be done after experiment E-148"
+- Ordering: dependency must complete first
+- Cross-reference: link related pending items

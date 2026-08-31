@@ -1,15 +1,15 @@
 [
   {
     "id": "chain-ir-test",
-    "stage": "Araştırma sonuçları değerlendirilecek, geliştirmeye geçiş için. Hangi kayıt ve yol?",
+    "stage": "Research results will be assessed for the transition to development. Which record andol?",
     "expected_record": "IR",
     "expected_path": "docs/development/IR-",
-    "expected_status": "HAZIR | EKSİK",
+    "expected_status": "READY | INCOMPLETE",
     "task_type": "meta-chain"
   },
   {
     "id": "chain-story-test",
-    "stage": "Yeni bir kullanıcı hikayesi sprint'e eklenecek. Hangi kayıt ve yol?",
+    "stage": "A new user story will be added to the sprint. Which record and path?",
     "expected_record": "S",
     "expected_path": "docs/development/stories/S-",
     "expected_status": "backlog | sprint | in-progress | review | done | blocked",

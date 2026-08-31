@@ -1,13 +1,13 @@
 [
   {
     "id": "task-doc",
-    "task_desc": "Proje dokümantasyonu güncellenecek, README yazılacak.",
+    "task_desc": "Project documentation will be updated, README will be written.",
     "expected_mode": "D",
     "task_type": "meta-mod"
   },
   {
     "id": "task-requirement",
-    "task_desc": "Gereksinim analizi yapılacak, epics ve story'ler ayrıştırılacak.",
+    "task_desc": "Requirements analysis will be done, epics and stories will be broken down.",
     "expected_mode": "C",
     "task_type": "meta-mod"
   }

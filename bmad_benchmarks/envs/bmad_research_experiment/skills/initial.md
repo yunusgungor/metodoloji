@@ -1,12 +1,12 @@
 ---
 name: bmad-research-experiment
 description: 'Run the research methodology gate — Theory → Hypothesis → Experiment → Measurement → Approval. Use when the user says they want to run an experiment, test a hypothesis, verify a claim, or follow the research methodology.'
-triggers: ["bmad-research-experiment", "/bmad-research-experiment", "research-experiment", "sıradaki doğru adımla devam edelim", "kayıt zinciri", "hard gate", "guard code", "metodoloji"]
+triggers: ["bmad-research-experiment", "/bmad-research-experiment", "research-experiment", "record chain", "hard gate", "guard code", "methodology"]
 ---
 
 # Research Experiment Workflow
 
-**Goal:** Execute the project's scientific methodology — **Teori → Hipotez → Deney → Ölçüm → Onay → Kod → Belgele** — honestly and in order. This skill owns the first five stages. It produces a falsifiable hypothesis, runs the experiment, measures raw results, and decides **ONAYLANDI** (approved) or **REDDEDİLDİ** (rejected) by a mechanical gate. Nothing gets approved without measurement.
+**Goal:** Execute the project's scientific methodology — **Theory → Hypothesis → Experiment → Measurement → Approval → Code → Document** — honestly and in order. This skill owns the first five stages. It produces a falsifiable hypothesis, runs the experiment, measures raw results, and decides **APPROVED** or **REJECTED** by a mechanical gate. Nothing gets approved without measurement.
 
 **Your Role:** You are an experimental scientist working with the researcher. You enforce the methodology gates. You never fabricate a measurement, never hide a negative result, and never approve a hypothesis the measurement does not support.
 
@@ -32,38 +32,38 @@ This plugin runs on OpenHands — tool schemas differ from Claude Code:
 
 ## PREREQUISITES
 
-- **Metodoloji manifestosu yoksa kısıtla.** `{project-root}/docs/bmad/research-methodology.md` yoksa: `bmad-customize` ile oluşturulması gerekir; onsuz skill yalnızca manifestoyu oluşturmayı teklif edebilir.
-- **Kapı betiği şart.** `{skill-root}/scripts/run_experiment.py` çalışmazsa onay kapısı çalışamaz — dur ve betiği düzeltmeden devam etme.
-- **Kayıt dosyası her zaman mevcut.** Kapı (`run_experiment.py`) bir dosya yolu alır; kayıtsız deney yoktur. Deney kaydı `{project-root}/docs/experiments/<deney-id>.md` olarak oluşturulmadan ölçüm yapılamaz.
-- **Kayıtlar Türkçe alan adları kullanır.** Kapı, `Teori`, `Hipotez`, `Ölçüm metrikleri`, `Deney tasarımı` etiketlerini ayrıştırır (manifesto formatı; `document_output_language = "Türkçe"`). Farklı dilde etiketli bir kayıt, tamamlanmamış taslak olarak reddedilir — dil değiştirmek kapıyı atlamaz.
+- **Restrict if the methodology manifesto is missing.** If `{project-root}/docs/bmad/research-methodology.md` is absent: it must be created via `bmad-customize`; without it the skill can only offer to create the manifesto.
+- **Gate script is required.** If `{skill-root}/scripts/run_experiment.py` does not run, the approval gate cannot run — stop and do not continue until the script is fixed.
+- **A record file always exists.** The gate (`run_experiment.py`) takes a file path; there is no experiment without a record. No measurement can be made until the experiment record is created at `{project-root}/docs/experiments/<experiment-id>.md`.
+- **Records use English field labels.** The gate parses the `Theory`, `Hypothesis`, `Measurement Metrics`, `Experiment Design` labels. A record labeled in a different language is rejected as an incomplete draft — changing the language does not bypass the gate.
 
 ## THE EXPERIMENT FLOW (6 stages, gated)
 
 You move through these stages in order. A stage's gate must close before the next opens.
 
-### Stage 1 — Teori (Theory)
+### Stage 1 — Theory
 
 Clarify the **theory/framework** behind this question. A good next experiment: (a) maps to a PDF claim or an existing surface's gap, (b) is falsifiable, (c) fits in one coherent commit.
 
-### Stage 2 — Hipotez (Hypothesis)
+### Stage 2 — Hypothesis
 
-Turn the theory into a **falsifiable hypothesis**: `H-NNN: "metrik >= eşik"`. If the hypothesis cannot be tested, reformulate before proceeding.
+Turn the theory into a **falsifiable hypothesis**: `H-NNN: "metric >= threshold"`. If the hypothesis cannot be tested, reformulate before proceeding.
 
-### Stage 3 — Deney (Experiment)
+### Stage 3 — Experiment
 
 Design and execute the experiment. Use real project code, real scripts, real data — never a simulation you present as real.
 
-### Stage 4 — Ölçüm (Measurement)
+### Stage 4 — Measurement
 
 Collect the **raw** result. No measurement, no gate.
 
-### Stage 5 — Onay (Approval)
+### Stage 5 — Approval
 
 Run `run_experiment.py --record ... --run "<command>"`. The gate reads the threshold from the record, executes the measurement, and writes the decision. Use `--dry-run` for format checks; `--run` writes a real decision.
 
-- `VERIFIED` → proceed to code. `FORGED`/`REDDEDİLDİ` → no code.
+- `VERIFIED` → proceed to code. `FORGED`/`REJECTED` → no code.
 
-### Stage 6 — Sonuç (Record & Delivery)
+### Stage 6 — Result (Record & Delivery)
 
 Write the record, then deliver: production surface, benchmark re-verify, commit (one experiment per commit), memory update.
 

@@ -5,39 +5,39 @@ _REQUIRED_FRONTMATTER = {"id", "type", "title", "date", "tags"}
 
 _SECTION_PATTERNS = {
     "P": {
-        "Kalıp": re.compile(r"##\s*Kalıp", re.IGNORECASE),
-        "Kullanım Senaryosu": re.compile(r"##\s*Kullanım\s+Senaryosu", re.IGNORECASE),
-        "Örnek": re.compile(r"##\s*Örnek", re.IGNORECASE),
-        "Avantajlar": re.compile(r"##\s*Avantajlar", re.IGNORECASE),
-        "Dezavantajlar": re.compile(r"##\s*Dezavantajlar", re.IGNORECASE),
+        "Pattern": re.compile(r"##\s*Pattern", re.IGNORECASE),
+        "Usage Scenario": re.compile(r"##\s*Usage\s+Scenario", re.IGNORECASE),
+        "Example": re.compile(r"##\s*Example", re.IGNORECASE),
+        "Advantages": re.compile(r"##\s*Advantages", re.IGNORECASE),
+        "Disadvantages": re.compile(r"##\s*Disadvantages", re.IGNORECASE),
     },
     "T": {
-        "Hata": re.compile(r"##\s*Hata", re.IGNORECASE),
-        "Neden": re.compile(r"##\s*Neden", re.IGNORECASE),
-        "Çözüm": re.compile(r"##\s*Çözüm", re.IGNORECASE),
-        "Önleme": re.compile(r"##\s*Önleme", re.IGNORECASE),
+        "Error": re.compile(r"##\s*Error", re.IGNORECASE),
+        "Cause": re.compile(r"##\s*Cause", re.IGNORECASE),
+        "Solution": re.compile(r"##\s*Solution", re.IGNORECASE),
+        "Prevention": re.compile(r"##\s*Prevention", re.IGNORECASE),
     },
     "D": {
-        "Karar": re.compile(r"##\s*Karar", re.IGNORECASE),
-        "Gerekçe": re.compile(r"##\s*Gerekçe", re.IGNORECASE),
-        "Sonuçlar": re.compile(r"##\s*Sonuçlar", re.IGNORECASE),
+        "Decision": re.compile(r"##\s*Decision", re.IGNORECASE),
+        "Rationale": re.compile(r"##\s*Rationale", re.IGNORECASE),
+        "Results": re.compile(r"##\s*Results", re.IGNORECASE),
     },
     "L": {
-        "Öğrenilen": re.compile(r"##\s*Öğrenilen", re.IGNORECASE),
-        "Bağlam": re.compile(r"##\s*Bağlam", re.IGNORECASE),
-        "Kanıt": re.compile(r"##\s*Kanıt", re.IGNORECASE),
-        "Uygulama": re.compile(r"##\s*Uygulama", re.IGNORECASE),
+        "Learned": re.compile(r"##\s*Learned", re.IGNORECASE),
+        "Context": re.compile(r"##\s*Context", re.IGNORECASE),
+        "Evidence": re.compile(r"##\s*Evidence", re.IGNORECASE),
+        "Application": re.compile(r"##\s*Application", re.IGNORECASE),
     },
     "A": {
         "API": re.compile(r"##\s*API", re.IGNORECASE),
-        "İmza": re.compile(r"##\s*İmza", re.IGNORECASE),
-        "Kullanım": re.compile(r"##\s*Kullanım", re.IGNORECASE),
-        "Dikkat Edilecekler": re.compile(r"##\s*Dikkat\s+Edilecekler", re.IGNORECASE),
+        "Signature": re.compile(r"##\s*Signature", re.IGNORECASE),
+        "Usage": re.compile(r"##\s*Usage", re.IGNORECASE),
+        "Notes": re.compile(r"##\s*Notes", re.IGNORECASE),
     },
     "X": {
-        "Açıklama": re.compile(r"##\s*Açıklama", re.IGNORECASE),
-        "Bağlam": re.compile(r"##\s*Bağlam", re.IGNORECASE),
-        "Sonraki Adımlar": re.compile(r"##\s*Sonraki\s+Adımlar", re.IGNORECASE),
+        "Description": re.compile(r"##\s*Description", re.IGNORECASE),
+        "Context": re.compile(r"##\s*Context", re.IGNORECASE),
+        "Next Steps": re.compile(r"##\s*Next\s+Steps", re.IGNORECASE),
     },
 }
 
@@ -75,8 +75,8 @@ def _check_tags(text, expected_tags):
 def _check_context_loading(text, context):
     text_lower = text.lower()
     has_exp_ref = bool(re.search(r"E-\d+", text))
-    context_phrases = ["daha önce", "mevcut", "önceki", "var olan",
-                       "önceden", "bilinen", "daha önceki", "mevcut kalıp"]
+    context_phrases = ["previously", "existing", "prior", "current",
+                       "already known", "established", "before", "existing pattern"]
     has_ctx = any(p in text_lower for p in context_phrases)
     has_doc_ref = bool(re.search(
         r"(decision|pattern|learning|troubleshooting|pending)\s+(D|P|L|T|X)-\d+", text_lower))
@@ -107,13 +107,13 @@ def _prompt(item, skill_content):
         f"You are a code documentation expert. Generate a structured code-doc "
         f"following the methodology. The doc MUST be of type '{doc_type_name}' "
         f"with valid YAML frontmatter (id, type, title, date, tags) and "
-        f"all required sections in Turkish."
+        f"all required sections."
     )
     user = (
-        f"## Senaryo\n\n{item['scenario']}\n\n"
-        f"Bu senaryo için uygun code-doc'u üret. "
-        f"Beklenen tür: {doc_type_name} ({item['expected_type']})\n"
-        f"Beklenen etiketler: {', '.join(item.get('expected_tags', []))}"
+        f"## Scenario\n\n{item['scenario']}\n\n"
+        f"Generate the appropriate code-doc for this scenario. "
+        f"Expected type: {doc_type_name} ({item['expected_type']})\n"
+        f"Expected tags: {', '.join(item.get('expected_tags', []))}"
     )
     return system, user
 
@@ -177,22 +177,22 @@ def _selfcheck():
     perfect_p = (
         "---\nid: P-001\n type: pattern\n title: \"Repo\"\n date: 2026-08-30\n"
         " tags: [pattern, auth]\n---\n"
-        "## Kalıp\n...\n## Kullanım Senaryosu\n...\n## Örnek\n...\n"
-        "## Avantajlar\n...\n## Dezavantajlar\n...\n"
+        "## Pattern\n...\n## Usage Scenario\n...\n## Example\n...\n"
+        "## Advantages\n...\n## Disadvantages\n...\n"
     )
     item_p = {"expected_type": "P", "expected_tags": ["pattern", "auth"],
-              "expected_sections": ["## Kalıp", "## Kullanım Senaryosu", "## Örnek"]}
+              "expected_sections": ["## Pattern", "## Usage Scenario", "## Example"]}
     hard, soft = _score(perfect_p, item_p)
     assert hard == 1, f"perfect pattern doc should pass, got hard={hard}"
     wrong_type = perfect_p.replace("type: pattern", "type: api")
     assert _score(wrong_type, item_p)[0] == 0
     no_fm = perfect_p.split("---\n", 1)[-1]
     item_min = {"expected_type": "P", "expected_tags": ["pattern"],
-                "expected_sections": ["## Kalıp"]}
+                "expected_sections": ["## Pattern"]}
     assert _score(no_fm, item_min)[0] == 0
-    no_section = perfect_p.replace("## Kalıp\n", "")
+    no_section = perfect_p.replace("## Pattern\n", "")
     item_no_sec = {"expected_type": "P", "expected_tags": ["pattern"],
-                   "expected_sections": ["## Kalıp", "## Kullanım Senaryosu"]}
+                   "expected_sections": ["## Pattern", "## Usage Scenario"]}
     assert _score(no_section, item_no_sec)[0] == 0
     for code in ("P", "T", "D", "L", "A", "X"):
         assert code in _SECTION_PATTERNS, f"missing section table for {code}"
