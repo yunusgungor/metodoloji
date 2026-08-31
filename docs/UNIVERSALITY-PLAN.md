@@ -401,17 +401,19 @@ Translate to: `"English field labels are required."`
 ## Phase 6: Commands (4 files)
 
 ### 6.1 `commands/init.md`
-Full Turkish → Full English.
+Full Turkish → Full English. ✅ Done.
 
-### 6.2 `commands/kapi-kur.md`
-Full Turkish → Full English. Rename to `commands/gate-setup.md` or keep
-Turkish name with English content (decide).
+### 6.2 `commands/kapi-kur.md` → `commands/gate-setup.md`
+Full Turkish → Full English. ✅ Done — renamed to `gate-setup.md`.
 
-### 6.3 `commands/dogrula.md`
-Full Turkish → Full English.
+### 6.3 `commands/dogrula.md` → `commands/verify.md`
+Full Turkish → Full English. ✅ Done — renamed to `verify.md`.
 
-### 6.4 `commands/denetim.md`
-Full Turkish → Full English.
+### 6.4 `commands/denetim.md` → `commands/audit.md`
+Full Turkish → Full English. ✅ Done — renamed to `audit.md`.
+
+> **Note:** Command files were renamed to English (`gate-setup.md`, `verify.md`,
+> `audit.md`). All references updated in README.md and docs/USAGE-GUIDE.md.
 
 ---
 

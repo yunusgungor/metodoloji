@@ -42,7 +42,7 @@ Core functions:
 | `hooks/engine/` | Python engine: `main.py` (entry point), `modules/` (guard, audit, stop, utils, config) |
 | `bmad/` | Module data (bmm, cis, gds, wds, tea, core, bmb) |
 | `templates/` | IR/SP/QR/PR/S/E/README/tech-debt record templates |
-| `commands/` | `/metodoloji:init`, `/metodoloji:kapi-kur`, `/metodoloji:dogrula`, `/metodoloji:denetim` |
+| `commands/` | `/metodoloji:init`, `/metodoloji:gate-setup`, `/metodoloji:verify`, `/metodoloji:audit` |
 
 ### Core Principle
 
@@ -214,12 +214,12 @@ This command does the following:
 |--------|--------|
 | Create directories | `docs/experiments/`, `docs/development/stories/`, `docs/research/`, `docs/design/`, `docs/bmad/`, `scratch/` |
 | Copy templates | E, IR, SP, S, QR, PR templates into the respective directories |
-| Warning | Tells you to run `/metodoloji:kapi-kur` if the gate key is not installed |
+| Warning | Tells you to run `/metodoloji:gate-setup` if the gate key is not installed |
 
 #### Step 3: Install the Gate Key
 
 ```
-/metodoloji:kapi-kur
+/metodoloji:gate-setup
 ```
 
 This command creates the `~/.bmad/gate-key` file. This file:
@@ -229,14 +229,14 @@ This command creates the `~/.bmad/gate-key` file. This file:
 - Is **machine-local** (each developer generates their own key)
 
 ```bash
-# Manual installation (if /metodoloji:kapi-kur does not work):
+# Manual installation (if /metodoloji:gate-setup does not work):
 python3 skills/bmad-research-experiment/scripts/run_experiment.py --init-secret
 ```
 
 #### Step 4: Run the Health Check
 
 ```
-/metodoloji:denetim
+/metodoloji:audit
 ```
 
 or directly:
@@ -709,7 +709,7 @@ Bridge document: `docs/bmad/dev-skill-to-methodology-bridge.md`
 
 ## 8. Commands
 
-> **Note on command names:** `/metodoloji:kapi-kur` → gate-setup, `/metodoloji:dogrula` → verify, `/metodoloji:denetim` → audit.
+> **Note:** these command names were previously `/metodoloji:kapi-kur`, `/metodoloji:dogrula`, `/metodoloji:denetim` (Turkish).
 
 ### 8.1. `/metodoloji:init`
 
@@ -723,7 +723,7 @@ Bridge document: `docs/bmad/dev-skill-to-methodology-bridge.md`
 
 **Usage:** Type `/metodoloji:init` in an OpenHands session or follow the steps in this guide.
 
-### 8.2. `/metodoloji:kapi-kur`
+### 8.2. `/metodoloji:gate-setup`
 
 **Purpose:** Generate the gate key (gate-key init)
 
@@ -738,7 +738,7 @@ Bridge document: `docs/bmad/dev-skill-to-methodology-bridge.md`
 python3 skills/bmad-research-experiment/scripts/run_experiment.py --init-secret
 ```
 
-### 8.3. `/metodoloji:dogrula`
+### 8.3. `/metodoloji:verify`
 
 **Purpose:** Verify an experiment record
 
@@ -755,7 +755,7 @@ python3 skills/bmad-research-experiment/scripts/run_experiment.py \
   --verify --record docs/experiments/E-001.md
 ```
 
-### 8.4. `/metodoloji:denetim`
+### 8.4. `/metodoloji:audit`
 
 **Purpose:** Methodology health check
 
@@ -1131,7 +1131,7 @@ git clone https://github.com/yunusgungor/openhands-metodoloji.git
 
 # 2. Initial setup (in the OpenHands session)
 /metodoloji:init          # Install the record skeleton
-/metodoloji:kapi-kur      # Generate the gate key
+/metodoloji:gate-setup      # Generate the gate key
 
 # 3. Create an experiment and get approval
 cp templates/_template_E.md docs/experiments/E-001.md
@@ -1145,7 +1145,7 @@ python3 skills/bmad-research-experiment/scripts/run_experiment.py \
 
 # 5. Health check
 sh commands/check-plugin.sh
-/metodoloji:denetim
+/metodoloji:audit
 
 # 6. Create records
 python3 scripts/create-methodology-record.py --story path/to/story.md
