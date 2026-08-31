@@ -15,7 +15,7 @@
   },
   {
     "id": "root-template-read",
-    "operation": "when creating the S record, copy the template from templates/_template_S.md in the plugin installationpyala",
+    "operation": "when creating the S record, copy the template from templates/_template_S.md in the plugin installation",
     "expected_root": "metodoloji-root",
     "expected_direction": "read",
     "task_type": "meta-root"
@@ -43,7 +43,7 @@
   },
   {
     "id": "root-manifesto-read",
-    "operation": "Metodoloji manifestosunu docs/bmad/research-methodology.md'den read",
+    "operation": "Read the methodology manifesto from docs/bmad/research-methodology.md",
     "expected_root": "project-root",
     "expected_direction": "read",
     "task_type": "meta-root"

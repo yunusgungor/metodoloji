@@ -1,9 +1,28 @@
 [
   {
     "id": "ir-analytics",
-    "research_inputs": "E-018 APPROVED (dashboard load 2s p95), R-009 (analytics needs). All approved.",
+    "research_inputs": "E-003 APPROVED (dashboard load 2s p95), R-009 (analytics needs). All approved.",
     "design_docs": "PRD: docs/prd/analytics.md, UX: docs/ux/dashboard.md, Architecture: docs/architecture/analytics-spine.md",
     "dependencies": "API: ClickHouse (ready). Libraries: clickhouse-driver. Infrastructure: ClickHouse cluster ready, Redis ready.",
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Research Inputs",
+      "Design Documents",
+      "Success Criteria",
+      "Technical Dependencies",
+      "Risk Assessment",
+      "Gaps",
+      "Decision",
+      "Next Step"
+    ],
+    "task_type": "custom-ir"
+  },
+  {
+    "id": "ir-incomplete-validation",
+    "research_inputs": "Scenario inputs are incomplete — the core prerequisite is not met.",
+    "design_docs": "Design artifacts are drafts; review has not passed.",
+    "dependencies": "A critical dependency is blocked (vendor approval pending).",
     "expected_fields": [
       "Date",
       "Status",

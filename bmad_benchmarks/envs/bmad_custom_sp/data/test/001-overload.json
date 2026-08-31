@@ -15,5 +15,22 @@
       "Dependencies"
     ],
     "task_type": "custom-sp"
+  },
+  {
+    "id": "sp-blocked-gaps",
+    "sprint_scope": "A known blocker: external dependency not yet granted.",
+    "capacity": "Architecture exists but not validated against requirements.",
+    "tech_debt": "Blocking dependency pending, no workaround.",
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Sprint Goal",
+      "Stories",
+      "Capacity",
+      "Technical Debt",
+      "Blockers",
+      "Dependencies"
+    ],
+    "task_type": "custom-sp"
   }
 ]

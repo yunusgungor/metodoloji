@@ -135,7 +135,7 @@
   },
   {
     "id": "codoc-val-learning",
-    "scenario": "Experiment E-004 was completed. Hypothesis: 'error rate <= 0.05'. Measurement: 'error_rate=0.03 (97/100)'. The experiment was approved. Result: the retry mechanism works correctly.",
+    "scenario": "Experiment E-001 was completed. Hypothesis: 'error rate <= 0.05'. Measurement: 'error_rate=0.03 (97/100)'. The experiment was approved. Result: the retry mechanism works correctly.",
     "expected_type": "L",
     "expected_tags": [
       "retry",
@@ -151,7 +151,7 @@
     ],
     "context": {
       "tool_name": "terminal",
-      "command": "python3 run_experiment.py --record docs/experiments/E-004.md --run \"python bench_retry.py\"",
+      "command": "python3 run_experiment.py --record docs/experiments/E-001.md --run \"python bench_retry.py\"",
       "output_summary": "APPROVED"
     },
     "task_type": "code-docs"

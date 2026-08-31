@@ -7,6 +7,6 @@ class BmadCustomPrDataLoader(BmadDataLoader):
             "release_scope": raw.get("release_scope", ""),
             "staging_status": raw.get("staging_status", ""),
             "rollback_plan": raw.get("rollback_plan", ""),
-            "expected_fields": raw.get("expected_fields", ["Date", "Status", "Release Type", "Version", "Release Scope", "Staging Test", "Rollback Plan", "Monitoring", "Runbook", "Decision", "Next Step"]),
+            "expected_fields": raw.get("expected_fields", ["Date", "Status", "Release Type", "Version", "Release Scope", "Staging Status", "Staging Test", "Rollback Plan", "Monitoring", "Runbook", "Decision", "Next Step"]),
             "task_type": raw.get("task_type", "custom-pr"),
         }

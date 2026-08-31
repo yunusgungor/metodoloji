@@ -8,7 +8,7 @@
   },
   {
     "id": "root-manifesto-read",
-    "operation": "Metodoloji manifestosunu docs/bmad/research-methodology.md'den read",
+    "operation": "Read the methodology manifesto from docs/bmad/research-methodology.md",
     "expected_root": "project-root",
     "expected_direction": "read",
     "task_type": "meta-root"

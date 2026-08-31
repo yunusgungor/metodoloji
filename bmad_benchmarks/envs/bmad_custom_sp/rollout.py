@@ -1,9 +1,9 @@
 from .._base_.rollout import run_custom_batch
 
 _FIELDS = [
-    ("Sprint Scope", "sprint_scope"),
+    ("Sprint Goal", "sprint_scope"),
     ("Capacity", "capacity"),
-    ("Tech Debt", "tech_debt"),
+    ("Technical Debt", "tech_debt"),
 ]
 
 

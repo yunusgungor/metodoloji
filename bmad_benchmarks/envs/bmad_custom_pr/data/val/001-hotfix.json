@@ -10,6 +10,28 @@
       "Release Type",
       "Version",
       "Release Scope",
+      "Staging Status",
+      "Staging Test",
+      "Rollback Plan",
+      "Monitoring",
+      "Runbook",
+      "Decision",
+      "Next Step"
+    ],
+    "task_type": "custom-pr"
+  },
+  {
+    "id": "pr-incomplete-validation",
+    "release_scope": "Scenario inputs are incomplete — the core prerequisite is not met.",
+    "staging_status": "Design artifacts are drafts; review has not passed.",
+    "rollback_plan": "A critical dependency is blocked (vendor approval pending).",
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Release Type",
+      "Version",
+      "Release Scope",
+      "Staging Status",
       "Staging Test",
       "Rollback Plan",
       "Monitoring",

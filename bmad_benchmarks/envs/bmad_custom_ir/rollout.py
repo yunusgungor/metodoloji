@@ -2,8 +2,8 @@ from .._base_.rollout import run_custom_batch
 
 _FIELDS = [
     ("Research Inputs", "research_inputs"),
-    ("Design Docs", "design_docs"),
-    ("Dependencies", "dependencies"),
+    ("Design Documents", "design_docs"),
+    ("Technical Dependencies", "dependencies"),
 ]
 
 

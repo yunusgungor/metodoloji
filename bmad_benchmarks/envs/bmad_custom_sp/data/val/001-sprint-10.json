@@ -15,5 +15,22 @@
       "Dependencies"
     ],
     "task_type": "custom-sp"
+  },
+  {
+    "id": "sp-incomplete-validation",
+    "sprint_scope": "Scenario inputs are incomplete — the core prerequisite is not met.",
+    "capacity": "Design artifacts are drafts; review has not passed.",
+    "tech_debt": "A critical dependency is blocked (vendor approval pending).",
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Sprint Goal",
+      "Stories",
+      "Capacity",
+      "Technical Debt",
+      "Blockers",
+      "Dependencies"
+    ],
+    "task_type": "custom-sp"
   }
 ]

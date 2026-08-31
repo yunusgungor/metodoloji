@@ -169,10 +169,10 @@ For each DoD:
 ### §7.1 PR Creation
 - After QR approval, deploy preparation is performed
 - The PR record is created at `docs/development/PR-XXX.md`
-- **PR Status:** READY | PENDING
+- **PR Status:** READY | WAITING
 
 ### §7.2 PR Cycle
-- PENDING → Preparations completed → READY
+- WAITING → Preparations completed → READY
 - READY → Deploy is performed → Story transitions to `done` status
 
 ---
@@ -247,4 +247,4 @@ This methodology is compliant with the following components:
 | SP | `docs/development/SP-XXX.md` | planned \| in-progress \| completed \| cancelled |
 | Story (S) | `docs/development/stories/S-XXX.md` | backlog \| sprint \| in-progress \| review \| done \| blocked |
 | QR | `docs/quality/QR-XXX.md` | pass \| fail \| partial |
-| PR | `docs/development/PR-XXX.md` | READY \| PENDING |
+| PR | `docs/development/PR-XXX.md` | READY \| WAITING |

@@ -10,6 +10,28 @@
       "Release Type",
       "Version",
       "Release Scope",
+      "Staging Status",
+      "Staging Test",
+      "Rollback Plan",
+      "Monitoring",
+      "Runbook",
+      "Decision",
+      "Next Step"
+    ],
+    "task_type": "custom-pr"
+  },
+  {
+    "id": "pr-blocked-gaps",
+    "release_scope": "A known blocker: external dependency not yet granted.",
+    "staging_status": "Architecture exists but not validated against requirements.",
+    "rollback_plan": "Blocking dependency pending, no workaround.",
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Release Type",
+      "Version",
+      "Release Scope",
+      "Staging Status",
       "Staging Test",
       "Rollback Plan",
       "Monitoring",

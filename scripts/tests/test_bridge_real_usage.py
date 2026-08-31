@@ -51,6 +51,16 @@ def test_experiment_placeholder_skipped(tmp_path):
     assert mod.from_experiment_records(d) == []
 
 
+def test_experiment_em_dash_placeholder_skipped(tmp_path):
+    # The templates use "— (gate writes)" as the undecided marker; a record
+    # with it must NOT be treated as decided.
+    d = tmp_path / "experiments"
+    d.mkdir()
+    (d / "E-001.md").write_text(
+        "- **Decision:** — (gate writes)\n- **Status:** planned\n", encoding="utf-8")
+    assert mod.from_experiment_records(d) == []
+
+
 def test_experiment_missing_decision_skipped(tmp_path):
     d = tmp_path / "experiments"
     d.mkdir()

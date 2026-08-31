@@ -227,7 +227,7 @@
   },
   {
     "id": "codoc-detect-pending-fixme",
-    "scenario": "The code has the comment '# FIXME: rate limiting missing — to be added after experiment E-148'. This is a bug-fix plan.",
+    "scenario": "The code has the comment '# FIXME: rate limiting missing — to be added after experiment E-001'. This is a bug-fix plan.",
     "expected_type": "X",
     "expected_tags": [
       "rate-limiting",
@@ -384,7 +384,7 @@
   },
   {
     "id": "codoc-pending-dependency",
-    "scenario": "A pending item depends on another: the 'Add rate limiting' item must wait 'until experiment E-148 is completed'. Specify the dependency relationship in the pending doc.",
+    "scenario": "A pending item depends on another: the 'Add rate limiting' item must wait 'until experiment E-001 is completed'. Specify the dependency relationship in the pending doc.",
     "expected_type": "X",
     "expected_tags": [
       "rate-limiting",
@@ -400,7 +400,7 @@
     "context": {
       "tool_name": "file_editor",
       "path": "src/api/rate_limit.py",
-      "content_preview": "# TODO: add after experiment E-148"
+      "content_preview": "# TODO: add after experiment E-001"
     },
     "task_type": "code-docs"
   },

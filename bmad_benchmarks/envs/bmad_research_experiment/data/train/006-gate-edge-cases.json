@@ -1,0 +1,58 @@
+[
+  {
+    "id": "gate-001-missing-key",
+    "task_desc": "Test the gate when the secret key is not configured. The gate (run_experiment.py --record E-XXX.md --run '<cmd>') must fail closed: without a gate key (BMAD_GATE_KEY env or ~/.bmad/gate-key), it must NOT write an APPROVED decision — it reports that the gate key is missing and the record stays undecided. A missing key must never produce a fake approval.",
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "gate-002-dry-run",
+    "task_desc": "Test the gate's --dry-run mode. Running 'run_experiment.py --record E-XXX.md --run \"<cmd>\" --dry-run' must PREVIEW the decision (measured value, threshold comparison, would-be GATE-OK token) WITHOUT writing anything to the record. The record must remain untouched after a dry-run. Format checks must always use --dry-run, never a real --run.",
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "gate-003-free-zone-bench",
+    "task_desc": "Test the gate's free-zone bench rejection. A measurement command that executes a script inside a free zone (scratch/, tmp/, temp/) — e.g. 'python3 scratch/bench.py' — must be REJECTED before execution: the gate requires the measurement script itself to live under methodology protection, so a bench in a free zone cannot produce an approval. The gate must refuse with an error and write no decision.",
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  },
+  {
+    "id": "gate-004-metric-mismatch-advisory",
+    "task_desc": "Test the gate's metric cross-check. When the measurement command produces a metric whose name differs from the hypothesis claim's metric (e.g. claim names 'accuracy' but the run reports 'latency'), the gate must write a MISMATCH metric note and the approval must NOT unlock code — a metric redefinition is an ADVISORY-BLOCK.",
+    "expected_fields": [
+      "Theory",
+      "Hypothesis",
+      "Measurement Metrics",
+      "Experiment Design",
+      "Code Scope"
+    ],
+    "expected_hypothesis_format": true,
+    "expected_metric_type": "accuracy",
+    "task_type": "research-experiment"
+  }
+]

@@ -13,7 +13,7 @@ story_key: N-N-slug
 status: ready-for-dev
 experiment_refs:
   - id: E-XXX
-    status: ONAYLANDI
+    status: APPROVED
 ---
 ```
 

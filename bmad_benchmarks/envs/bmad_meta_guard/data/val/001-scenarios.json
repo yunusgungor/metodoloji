@@ -1,7 +1,7 @@
 [
   {
     "id": "guard-task-no-ac",
-    "scenario": "A Technical Task in the story has no AC: AC-XXX reference. Being written to the story file. Guard decision?",
+    "scenario": "A Technical Task in the story has no AC: AC-XXX reference. Being written to the story file. Guard decisioncision?",
     "expected_decision": "DENY",
     "task_type": "meta-guard"
   },

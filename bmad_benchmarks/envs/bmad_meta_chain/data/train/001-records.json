@@ -9,7 +9,7 @@
   },
   {
     "id": "chain-ir",
-    "stage": "Check whether research findings are ready for development, before sprint planning: nce. Hangi record?",
+    "stage": "Check whether research findings are ready for development, before sprint planning: which record should exist first?",
     "expected_record": "IR",
     "expected_path": "docs/development/IR-",
     "expected_status": "READY | INCOMPLETE",

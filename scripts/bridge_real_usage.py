@@ -76,9 +76,14 @@ def from_experiment_records(exp_dir: pathlib.Path) -> list[dict]:
             text = rec.read_text(encoding="utf-8")
         except OSError:
             continue
-        # A decided record has a real Decision (not a <...> placeholder).
+        # A decided record has a real Decision — not a placeholder. Placeholders
+        # come in two forms: "<gate writes: ...>" and "— (gate writes)" (the
+        # em-dash draft marker used by the templates).
         m = re.search(r"-\s*\*\*Decision:\*\*\s*([^\n]+)", text)
-        if not m or re.fullmatch(r"<.*>", m.group(1).strip()):
+        if not m:
+            continue
+        decision = m.group(1).strip()
+        if re.fullmatch(r"<.*>", decision) or decision.startswith("—"):
             continue
         eid = rec.stem
         hypothesis = ""

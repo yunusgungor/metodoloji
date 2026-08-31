@@ -1,9 +1,28 @@
 [
   {
     "id": "ir-monolith-migration",
-    "research_inputs": "E-025 APPROVED (service extraction strategy), R-011 (brownfield migration risks). All approved.",
+    "research_inputs": "E-001 APPROVED (service extraction strategy), R-011 (brownfield migration risks). All approved.",
     "design_docs": "PRD: docs/prd/migration.md, UX: none, Architecture: docs/architecture/migration-spine.md",
     "dependencies": "API: internal auth-service (ready). Infrastructure: Kubernetes ready. External: none.",
+    "expected_fields": [
+      "Date",
+      "Status",
+      "Research Inputs",
+      "Design Documents",
+      "Success Criteria",
+      "Technical Dependencies",
+      "Risk Assessment",
+      "Gaps",
+      "Decision",
+      "Next Step"
+    ],
+    "task_type": "custom-ir"
+  },
+  {
+    "id": "ir-blocked-gaps",
+    "research_inputs": "A known blocker: external dependency not yet granted.",
+    "design_docs": "Architecture exists but not validated against requirements.",
+    "dependencies": "Blocking dependency pending, no workaround.",
     "expected_fields": [
       "Date",
       "Status",

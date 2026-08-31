@@ -1,7 +1,7 @@
 [
   {
     "id": "task-code-auth",
-    "task_desc": "Python code for a user authentication system will be written, tested, and deploy edilecek.",
+    "task_desc": "Python code for a user authentication system will be written, tested, and deployed.",
     "expected_mode": "A",
     "task_type": "meta-mod"
   },

@@ -1,7 +1,7 @@
 [
   {
     "id": "codoc-test-learning",
-    "scenario": "Experiment E-005 was completed. Hypothesis: 'latency <= 100ms'. Measurement: 'latency=85ms (50/50)'. The experiment was approved. Result: the optimization succeeded; using Redis cache reduced latency.",
+    "scenario": "Experiment E-002 was completed. Hypothesis: 'latency <= 100ms'. Measurement: 'latency=85ms (50/50)'. The experiment was approved. Result: the optimization succeeded; using Redis cache reduced latency.",
     "expected_type": "L",
     "expected_tags": [
       "performance",
@@ -17,7 +17,7 @@
     ],
     "context": {
       "tool_name": "terminal",
-      "command": "python3 run_experiment.py --record docs/experiments/E-005.md --run \"python bench_latency.py\"",
+      "command": "python3 run_experiment.py --record docs/experiments/E-002.md --run \"python bench_latency.py\"",
       "output_summary": "APPROVED"
     },
     "task_type": "code-docs"
@@ -70,7 +70,7 @@
   },
   {
     "id": "codoc-test-pending",
-    "scenario": "The code has the comment '# HACK: temporary workaround — add permanent fix after E-149'. This is technical debt and a planned fix.",
+    "scenario": "The code has the comment '# HACK: temporary workaround — add permanent fix after E-002'. This is technical debt and a planned fix.",
     "expected_type": "X",
     "expected_tags": [
       "hack",
@@ -114,7 +114,7 @@
   },
   {
     "id": "codoc-test-pending-update",
-    "scenario": "The X-002-test-coverage-artır pending item was completed. Update Status: pending → done. Add the completion date.",
+    "scenario": "The X-002-test-coverage-increase pending item was completed. Update Status: pending → done. Add the completion date.",
     "expected_type": "X",
     "expected_tags": [
       "testing",
@@ -136,7 +136,7 @@
   },
   {
     "id": "codoc-test-decision",
-    "scenario": "A decision was made for the project's logging system: structured logging (JSON format) will be used. Rationale: log analysis in production will become easier. Tested with experiment E-006.",
+    "scenario": "A decision was made for the project's logging system: structured logging (JSON format) will be used. Rationale: log analysis in production will become easier. Tested with experiment E-003.",
     "expected_type": "D",
     "expected_tags": [
       "logging",

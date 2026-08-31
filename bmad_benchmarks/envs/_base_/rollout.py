@@ -135,15 +135,23 @@ def build_custom_prompt(item, skill_content, record_name, fields,
 
     record_name is the human title of the record type (e.g. "Implementation
     Readiness (IR)"); fields is an ordered list of (section_title, item_key)
-    pairs rendered as '## <title>' headers.
+    pairs rendered as '## <title>' headers. The expected output section labels
+    (item["expected_fields"]) are listed so the model produces the exact
+    headings the scorer looks for.
     """
+    expected = item.get("expected_fields") or []
+    expected_list = ", ".join(f"'{f}'" for f in expected)
     system = (
         f"{skill_content}\n\n"
         f"You are producing a {record_name} methodology record. "
         f"Follow the template fields exactly, in English field labels."
     )
     sections = "".join(f"## {title}\n\n{item[key]}\n\n" for title, key in fields)
-    user = f"{sections}{outro}"
+    user = (
+        f"{sections}"
+        f"Produce the record with these exact section headings: {expected_list}.\n"
+        f"{outro}"
+    )
     return system, user
 
 

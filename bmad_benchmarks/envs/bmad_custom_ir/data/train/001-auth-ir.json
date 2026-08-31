@@ -1,7 +1,7 @@
 [
   {
     "id": "ir-auth-system",
-    "research_inputs": "E-012 (auth performance test: bcrypt cost=12, login p95=45ms approved), R-003 (user needs: 500 concurrent logins), D-008 (login UX flow approved). All records APPROVED.",
+    "research_inputs": "E-001 (auth performance test: bcrypt cost=12, login p95=45ms approved), R-003 (user needs: 500 concurrent logins), D-008 (login UX flow approved). All records APPROVED.",
     "design_docs": "PRD: docs/prd/auth.md, UX: docs/ux/login-flow.md, Architecture: docs/architecture/auth-spine.md (AD-1..AD-5)",
     "dependencies": "API: internal user-service (ready). Libraries: bcrypt==4.1.0 (new), PyJWT==2.8.0. Infrastructure: PostgreSQL ready, Redis ready. External: none.",
     "expected_fields": [
@@ -20,7 +20,7 @@
   },
   {
     "id": "ir-payment-system",
-    "research_inputs": "E-021 (payment 3D Secure pending, NOT approved), R-007 (PCI compliance research). E-021 status PENDING.",
+    "research_inputs": "E-002 (payment 3D Secure pending, NOT approved), R-007 (PCI compliance research). E-002 status PENDING.",
     "design_docs": "PRD: docs/prd/payment.md, UX: none, Architecture: docs/architecture/payment-spine.md",
     "dependencies": "API: Stripe SDK (ready). Libraries: stripe==6.0.0. Infrastructure: PostgreSQL ready. External: Stripe API keys needed.",
     "expected_fields": [
@@ -39,7 +39,7 @@
   },
   {
     "id": "ir-search-system",
-    "research_inputs": "E-015 (search index latency: 2ms p95 approved), R-004 (product search needs). All APPROVED.",
+    "research_inputs": "E-002 (search index latency: 2ms p95 approved), R-004 (product search needs). All APPROVED.",
     "design_docs": "PRD: docs/prd/search.md, UX: docs/ux/search-bar.md, Architecture: docs/architecture/search-spine.md",
     "dependencies": "API: Elasticsearch (ready). Libraries: elasticsearch-py==8.12.0. Infrastructure: ES cluster ready, Redis ready. External: none.",
     "expected_fields": [
