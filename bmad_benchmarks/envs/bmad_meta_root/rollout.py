@@ -7,6 +7,45 @@ _UNCERTAINTY_RE = re.compile(
     r"i think|hesitant|undecided)"
 )
 
+# Root extraction: the model names the anchor explicitly. Look for the
+# literal anchor token first; fall back to "plugin" for metodoloji-root.
+_ROOT_RE = {
+    "project-root": re.compile(r"\{?\s*project[\s-]*root\s*\}?", re.IGNORECASE),
+    "metodoloji-root": re.compile(r"\{?\s*(?:metodoloji[\s-]*root|plugin)\s*\}?", re.IGNORECASE),
+}
+# Direction extraction: writes/produces/creates → output; reads/consumes → read.
+# The model answers with a noun ("Direction: writes") or a verb in context.
+_OUTPUT_RE = re.compile(
+    r"\b(?:write|writes|writting|writing|produce|produces|create|creates|"
+    r"generat|output|save|saves|emit)\w*", re.IGNORECASE)
+_READ_RE = re.compile(
+    r"\b(?:read|reads|reading|load|loads|loading|consume|consumes|consuming|"
+    r"import)\w*", re.IGNORECASE)
+
+
+def _extract(text: str) -> tuple[str | None, str | None]:
+    """Extract (root, direction) the answer actually claims. Returns None for
+    a component the answer doesn't commit to, so scoring can demand it."""
+    lower = text.lower()
+    root = None
+    if _ROOT_RE["project-root"].search(lower):
+        root = "project-root"
+    elif _ROOT_RE["metodoloji-root"].search(lower):
+        root = "metodoloji-root"
+    out_hit = _OUTPUT_RE.search(lower)
+    read_hit = _READ_RE.search(lower)
+    direction = None
+    if out_hit and read_hit:
+        # Both verbs present — pick the one the answer frames as the action.
+        # "write ... read" in the same sentence is usually a rejection of the
+        # other direction; default to output (writing is the riskier claim).
+        direction = "output" if out_hit.start() <= read_hit.start() else "read"
+    elif out_hit:
+        direction = "output"
+    elif read_hit:
+        direction = "read"
+    return root, direction
+
 
 def _score(output_text, item):
     lower = output_text.lower()
@@ -14,17 +53,15 @@ def _score(output_text, item):
         return 0, 0.0
     exp_root = item["expected_root"].lower()
     exp_dir = item["expected_direction"].lower()
-    checks = []
-    if exp_root == "project-root":
-        checks.append("project" in lower)
-    else:
-        checks.append("metodoloji" in lower or "plugin" in lower)
-    if exp_dir == "output":
-        checks.append("output" in lower or "write" in lower or "create" in lower or "generate" in lower)
-    else:
-        checks.append("read" in lower or "load" in lower or "consume" in lower)
+    root, direction = _extract(output_text)
+    if root is None or direction is None:
+        return 0, 0.0  # answer doesn't commit to both axes — fail
+    checks = [
+        root == exp_root,
+        direction == exp_dir,
+    ]
     found = sum(checks)
-    soft = found / len(checks) if checks else 1.0
+    soft = found / len(checks)
     hard = 1 if soft >= 1.0 else 0
     return hard, soft
 
@@ -52,27 +89,33 @@ def run_batch(items, skill_content, out_dir, workers=1, max_completion_tokens=40
 
 
 def _selfcheck():
-    assert _score("This operation writes a story under project-root — produces output.",
-                  {"expected_root": "project-root", "expected_direction": "output"}) == (1, 1.0)
-    assert _score("I read the manifesto from the docs/bmad copy in project-root — a read operation.",
+    P = {"expected_root": "project-root", "expected_direction": "output"}
+    M = {"expected_root": "metodoloji-root", "expected_direction": "read"}
+    # Correct answers — each names the root and direction explicitly.
+    assert _score("Root anchor: {project-root}. Direction: writes — creates the record.",
+                  P) == (1, 1.0)
+    assert _score("Root anchor: {project-root}. Direction: reads — consumes the manifesto.",
                   {"expected_root": "project-root", "expected_direction": "read"}) == (1, 1.0)
-    assert _score("This reads the config in the plugin installation, from metodoloji-root.",
-                  {"expected_root": "metodoloji-root", "expected_direction": "read"}) == (1, 1.0)
-    assert _score("Writing to the plugin is wrong; the record is created under project-root — output.",
-                  {"expected_root": "project-root", "expected_direction": "output"}) == (1, 1.0)
-    assert _score("The record is written to project-root, not the plugin — an output operation.",
-                  {"expected_root": "project-root", "expected_direction": "output"}) == (1, 1.0)
-    assert _score("Copies the template from metodoloji-root; a reading operation, produces no output.",
-                  {"expected_root": "metodoloji-root", "expected_direction": "read"}) == (1, 1.0)
-    assert _score("The anchor is resolve and the operation writes.",
-                  {"expected_root": "project-root", "expected_direction": "output"}) == (0, 0.5)
-    assert _score("Sorry, I don't know.",
-                  {"expected_root": "project-root", "expected_direction": "output"}) == (0, 0.0)
-    hard, soft = _score("This operation produces output, but the record is in metodoloji-root.",
-                        {"expected_root": "project-root", "expected_direction": "output"})
-    assert hard == 0 and soft == 0.5
-    assert _score("project-root output", {"expected_root": "project-root", "expected_direction": "output"}) == (1, 1.0)
-    assert _score("metodoloji-root read", {"expected_root": "metodoloji-root", "expected_direction": "read"}) == (1, 1.0)
+    assert _score("Root anchor: {metodoloji-root}. Direction: reads the plugin config.",
+                  M) == (1, 1.0)
+    # Plugin write rejected, correct answer is project-root output.
+    assert _score("Writing to the plugin is wrong; the record is created under project-root.",
+                  P) == (1, 1.0)
+    # Wrong root must fail even if keywords overlap (old scorer passed these).
+    # Direction matches (output) but root is wrong → hard 0, soft 0.5.
+    assert _score("This writes to the plugin, NOT the project.", P) == (0, 0.5)
+    # Both axes wrong → hard 0, soft 0.0.
+    assert _score("I will not create anything in project root; I read the plugin config.",
+                  {"expected_root": "metodoloji-root", "expected_direction": "read"}) == (0, 0.0)
+    # Wrong direction must fail.
+    assert _score("Do NOT write the config; just read it from the project.",
+                  {"expected_root": "project-root", "expected_direction": "read"}) == (0, 0.0)
+    # Refusal / no commitment.
+    assert _score("Sorry, I don't know.", P) == (0, 0.0)
+    assert _score("The anchor is resolve and the operation writes.", P) == (0, 0.0)
+    # Minimal explicit answers still pass.
+    assert _score("project-root output", P) == (1, 1.0)
+    assert _score("metodoloji-root read", M) == (1, 1.0)
     print("selfcheck OK")
 
 
