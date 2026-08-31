@@ -35,14 +35,18 @@ def log_file() -> str:
 
 
 # --- Gate strictness ---------------------------------------------------------
-# custom/config.toml [hooks] quality_gate / deploy_guard (soft|hard). The
-# comment there said "informational only" for the Claude runtime; the engine
-# now actually reads these so guard/quality/deploy can honor them.
+# custom/config.toml [hooks] quality_gate / deploy_guard (soft|hard). Default
+# soft: commit/deploy gates warn (allow + methodology_warnings) instead of
+# blocking; "hard" opts into denial. Read live per-call so config edits apply
+# without a reload. Each key is read independently.
 _HOOKS_CFG = _METHODOLOGY_ROOT / "custom" / "config.toml"
 
-def _hook_strictness() -> str:
-    """Return the hook strictness: 'hard' when custom/config.toml sets it,
-    else 'soft'. A malformed/missing config fails soft (permissive)."""
+def _hook_gate_value(gate_key: str) -> str:
+    """Return the value of a [hooks] gate key: 'hard' when set, else 'soft'.
+
+    A malformed/missing config fails soft (permissive). Only the named key is
+    read, so quality_gate and deploy_guard stay independent.
+    """
     try:
         text = _HOOKS_CFG.read_text(encoding="utf-8")
     except OSError:
@@ -60,8 +64,17 @@ def _hook_strictness() -> str:
             key = key.strip()
             # Strip a trailing # comment and surrounding quotes.
             val = val.split("#", 1)[0].strip().strip('"').strip("'")
-            if key in ("quality_gate", "deploy_guard") and val == "hard":
+            if key == gate_key and val == "hard":
                 return "hard"
+    return "soft"
+
+def _hook_strictness() -> str:
+    """Backward-compatible combined strictness: 'hard' if EITHER gate is hard.
+
+    Used by guard()'s story-metadata path, which predates the split gate keys.
+    """
+    if _hook_gate_value("quality_gate") == "hard" or _hook_gate_value("deploy_guard") == "hard":
+        return "hard"
     return "soft"
 
 

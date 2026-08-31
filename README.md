@@ -74,14 +74,15 @@ In the OpenHands runtime the audit chain runs from **five** hook points (hooks.j
 | Hook | Mode | Matcher | Threshold | Behavior |
 |------|-----|---------|----------|----------|
 | **guard** | PreToolUse | file_editor, terminal | — | Code writing without an approved experiment → DENY (fail-closed) |
-| **quality** | PreToolUse | terminal | — | `git commit` with done stories lacking IR/QR/SP → DENY (fail-closed) |
-| **deploy** | PreToolUse | terminal | — | Deploy command + missing IR/QR/SP/PR → DENY (fail-closed) |
+| **quality** | PreToolUse | terminal | — | `git commit` with done stories lacking IR/QR/SP → DENY when hard |
+| **deploy** | PreToolUse | terminal | — | Deploy command + missing IR/QR/SP/PR → DENY when hard |
 | **stop** | Stop | — | — | Incomplete story/unapproved code → DENY (fail-closed) |
 | **audit** | PostToolUse | file_editor, terminal | — | Logs every call (fail-open) |
 
 The `quality_gate`/`deploy_guard` values (`"soft"` default | `"hard"`) under
-`custom/config.toml [hooks]` are now enforced at hook level: guard/stop mechanically
-block low-quality commits/deploys.
+`custom/config.toml [hooks]` are enforced at hook level. In `"soft"` (default) the
+commit/deploy gates warn (allow + `methodology_warnings`) instead of blocking;
+`"hard"` turns them into mechanical DENY. guard/stop always fail-closed.
 
 ## Status
 

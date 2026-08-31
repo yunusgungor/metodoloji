@@ -154,12 +154,12 @@ def test_git_checkout_targets():
 
 
 def test_git_apply_windows_backslash_path(tmp_path):
-    # BUG: a native Windows backslash path is escape-mangled by shlex, so the
-    # patch file is never opened and NO target is extracted.
-    patch = tmp_path / "changes.patch"
-    patch.write_text("diff --git a/src/a.py b/src/a.py\n+++ b/src/a.py\n", encoding="utf-8")
-    res = extract_bash_targets(f"git apply {patch}")
-    assert res == []
+    # _patch forward-slashes the temp path, so shlex leaves it intact on every
+    # platform (a native C:\... path would otherwise be escape-mangled and the
+    # patch never opened). Same contract as test_git_apply_patch.
+    p = _patch(tmp_path, "diff --git a/src/a.py b/src/a.py\n+++ b/src/a.py\n")
+    res = extract_bash_targets(f"git apply {p}")
+    assert "src/a.py" in res
 
 
 # --- patch ------------------------------------------------------------------

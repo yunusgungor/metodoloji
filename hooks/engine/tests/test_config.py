@@ -82,6 +82,19 @@ def test_hook_strictness_default_soft(tmp_path, monkeypatch):
     assert config._hook_strictness() == "soft"
 
 
+def test_hook_gate_values_read_independently(tmp_path, monkeypatch):
+    """quality_gate and deploy_guard are independent — hard on one must not
+    leak to the other."""
+    from modules import config
+    cfg = tmp_path / "config.toml"
+    cfg.write_text(
+        '[hooks]\nquality_gate = "soft"\ndeploy_guard = "hard"\n', encoding="utf-8")
+    monkeypatch.setattr(config, "_HOOKS_CFG", cfg)
+    assert config._hook_gate_value("quality_gate") == "soft"
+    assert config._hook_gate_value("deploy_guard") == "hard"
+    assert config._hook_strictness() == "hard"  # combined: either hard → hard
+
+
 def test_health_json_contract_keys():
     """The audit-status.sh health snapshot contract: these keys must always be
     present. (The script itself runs via subprocess which is flaky under

@@ -34,11 +34,13 @@ project_knowledge = "{project-root}/docs"
 project_knowledge = "{project-root}/docs"
 design_artifacts = "{project-root}/design-artifacts"
 
-# --- Hook enforcement modu (Faz 2 hard gate) ---
-# OpenHands runtime: guard (PreToolUse) + stop (Stop) run fail-closed —
-# code writing and session close without an approved experiment record return DENY.
-# quality-gate/deploy-guard values here are informational only (Claude runtime
-# legacy; not bound in OpenHands hooks.json).
+# --- Hook enforcement modu ---
+# guard (PreToolUse) + stop (Stop) run fail-closed — code writing and session
+# close without an approved experiment record return DENY.
+# quality_gate / deploy_guard control the commit & deploy gates:
+#   "soft" (default) → warn-only (allow + methodology_warnings), never blocks.
+#   "hard"           → DENY on missing IR/QR/SP/PR records.
+# Read live per-call by the hook engine.
 [hooks]
 quality_gate = "soft"   # "soft" (default) | "hard"
 deploy_guard = "soft"   # "soft" (default) | "hard"

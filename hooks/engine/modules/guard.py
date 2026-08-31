@@ -760,7 +760,8 @@ def quality(json_in: dict) -> dict:
 
     root = repo_root({})
     root = os.path.abspath(root)
-    return _check_gate_records(root, "git commit blocked")
+    return _apply_gate_strictness(_check_gate_records(root, "git commit blocked"),
+                                  "quality_gate")
 
 
 # --- Deploy Gate (PreToolUse, terminal) ---
@@ -776,6 +777,20 @@ _DEPLOY_CMD_RE = re.compile(
     r"\bdeploy\b"
     r")"
 )
+
+
+def _apply_gate_strictness(result: dict, gate_key: str) -> dict:
+    """Soft mode → a gate deny becomes warn-only allow.
+
+    gate_key is the config key that controls this gate (quality_gate or
+    deploy_guard). Read live (per-call) so config changes apply without reload.
+    """
+    if result.get("decision") != "deny":
+        return result
+    from .config import _hook_gate_value
+    if _hook_gate_value(gate_key) != "hard":
+        return {"decision": "allow", "methodology_warnings": [result["reason"]]}
+    return result
 
 
 def _check_gate_records(root: str, blocked_action: str, include_pr: bool = False) -> dict:
@@ -855,4 +870,5 @@ def deploy(json_in: dict) -> dict:
 
     root = repo_root({})
     root = os.path.abspath(root)
-    return _check_gate_records(root, "Deploy blocked", include_pr=True)
+    return _apply_gate_strictness(_check_gate_records(root, "Deploy blocked", include_pr=True),
+                                  "deploy_guard")

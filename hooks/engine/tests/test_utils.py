@@ -117,24 +117,26 @@ def test_rel_to_root_empty():
     assert rel_to_root("C:/proj", None) == ""
 
 
-def test_repo_root_env_priority():
+def test_repo_root_env_priority(tmp_path):
     import os
     old = os.environ.pop("CLAUDE_PROJECT_DIR", None)
-    os.environ["OPENHANDS_PROJECT_DIR"] = "C:/envroot"
+    envroot = str(tmp_path / "envroot")  # absolute on this platform
+    os.environ["OPENHANDS_PROJECT_DIR"] = envroot
     try:
-        assert repo_root({}) == "C:\\envroot"
+        assert repo_root({}) == os.path.abspath(envroot)
     finally:
         if old:
             os.environ["CLAUDE_PROJECT_DIR"] = old
         os.environ.pop("OPENHANDS_PROJECT_DIR", None)
 
 
-def test_repo_root_json_cwd_fallback():
+def test_repo_root_json_cwd_fallback(tmp_path):
     import os
     old_c = os.environ.pop("CLAUDE_PROJECT_DIR", None)
     old_o = os.environ.pop("OPENHANDS_PROJECT_DIR", None)
     try:
-        assert repo_root({"cwd": "C:/from-json"}) == "C:\\from-json"
+        cwd = str(tmp_path / "from-json")  # absolute on this platform
+        assert repo_root({"cwd": cwd}) == os.path.abspath(cwd)
     finally:
         if old_c:
             os.environ["CLAUDE_PROJECT_DIR"] = old_c

@@ -389,6 +389,104 @@ def test_guard_soft_gate_combines_scope_and_metadata_warnings(tmp_path, monkeypa
     monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
 
 
+def _write_story(tmp_path, key="S-001", status="done"):
+    """Write a done story into tmp_path's docs tree (no records)."""
+    (tmp_path / "docs/development/stories").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "docs/quality").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "docs/development/stories" / f"{key}.md").write_text(
+        f"## Story: {key}\n- **Status:** {status}\n", encoding="utf-8")
+
+
+def test_quality_soft_gate_warns_not_denies(tmp_path, monkeypatch):
+    """quality_gate=soft → git commit with missing IR/QR is warn-only."""
+    from modules.guard import quality
+    from modules import config
+    monkeypatch.setattr(config, "_hook_gate_value",
+                        lambda key: "soft")
+    _write_story(tmp_path)
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    res = quality({"tool_name": "terminal",
+                   "tool_input": {"command": "git commit -m 'x'"}})
+    assert res["decision"] == "allow"
+    assert any("Implementation Readiness" in w
+               for w in res.get("methodology_warnings", []))
+
+
+def test_quality_hard_gate_denies(tmp_path, monkeypatch):
+    """quality_gate=hard → git commit with missing IR/QR is DENY."""
+    from modules.guard import quality
+    from modules import config
+    monkeypatch.setattr(config, "_hook_gate_value",
+                        lambda key: "hard")
+    _write_story(tmp_path)
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    res = quality({"tool_name": "terminal",
+                   "tool_input": {"command": "git commit -m 'x'"}})
+    assert res["decision"] == "deny"
+
+
+def test_deploy_soft_gate_warns_not_denies(tmp_path, monkeypatch):
+    """deploy_guard=soft → deploy with missing PR is warn-only."""
+    from modules.guard import deploy
+    from modules import config
+    monkeypatch.setattr(config, "_hook_gate_value",
+                        lambda key: "soft")
+    _write_story(tmp_path)
+    (tmp_path / "docs/quality/QR-001.md").write_text(
+        "# QR\nStory S-001 approved\n", encoding="utf-8")
+    (tmp_path / "docs/development/IR-001.md").write_text("# IR\nready", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    res = deploy({"tool_name": "terminal",
+                  "tool_input": {"command": "git push origin main"}})
+    assert res["decision"] == "allow"
+    assert any("Production Readiness" in w
+               for w in res.get("methodology_warnings", []))
+
+
+def test_deploy_hard_gate_denies(tmp_path, monkeypatch):
+    """deploy_guard=hard → deploy with missing PR is DENY."""
+    from modules.guard import deploy
+    from modules import config
+    monkeypatch.setattr(config, "_hook_gate_value",
+                        lambda key: "hard")
+    _write_story(tmp_path)
+    (tmp_path / "docs/quality/QR-001.md").write_text(
+        "# QR\nStory S-001 approved\n", encoding="utf-8")
+    (tmp_path / "docs/development/IR-001.md").write_text("# IR\nready", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    res = deploy({"tool_name": "terminal",
+                  "tool_input": {"command": "git push origin main"}})
+    assert res["decision"] == "deny"
+
+
+def test_gates_read_independent_keys(tmp_path, monkeypatch):
+    """quality_gate and deploy_guard are read independently: deploy_guard=hard
+    must not make the quality gate hard (and vice versa)."""
+    from modules.guard import quality, deploy
+    from modules import config
+    # Only deploy_guard is hard.
+    monkeypatch.setattr(config, "_hook_gate_value",
+                        lambda key: "hard" if key == "deploy_guard" else "soft")
+    _write_story(tmp_path)  # no IR record → both gates fail the IR check
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    # quality gate soft → allow + warning (never deny)
+    q = quality({"tool_name": "terminal",
+                 "tool_input": {"command": "git commit -m 'x'"}})
+    assert q["decision"] == "allow"
+    assert any("Implementation Readiness" in w
+               for w in q.get("methodology_warnings", []))
+    # deploy gate hard → deny on the same IR gap
+    d = deploy({"tool_name": "terminal",
+                "tool_input": {"command": "git push origin main"}})
+    assert d["decision"] == "deny"
+    assert "Implementation Readiness" in d["reason"]
+
+
 def test_guard_scope_inside_no_warning(tmp_path, monkeypatch):
     """A write inside the active scope gets no scope warning."""
     from modules.guard import guard
