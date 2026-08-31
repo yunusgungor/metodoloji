@@ -106,21 +106,21 @@ def _update_index():
                 type_dir = root / info["dir"]
                 docs = sorted(type_dir.glob(f"{info['prefix']}-*.md")) if type_dir.exists() else []
                 type_names = {
-                    "decision": "Kararlar",
-                    "pattern": "Kalıplar",
-                    "learning": "Dersler",
-                    "api": "API Kullanımları",
-                    "troubleshooting": "Sorun Giderme",
-                    "pending": "Bekleyen İşler",
+                    "decision": "Decisions",
+                    "pattern": "Patterns",
+                    "learning": "Learnings",
+                    "api": "API Usages",
+                    "troubleshooting": "Troubleshooting",
+                    "pending": "Pending Items",
                 }
-                new_lines.append(f"### [{type_names[doc_type]}](./{info['dir']}/) — {len(docs)} kayıt")
+                new_lines.append(f"### [{type_names[doc_type]}](./{info['dir']}/) — {len(docs)} records")
                 for doc in docs[:5]:  # Show latest 5
                     content = doc.read_text(encoding="utf-8")
                     title_match = re.search(r"title:\s*\"(.+?)\"", content)
                     title = title_match.group(1) if title_match else doc.stem
                     new_lines.append(f"- [{title}](./{info['dir']}/{doc.name})")
                 if len(docs) > 5:
-                    new_lines.append(f"- ... ve {len(docs) - 5} tane daha")
+                    new_lines.append(f"- ... and {len(docs) - 5} more")
                 new_lines.append("")
             continue
         if in_categories and line.startswith("## ") and not line.startswith("## Kategoriler"):
@@ -133,55 +133,55 @@ def _update_index():
 
 def _create_index(index_path: pathlib.Path):
     """Create a new index.md file."""
-    content = """# Code Docs Dizini
+    content = """# Code Docs Index
 
-Proje geçmişini hatırlamak ve yeni bilgi üretmek için kullanılan yapılandırılmış dokümantasyon sistemi.
+Structured documentation system used to remember project history and generate new knowledge.
 
-## Kategoriler
+## Categories
 
 """
     for doc_type, info in DOC_TYPES.items():
         type_names = {
-            "decision": "Kararlar",
-            "pattern": "Kalıplar",
-            "learning": "Dersler",
-            "api": "API Kullanımları",
-            "troubleshooting": "Sorun Giderme",
-            "pending": "Bekleyen İşler",
+            "decision": "Decisions",
+            "pattern": "Patterns",
+            "learning": "Learnings",
+            "api": "API Usages",
+            "troubleshooting": "Troubleshooting",
+            "pending": "Pending Items",
         }
-        content += f"### [{type_names[doc_type]}](./{info['dir']}/) — 0 kayıt\n\n"
+        content += f"### [{type_names[doc_type]}](./{info['dir']}/) — 0 records\n\n"
 
-    content += """## Otomatik Üretim
+    content += """## Automatic Generation
 
-Bu dosyalar hook'lar tarafından otomatik üretilir:
-- **Audit hook**: Önemli olayları tespit eder (deney onayı, mimari değişiklik, hata çözümü)
-- **Guard hook**: Deney onayından sonra learning doc üretir
-- **Skill**: `bmad-code-docs` ile manuel recall ve kayıt
+These files are generated automatically by hooks:
+- **Audit hook**: Detects important events (experiment approval, architecture change, error resolution)
+- **Guard hook**: Generates a learning doc after experiment approval
+- **Skill**: Manual recall and recording via `bmad-code-docs`
 
-## Arama
+## Search
 
-- Etikete göre: `recall_by_tag("auth")`
-- Deney ID'sine göre: `recall_by_experiment("E-001")`
-- Kategoriye göre: `docs/code-docs/decisions/` klasöründe listeleme
+- By tag: `recall_by_tag("auth")`
+- By experiment ID: `recall_by_experiment("E-001")`
+- By category: list in the `docs/code-docs/decisions/` folder
 
-## Otomatik Yükleme
+## Automatic Loading
 
-Görev başlangıcında ilgili doc'lar otomatik yüklenir:
+Relevant docs are loaded automatically at task start:
 
 ```python
-# Görev bağlamına göre
-context = load_context_for_task("Guard hook auth testini çalıştır")
+# Based on task context
+context = load_context_for_task("Run the guard hook auth test")
 
-# Son doc'lar
+# Recent docs
 recent = load_recent_docs(n=5)
 
-# Bekleyen işler
+# Pending items
 pending = load_pending_docs()
 ```
 
-## Son Güncelleme
+## Last Update
 
-Otomatik olarak güncellenir — elle düzenlenmesi gerekmez.
+Updated automatically — no manual editing needed.
 """
     index_path.parent.mkdir(parents=True, exist_ok=True)
     index_path.write_text(content, encoding="utf-8")
@@ -196,18 +196,18 @@ def build_learning_doc(experiment_id: str, record_path: str,
     record_content = record.read_text(encoding="utf-8") if record.exists() else ""
 
     # Parse key fields from experiment record
-    theory_match = re.search(r"\*\*Teori:\*\*\s*(.+)", record_content)
-    hypothesis_match = re.search(r"\*\*Hipotez:\*\*\s*(.+)", record_content)
-    metric_match = re.search(r"\*\*Ölçüm metrikleri:\*\*\s*(.+)", record_content)
-    decision_match = re.search(r"\*\*Karar:\*\*\s*(.+)", record_content)
+    theory_match = re.search(r"\*\*Theory:\*\*\s*(.+)", record_content)
+    hypothesis_match = re.search(r"\*\*Hypothesis:\*\*\s*(.+)", record_content)
+    metric_match = re.search(r"\*\*Measurement Metrics:\*\*\s*(.+)", record_content)
+    decision_match = re.search(r"\*\*Decision:\*\*\s*(.+)", record_content)
 
-    theory = theory_match.group(1).strip() if theory_match else "Belirtilmemiş"
-    hypothesis = hypothesis_match.group(1).strip() if hypothesis_match else "Belirtilmemiş"
-    metric = metric_match.group(1).strip() if metric_match else "Belirtilmemiş"
-    decision = decision_match.group(1).strip() if decision_match else "ONAYLANDI"
+    theory = theory_match.group(1).strip() if theory_match else "Not specified"
+    hypothesis = hypothesis_match.group(1).strip() if hypothesis_match else "Not specified"
+    metric = metric_match.group(1).strip() if metric_match else "Not specified"
+    decision = decision_match.group(1).strip() if decision_match else "APPROVED"
 
     if not title:
-        title = f"Deney {experiment_id} öğrenimi"
+        title = f"Experiment {experiment_id} learning"
     if tags is None:
         tags = ["experiment", "learning"]
 
@@ -224,29 +224,29 @@ related_experiments: [{experiment_id}]
 status: active
 ---
 
-## Öğrenilen
+## Learned
 
-Deney {experiment_id} sonucunda {hypothesis} hipotezi {decision} kararıyla onaylandı.
+As a result of Experiment {experiment_id}, the {hypothesis} hypothesis was approved with the decision {decision}.
 
-## Bağlam
+## Context
 
-Teori: {theory}
+Theory: {theory}
 
-Hipotez: {hypothesis}
+Hypothesis: {hypothesis}
 
-Ölçüm: {metric}
+Measurement: {metric}
 
-## Kanıt
+## Evidence
 
-Deney kaydı: [/{record_path}]({record_path})
+Experiment record: [/{record_path}]({record_path})
 
-## Uygulama
+## Application
 
-Bu deneyden elde edilen bilgiler gelecek benzer senaryolarda kullanılacaktır.
+The knowledge gained from this experiment will be used in future similar scenarios.
 
-## İlişkili Kayıtlar
+## Related Records
 
-- Deney: [/{record_path}]({record_path})
+- Experiment: [/{record_path}]({record_path})
 """
     return content
 
@@ -280,23 +280,23 @@ related_stories: [{story_refs}]
 status: active
 ---
 
-## Karar
+## Decision
 
 {decision}
 
-## Gerekçe
+## Rationale
 
 {rationale}
 
-## Sonuçlar
+## Results
 
-{results if results else "Henüz sonuç yok — güncellenecek."}
+{results if results else "No results yet — will be updated."}
 
-## İlişkili Kayıtlar
+## Related Records
 
 """
     for exp in related_experiments:
-        content += f"- Deney: [{exp}](../../experiments/{exp}.md)\n"
+        content += f"- Experiment: [{exp}](../../experiments/{exp}.md)\n"
     for story in related_stories:
         content += f"- Story: [{story}](../../development/stories/{story}.md)\n"
 
@@ -322,23 +322,23 @@ tags: {tags}
 status: active
 ---
 
-## Hata
+## Error
 
 {error}
 
-## Neden
+## Cause
 
 {cause}
 
-## Çözüm
+## Solution
 
 {solution}
 
-## Önleme
+## Prevention
 
-{prevention if prevention else "Belirtilmedi."}
+{prevention if prevention else "Not specified."}
 
-## İlişkili Kayıtlar
+## Related Records
 
 """
     return content
@@ -363,29 +363,29 @@ tags: {tags}
 status: active
 ---
 
-## Kalıp
+## Pattern
 
 {pattern}
 
-## Kullanım Senaryosu
+## Usage Scenario
 
 {usage}
 
-## Örnek
+## Example
 
 ```python
-{example if example else "# Örnek eklenecek"}
+{example if example else "# Example to be added"}
 ```
 
-## Avantajlar
+## Advantages
 
-{pros if pros else "Belirtilmedi."}
+{pros if pros else "Not specified."}
 
-## Dezavantajlar
+## Disadvantages
 
-{cons if cons else "Belirtilmedi."}
+{cons if cons else "Not specified."}
 
-## İlişkili Kayıtlar
+## Related Records
 
 """
     return content
@@ -413,23 +413,23 @@ status: active
 
 {title}
 
-## İmza
+## Signature
 
 ```python
 {signature}
 ```
 
-## Kullanım
+## Usage
 
 ```python
 {usage}
 ```
 
-## Dikkat Edilecekler
+## Notes
 
-{notes if notes else "Belirtilmedi."}
+{notes if notes else "Not specified."}
 
-## İlişkili Kayıtlar
+## Related Records
 
 """
     return content
@@ -466,23 +466,23 @@ priority: {priority}
 status: pending
 ---
 
-## Açıklama
+## Description
 
 {description}
 
-## Bağlam
+## Context
 
-{context if context else "Belirtilmedi."}
+{context if context else "Not specified."}
 
-## Sonraki Adımlar
+## Next Steps
 
-{next_steps if next_steps else "Henüz belirlenmedi."}
+{next_steps if next_steps else "Not yet determined."}
 
-## İlişkili Kayıtlar
+## Related Records
 
 """
     for exp in related_experiments:
-        content += f"- Deney: [{exp}](../../experiments/{exp}.md)\n"
+        content += f"- Experiment: [{exp}](../../experiments/{exp}.md)\n"
     for story in related_stories:
         content += f"- Story: [{story}](../../development/stories/{story}.md)\n"
 
@@ -495,7 +495,7 @@ def create_learning(experiment_id: str, record_path: str,
                     title: str = "", tags: list[str] | None = None) -> pathlib.Path:
     """Create and write a learning doc. Returns the path."""
     content = build_learning_doc(experiment_id, record_path, title, tags)
-    slug = _slugify(title or f"deney-{experiment_id}-ogrenimi")
+    slug = _slugify(title or f"experiment-{experiment_id}-learning")
     path = _write_doc("learning", slug, content)
     _update_index()
     return path
@@ -713,12 +713,13 @@ def _extract_keywords(text: str) -> list[str]:
                   "would", "could", "should", "may", "might", "can", "shall",
                   "i", "you", "he", "she", "it", "we", "they", "me", "him",
                   "her", "us", "them", "my", "your", "his", "its", "our",
-                  "their", "this", "that", "these", "those", "bir", "ve",
-                  "ile", "için", "olan", "bu", "da", "de", "mi", "mı",
-                  "mu", "mü", "ne", "nasıl", "neden", "niçin", "kadar",
-                  "daha", "en", "çok", "az", "var", "yok", "olan"}
+                  "their", "this", "that", "these", "those", "with", "and",
+                  "for", "of", "to", "in", "on", "by", "from", "at", "up",
+                  "down", "about", "into", "through", "during", "before",
+                  "after", "above", "below", "again", "further", "then",
+                  "once", "here", "there", "when", "where", "why", "how"}
 
-    words = re.findall(r"[a-zA-ZğüşıöçĞÜŞİÖÇ]{3,}", text.lower())
+    words = re.findall(r"[a-zA-Z]{3,}", text.lower())
     keywords = [w for w in words if w not in stop_words]
 
     # Deduplicate while preserving order
@@ -734,7 +735,7 @@ def _extract_keywords(text: str) -> list[str]:
 
 def _format_context(docs: list[dict]) -> str:
     """Format docs list into context string for LLM."""
-    lines = ["## İlgili Code Docs", ""]
+    lines = ["## Related Code Docs", ""]
 
     # Group by type
     by_type = {}
@@ -745,18 +746,18 @@ def _format_context(docs: list[dict]) -> str:
         by_type[t].append(doc)
 
     type_names = {
-        "decision": "Kararlar",
-        "pattern": "Kalıplar",
-        "learning": "Dersler",
-        "api": "API Kullanımları",
-        "troubleshooting": "Sorun Giderme",
-        "pending": "Bekleyen İşler",
+        "decision": "Decisions",
+        "pattern": "Patterns",
+        "learning": "Learnings",
+        "api": "API Usages",
+        "troubleshooting": "Troubleshooting",
+        "pending": "Pending Items",
     }
 
     for doc_type, type_docs in by_type.items():
         lines.append(f"### {type_names.get(doc_type, doc_type)}")
         for doc in type_docs:
-            title = doc.get("title", "Başlık yok")
+            title = doc.get("title", "No title")
             doc_id = doc.get("id", "")
             path = doc.get("path", "")
             # Make path relative to project root

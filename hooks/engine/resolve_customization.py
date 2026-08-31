@@ -70,8 +70,8 @@ def find_project_root(start: Path):
 
 
 def find_custom_dir(project_root: Path) -> Path | None:
-    """Team/personal override dizini — plugin yerleşimi (custom/) öncelikli,
-    claude yerleşimi (_bmad/custom) geri-uyumlu."""
+    """Team/personal override directory — plugin layout (custom/) takes priority,
+    claude layout (_bmad/custom) is backward-compatible."""
     for cand in (project_root / "custom", project_root / "_bmad" / "custom"):
         if cand.is_dir():
             return cand

@@ -3,16 +3,16 @@
 
 The gate reads the hypothesis threshold FROM the experiment record file, so
 the threshold cannot be silently changed at the command line. It is the ONLY
-writer of the decision: a record that says ONAYLANDI without a valid GATE-OK
+writer of the decision: a record that says APPROVED without a valid GATE-OK
 token is forged (detected by --verify).
 
 Flow:
-  draft record written (Teori/Hipotez/Ölçüm metrikleri/Deney tasarımı, durum: planlandı)
+  draft record written (Theory/Hypothesis/Measurement Metrics/Experiment Design, Status: planned)
   -> experiment runs, value measured MECHANICALLY by the gate
   -> run_experiment.py --record <rec> --run "<cmd>" [--raw "<note>"]
         gate executes <cmd>, parses the measured value from its stdout (it never
         trusts an operator-supplied value), compares to the claim, writes
-        Ham sonuçlar / Karar / Kapı kanıtı / Sonraki adım / Durum
+        Raw Results / Decision / Gate Evidence / Next Step / Status
   -> later: run_experiment.py --verify <rec>   (confirms the decision is genuine)
 
 One measurement, one decision per record. A decided record refuses a re-run;
@@ -54,9 +54,9 @@ MEASURED_RE = re.compile(
     r"(?i)(?:^|\s)([A-Za-z_][\w]*)_(?:accuracy|validity|precision|score|rate|quality)"
     r"\s*=\s*(-?\d+(?:\.\d+)?)(?:\s*\(\s*(\d+)\s*/\s*(\d+)\s*\))?")
 
-# --- GATE-OK jetonu: HMAC-SHA256(anahtar, did|claim|measured). Anahtar repo DIŞINDADIR:
-# ~/.bmad/gate-key dosyası veya BMAD_GATE_KEY ortam değişkeni. Anahtar olmadan jeton
-# üretilemez; açık kaynaklı betikle elle hesaplanıp sahte kayıt üretme yolu böylece kapanır. ---
+# --- GATE-OK token: HMAC-SHA256(key, did|claim|measured). Key is OUTSIDE the repo:
+# ~/.bmad/gate-key file or BMAD_GATE_KEY env var. Without the key the token cannot be
+# reproduced, so forged records cannot pass --verify. ---
 SECRET_ENV = "BMAD_GATE_KEY"
 SECRET_FILE = str(pathlib.Path.home() / ".bmad" / "gate-key")
 
@@ -83,8 +83,8 @@ def require_secret() -> bytes:
     secret = load_secret()
     if secret is None:
         raise GateError(
-            "kapı anahtarı yok. Önce çalıştır: python3 run_experiment.py --init-secret "
-            f"(yazılır: {SECRET_FILE}) veya {SECRET_ENV} ortam değişkenini kullan.")
+            "gate key not found. Run first: python3 run_experiment.py --init-secret "
+            f"(writes: {SECRET_FILE}) or set the {SECRET_ENV} environment variable.")
     return secret
 
 
@@ -98,34 +98,32 @@ def init_secret() -> int:
         try:
             os.chmod(path, 0o600)
         except OSError:
-            pass  # Windows'ta chmod kısıtlı; içerik dışı repo koruması yeterli
-        print(f"GATE-OK anahtarı yazıldı: {path}")
-        print("Anahtar repo DIŞINDA tutulur (git'e girmez). Kaybedersen mevcut onaylar")
-        print("doğrulanamaz — yeni anahtarla yeni onaylar üretmen gerekir.")
+            pass  # chmod limited on Windows; out-of-repo file protection is sufficient
+        print(f"GATE-OK key written: {path}")
+        print("Key is kept OUTSIDE the repo (not in git). If lost, existing approvals")
+        print("cannot be verified — you need a new key for new approvals.")
         return 0
     except OSError as exc:
-        print(f"HATA: anahtar yazılamadı: {exc}", file=sys.stderr)
+        print(f"ERROR: could not write key: {exc}", file=sys.stderr)
         return 2
 
 
 def check_secret() -> int:
     if load_secret() is not None:
-        print(f"[OK] kapı anahtarı mevcut ({SECRET_FILE} veya {SECRET_ENV})")
+        print(f"[OK] gate key present ({SECRET_FILE} or {SECRET_ENV})")
         return 0
-    print(f"[HATA] kapı anahtarı yok. Çalıştır: python3 run_experiment.py --init-secret",
+    print(f"[ERROR] gate key not found. Run: python3 run_experiment.py --init-secret",
           file=sys.stderr)
     return 1
 
-# Records use the manifesto's Turkish field labels. The gate parses exactly these
-# labels; an English-labeled record will be rejected as an incomplete draft. This is
-# intentional and matches document_output_language = "Türkçe".
-# 'Kod kapsamı' zorunludur: onayın hangi kod dosyalarını açtığını glob'lar söyler.
-# guard-code.sh yalnızca kapsamı eşleşen dosyalara yazım izni verir.
-REQUIRED_DRAFT = ("Teori", "Hipotez", "Ölçüm metrikleri", "Deney tasarımı", "Kod kapsamı")
+# Records use English field labels. The gate parses exactly these labels.
+# 'Code Scope' is mandatory: it tells the gate which code files the approval opens.
+# guard only allows writes to files matching the scope.
+REQUIRED_DRAFT = ("Theory", "Hypothesis", "Measurement Metrics", "Experiment Design", "Code Scope")
 
 
 def parse_scope(scope: str) -> list[str]:
-    """Split a 'Kod kapsamı' value into patterns (comma/whitespace separated)."""
+    """Split a 'Code Scope' value into patterns (comma/whitespace separated)."""
     if not scope:
         return []
     return [p for p in re.split(r"[,\s]+", scope) if p]
@@ -164,7 +162,7 @@ def glob_to_regex(pattern: str) -> str:
 
 
 def scope_matches(scope: str, target: str) -> bool:
-    """True if the record's 'Kod kapsamı' covers the target file path (project-relative)."""
+    """True if the record's 'Code Scope' covers the target file path (project-relative)."""
     if not scope or not target:
         return False
     target = target.replace("\\", "/").lstrip("./")
@@ -175,33 +173,33 @@ def scope_matches(scope: str, target: str) -> bool:
 
 
 def record_scope(record_path: str) -> str:
-    """Return the 'Kod kapsamı' field of a record ('' when missing)."""
+    """Return the 'Code Scope' field of a record ('' when missing)."""
     try:
         text = open(record_path, encoding="utf-8").read()
     except OSError:
         return ""
-    return record_fields(text).get("Kod kapsamı", "").strip()
+    return record_fields(text).get("Code Scope", "").strip()
 
 
-# --- Belgesel mod (B/C/D) kayıt doğrulayıcı. Sayısal kapıdan ayrı: mekanik değil,
-# ama kayıt EKSİKSİZ ve dürüstlük alanları dolu mu mekanik olarak kontrol eder. ---
+# --- Documentary mode (B/C/D) record validator. Unlike the numeric gate:
+# not mechanical, but checks completeness and honesty fields. ---
 DOC_FIELDS = {
-    "Bulgu": ("Tarih", "Durum", "Araştırma sorusu", "Bağlam", "Yöntem", "Bulgu",
-              "Kanıt", "Karşıt kanıt", "Yorum", "Belirsizlik", "Karar", "Sonraki adım"),
-    "Tasarım": ("Tarih", "Durum", "Tasarım sorusu", "Kullanıcı / ihtiyaç", "Senaryo",
-                "Tasarım fikri", "Prototip", "Geri bildirim", "Belirsizlik", "Karar",
-                "Sonraki adım"),
-    "Alan": ("Tarih", "Durum", "Alan sorunu", "Kapsam / bağlam", "Paydaşlar",
-             "Koşullar / kısıtlar", "Sistem dinamikleri", "Kanıt", "Belirsizlik",
-             "Karar", "Sonraki adım"),
+    "Finding": ("Date", "Status", "Research Question", "Context", "Method", "Finding",
+                "Evidence", "Counter-evidence", "Interpretation", "Uncertainty", "Decision", "Next Step"),
+    "Design": ("Date", "Status", "Design Question", "User / Need", "Scenario",
+               "Design Idea", "Prototype", "Feedback", "Uncertainty", "Decision",
+               "Next Step"),
+    "Contextual": ("Date", "Status", "Contextual Issue", "Scope / Context", "Stakeholders",
+                   "Conditions / Constraints", "System Dynamics", "Evidence", "Uncertainty",
+                   "Decision", "Next Step"),
 }
-# Dürüstlük alanları: boş bırakılamaz (karşıt kanıt, belirsizlik itirafı, kaynak).
+# Honesty fields: must not be left empty (counter-evidence, uncertainty, source).
 HONESTY_FIELDS = {
-    "Bulgu": ("Kanıt", "Karşıt kanıt", "Belirsizlik"),
-    "Tasarım": ("Geri bildirim", "Belirsizlik"),
-    "Alan": ("Kanıt", "Belirsizlik"),
+    "Finding": ("Evidence", "Counter-evidence", "Uncertainty"),
+    "Design": ("Feedback", "Uncertainty"),
+    "Contextual": ("Evidence", "Uncertainty"),
 }
-DECISION_RE = re.compile(r"^(ONAYLANDI|REDDEDİLDİ|REVİZE|ERTELENDİ)")
+DECISION_RE = re.compile(r"^(APPROVED|REJECTED|REVISED|DEFERRED)")
 
 
 def validate_doc(path: str) -> int:
@@ -209,41 +207,41 @@ def validate_doc(path: str) -> int:
     try:
         text = open(path, encoding="utf-8").read()
     except OSError as exc:
-        print(f"HATA: okunamadı: {path}: {exc}", file=sys.stderr)
+        print(f"ERROR: cannot read: {path}: {exc}", file=sys.stderr)
         return 2
     fields = record_fields(text)
-    if re.search(r"##\s+Deney:", text):
-        print("Bu bir Mod A kaydı (E-id) — --validate Mod B/C/D içindir; Mod A için --verify kullan.",
+    if re.search(r"##\s+Experiment:", text):
+        print("This is a Mod A record (E-id) — --validate is for Mod B/C/D; use --verify for Mod A.",
               file=sys.stderr)
         return 2
     kind = None
-    for k in ("Bulgu", "Tasarım", "Alan"):
+    for k in ("Finding", "Design", "Contextual"):
         if re.search(rf"##\s+{k}:", text):
             kind = k
             break
     if kind is None:
-        print(f"Tanınmayan kayıt başlığı: {path}", file=sys.stderr)
+        print(f"Unrecognized record header: {path}", file=sys.stderr)
         return 2
 
     problems = []
     for f in DOC_FIELDS[kind]:
         val = fields.get(f, "").strip()
         if not val or re.fullmatch(r"<.*>", val):
-            problems.append(f"eksik/boş '{f}'")
-    karar = fields.get("Karar", "").strip()
+            problems.append(f"missing/empty '{f}'")
+    karar = fields.get("Decision", "").strip()
     if karar and not re.fullmatch(r"<.*>", karar) and not DECISION_RE.search(karar):
-        problems.append(f"Karar biçimi geçersiz: '{karar[:40]}'")
+        problems.append(f"Invalid Decision format: '{karar[:40]}'")
     for f in HONESTY_FIELDS[kind]:
         val = fields.get(f, "").strip()
         if not val or re.fullmatch(r"<.*>", val):
-            problems.append(f"dürüstlük alanı '{f}' boş")
+            problems.append(f"honesty field '{f}' is empty")
 
     for p in problems:
         print(f"  {path}: {p}")
     if problems:
-        print(f"[UYARI] {kind} kaydı eksik: {len(problems)} sorun")
+        print(f"[WARNING] {kind} record incomplete: {len(problems)} issues")
         return 1
-    print(f"[OK] {path} — {kind} kaydı eksiksiz ve dürüstlük alanları dolu.")
+    print(f"[OK] {path} — {kind} record complete with all honesty fields filled.")
     return 0
 
 
@@ -278,21 +276,21 @@ def record_fields(text: str) -> dict:
 
 
 def deney_id(text: str) -> str:
-    m = re.search(r"##\s+Deney:\s*([\w.\-]+)", text)
+    m = re.search(r"##\s+Experiment:\s*([\w.\-]+)", text)
     return m.group(1) if m else "E-?"
 
 
-def hypothesis_claim(hipotez: str) -> tuple[str, str]:
+def hypothesis_claim(hypothesis: str) -> tuple[str, str]:
     """From 'H-001: \"accuracy >= 0.90\"' -> (id, claim)."""
-    hm = re.search(r"(H-\d+)[:\s]", hipotez)
+    hm = re.search(r"(H-\d+)[:\s]", hypothesis)
     hid = hm.group(1) if hm else "H-?"
-    m = QUOTED_CLAIM.search(hipotez)
+    m = QUOTED_CLAIM.search(hypothesis)
     if m:
         return hid, m.group(1)
-    tail = re.search(r"[:\s]+(.+)$", hipotez)
+    tail = re.search(r"[:\s]+(.+)$", hypothesis)
     if tail:
         return hid, tail.group(1).strip()
-    raise ValueError("record 'Hipotez' line must look like 'H-001: \"metric >= 0.90\"'")
+    raise ValueError("record 'Hypothesis' line must look like 'H-001: \"metric >= 0.90\"'")
 
 
 def gate_token(claim: str, measured: float, did: str, secret: bytes,
@@ -300,11 +298,11 @@ def gate_token(claim: str, measured: float, did: str, secret: bytes,
     """GATE-OK token: HMAC-SHA256(secret, 'GATE-OK|did|claim|measured[|cmd_sha256]').
 
     Secret-gated: without the key the token cannot be reproduced, so a forged
-    ONAYLANDI record cannot pass --verify (unlike the old sha1(claim|measured)
+    APPROVED record cannot pass --verify (unlike the old sha1(claim|measured)
     scheme, which anyone with the open-source script could compute).
     cmd: the measurement command. When given, the token binds to the EXACT
-    measurement (new-style); editing 'Ölçüm komutu' after approval breaks the
-    token. Legacy tokens (cmd=None) keep verifying — tur-7 geriye uyumlu kapanış.
+    measurement (new-style); editing 'Measurement Command' after approval breaks the
+    token. Legacy tokens (cmd=None) keep verifying — backward compatibility.
     """
     payload = f"GATE-OK|{did}|{claim}|{measured}"
     if cmd is not None:
@@ -346,23 +344,23 @@ def claim_metric_name(claim: str) -> str:
 
 def uncertainty_note(x: int | None, n: int | None, value: float, threshold: float,
                      op: str) -> str:
-    """Mechanical rule-4 confession: return the 'Belirsizlik' line content.
+    """Mechanical rule-4 confession: return the 'Uncertainty' line content.
 
-    n is advisory, never a rejection. Returns 'yok' when the sample is large enough
-    for the threshold, an explanation when it is too small, or 'n bilinmiyor'.
+    n is advisory, never a rejection. Returns 'none' when the sample is large enough
+    for the threshold, an explanation when it is too small, or 'n unknown'.
     """
     if n is None or x is None:
-        return "n bilinmiyor (örneklem büyüklüğü ayrıştırılamadı)"
+        return "n unknown (sample size could not be parsed)"
     # The count only matters for upper-bound claims: a small sample inflates
     # confidence that the rate >= threshold.
     if op not in (">=", ">"):
-        return "yok (alt-sınır claim: örneklem küçüklüğü riski yok)"
+        return "none (lower-bound claim: no small-sample risk)"
     if abs(x / n - value) > 0.02:
-        return f"n bilinmiyor (x/y={x}/{n} değer {value} ile tutarsız)"
+        return f"n unknown (x/y={x}/{n} value {value} inconsistent)"
     lower = wilson_lower(x, n)
     if lower >= threshold:
-        return f"yok (n={n}, 95% Wilson alt sınır {lower:.2f} >= eşik {threshold:g})"
-    return (f"n={n} (örneklem küçük: 95% Wilson alt sınır {lower:.2f} < eşik {threshold:g})")
+        return f"none (n={n}, 95% Wilson lower bound {lower:.2f} >= threshold {threshold:g})"
+    return (f"n={n} (small sample: 95% Wilson lower bound {lower:.2f} < threshold {threshold:g})")
 
 
 def run_and_measure(cmd: str) -> tuple[float, int | None, int | None, str | None]:
@@ -389,22 +387,23 @@ def run_and_measure(cmd: str) -> tuple[float, int | None, int | None, str | None
     return float(m.group(2)), x, y, metric_stem(m.group(1))
 
 
-# --- Tur-7/madde 2: ölçüm betiği serbest bölgede yaşayamaz ---
-# Kapı, ölçümün KENDİSİNİN de metodoloji korumasında olmasını ister. scratch/tmp/temp
-# serbest bölgelerdir; oraya yazılan bench ajan tarafından serbestçe uydurulabilirdi.
-# Korumalı bölgede yaşayan bench'in kendisi onaylanmış artefakt olur (her değişiklik
-# kapıdan geçer). Konsola (stdout) sızıntı ve base64 obfuscation belgelenmiş sınırdır.
+# --- Rule: measurement script cannot live in a free zone ---
+# The gate requires the measurement itself to be under methodology protection.
+# scratch/tmp/temp are free zones; a bench there could be freely fabricated.
+# A bench living in a protected area becomes an approved artifact (every change
+# goes through the gate). Console (stdout) leakage and base64 obfuscation are
+# documented attack boundaries.
 _AGENT_BENCH_ZONE = re.compile(r"(?i)(?:^|[/\\])(?:scratch|tmp|temp)(?:[/\\]|$)")
 _KNOWN_INTERP = {"python", "python3", "py", "sh", "bash", "zsh", "node", "nodejs",
                  "deno", "bun", "perl", "ruby", "php", "rscript", "uv"}
 
 
 def _bench_target(cmd: str) -> str | None:
-    """Ölçüm komutunun ÇALIŞTIRDIĞI ilk betik/dosya yolu (hedef kontrolü için).
+    """Return the first script/file path the measurement command EXECUTES (for target checking).
 
-    'python3 src/bench.py data.csv' -> 'src/bench.py' (veri argümanları değil);
+    'python3 src/bench.py data.csv' -> 'src/bench.py' (not data arguments);
     'sh scripts/bench.sh' -> 'scripts/bench.sh'; './bench' -> './bench';
-    inline (-c/-m) -> None (dosya hedefi yok).
+    inline (-c/-m) -> None (no file target).
     """
     try:
         toks = shlex.split(cmd)
@@ -445,7 +444,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Record-bound mechanical approval gate.")
     ap.add_argument("--record", help="path to the experiment record .md")
     ap.add_argument("--run", help="measurement command to execute; the gate parses the "
-                                  "measured value from its output (tek mekanik yol)")
+                                  "measured value from its output (only mechanical path)")
     ap.add_argument("--raw", default="", help="extra raw-result note (optional)")
     ap.add_argument("--dry-run", action="store_true",
                     help="preview the decision (measured vs threshold, Wilson bound, "
@@ -472,8 +471,8 @@ def main() -> int:
     if not args.record:
         ap.error("need --record")
     if not args.run:
-        ap.error("need --run <measurement command> — kapı ölçümü kendisi çalıştırır; "
-                 "operatör beyanlı değer kabul edilmez")
+        ap.error("need --run <measurement command> — the gate runs the measurement itself; "
+                 "operator-declared values are not accepted")
 
     with open(args.record, encoding="utf-8") as fh:
         text = fh.read()
@@ -485,37 +484,37 @@ def main() -> int:
             return 2
 
     did = deney_id(text)
-    hid, claim = hypothesis_claim(fields.get("Hipotez", ""))
+    hid, claim = hypothesis_claim(fields.get("Hypothesis", ""))
 
-    # Tur-7/madde 2: ölçüm betiği serbest bölgede (scratch/tmp/temp) yaşayamaz. Kapı,
-    # ölçümün KENDİSİNİN de metodoloji korumasında olmasını ister; aksi halde ajan,
-    # uydurma bir scratch bench'i ile onay üretebilirdi. (Çalıştırma öncesi reddet.)
+    # Rule: measurement script cannot live in a free zone (scratch/tmp/temp). The gate
+    # requires the measurement itself to be under methodology protection; otherwise the
+    # agent could produce approval with a fabricated scratch bench. (Reject before execution.)
     if bench_in_free_zone(args.run):
-        print("ERROR: ölçüm betiği serbest bölgede (scratch/tmp/temp) çalıştırılamaz — "
-              "kapı, ölçümün kendisinin de metodoloji korumasında olmasını ister. Ölçüm "
-              "betiğini korumalı bir dizine (ör. scripts/bench/) taşı; her bench "
-              "değişikliği onay kapısından geçer.", file=sys.stderr)
+        print("ERROR: measurement script cannot run in a free zone (scratch/tmp/temp) — "
+              "the gate requires the measurement itself to be under methodology protection. "
+              "Move the measurement script to a protected directory (e.g. scripts/bench/); "
+              "every bench change goes through the approval gate.", file=sys.stderr)
         return 2
 
-    # Şablon yer tutucusu ('<...>') karar DEĞİLDİR — kapı henüz yazmadı. Yalnızca gerçek
-    # ONAYLANDI/REDDEDİLDİ değeri "karar verilmiş" sayılır; aksi halde şablon kopyası
-    # "already decided" ile reddedilirdi (kayıt-formatı tuzağı).
-    karar_val = fields.get("Karar", "").strip()
-    if karar_val and not re.fullmatch(r"<.*>", karar_val):
-        print(f"ERROR: record already decided ('{karar_val[:60]}'). "
+    # Template placeholder ('<...>') is NOT a decision — the gate hasn't written yet.
+    # Only a real APPROVED/REJECTED value counts as "decided"; otherwise a template
+    # copy would be rejected as "already decided" (record-format trap).
+    decision_val = fields.get("Decision", "").strip()
+    if decision_val and not re.fullmatch(r"<.*>", decision_val):
+        print(f"ERROR: record already decided ('{decision_val[:60]}'). "
               "Open a new experiment record for a new measurement.", file=sys.stderr)
         return 2
 
-    # Jeton (GATE-OK) HMAC-SHA256(anahtar, ...) ile üretilir — anahtar repo dışında.
-    # Karar ancak anahtar kuruluysa yazılır (sahte kayıt üretimi kapanır).
+    # Token (GATE-OK) is produced with HMAC-SHA256(key, ...) — key is outside repo.
+    # Decision is only written when the key is configured (forged records blocked).
     try:
         secret = require_secret()
     except GateError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
-    # Ölçüm: kapı komutu KENDİSİ çalıştırır ve değeri çıktıdan ayrıştırır. Operatörün
-    # sayı beyan etmesi yoktur — gerçeklik mekaniktir (manifesto: --run kanonik yoldur).
+    # Measurement: the gate runs the command ITSELF and parses the value from output.
+    # Operator declares no numbers — reality is mechanical (manifesto: --run is canonical).
     try:
         val, x, y, run_metric = run_and_measure(args.run)
     except ValueError as exc:
@@ -529,8 +528,8 @@ def main() -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
-    # Metric-name cross-check (Kural 1): ölçülen metrik adı (çıktıdan ayrıştırılan)
-    # hipotez claim'indeki metrik adıyla karşılaştırılır.
+    # Metric-name cross-check (Rule 1): the measured metric name (parsed from output)
+    # is compared against the metric name in the hypothesis claim.
     claim_metric = claim_metric_name(claim)
     measured_metric = run_metric
     metric_mismatch = measured_metric is not None and measured_metric != claim_metric
@@ -540,11 +539,11 @@ def main() -> int:
         print(f"WARNING: run measured '{measured_metric}', claim names '{claim_metric}'. "
               f"Metric redefinition — {fate}.", file=sys.stderr)
 
-    # Örneklem büyüklüğü: --run modunda payda (x/y) kapı tarafından ayrıştırılır ve
-    # zorunludur; 'n bilinmiyor' karar yolu yoktur (ADVISORY-BLOCK baypası kapalı).
+    # Sample size: in --run mode the denominator (x/y) is parsed by the gate and
+    # is mandatory; 'n unknown' is not a decision path (ADVISORY-BLOCK bypass closed).
     n = y
     if x is None:
-        x = int(round(n * val))  # n var ama x yoksa değerden türet (Wilson için)
+        x = int(round(n * val))  # n exists but x missing: derive from value (for Wilson)
 
     belirsizlik = uncertainty_note(x, n, val, threshold, op)
 
@@ -552,70 +551,70 @@ def main() -> int:
     # 'UYUMSUZ' on a redefinition (rule-1 spirit, advisory).
     if measured_metric is not None:
         if not metric_mismatch:
-            metrik_note = f"uyumlu (ölçülen {measured_metric} == iddia edilen {claim_metric})"
+            metric_note = f"consistent (measured {measured_metric} == claimed {claim_metric})"
         else:
-            metrik_note = (f"UYUMSUZ — ölçülen {measured_metric}, iddia edilen {claim_metric}: "
-                           "farklı bir şey ölçüldü (metrik yeniden tanımı)")
+            metric_note = (f"MISMATCH — measured {measured_metric}, claimed {claim_metric}: "
+                           "different metric measured (metric redefinition)")
     else:
-        metrik_note = "n/a"
+        metric_note = "n/a"
 
     # Dry-run: preview the full decision but write NOTHING. This is the only safe
     # way to check a record/format without deciding it — a gate run without --dry-run
     # writes a REAL decision (E-189 lesson).
     if args.dry_run:
-        # Mirror the exact lines a real run would write (proper Turkish, verbatim)
-        # so the operator sees precisely what will land in the record.
+        # Mirror the exact lines a real run would write so the operator sees
+        # precisely what will land in the record.
         print(f"[DRY-RUN] {hid}: {summary} -> {'PASS' if passed else 'FAIL'}")
-        print(f"[DRY-RUN]   Belirsizlik yazılacak: {belirsizlik}")
-        print(f"[DRY-RUN]   Metrik yazılacak: {metrik_note}")
-        print(f"[DRY-RUN]   Ölçüm komutu yazılacak: {args.run}")
+        print(f"[DRY-RUN]   Uncertainty will be written: {belirsizlik}")
+        print(f"[DRY-RUN]   Metric will be written: {metric_note}")
+        print(f"[DRY-RUN]   Measurement command will be written: {args.run}")
         if passed:
             tok = gate_token(claim, val, did, secret, args.run)
-            print(f"[DRY-RUN]   Karar yazılacak: ONAYLANDI — {hid}: {summary}")
-            print(f'[DRY-RUN]   Kapı kanıtı yazılacak: measured={val} claim="{claim}" {tok}')
-            print("[DRY-RUN]   Sonraki adım yazılacak: Kod'a geç; "
-                  "Durum yazılacak: tamamlandı")
+            print(f"[DRY-RUN]   Decision will be: APPROVED — {hid}: {summary}")
+            print(f'[DRY-RUN]   Gate evidence will be: measured={val} claim="{claim}" {tok}')
+            print("[DRY-RUN]   Next Step will be: Proceed to Code; "
+                  "Status will be: completed")
         else:
-            print(f"[DRY-RUN]   Karar yazılacak: REDDEDİLDİ — {hid}: {summary} (kapı FAIL)")
-            print("[DRY-RUN]   Sonraki adım yazılacak: Teori'ye dön; yeni hipotez için yeni "
-                  "deney aç; Durum yazılacak: REDDEDİLDİ")
-        print(f"[DRY-RUN] HİÇBİR DEĞİŞİKLİK YAZILMADI — {args.record} dokunulmadı.")
+            print(f"[DRY-RUN]   Decision will be: REJECTED — {hid}: {summary} (gate FAIL)")
+            print("[DRY-RUN]   Next Step will be: Return to Theory; open new experiment "
+                  "for new hypothesis; Status will be: REJECTED")
+        print(f"[DRY-RUN] NO CHANGES WRITTEN — {args.record} untouched.")
         return 0
 
     lines = text.splitlines(keepends=False)
     raw_val = f"measured={val}" + (f"; n={n}" if n is not None else "") \
               + (f"; {args.raw}" if args.raw else "")
-    lines = upsert(lines, "- **Ham sonuçlar:**", raw_val)
-    lines = upsert(lines, "- **Belirsizlik:**", belirsizlik)
-    lines = upsert(lines, "- **Metrik:**", metrik_note)
-    # Tur-7/madde 2: ölçüm komutu kayda yazılır; yeni-stil jeton bu komuta bağlanır,
-    # böylece onay sonrası komutu değiştirmek jetonu kırar (verify reddeder).
-    lines = upsert(lines, "- **Ölçüm komutu:**", args.run)
+    lines = upsert(lines, "- **Raw Results:**", raw_val)
+    lines = upsert(lines, "- **Uncertainty:**", belirsizlik)
+    lines = upsert(lines, "- **Metric:**", metric_note)
+    # Rule: measurement command is written to record; new-style token binds to this command,
+    # so changing the command after approval breaks the token (verify rejects).
+    lines = upsert(lines, "- **Measurement Command:**", args.run)
 
     if passed:
         tok = gate_token(claim, val, did, secret, args.run)
-        lines = upsert(lines, "- **Karar:**", f"ONAYLANDI — {hid}: {summary}")
-        lines = upsert(lines, "- **Kapı kanıtı:**", f'measured={val} claim="{claim}" {tok}')
-        lines = upsert(lines, "- **Sonraki adım:**", "Kod'a geç")
-        lines = upsert(lines, "- **Durum:**", "tamamlandı")
+        lines = upsert(lines, "- **Decision:**", f"APPROVED — {hid}: {summary}")
+        lines = upsert(lines, "- **Gate Evidence:**", f'measured={val} claim="{claim}" {tok}')
+        lines = upsert(lines, "- **Next Step:**", "Proceed to Code")
+        lines = upsert(lines, "- **Status:**", "completed")
         open(args.record, "w", encoding="utf-8").write("\n".join(lines) + "\n")
         print(f"[{hid}] {summary} -> PASS")
-        print(f"DECISION: ONAYLANDI  token={tok}")
+        print(f"DECISION: APPROVED  token={tok}")
         print(f"Record updated: {args.record}")
         return 0
 
-    lines = upsert(lines, "- **Karar:**", f"REDDEDİLDİ — {hid}: {summary} (kapı FAIL)")
-    lines = upsert(lines, "- **Sonraki adım:**", "Teori'ye dön; yeni hipotez için yeni deney aç")
-    lines = upsert(lines, "- **Durum:**", "REDDEDİLDİ")
+    lines = upsert(lines, "- **Decision:**", f"REJECTED — {hid}: {summary} (gate FAIL)")
+    lines = upsert(lines, "- **Next Step:**", "Return to Theory; open new experiment for new hypothesis")
+    lines = upsert(lines, "- **Status:**", "REJECTED")
     open(args.record, "w", encoding="utf-8").write("\n".join(lines) + "\n")
     print(f"[{hid}] {summary} -> FAIL")
-    print("DECISION: REDDEDİLDİ")
+    print("DECISION: REJECTED")
     print(f"Record updated: {args.record}")
     return 1
 
 
 def verify(path: str) -> int:
-    """Return 0 if the record's ONAYLANDI is backed by a genuine gate token, else:
+    """Return 0 if the record's APPROVED is backed by a genuine gate token, else:
     1 = FORGED / undecided / rejected, 2 = ADVISORY-BLOCK (genuine but no code),
     3 = gate key missing (cannot verify).
     """
@@ -627,75 +626,74 @@ def verify(path: str) -> int:
     with open(path, encoding="utf-8") as fh:
         text = fh.read()
     fields = record_fields(text)
-    karar = fields.get("Karar", "").strip()
-    kanit = fields.get("Kapı kanıtı", "")
+    decision = fields.get("Decision", "").strip()
+    evidence = fields.get("Gate Evidence", "")
 
-    # Şablon yer tutucusu ('<...>') karar değildir — 'ONAYLANDI' içerse bile (format
-    # örneği `<kapı yazar: ONAYLANDI | REDDEDİLDİ — gerekçe>`) FORGED damgası YEMEMELİ;
-    # kapı henüz yazmadığı için "undecided" sayılır.
-    if re.fullmatch(r"<.*>", karar):
-        karar = ""
+    # Template placeholder ('<...>') is not a decision — even if it contains 'APPROVED'
+    # (as in `<gate writes: APPROVED | REJECTED — reason>`) it must NOT get a FORGED
+    # stamp; the gate hasn't written yet, so it counts as "undecided".
+    if re.fullmatch(r"<.*>", decision):
+        decision = ""
 
-    if "ONAYLANDI" in karar:
-        m = re.search(r'measured=(-?[\d.]+)\s+claim="([^"]+)"\s+(GATE-OK-[\w\-]+)', kanit)
+    if "APPROVED" in decision:
+        m = re.search(r'measured=(-?[\d.]+)\s+claim="([^"]+)"\s+(GATE-OK-[\w\-]+)', evidence)
         if not m:
-            print(f"FORGED: {path} says ONAYLANDI but has no valid gate evidence.")
+            print(f"FORGED: {path} says APPROVED but has no valid gate evidence.")
             return 1
         measured, claim, tok = float(m.group(1)), m.group(2), m.group(3)
-        # Cross-check: the hypothesis claim recorded in the Hipotez field must match
+        # Cross-check: the hypothesis claim recorded in the Hypothesis field must match
         # the claim the gate actually evaluated. Editing the threshold after approval
         # (then keeping the token) is a forged outcome.
         try:
-            _, recorded_claim = hypothesis_claim(fields.get("Hipotez", ""))
+            _, recorded_claim = hypothesis_claim(fields.get("Hypothesis", ""))
         except ValueError as exc:
-            print(f"FORGED: record Hipotez cannot be parsed ({exc}).")
+            print(f"FORGED: record Hypothesis cannot be parsed ({exc}).")
             return 1
         if recorded_claim.strip() != claim:
-            print(f"FORGED: recorded Hipotez claim '{recorded_claim}' != gate claim '{claim}'.")
+            print(f"FORGED: recorded Hypothesis claim '{recorded_claim}' != gate claim '{claim}'.")
             return 1
-        # Tur-7/madde 2: jeton, kayıttaki 'Ölçüm komutu'na bağlanır (yeni-stil).
-        # Alanı OLAN kayıtta YALNIZCA yeni-stil jeton geçer — alan değiştirilip eski
-        # (komut-bağlanmamış) jetonla sürdürmek ya da alanı silip ESKİ jetonu korumak
-        # FORGED olur (indirgeme). Alanı OLMAYAN kayıtlar ön-tur-7 kayıtlardır ve eski
-        # stil jetonla doğrulanır. (Alan silinip jeton da ANAHTARLA yeniden üretilirse
-        # doğrulanır — ama o, anahtarı ele geçirmiş demektir; belgelenmiş güven sınırıdır.)
-        cmd_field = fields.get("Ölçüm komutu", "").strip()
+        # Rule: token binds to 'Measurement Command' in the record (new-style).
+        # Records WITH this field only accept new-style tokens — changing the field
+        # and keeping the old (non-command-bound) token, or deleting the field while
+        # keeping the old token, is FORGED (downgrade).
+        # Records WITHOUT this field are pre-rule records verified with legacy token.
+        cmd_field = fields.get("Measurement Command", "").strip()
         new_tok = gate_token(claim, measured, deney_id(text), secret, cmd_field) if cmd_field \
             else None
         legacy_ok = tok == gate_token(claim, measured, deney_id(text), secret)
         if new_tok is not None and tok == new_tok:
             ok = True
         elif cmd_field:
-            ok = False  # alan varken yeni-stil jetonla uyuşmuyor => sahte/indirgeme
+            ok = False  # field present but doesn't match new-style token => forged/downgrade
         else:
             ok = legacy_ok
         if ok:
             # The token is genuine, but rule 4 (sample size) and rule 1 (metric
             # identity) are mechanically enforced here: a record that confesses a
-            # small sample, an unknown sample ('n bilinmiyor'), or a metric mismatch
+            # small sample, an unknown sample ('n unknown'), or a metric mismatch
             # does NOT unlock code.
-            belirsizlik = fields.get("Belirsizlik", "").strip()
-            metrik = fields.get("Metrik", "").strip()
+            uncertainty = fields.get("Uncertainty", "").strip()
+            metric = fields.get("Metric", "").strip()
             blocks = []
-            # 'n bilinmiyor' BLOKLAR: örneklem paydası kapı tarafından ayrıştırılır (--run);
-            # karar sonrası n'yi sökmek onayı geçersiz kılar. Eski (ön-kural) kayıtlar
-            # için güvenli davranış kod önünü açmamaktır.
-            if "örneklem küçük" in belirsizlik or "n bilinmiyor" in belirsizlik:
-                blocks.append(f"örneklem belirsizliği ({belirsizlik})")
-            if metrik and metrik.startswith("UYUMSUZ"):
-                blocks.append(f"metrik uyuşmazlığı ({metrik})")
+            # 'n unknown' BLOCKS: sample denominator is parsed by gate (--run);
+            # removing n after approval invalidates approval. For pre-rule records
+            # the safe behavior is to not unlock code.
+            if "small sample" in uncertainty or "n unknown" in uncertainty:
+                blocks.append(f"sample uncertainty ({uncertainty})")
+            if metric and metric.startswith("MISMATCH"):
+                blocks.append(f"metric mismatch ({metric})")
             if blocks:
-                print(f"ADVISORY-BLOCK: {path} — ONAYLANDI genuine (token {tok}), "
+                print(f"ADVISORY-BLOCK: {path} — APPROVED genuine (token {tok}), "
                       f"but {'; '.join(blocks)}. Fix the experiment before code.")
                 return 2
-            print(f"VERIFIED: {path} — ONAYLANDI genuine (token {tok}). Code may proceed.")
+            print(f"VERIFIED: {path} — APPROVED genuine (token {tok}). Code may proceed.")
             return 0
         print(f"FORGED: token {tok} does not match the record's claim/measured/cmd.")
         return 1
-    if "REDDEDİLDİ" in karar:
-        print(f"{path} — REDDEDİLDİ (no code). Reason: {karar}")
+    if "REJECTED" in decision:
+        print(f"{path} — REJECTED (no code). Reason: {decision}")
         return 1
-    print(f"{path} — undecided (no Karar). Run the gate with --record and --run.")
+    print(f"{path} — undecided (no Decision). Run the gate with --record and --run.")
     return 1
 
 
@@ -703,8 +701,8 @@ def _selfcheck() -> None:
     import os
     import tempfile
 
-    # Selfcheck sabit bir test anahtarı kullanır (ortam değişkeni yoluyla; dosya
-    # yoluna dokunmaz). Sonunda geri alınır.
+    # Selfcheck uses a fixed test key (via env var; doesn't touch file path).
+    # Restored at the end.
     _old_env = os.environ.get(SECRET_ENV)
     os.environ[SECRET_ENV] = "selfcheck-test-key"
 
@@ -720,22 +718,22 @@ def _selfcheck() -> None:
     m = MEASURED_RE.search("metric_score=0.80")
     assert (m.group(2), m.group(3), m.group(4)) == ("0.80", None, None)
 
-    # 'Kod kapsamı' glob eşleştirme: '**' her derinlik, '*' tek segment, '?' tek karakter.
+    # 'Code Scope' glob matching: '**' any depth, '*' single segment, '?' single char.
     assert scope_matches("src/**", "src/foo.py")
     assert scope_matches("src/**", "src/engine/foo.py")
     assert not scope_matches("src/**", "tests/foo.py")
     assert scope_matches("src/engine/**", "src/engine/core/x.py")
     assert scope_matches("src/*.py", "src/foo.py")
     assert not scope_matches("src/*.py", "src/foo/bar.py")
-    assert scope_matches("src/**", "src\\engine\\foo.py")   # Windows ayraçları normalize
+    assert scope_matches("src/**", "src\\engine\\foo.py")   # Windows separators normalized
     assert scope_matches("lib/**,tools/*", "tools/build.py")
     assert scope_matches("src/engine/**", "src/engine/core/x.py")
     assert not scope_matches("", "src/foo.py")
     assert scope_matches("src/**", "src/foo.py")
     assert glob_to_regex("**").endswith(".*$")
 
-    # Tur-7/madde 2: serbest bölge bench'i reddedilir; korumalı bench serbesttir;
-    # jeton ölçüm komutuna bağlanır (cmd param) — komut değişince jeton değişir.
+    # Rule: free-zone bench is rejected; protected bench is allowed;
+    # token binds to measurement command (cmd param) — command change breaks token.
     assert bench_in_free_zone("python3 scratch/bench.py") is True
     assert bench_in_free_zone("python3 tmp/bench.py") is True
     assert bench_in_free_zone("sh scripts/bench.sh") is False
@@ -750,9 +748,9 @@ def _selfcheck() -> None:
     _tok_c = gate_token("a >= 0.9", 1.0, "E-X", b"k", "cmd2")
     assert _tok_a != _tok_b and _tok_b != _tok_c
 
-    # Tur-7/madde 2: bench'ler kapının KENDİ dizini altında geçici olarak yaşar —
-    # OS temp'te (/tmp, %TEMP%) yaşarlarsa serbest-bölge kuralı Linux'ta yanlış
-    # pozitif üretir; geçici dizin selfcheck bitince silinir.
+    # Rule: benches live temporarily under the gate's OWN directory —
+    # if they live in OS temp (/tmp, %TEMP%) the free-zone rule produces false
+    # positives on Linux; the temp directory is deleted when selfcheck ends.
     with tempfile.TemporaryDirectory(dir=os.path.dirname(os.path.abspath(__file__)),
                                      prefix="meth-selfcheck-") as td:
         bench = os.path.join(td, "fake_bench.py")
@@ -761,13 +759,13 @@ def _selfcheck() -> None:
         rec = os.path.join(td, "E-001.md")
         with open(rec, "w", encoding="utf-8") as fh:
             fh.write(
-                "## Deney: E-001 — selfcheck\n"
-                "- **Durum:** planlandı\n"
-                "- **Teori:** test teorisi\n"
-                '- **Hipotez:** H-001: "fake_accuracy >= 0.90"\n'
-                "- **Ölçüm metrikleri:** fake_accuracy >= 0.90\n"
-                "- **Deney tasarımı:** birim test\n"
-                "- **Kod kapsamı:** yok\n"
+                "## Experiment: E-001 — selfcheck\n"
+                "- **Status:** planned\n"
+                "- **Theory:** test theory\n"
+                '- **Hypothesis:** H-001: "fake_accuracy >= 0.90"\n'
+                "- **Measurement Metrics:** fake_accuracy >= 0.90\n"
+                "- **Experiment Design:** unit test\n"
+                "- **Code Scope:** none\n"
             )
         old = sys.argv
         sys.argv = ["run_experiment.py", "--record", rec,
@@ -777,52 +775,53 @@ def _selfcheck() -> None:
         forged = os.path.join(td, "E-001-forged.md")
         text = open(rec, encoding="utf-8").read()
         stripped = "\n".join(l for l in text.splitlines()
-                             if "- **Kapı kanıtı:**" not in l)
+                             if "- **Gate Evidence:**" not in l)
         with open(forged, "w", encoding="utf-8") as fh:
             fh.write(stripped)
-        assert verify(forged) == 1  # ONAYLANDI without token is forged
-        # Threshold tamper after approval: edit the Hipotez claim, keep the token.
+        assert verify(forged) == 1  # APPROVED without token is forged
+        # Threshold tamper after approval: edit the Hypothesis claim, keep the token.
         tampered = os.path.join(td, "E-001-tampered.md")
         swapped = text.replace('H-001: "fake_accuracy >= 0.90"',
                                'H-001: "fake_accuracy >= 0.99"')
         with open(tampered, "w", encoding="utf-8") as fh:
             fh.write(swapped)
-        assert verify(tampered) == 1  # edited Hipotez != gate claim is forged
-        # Wrong secret: HMAC anahtarını bilmeden jeton yeniden üretilemez -> FORGED.
+        assert verify(tampered) == 1  # edited Hypothesis != gate claim is forged
+        # Wrong secret: HMAC token cannot be reproduced without the key -> FORGED.
         wrongkey = os.path.join(td, "E-001-wrongkey.md")
         tok_re = re.search(r"(GATE-OK-[\w\-]+)", text)
         assert tok_re
         fake_tok = gate_token("fake_accuracy >= 0.90", 1.0, "E-001", b"wrong-secret-key")
         with open(wrongkey, "w", encoding="utf-8") as fh:
             fh.write(text.replace(tok_re.group(1), fake_tok))
-        assert verify(wrongkey) == 1  # yanlış anahtarla üretilmiş jeton -> FORGED
-        # Tur-7/madde 2: onay sonrası 'Ölçüm komutu'nu değiştirmek jetonu kırar (FORGED);
-        # alanı silip eski-stil jetonla indirgemek de FORGED kalır (downgrade kapalı).
-        cmd_line = re.search(r"- \*\*Ölçüm komutu:\*\* .*", text)
+        assert verify(wrongkey) == 1  # wrong-key token -> FORGED
+        # Rule: changing 'Measurement Command' after approval breaks token (FORGED);
+        # deleting the field and downgrading to legacy token stays FORGED (downgrade closed).
+        cmd_line = re.search(r"- \*\*Measurement Command:\*\* .*", text)
         assert cmd_line
         cmd_tamper = os.path.join(td, "E-001-cmdtamper.md")
         with open(cmd_tamper, "w", encoding="utf-8") as fh:
-            fh.write(text.replace(cmd_line.group(0), "- **Ölçüm komutu:** python3 other_bench.py"))
+            fh.write(text.replace(cmd_line.group(0), "- **Measurement Command:** python3 other_bench.py"))
         assert verify(cmd_tamper) == 1
-        # Tur-7/madde 2 (secret'sız indirgeme): alanı SİLİP yeni-stil jetonu KORUMAK da
-        # FORGED olur — komut-bağlı jeton, alansız kayıtta eski-stil jetonla doğrulanamaz.
+        # Rule (secretless downgrade): deleting the field and keeping the new-style
+        # token is also FORGED — command-bound token cannot be verified as legacy in
+        # a field-less record.
         strip = os.path.join(td, "E-001-strip.md")
         with open(strip, "w", encoding="utf-8") as fh:
             fh.write("\n".join(l for l in text.splitlines()
-                               if not l.startswith("- **Ölçüm komutu:**")) + "\n")
+                               if not l.startswith("- **Measurement Command:**")) + "\n")
         assert verify(strip) == 1
 
         # --run mode: the gate parses the value from the measurement command's output.
         rec2 = os.path.join(td, "E-001-run.md")
         with open(rec2, "w", encoding="utf-8") as fh:
             fh.write(
-                "## Deney: E-001 — selfcheck run\n"
-                "- **Durum:** planlandı\n"
-                "- **Teori:** test teorisi\n"
-                '- **Hipotez:** H-001: "fake_accuracy >= 0.90"\n'
-                "- **Ölçüm metrikleri:** fake_accuracy >= 0.90\n"
-                "- **Deney tasarımı:** birim test\n"
-                "- **Kod kapsamı:** yok\n"
+                "## Experiment: E-001 — selfcheck run\n"
+                "- **Status:** planned\n"
+                "- **Theory:** test theory\n"
+                '- **Hypothesis:** H-001: "fake_accuracy >= 0.90"\n'
+                "- **Measurement Metrics:** fake_accuracy >= 0.90\n"
+                "- **Experiment Design:** unit test\n"
+                "- **Code Scope:** none\n"
             )
         sys.argv = ["run_experiment.py", "--record", rec2,
                     "--run", f'"{sys.executable}" "{bench}"']
@@ -832,13 +831,13 @@ def _selfcheck() -> None:
         rec3 = os.path.join(td, "E-001-novalue.md")
         with open(rec3, "w", encoding="utf-8") as fh:
             fh.write(
-                "## Deney: E-001 — selfcheck novalue\n"
-                "- **Durum:** planlandı\n"
-                "- **Teori:** test teorisi\n"
-                '- **Hipotez:** H-001: "accuracy >= 0.90"\n'
-                "- **Ölçüm metrikleri:** accuracy >= 0.90\n"
-                "- **Deney tasarımı:** birim test\n"
-                "- **Kod kapsamı:** yok\n"
+                "## Experiment: E-001 — selfcheck novalue\n"
+                "- **Status:** planned\n"
+                "- **Theory:** test theory\n"
+                '- **Hypothesis:** H-001: "accuracy >= 0.90"\n'
+                "- **Measurement Metrics:** accuracy >= 0.90\n"
+                "- **Experiment Design:** unit test\n"
+                "- **Code Scope:** none\n"
             )
         with open(bench, "w", encoding="utf-8") as fh:
             fh.write('print("hello")\n')
@@ -854,18 +853,18 @@ def _selfcheck() -> None:
         rec4 = os.path.join(td, "E-001-smalln.md")
         with open(rec4, "w", encoding="utf-8") as fh:
             fh.write(
-                "## Deney: E-001 — selfcheck small-n\n"
-                "- **Durum:** planlandı\n"
-                "- **Teori:** test teorisi\n"
-                '- **Hipotez:** H-001: "accuracy >= 0.90"\n'
-                "- **Ölçüm metrikleri:** accuracy >= 0.90\n"
-                "- **Deney tasarımı:** birim test\n"
-                "- **Kod kapsamı:** yok\n"
+                "## Experiment: E-001 — selfcheck small-n\n"
+                "- **Status:** planned\n"
+                "- **Theory:** test theory\n"
+                '- **Hypothesis:** H-001: "accuracy >= 0.90"\n'
+                "- **Measurement Metrics:** accuracy >= 0.90\n"
+                "- **Experiment Design:** unit test\n"
+                "- **Code Scope:** none\n"
             )
         sys.argv = ["run_experiment.py", "--record", rec4,
                     "--run", f'"{sys.executable}" "{bench}"']
         assert main() == 0  # 0.93 >= 0.90 still PASSes
-        assert "Belirsizlik:** n=15" in open(rec4, encoding="utf-8").read()
+        assert "Uncertainty:** n=15" in open(rec4, encoding="utf-8").read()
         assert verify(rec4) == 2  # small-n blocks code
 
         # Sample-size: sufficient-n writes 'yok' (affirmative no-warning).
@@ -874,18 +873,18 @@ def _selfcheck() -> None:
         rec5 = os.path.join(td, "E-001-suff.md")
         with open(rec5, "w", encoding="utf-8") as fh:
             fh.write(
-                "## Deney: E-001 — selfcheck sufficient-n\n"
-                "- **Durum:** planlandı\n"
-                "- **Teori:** test teorisi\n"
-                '- **Hipotez:** H-001: "accuracy >= 0.90"\n'
-                "- **Ölçüm metrikleri:** accuracy >= 0.90\n"
-                "- **Deney tasarımı:** birim test\n"
-                "- **Kod kapsamı:** yok\n"
+                "## Experiment: E-001 — selfcheck sufficient-n\n"
+                "- **Status:** planned\n"
+                "- **Theory:** test theory\n"
+                '- **Hypothesis:** H-001: "accuracy >= 0.90"\n'
+                "- **Measurement Metrics:** accuracy >= 0.90\n"
+                "- **Experiment Design:** unit test\n"
+                "- **Code Scope:** none\n"
             )
         sys.argv = ["run_experiment.py", "--record", rec5,
                     "--run", f'"{sys.executable}" "{bench}"']
         assert main() == 0
-        assert "Belirsizlik:** yok" in open(rec5, encoding="utf-8").read()
+        assert "Uncertainty:** none" in open(rec5, encoding="utf-8").read()
 
         # --run requires the (x/y) denominator: a value-only bench is rejected so
         # 'n bilinmiyor' cannot bypass ADVISORY-BLOCK.
@@ -894,13 +893,13 @@ def _selfcheck() -> None:
         rec6 = os.path.join(td, "E-001-nounk.md")
         with open(rec6, "w", encoding="utf-8") as fh:
             fh.write(
-                "## Deney: E-001 — selfcheck value-only\n"
-                "- **Durum:** planlandı\n"
-                "- **Teori:** test teorisi\n"
-                '- **Hipotez:** H-001: "accuracy >= 0.90"\n'
-                "- **Ölçüm metrikleri:** accuracy >= 0.90\n"
-                "- **Deney tasarımı:** birim test\n"
-                "- **Kod kapsamı:** yok\n"
+                "## Experiment: E-001 — selfcheck value-only\n"
+                "- **Status:** planned\n"
+                "- **Theory:** test theory\n"
+                '- **Hypothesis:** H-001: "accuracy >= 0.90"\n'
+                "- **Measurement Metrics:** accuracy >= 0.90\n"
+                "- **Experiment Design:** unit test\n"
+                "- **Code Scope:** none\n"
             )
         before6 = open(rec6, encoding="utf-8").read()
         # Distinct from rec3 ('hello' prints no value at all): this bench DID print a
@@ -916,110 +915,110 @@ def _selfcheck() -> None:
         assert "no sample-size denominator" in _err.getvalue()
         assert open(rec6, encoding="utf-8").read() == before6  # record untouched
 
-        # --measured / --metric / --n KALDIRILDI (güven sınırı): kapı ölçümü KENDİSİ
-        # çalıştırır; operatör beyanlı değer yoktur. Kural 1 (metrik kimliği) ve Kural 4
-        # (örneklem) her onayda mekaniktir — aşağıdaki rec9/rec10 bunu --run ile sınar.
+        # --measured / --metric / --n REMOVED (security boundary): gate runs measurement
+        # itself; operator-declared values don't exist. Rule 1 (metric identity) and
+        # Rule 4 (sample) are mechanical on every approval — rec9/rec10 below test with --run.
 
-        # Eski (ön-kural) kayıt: 'n bilinmiyor' itirafı + gerçek jeton -> kod BLOKLU (rc=2).
+        # Pre-rule record: 'n unknown' confession + genuine token -> code BLOCKED (rc=2).
         rec_nunk = os.path.join(td, "E-001-nunk.md")
         text5 = open(rec5, encoding="utf-8").read()
         swapped_nunk = text5.replace(
-            "- **Belirsizlik:** yok",
-            "- **Belirsizlik:** n bilinmiyor (örneklem büyüklüğü ayrıştırılamadı)")
+            "- **Uncertainty:** none",
+            "- **Uncertainty:** n unknown (sample size could not be parsed)")
         with open(rec_nunk, "w", encoding="utf-8") as fh:
             fh.write(swapped_nunk)
-        assert verify(rec_nunk) == 2  # n bilinmiyor ARTIK bloklar
+        assert verify(rec_nunk) == 2  # n unknown NOW blocks
 
-        # Mod B (belgesel) doğrulama: eksiksiz kayıt OK, dürüstlük alanı boş -> UYARI.
+        # Mod B (documentary) validation: complete record OK, empty honesty field -> WARNING.
         doc_ok = os.path.join(td, "B-001-ok.md")
         with open(doc_ok, "w", encoding="utf-8") as fh:
             fh.write("\n".join([
-                "## Bulgu: B-001 — selfcheck",
-                "- **Tarih:** 13.08.2026",
-                "- **Durum:** tamamlandı",
-                "- **Araştırma sorusu:** soru",
-                "- **Bağlam:** bağlam",
-                "- **Yöntem:** yöntem",
-                "- **Bulgu:** bulgu",
-                "- **Kanıt:** kanıt",
-                "- **Karşıt kanıt:** yok",
-                "- **Yorum:** yorum",
-                "- **Belirsizlik:** küçük örneklem",
-                "- **Karar:** ONAYLANDI — bulgu",
-                "- **Sonraki adım:** kod",
+                "## Finding: B-001 — selfcheck",
+                "- **Date:** 13.08.2026",
+                "- **Status:** completed",
+                "- **Research Question:** question",
+                "- **Context:** context",
+                "- **Method:** method",
+                "- **Finding:** finding",
+                "- **Evidence:** evidence",
+                "- **Counter-evidence:** none",
+                "- **Interpretation:** interpretation",
+                "- **Uncertainty:** small sample",
+                "- **Decision:** APPROVED — finding",
+                "- **Next Step:** code",
                 ""]))
         assert validate_doc(doc_ok) == 0
         doc_bad = os.path.join(td, "B-001-bad.md")
         with open(doc_bad, "w", encoding="utf-8") as fh:
             fh.write("\n".join([
-                "## Bulgu: B-001 — selfcheck bad",
-                "- **Tarih:** 13.08.2026",
-                "- **Durum:** tamamlandı",
-                "- **Araştırma sorusu:** soru",
-                "- **Bağlam:** bağlam",
-                "- **Yöntem:** yöntem",
-                "- **Bulgu:** bulgu",
-                "- **Kanıt:** <kanıt>",
-                "- **Karşıt kanıt:**",
-                "- **Yorum:** yorum",
-                "- **Belirsizlik:**",
-                "- **Karar:** ONAYLANDI",
-                "- **Sonraki adım:** kod",
+                "## Finding: B-001 — selfcheck bad",
+                "- **Date:** 13.08.2026",
+                "- **Status:** completed",
+                "- **Research Question:** question",
+                "- **Context:** context",
+                "- **Method:** method",
+                "- **Finding:** finding",
+                "- **Evidence:** <evidence>",
+                "- **Counter-evidence:**",
+                "- **Interpretation:** interpretation",
+                "- **Uncertainty:**",
+                "- **Decision:** APPROVED",
+                "- **Next Step:** code",
                 ""]))
-        assert validate_doc(doc_bad) == 1  # dürüstlük alanları boş -> sorun
+        assert validate_doc(doc_bad) == 1  # empty honesty fields -> issue
         doc_modA = os.path.join(td, "E-002.md")
         with open(doc_modA, "w", encoding="utf-8") as fh:
-            fh.write("## Deney: E-002\n- **Teori:** t\n")
-        assert validate_doc(doc_modA) == 2  # Mod A --validate kapsamı dışı
+            fh.write("## Experiment: E-002\n- **Theory:** t\n")
+        assert validate_doc(doc_modA) == 2  # Mod A outside --validate scope
 
         # Metric cross-check: mismatch is warned in the record.
         rec9 = os.path.join(td, "E-001-metmismatch.md")
         with open(rec9, "w", encoding="utf-8") as fh:
-            fh.write("""## Deney: E-001 - selfcheck metric mismatch
-- **Durum:** planlandi
-- **Teori:** test teorisi
-- **Hipotez:** H-001: "accuracy >= 0.90"
-- **Ölçüm metrikleri:** accuracy >= 0.90
-- **Deney tasarımı:** birim test
-- **Kod kapsamı:** yok
+            fh.write("""## Experiment: E-001 - selfcheck metric mismatch
+- **Status:** planned
+- **Theory:** test theory
+- **Hypothesis:** H-001: "accuracy >= 0.90"
+- **Measurement Metrics:** accuracy >= 0.90
+- **Experiment Design:** unit test
+- **Code Scope:** none
 """)
         with open(bench, "w", encoding="utf-8") as fh:
             fh.write('print("fake_accuracy=0.93 (14/15)")')
         sys.argv = ["run_experiment.py", "--record", rec9,
                     "--run", f'"{sys.executable}" "{bench}"']
         assert main() == 0
-        assert "UYUMSUZ — ölçülen fake" in open(rec9, encoding="utf-8").read()
+        assert "MISMATCH — measured fake" in open(rec9, encoding="utf-8").read()
         assert verify(rec9) == 2  # metric mismatch blocks code
 
-        # Metric cross-check: match writes uyumlu.
+        # Metric cross-check: match writes consistent.
         rec10 = os.path.join(td, "E-001-metmatch.md")
         with open(rec10, "w", encoding="utf-8") as fh:
-            fh.write("""## Deney: E-001 - selfcheck metric match
-- **Durum:** planlandi
-- **Teori:** test teorisi
-- **Hipotez:** H-001: "grounding_accuracy >= 0.90"
-- **Ölçüm metrikleri:** grounding_accuracy >= 0.90
-- **Deney tasarımı:** birim test
-- **Kod kapsamı:** yok
+            fh.write("""## Experiment: E-001 - selfcheck metric match
+- **Status:** planned
+- **Theory:** test theory
+- **Hypothesis:** H-001: "grounding_accuracy >= 0.90"
+- **Measurement Metrics:** grounding_accuracy >= 0.90
+- **Experiment Design:** unit test
+- **Code Scope:** none
 """)
         with open(bench, "w", encoding="utf-8") as fh:
             fh.write('print("grounding_accuracy=0.93 (14/15)")')
         sys.argv = ["run_experiment.py", "--record", rec10,
                     "--run", f'"{sys.executable}" "{bench}"']
         assert main() == 0
-        assert "uyumlu (ölçülen grounding" in open(rec10, encoding="utf-8").read()
+        assert "consistent (measured grounding" in open(rec10, encoding="utf-8").read()
 
         # --dry-run: previews the decision WITHOUT writing to the record.
         rec_dry = os.path.join(td, "E-001-dryrun.md")
         with open(rec_dry, "w", encoding="utf-8") as fh:
             fh.write(
-                "## Deney: E-001 — selfcheck dry-run\n"
-                "- **Durum:** planlandı\n"
-                "- **Teori:** test teorisi\n"
-                '- **Hipotez:** H-001: "accuracy >= 0.90"\n'
-                "- **Ölçüm metrikleri:** accuracy >= 0.90\n"
-                "- **Deney tasarımı:** birim test\n"
-                "- **Kod kapsamı:** yok\n"
+                "## Experiment: E-001 — selfcheck dry-run\n"
+                "- **Status:** planned\n"
+                "- **Theory:** test theory\n"
+                '- **Hypothesis:** H-001: "accuracy >= 0.90"\n'
+                "- **Measurement Metrics:** accuracy >= 0.90\n"
+                "- **Experiment Design:** unit test\n"
+                "- **Code Scope:** none\n"
             )
         with open(bench, "w", encoding="utf-8") as fh:
             fh.write('print("fake_accuracy=0.93 (14/15)")')
@@ -1033,26 +1032,26 @@ def _selfcheck() -> None:
         assert "PASS" in _out.getvalue()
         assert "GATE-OK-E-001-" in _out.getvalue()  # would-be token previewed
         assert open(rec_dry, encoding="utf-8").read() == before_dry  # untouched
-        assert "Karar" not in open(rec_dry, encoding="utf-8").read()
-        # Template placeholder: '<...>' Karar (ör. `<kapı yazar: ONAYLANDI | REDDEDİLDİ — gerekçe>`)
-        # karar DEĞİLDİR — kapı "already decided" diye reddetmemeli, --verify de FORGED dememeli.
+        assert "Decision" not in open(rec_dry, encoding="utf-8").read()
+        # Template placeholder: '<...>' Decision (e.g. `<gate writes: APPROVED | REJECTED — reason>`)
+        # is NOT a decision — gate should not reject as "already decided", --verify should not say FORGED.
         rec_ph = os.path.join(td, "E-001-placeholder.md")
         with open(rec_ph, "w", encoding="utf-8") as fh:
             fh.write(
-                "## Deney: E-001 — selfcheck placeholder\n"
-                "- **Tarih:** 13.08.2026\n"
-                "- **Durum:** planlandı\n"
-                "- **Teori:** test teorisi\n"
-                '- **Hipotez:** H-001: "accuracy >= 0.90"\n'
-                "- **Ölçüm metrikleri:** accuracy >= 0.90\n"
-                "- **Deney tasarımı:** birim test\n"
-                "- **Kod kapsamı:** yok\n"
-                "- **Ham sonuçlar:** <sayılar — olduğu gibi>\n"
-                "- **Belirsizlik:** <kapı yazar: örneklem küçük | yok | n bilinmiyor>\n"
-                "- **Metrik:** <kapı yazar: uyumlu | UYUMSUZ | n/a>\n"
-                "- **Karar:** <kapı yazar: ONAYLANDI | REDDEDİLDİ — gerekçe>\n"
-                "- **Kapı kanıtı:** <kapı yazar: GATE-OK-...>\n"
-                "- **Sonraki adım:** <kapı yazar: Kod'a geç | Teori'ye dön>\n"
+                "## Experiment: E-001 — selfcheck placeholder\n"
+                "- **Date:** 13.08.2026\n"
+                "- **Status:** planned\n"
+                "- **Theory:** test theory\n"
+                '- **Hypothesis:** H-001: "accuracy >= 0.90"\n'
+                "- **Measurement Metrics:** accuracy >= 0.90\n"
+                "- **Experiment Design:** unit test\n"
+                "- **Code Scope:** none\n"
+                "- **Raw Results:** <numbers — as-is>\n"
+                "- **Uncertainty:** <gate writes: small sample | none | n unknown>\n"
+                "- **Metric:** <gate writes: consistent | MISMATCH | n/a>\n"
+                "- **Decision:** <gate writes: APPROVED | REJECTED — reason>\n"
+                "- **Gate Evidence:** <gate writes: GATE-OK-...>\n"
+                "- **Next Step:** <gate writes: Proceed to Code | Return to Theory>\n"
             )
         _out_ph = _io.StringIO()
         sys.argv = ["run_experiment.py", "--record", rec_ph,
@@ -1061,7 +1060,7 @@ def _selfcheck() -> None:
             assert main() == 0  # placeholder karar bloklamaz
         assert "PASS" in _out_ph.getvalue()
         assert "already decided" not in _out_ph.getvalue()
-        # --verify placeholder: undecided, FORGED DEĞİL
+        # --verify placeholder: undecided, NOT FORGED
         _out_ph2 = _io.StringIO()
         sys.argv = ["run_experiment.py", "--verify", "--record", rec_ph]
         with contextlib.redirect_stdout(_out_ph2):
@@ -1077,7 +1076,7 @@ def _selfcheck() -> None:
                     "--run", f'"{sys.executable}" "{bench}"', "--dry-run"]
         with contextlib.redirect_stdout(_out2):
             assert main() == 0
-        assert "REDDEDİLDİ" in _out2.getvalue()
+        assert "REJECTED" in _out2.getvalue()
         assert open(rec_dry, encoding="utf-8").read() == before_dry2  # still untouched
         # dry-run with --run: the bench runs, the record stays untouched.
         with open(bench, "w", encoding="utf-8") as fh:

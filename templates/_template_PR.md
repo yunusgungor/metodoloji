@@ -1,111 +1,111 @@
-# Production Readiness: PR-XXX — [Release Adı]
+# Production Readiness: PR-XXX — [Release Name]
 
-> Bu template, Production Readiness (PR) kayıtları için kullanılır.
-> Geliştirme Kapı 4'ü temsil eder: production deploy öncesi operasyonel hazırlığı garanti eder.
+> This template is used for Production Readiness (PR) records.
+> Represents Development Gate 4: guarantees operational readiness before production deploy.
 
-## Production Readiness: PR-XXX — [Release adı]
+## Production Readiness: PR-XXX — [Release name]
 
-- **Tarih:** [YYYY-MM-DD]
-- **Durum:** hazırlanıyor | HAZIR | BEKLİYOR
-- **Release tipi:** [Major / Minor / Patch / Hotfix]
-- **Versiyon:** [v1.2.3]
-- **Release kapsamı:** [QR-id listesi — bu release'e ne giriyor]
-  - QR-001: [Story başlığı]
-  - QR-002: [Story başlığı]
-  - QR-003: [Story başlığı]
+- **Date:** [YYYY-MM-DD]
+- **Status:** preparing | READY | WAITING
+- **Release type:** [Major / Minor / Patch / Hotfix]
+- **Version:** [v1.2.3]
+- **Release scope:** [QR-id list — what goes into this release]
+  - QR-001: [Story title]
+  - QR-002: [Story title]
+  - QR-003: [Story title]
 
 ---
 
 ## Staging Test
 
 ### Deployment
-- **Staging environment:** [URL veya environment adı]
-- **Deploy tarihi:** [YYYY-MM-DD HH:MM]
-- **Deploy yöntemi:** [CI/CD pipeline / manuel / script]
-- **Deploy süresi:** [X dakika]
-- **Deploy durumu:** ✓ SUCCESS / ✗ FAILED
+- **Staging environment:** [URL or environment name]
+- **Deploy date:** [YYYY-MM-DD HH:MM]
+- **Deploy method:** [CI/CD pipeline / manual / script]
+- **Deploy duration:** [X minutes]
+- **Deploy status:** ✓ SUCCESS / ✗ FAILED
 
 ### Smoke Tests
-- **Test senaryoları:**
-  - [Senaryo 1]: [Tanım] → ✓ PASS / ✗ FAIL
-  - [Senaryo 2]: [Tanım] → ✓ PASS / ✗ FAIL
-  - [Senaryo 3]: [Tanım] → ✓ PASS / ✗ FAIL
+- **Test scenarios:**
+  - [Scenario 1]: [Description] → ✓ PASS / ✗ FAIL
+  - [Scenario 2]: [Description] → ✓ PASS / ✗ FAIL
+  - [Scenario 3]: [Description] → ✓ PASS / ✗ FAIL
 - **End-to-end test:** ✓ PASS / ✗ FAIL
 - **Critical path test:** ✓ PASS / ✗ FAIL
-- **Durum:** ✓ ALL PASS / ✗ FAILURES
+- **Status:** ✓ ALL PASS / ✗ FAILURES
 
 ### Integration Tests (Staging)
 - **Database migration:** ✓ SUCCESS / ✗ FAILED
 - **External services:** ✓ CONNECTED / ✗ FAILED
 - **API endpoints:** [X/Y working]
-- **Durum:** ✓ ALL SYSTEMS GO / ✗ ISSUES
+- **Status:** ✓ ALL SYSTEMS GO / ✗ ISSUES
 
 ---
 
-## Rollback Planı
+## Rollback Plan
 
-- **Rollback yöntemi:** [Blue-green / rolling / instant]
-- **Rollback tetikleyicileri:** [Hangi durumda rollback yapılır]
-  - [Trigger 1: error rate > %5]
+- **Rollback method:** [Blue-green / rolling / instant]
+- **Rollback triggers:** [Under what conditions rollback happens]
+  - [Trigger 1: error rate > 5%]
   - [Trigger 2: latency > 500ms]
-  - [Trigger 3: crash rate > %1]
-- **Rollback süresi:** [Tahmini X dakika]
-- **Rollback adımları:**
-  1. [Adım 1: alarm tetiklendi, deploy durdur]
-  2. [Adım 2: traffic'i önceki versiyona yönlendir]
-  3. [Adım 3: yeni version'ı kaldır]
-  4. [Adım 4: database rollback (gerekiyorsa)]
-  5. [Adım 5: smoke test önceki version'da]
-- **Rollback testi yapıldı mı:** ✓ Evet (staging'de) / ✗ Hayır
-- **Database rollback:** [Gerekli mi? Nasıl?]
-  - Migration geri alınabilir mi: ✓ Evet / ✗ Hayır (destructive)
-  - Rollback SQL: [Varsa dosya referansı]
+  - [Trigger 3: crash rate > 1%]
+- **Rollback duration:** [Estimated X minutes]
+- **Rollback steps:**
+  1. [Step 1: alarm triggered, stop deploy]
+  2. [Step 2: redirect traffic to previous version]
+  3. [Step 3: remove new version]
+  4. [Step 4: database rollback (if needed)]
+  5. [Step 5: smoke test on previous version]
+- **Rollback tested:** ✓ Yes (in staging) / ✗ No
+- **Database rollback:** [Needed? How?]
+  - Migration reversible: ✓ Yes / ✗ No (destructive)
+  - Rollback SQL: [File reference if any]
 
 ---
 
-## Monitoring ve Alerting
+## Monitoring and Alerting
 
-### Metrikler
+### Metrics
 - **Business metrics:**
-  - [Metrik 1: günlük aktif kullanıcı] → Dashboard: [link]
-  - [Metrik 2: işlem başarı oranı] → Dashboard: [link]
+  - [Metric 1: daily active users] → Dashboard: [link]
+  - [Metric 2: transaction success rate] → Dashboard: [link]
 - **Technical metrics:**
-  - [Metrik 3: response time] → Dashboard: [link]
-  - [Metrik 4: error rate] → Dashboard: [link]
-  - [Metrik 5: CPU/memory usage] → Dashboard: [link]
+  - [Metric 3: response time] → Dashboard: [link]
+  - [Metric 4: error rate] → Dashboard: [link]
+  - [Metric 5: CPU/memory usage] → Dashboard: [link]
 - **Dashboard URL:** [Production monitoring dashboard link]
 
-### Alertler
+### Alerts
 - **Critical alerts:**
-  - [Alert 1: error rate > %5] → Kanal: [slack/pagerduty] → Sahibi: [kim]
-  - [Alert 2: latency > 1000ms] → Kanal: [slack/pagerduty] → Sahibi: [kim]
+  - [Alert 1: error rate > 5%] → Channel: [slack/pagerduty] → Owner: [who]
+  - [Alert 2: latency > 1000ms] → Channel: [slack/pagerduty] → Owner: [who]
 - **Warning alerts:**
-  - [Alert 3: memory > %80] → Kanal: [slack] → Sahibi: [kim]
-- **Alert testi yapıldı mı:** ✓ Evet / ✗ Hayır
+  - [Alert 3: memory > 80%] → Channel: [slack] → Owner: [who]
+- **Alerts tested:** ✓ Yes / ✗ No
 
 ### Logging
 - **Log aggregation:** [Tool: ELK / Splunk / CloudWatch]
-- **Log retention:** [X gün]
-- **Structured logging:** ✓ Evet / ✗ Hayır
-- **Log queryability:** ✓ Test edildi / ✗ Edilmedi
+- **Log retention:** [X days]
+- **Structured logging:** ✓ Yes / ✗ No
+- **Log queryability:** ✓ Tested / ✗ Not tested
 
 ---
 
 ## Feature Flags
 
-- **Feature flag kullanılıyor mu:** ✓ Evet / ✗ Hayır
-- **Flag planı:**
-  - [Feature 1]: [flag adı] → Rollout: [%0 → %10 → %50 → %100]
-  - [Feature 2]: [flag adı] → Rollout: [%0 → %100 (instant)]
-- **Kill switch:** ✓ Var / ✗ Yok
-  - [Hangi feature'lar anında kapatılabilir]
-- **Gradual rollout süresi:** [X saat/gün]
+- **Feature flags used:** ✓ Yes / ✗ No
+- **Flag plan:**
+  - [Feature 1]: [flag name] → Rollout: [%0 → %10 → %50 → %100]
+  - [Feature 2]: [flag name] → Rollout: [%0 → %100 (instant)]
+- **Kill switch:** ✓ Present / ✗ Absent
+  - [Which features can be turned off instantly]
+- **Gradual rollout duration:** [X hours/days]
 
 ---
 
 ## Runbook
 
-### Deploy Adımları
+### Deploy Steps
 1. [Pre-deploy: database backup]
 2. [Pre-deploy: notify team]
 3. [Deploy: CI/CD pipeline trigger]
@@ -115,106 +115,106 @@
 7. [Post-deploy: notify completion]
 
 ### Troubleshooting
-- **Yaygın sorunlar ve çözümleri:**
-  - [Sorun 1]: [Tanım] → Çözüm: [adımlar]
-  - [Sorun 2]: [Tanım] → Çözüm: [adımlar]
-- **Runbook URL:** [Detaylı runbook wiki/doc linki]
+- **Common issues and solutions:**
+  - [Issue 1]: [Description] → Solution: [steps]
+  - [Issue 2]: [Description] → Solution: [steps]
+- **Runbook URL:** [Detailed runbook wiki/doc link]
 
-### Rollback Adımları (Detaylı)
-[Rollback Planı bölümünde yazılanların detayı, komutlar dahil]
+### Rollback Steps (Detailed)
+[Details of what was written in the Rollback Plan section, including commands]
 
 ---
 
 ## Incident Response
 
-### İletişim Planı
-- **Incident lead:** [Ad Soyad, iletişim]
-- **Technical lead:** [Ad Soyad, iletişim]
-- **Stakeholder iletişim:** [Kanal: email/slack]
-- **On-call roster:** [PagerDuty/Opsgenie link veya liste]
+### Communication Plan
+- **Incident lead:** [Name, contact]
+- **Technical lead:** [Name, contact]
+- **Stakeholder communication:** [Channel: email/slack]
+- **On-call roster:** [PagerDuty/Opsgenie link or list]
 
 ### Incident Severity
-- **SEV1 (Critical):** [Tanım, SLA: X dakika response]
-- **SEV2 (Major):** [Tanım, SLA: Y saat response]
-- **SEV3 (Minor):** [Tanım, SLA: Z gün response]
+- **SEV1 (Critical):** [Description, SLA: X minutes response]
+- **SEV2 (Major):** [Description, SLA: Y hours response]
+- **SEV3 (Minor):** [Description, SLA: Z days response]
 
 ### Post-Mortem
-- **Post-mortem gerekli mi:** [SEV1/SEV2 için zorunlu]
+- **Post-mortem required:** [Mandatory for SEV1/SEV2]
 - **Template:** `docs/development/incidents/PM-XXX.md`
 
 ---
 
-## Deploy Penceresi
+## Deploy Window
 
-- **Planlanan deploy zamanı:** [YYYY-MM-DD HH:MM UTC]
-- **Deploy penceresi:** [X saat — deploy + monitoring]
-- **Freeze period:** [Varsa hangi günler/saatler deploy yapılmaz]
-- **Change approval:** ✓ Onaylandı (kim: [ad], tarih: [YYYY-MM-DD]) / ✗ Bekliyor
-
----
-
-## Karar
-
-- **Karar:** HAZIR | BEKLİYOR → [Gerekçe]
-- **Blokerleri (varsa):**
-  - [Bloker 1: staging smoke test failed]
-  - [Bloker 2: rollback plan eksik]
-- **Sonraki adım:** production deploy | eksikleri tamamla
+- **Planned deploy time:** [YYYY-MM-DD HH:MM UTC]
+- **Deploy window:** [X hours — deploy + monitoring]
+- **Freeze period:** [Days/hours when deploy is not allowed if any]
+- **Change approval:** ✓ Approved (by: [name], date: [YYYY-MM-DD]) / ✗ Pending
 
 ---
 
-## Deploy Sonucu (Post-Deploy)
+## Decision
 
-> Bu bölüm deploy sonrasında doldurulur
+- **Decision:** READY | WAITING → [Rationale]
+- **Blockers (if any):**
+  - [Blocker 1: staging smoke test failed]
+  - [Blocker 2: rollback plan incomplete]
+- **Next step:** production deploy | complete the gaps
 
-- **Deploy tarihi:** [YYYY-MM-DD HH:MM UTC]
-- **Deploy süresi:** [X dakika]
-- **Deploy durumu:** ✓ SUCCESS / ✗ FAILED / ⚠ ROLLED BACK
-- **Post-deploy metrics (ilk 1 saat):**
+---
+
+## Deploy Result (Post-Deploy)
+
+> This section is filled after deploy
+
+- **Deploy date:** [YYYY-MM-DD HH:MM UTC]
+- **Deploy duration:** [X minutes]
+- **Deploy status:** ✓ SUCCESS / ✗ FAILED / ⚠ ROLLED BACK
+- **Post-deploy metrics (first 1 hour):**
   - Error rate: [%X] (baseline: [%Y])
   - Latency p95: [X ms] (baseline: [Y ms])
   - Traffic: [X req/sec] (baseline: [Y req/sec])
-- **Incident varsa:** [PM-XXX referansı]
-- **Notlar:** [Deploy sırasında öğrenilen dersler, iyileştirme önerileri]
+- **Incident if any:** [PM-XXX reference]
+- **Notes:** [Lessons learned during deploy, improvement suggestions]
 
 ---
 
-## Checklist (Kapı 4 Kontrolü)
+## Checklist (Gate 4 Check)
 
 ### Staging
-- [ ] Staging'e başarılı deploy edildi
-- [ ] Smoke tests geçti
-- [ ] End-to-end integration test geçti
+- [ ] Successfully deployed to staging
+- [ ] Smoke tests passed
+- [ ] End-to-end integration test passed
 
 ### Rollback
-- [ ] Rollback planı hazır ve net
-- [ ] Rollback tetikleyicileri tanımlı
-- [ ] Rollback testi staging'de yapıldı (veya dry-run)
-- [ ] Database rollback planı var (gerekiyorsa)
+- [ ] Rollback plan ready and clear
+- [ ] Rollback triggers defined
+- [ ] Rollback tested in staging (or dry-run)
+- [ ] Database rollback plan exists (if needed)
 
 ### Monitoring
-- [ ] Dashboard kuruldu ve erişilebilir
-- [ ] Critical alertler kuruldu ve test edildi
-- [ ] Logging yapılandırıldı ve query test edildi
+- [ ] Dashboard set up and accessible
+- [ ] Critical alerts set up and tested
+- [ ] Logging configured and query tested
 
-### Feature Flags (varsa)
-- [ ] Feature flag planı tanımlı
-- [ ] Kill switch hazır
-- [ ] Gradual rollout stratejisi net
+### Feature Flags (if any)
+- [ ] Feature flag plan defined
+- [ ] Kill switch ready
+- [ ] Gradual rollout strategy clear
 
 ### Runbook
-- [ ] Deploy adımları dokümante edildi
-- [ ] Troubleshooting guide hazır
-- [ ] Rollback adımları detaylı yazıldı
+- [ ] Deploy steps documented
+- [ ] Troubleshooting guide ready
+- [ ] Rollback steps written in detail
 
 ### Incident Response
-- [ ] On-call roster güncel
-- [ ] İletişim kanalları tanımlı
-- [ ] Incident severity ve SLA net
+- [ ] On-call roster up to date
+- [ ] Communication channels defined
+- [ ] Incident severity and SLA clear
 
 ### Approval
-- [ ] Change approval alındı
-- [ ] Deploy penceresi belirlendi
-- [ ] Stakeholder'lar bilgilendirildi
+- [ ] Change approval obtained
+- [ ] Deploy window determined
+- [ ] Stakeholders informed
 
-**Deploy Kriteri:** Tüm checklist itemleri tamamlanmış olmalı. Rollback planı yoksa, monitoring eksikse deploy engellenir.
+**Deploy Criteria:** All checklist items must be completed. If no rollback plan or missing monitoring, deploy is blocked.

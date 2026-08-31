@@ -141,7 +141,7 @@ def _validate_story_experiment_refs(content: str, root: str = "") -> tuple[bool,
         status = ref.get("status", "")
         if not exp_id:
             continue
-        if status in ("BEKLİYOR", "REDDEDİLDİ", "PENDING", "REJECTED"):
+        if status in ("PENDING", "REJECTED"):
             return False, (
                 f"Experiment {exp_id} has status '{status}' — "
                 f"ACs linked to this experiment cannot be implemented. "

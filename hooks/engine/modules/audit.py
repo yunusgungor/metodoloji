@@ -21,7 +21,7 @@ def _detect_notable_events(tool_name: str, tool_input: dict, tool_output: dict) 
     if tool_name == "terminal":
         cmd = str(tool_input.get("command", ""))
         if "run_experiment.py" in cmd and "--verify" not in cmd:
-            if "ONAYLANDI" in output_str or "VERIFIED" in output_str:
+            if "APPROVED" in output_str or "VERIFIED" in output_str:
                 # Extract experiment ID from command
                 exp_match = re.search(r"E-\d+", cmd)
                 record_match = re.search(r"--record\s+(\S+)", cmd)
@@ -76,10 +76,10 @@ def _detect_notable_events(tool_name: str, tool_input: dict, tool_output: dict) 
         output_lower = output_str.lower()
         # Detect phrases indicating planned but unfinished work
         plan_patterns = [
-            r"(?:sonraki|bir sonraki|gelecek)\s+(?:adım|aşama|iterasyon)",
-            r"(?:planlanan|planlanan|düşünülen)\s+(?:çalışma|iş|değişiklik)",
-            r"(?:henüz yapılmadı|henüz tamamlanmadı|bekliyor)",
-            r"(?:ihtiyaç var|gerekli|eklenmeli|düzenlenmeli)",
+            r"(?:next|following|upcoming)\s+(?:step|phase|iteration)",
+            r"(?:planned|intended|considered)\s+(?:work|task|change)",
+            r"(?:not yet (?:done|complete)|pending)",
+            r"(?:needed|required|should be added|should be modified)",
         ]
         for pattern in plan_patterns:
             match = re.search(pattern, output_lower)
@@ -109,37 +109,37 @@ def _try_generate_code_doc(event: dict):
 
         elif event["type"] == "decision" and "path" in event:
             create_decision(
-                title=f"Mimari değişiklik: {os.path.basename(event['path'])}",
-                decision=event.get("content_preview", "Mimari dosya değiştirildi"),
-                rationale="Audit hook tarafından otomatik tespit edildi",
+                title=f"Architecture change: {os.path.basename(event['path'])}",
+                decision=event.get("content_preview", "Architecture file modified"),
+                rationale="Auto-detected by audit hook",
             )
 
         elif event["type"] == "troubleshooting" and "command" in event:
             create_troubleshooting(
-                title=f"Hata tespiti: {event['command'][:50]}",
-                error=event.get("error_preview", "Hata tespit edildi"),
-                cause="Audit hook tarafından otomatik tespit edildi",
-                solution="Çözüm henüz eklenmedi — manuel güncelleme gerekli",
+                title=f"Error detected: {event['command'][:50]}",
+                error=event.get("error_preview", "Error detected"),
+                cause="Auto-detected by audit hook",
+                solution="Fix not yet added — manual update needed",
             )
 
         elif event["type"] == "pending":
-            desc = event.get("description", "Tamamlanmamış iş")
+            desc = event.get("description", "Unfinished work")
             path = event.get("path", "")
             context = event.get("context", "")
             trigger = event.get("trigger", "")
 
             if trigger == "todo_detected":
                 title = f"TODO: {desc[:50]}"
-                context_info = f"Dosya: {path}" if path else ""
+                context_info = f"File: {path}" if path else ""
             else:
-                title = f"Bekleyen iş: {desc[:50]}"
+                title = f"Pending work: {desc[:50]}"
                 context_info = context[:200] if context else ""
 
             create_pending(
                 title=title,
                 description=desc,
                 context=context_info,
-                next_steps="Manuel olarak güncellenmeli",
+                next_steps="Should be updated manually",
                 priority="normal",
                 tags=["pending", "auto-detected"],
             )
@@ -172,7 +172,7 @@ def _validate_methodology_compliance(tool_name: str, tool_input: dict) -> list[s
 
 
 def _check_kopru_consumption(tool_name: str, tool_input: dict) -> list[str]:
-    """Check if KÖPRÜ outputs exist for recently modified files.
+    """Check if bridge outputs exist for recently modified files.
 
     When a story file or methodology record is modified, verify that
     the corresponding chain records exist. Non-blocking warnings.
@@ -203,8 +203,8 @@ def _check_kopru_consumption(tool_name: str, tool_input: dict) -> list[str]:
                             qr_files = list(qr_dir.glob("QR-*.md"))
                             if not qr_files:
                                 warnings.append(
-                                    f"KÖPRÜ uyumsuzluğu: {s_file.name} durumu 'done' ama QR kaydı yok. "
-                                    f"bmad-code-review veya bmad-dev-story KÖPRÜ'sü henüz çalışmadı."
+                                    f"Bridge inconsistency: {s_file.name} status is 'done' but no QR record exists. "
+                                    f"The bmad-code-review or bmad-dev-story bridge has not run yet."
                                 )
 
         # Check: QR-NNN.md modified → should have DoD items
@@ -212,8 +212,8 @@ def _check_kopru_consumption(tool_name: str, tool_input: dict) -> list[str]:
             content = str(tool_input.get("content", ""))
             if content and "DoD Item" not in content and "DoD-" not in content:
                 warnings.append(
-                    f"KÖPRÜ uyumsuzluğu: {path} DoD item'ları içermiyor. "
-                    f"QR kaydı eksik/yanlış oluşturulmuş olabilir."
+                    f"Bridge inconsistency: {path} does not contain DoD items. "
+                    f"The QR record may be missing or incorrectly created."
                 )
 
     return warnings
@@ -236,7 +236,7 @@ def audit(json_in: dict) -> dict:
     # Methodology validation (non-blocking, just warnings)
     warnings = _validate_methodology_compliance(tool_name, tool_input)
 
-    # KÖPRÜ consumption check (non-blocking)
+    # Bridge consumption check (non-blocking)
     kopru_warnings = _check_kopru_consumption(tool_name, tool_input)
     warnings.extend(kopru_warnings)
 

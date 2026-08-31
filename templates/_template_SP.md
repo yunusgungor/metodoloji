@@ -1,83 +1,83 @@
-# Sprint: SP-XXX — [Sprint Adı]
+# Sprint: SP-XXX — [Sprint Name]
 
-> Bu template, Sprint (SP) kayıtları için kullanılır.
-> Geliştirme Kapı 2'yi temsil eder: sprint kapsamının net, ölçülebilir ve gerçekçi olduğunu garanti eder.
+> This template is used for Sprint (SP) records.
+> Represents Development Gate 2: guarantees the sprint scope is clear, measurable, and realistic.
 
-## Sprint: SP-XXX — [Sprint adı]
+## Sprint: SP-XXX — [Sprint name]
 
-- **Tarih:** [Başlangıç: YYYY-MM-DD] — [Bitiş: YYYY-MM-DD]
-- **Durum:** planlandı | devam ediyor | tamamlandı | iptal
-- **Sprint hedefi:** [Tek cümle — bu sprint'te ne başarılacak]
-- **Story'ler:** [S-id listesi + öncelik]
-  - S-001: [Story başlığı] — Öncelik: Yüksek — [3 story points]
-  - S-002: [Story başlığı] — Öncelik: Orta — [5 story points]
-  - S-003: [Story başlığı] — Öncelik: Düşük — [2 story points]
-  - **Toplam:** [X story points]
-- **Kapasite:** [Estimated story points / takım velocity]
-  - Takım velocity: [önceki sprint ortalaması, örn. 20 points/sprint]
-  - Bu sprint kapasitesi: [X points] → [Aşırı yüklü mü? Rahat mı?]
-- **Teknik borç:** [Bu sprint'te ele alınan borç]
-  - [Borç item 1]: [tanım] — [tahmini effort]
-  - [Borç item 2]: [tanım] — [tahmini effort]
-  - **Toplam borç effort:** [Y points]
-  - **Toplam sprint load:** [X feature points + Y borç points = Z total]
-- **Blokerler:** [Bilinen blokerler + çözüm planı]
-  - [Bloker 1]: [tanım] → Çözüm: [plan] → Sahibi: [kim]
-  - [Bloker 2]: [tanım] → Çözüm: [plan] → Sahibi: [kim]
-- **Bağımlılıklar:** [Harici takım/sistem bağımlılıkları]
-  - [Bağımlılık 1]: [tanım] → Durum: [hazır/bekliyor] → İletişim: [kim]
-  - [Bağımlılık 2]: [tanım] → Durum: [hazır/bekliyor] → İletişim: [kim]
-
----
-
-## Günlük Notlar (Daily Standup — opsiyonel)
-
-### [YYYY-MM-DD] — Gün 1
-- **İlerlemeler:** [Ne tamamlandı]
-- **Blokerler:** [Yeni bloker var mı]
-- **Bugünkü plan:** [Bugün ne yapılacak]
-
-### [YYYY-MM-DD] — Gün 2
-- **İlerlemeler:**
-- **Blokerler:**
-- **Bugünkü plan:**
-
-[Günlük notlar isteğe bağlı; takım tercihine göre]
+- **Date:** [Start: YYYY-MM-DD] — [End: YYYY-MM-DD]
+- **Status:** planned | in-progress | completed | cancelled
+- **Sprint goal:** [Single sentence — what will be achieved in this sprint]
+- **Stories:** [S-id list + priority]
+  - S-001: [Story title] — Priority: High — [3 story points]
+  - S-002: [Story title] — Priority: Medium — [5 story points]
+  - S-003: [Story title] — Priority: Low — [2 story points]
+  - **Total:** [X story points]
+- **Capacity:** [Estimated story points / team velocity]
+  - Team velocity: [average of previous sprints, e.g. 20 points/sprint]
+  - This sprint capacity: [X points] → [Overloaded? Comfortable?]
+- **Technical debt:** [Debt addressed in this sprint]
+  - [Debt item 1]: [description] — [estimated effort]
+  - [Debt item 2]: [description] — [estimated effort]
+  - **Total debt effort:** [Y points]
+  - **Total sprint load:** [X feature points + Y debt points = Z total]
+- **Blockers:** [Known blockers + resolution plan]
+  - [Blocker 1]: [description] → Solution: [plan] → Owner: [who]
+  - [Blocker 2]: [description] → Solution: [plan] → Owner: [who]
+- **Dependencies:** [External team/system dependencies]
+  - [Dependency 1]: [description] → Status: [ready/waiting] → Contact: [who]
+  - [Dependency 2]: [description] → Status: [ready/waiting] → Contact: [who]
 
 ---
 
-## Sprint Review (Sprint sonu)
+## Daily Notes (Daily Standup — optional)
 
-- **Tamamlanan story'ler:** [S-id listesi]
-  - S-001: ✓ TAMAMLANDI
-  - S-002: ✓ TAMAMLANDI
-  - S-003: ✗ TAMAMLANMADI (neden: [açıklama])
-- **Tamamlanma oranı:** [X/Y story completed] → [Z%]
-- **Velocity:** [Bu sprint'te kaç point tamamlandı]
-- **Nedenler (tamamlanmayanlar için):**
-  - [Story ID]: [Neden tamamlanmadı, taşınacak mı, iptal mi]
-- **Demolar:** [Hangi feature'lar demo edildi, feedback]
-- **Sonraki adım:** [Sonraki sprint planı | retrospective bulguları]
+### [YYYY-MM-DD] — Day 1
+- **Progress:** [What was completed]
+- **Blockers:** [Any new blockers]
+- **Today's plan:** [What will be done today]
 
----
+### [YYYY-MM-DD] — Day 2
+- **Progress:**
+- **Blockers:**
+- **Today's plan:**
 
-## Retrospective Bulguları (Sprint sonu)
-
-- **İyi giden:** [Ne iyi çalıştı, devam etmeli]
-- **İyileştirilebilir:** [Ne daha iyi olabilir]
-- **Aksiyonlar:** [Sonraki sprint'te ne değiştirilecek]
-  - Aksiyon 1: [tanım] → Sahibi: [kim]
-  - Aksiyon 2: [tanım] → Sahibi: [kim]
+[Daily notes optional; depends on team preference]
 
 ---
 
-## Checklist (Kapı 2 Kontrolü)
+## Sprint Review (End of Sprint)
 
-- [ ] Sprint hedefi net ve tek cümlede ifade edilebiliyor
-- [ ] Her story için S-id kaydı var
-- [ ] Her story için acceptance criteria yazılmış
-- [ ] Story points atanmış ve gerçekçi
-- [ ] Sprint kapasitesi takım velocity'sine uygun (aşırı yüklü değil)
-- [ ] Teknik borç değerlendirilmiş ve borç için time-box ayrılmış
-- [ ] Blokerler tanımlanmış ve çözüm planı var
-- [ ] Harici bağımlılıklar belirlendi ve iletişim kuruldu
+- **Completed stories:** [S-id list]
+  - S-001: ✓ COMPLETED
+  - S-002: ✓ COMPLETED
+  - S-003: ✗ NOT COMPLETED (reason: [explanation])
+- **Completion rate:** [X/Y stories completed] → [Z%]
+- **Velocity:** [How many points were completed this sprint]
+- **Reasons (for incomplete):**
+  - [Story ID]: [Why not completed, carry over or cancel]
+- **Demos:** [Which features were demoed, feedback]
+- **Next step:** [Next sprint plan | retrospective findings]
+
+---
+
+## Retrospective Findings (End of Sprint)
+
+- **What went well:** [What worked well, should continue]
+- **Could be improved:** [What could be better]
+- **Actions:** [What will change in the next sprint]
+  - Action 1: [description] → Owner: [who]
+  - Action 2: [description] → Owner: [who]
+
+---
+
+## Checklist (Gate 2 Check)
+
+- [ ] Sprint goal is clear and expressible in one sentence
+- [ ] S-id record exists for every story
+- [ ] Acceptance criteria written for every story
+- [ ] Story points assigned and realistic
+- [ ] Sprint capacity fits team velocity (not overloaded)
+- [ ] Technical debt assessed and time-boxed
+- [ ] Blockers identified and resolution plan exists
+- [ ] External dependencies identified and contacted

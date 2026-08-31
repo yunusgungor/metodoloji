@@ -1,130 +1,130 @@
-# Quality Review: QR-XXX — [Story/PR Referansı]
+# Quality Review: QR-XXX — [Story/PR Reference]
 
-> Bu template, Quality Review (QR) kayıtları için kullanılır.
-> Geliştirme Kapı 3'ü temsil eder: kod merge edilmeden önce kalite standartlarını zorlar.
+> This template is used for Quality Review (QR) records.
+> Represents Development Gate 3: enforces quality standards before code is merged.
 
-## Quality Review: QR-XXX — [Story/PR referansı]
+## Quality Review: QR-XXX — [Story/PR reference]
 
-- **Tarih:** [YYYY-MM-DD]
-- **Durum:** review'da | ONAYLANDI | REDDEDİLDİ | REVİZE
-- **Story:** [S-id referansı, örn. S-001]
-- **PR/MR:** [Pull request linki veya ID]
-- **Branch:** [feature/branch-adı]
-- **Değişen dosyalar:** [Kaç dosya, kaç satır +/−]
+- **Date:** [YYYY-MM-DD]
+- **Status:** in-review | APPROVED | REJECTED | REVISED
+- **Story:** [S-id reference, e.g. S-001]
+- **PR/MR:** [Pull request link or ID]
+- **Branch:** [feature/branch-name]
+- **Changed files:** [How many files, how many +/− lines]
 
 ---
 
-## Mekanik Kontroller (Otomatik)
+## Mechanical Checks (Automatic)
 
 ### Test Coverage
-- **Oran:** [X%]
-- **Eşik:** %80 (minimum)
-- **Durum:** ✓ PASS / ✗ FAIL
-- **Notlar:** [Coverage düşükse hangi modüller eksik]
+- **Rate:** [X%]
+- **Threshold:** 80% (minimum)
+- **Status:** ✓ PASS / ✗ FAIL
+- **Notes:** [If coverage is low, which modules are missing]
 
-### Test Sonuçları
+### Test Results
 - **Unit tests:** [X passed / Y total] → ✓ PASS / ✗ FAIL
 - **Integration tests:** [X passed / Y total] → ✓ PASS / ✗ FAIL
 - **E2E tests:** [X passed / Y total] → ✓ PASS / ✗ FAIL
-- **Flaky tests:** [Varsa hangileri, neden flaky]
-- **Durum:** ✓ ALL PASS / ✗ FAILURES
+- **Flaky tests:** [If any, which and why flaky]
+- **Status:** ✓ ALL PASS / ✗ FAILURES
 
 ### Linter / Formatter
 - **Linter:** ✓ PASS / ✗ FAIL
-  - [Varsa linter hataları/uyarıları]
+  - [Linter errors/warnings if any]
 - **Formatter:** ✓ PASS / ✗ FAIL
-  - [Format hataları]
-- **Durum:** ✓ PASS / ✗ FAIL
+  - [Format errors]
+- **Status:** ✓ PASS / ✗ FAIL
 
 ### Security Scan
 - **Vulnerability scan:** ✓ CLEAN / ✗ FOUND
-  - [Varsa bulgular: severity, CVE ID, paket]
+  - [Findings if any: severity, CVE ID, package]
 - **Dependency check:** ✓ PASS / ✗ FAIL
-  - [Bilinen güvenlik açığı olan dependency var mı]
+  - [Any dependency with known vulnerability]
 - **Secret scanning:** ✓ CLEAN / ✗ FOUND
-  - [Hardcoded secret, API key, password bulundu mu]
-- **Durum:** ✓ CLEAN / ✗ ISSUES FOUND
+  - [Hardcoded secret, API key, password found?]
+- **Status:** ✓ CLEAN / ✗ ISSUES FOUND
 
 ### Performance Regression
-- **Benchmarks:** [Kritik fonksiyonların performansı]
-  - [Fonksiyon 1]: [X ms] (önceki: [Y ms]) → [% değişim]
-  - [Fonksiyon 2]: [X ms] (önceki: [Y ms]) → [% değişim]
-- **Memory usage:** [X MB] (önceki: [Y MB]) → [% değişim]
-- **Durum:** ✓ NO REGRESSION / ✗ REGRESSION DETECTED
+- **Benchmarks:** [Performance of critical functions]
+  - [Function 1]: [X ms] (previous: [Y ms]) → [% change]
+  - [Function 2]: [X ms] (previous: [Y ms]) → [% change]
+- **Memory usage:** [X MB] (previous: [Y MB]) → [% change]
+- **Status:** ✓ NO REGRESSION / ✗ REGRESSION DETECTED
 
 ---
 
-## Belgesel Kontroller (Manual Review)
+## Documentary Checks (Manual Review)
 
 ### Code Review
-- **Reviewer(lar):** [@username1, @username2]
-- **Review tarihi:** [YYYY-MM-DD]
-- **Yorumlar (özet):**
-  - [Önemli feedback 1]
-  - [Önemli feedback 2]
-  - [Önemli feedback 3]
+- **Reviewer(s):** [@username1, @username2]
+- **Review date:** [YYYY-MM-DD]
+- **Comments (summary):**
+  - [Important feedback 1]
+  - [Important feedback 2]
+  - [Important feedback 3]
 - **Code quality:**
-  - Okunabilirlik: ✓ İyi / ⚠ Orta / ✗ Zayıf
-  - Maintainability: ✓ İyi / ⚠ Orta / ✗ Zayıf
-  - Design patterns: ✓ Uygun / ⚠ İyileştirilebilir / ✗ Sorunlu
-- **Onay:** ✓ APPROVED / ⚠ APPROVED WITH COMMENTS / ✗ CHANGES REQUESTED
-- **Gerekçe:** [Onay/red gerekçesi]
+  - Readability: ✓ Good / ⚠ Fair / ✗ Poor
+  - Maintainability: ✓ Good / ⚠ Fair / ✗ Poor
+  - Design patterns: ✓ Appropriate / ⚠ Could improve / ✗ Problematic
+- **Approval:** ✓ APPROVED / ⚠ APPROVED WITH COMMENTS / ✗ CHANGES REQUESTED
+- **Rationale:** [Approval/rejection rationale]
 
-### Dokümantasyon
-- **Code comments:** ✓ Yeterli / ⚠ Eksik / ✗ Yok
-- **API dokümantasyonu:** ✓ Güncellendi / ⚠ Kısmi / ✗ Eksik
-- **README/guides:** ✓ Güncellendi / ⚠ Kısmi / ✗ Eksik
-- **Changelog:** ✓ Eklendi / ✗ Eksik
-- **Durum:** ✓ COMPLETE / ⚠ NEEDS WORK / ✗ MISSING
+### Documentation
+- **Code comments:** ✓ Sufficient / ⚠ Incomplete / ✗ None
+- **API documentation:** ✓ Updated / ⚠ Partial / ✗ Missing
+- **README/guides:** ✓ Updated / ⚠ Partial / ✗ Missing
+- **Changelog:** ✓ Added / ✗ Missing
+- **Status:** ✓ COMPLETE / ⚠ NEEDS WORK / ✗ MISSING
 
 ### Breaking Changes
-- **Breaking change var mı:** ✓ Evet / ✗ Hayır
-- **Migration plan:** [Varsa nasıl migrate edilecek]
-  - [Adım 1]
-  - [Adım 2]
-- **Deprecation notice:** [Varsa eski API'nin ne zaman kaldırılacağı]
-- **Backward compatibility:** ✓ Korundu / ⚠ Kısmen / ✗ Bozuldu
+- **Breaking change present:** ✓ Yes / ✗ No
+- **Migration plan:** [How migration will be done if any]
+  - [Step 1]
+  - [Step 2]
+- **Deprecation notice:** [When the old API will be removed if any]
+- **Backward compatibility:** ✓ Preserved / ⚠ Partial / ✗ Broken
 
-### Teknik Borç
-- **Yeni borç eklendi mi:** ✓ Evet / ✗ Hayır
-- **Borç detayı:**
-  - [Borç 1]: [Tanım] — [Neden eklendi, TODO referansı]
-  - [Borç 2]: [Tanım] — [Neden eklendi, TODO referansı]
-- **Borç kaydedildi mi:** ✓ Evet (`docs/development/tech-debt.md`) / ✗ Hayır
-
----
-
-## Karar
-
-- **Karar:** ONAYLANDI | REDDEDİLDİ | REVİZE → [Gerekçe]
-- **Red nedeni (varsa):**
-  - [Neden 1: test coverage düşük]
-  - [Neden 2: security issue]
-  - [Neden 3: code review değişiklik istedi]
-- **Sonraki adım:** merge | revize gerekli | deploy planla
+### Technical Debt
+- **New debt added:** ✓ Yes / ✗ No
+- **Debt details:**
+  - [Debt 1]: [Description] — [Why added, TODO reference]
+  - [Debt 2]: [Description] — [Why added, TODO reference]
+- **Debt recorded:** ✓ Yes (`docs/development/tech-debt.md`) / ✗ No
 
 ---
 
-## Checklist (Kapı 3 Kontrolü)
+## Decision
 
-### Mekanik (otomatik, zorunlu)
-- [ ] Test coverage >= %80
-- [ ] Tüm testler geçti (unit, integration, e2e)
-- [ ] Linter ve formatter clean
-- [ ] Security scan clean (bilinen vulnerability yok)
-- [ ] Performance regression yok
+- **Decision:** APPROVED | REJECTED | REVISED → [Rationale]
+- **Rejection reason (if any):**
+  - [Reason 1: low test coverage]
+  - [Reason 2: security issue]
+  - [Reason 3: code review requested changes]
+- **Next step:** merge | revision required | plan deploy
 
-### Belgesel (manual review, zorunlu)
-- [ ] En az bir reviewer onayladı
-- [ ] Code quality kabul edilebilir
-- [ ] Dokümantasyon güncellendi
-- [ ] Breaking change varsa migration plan hazır
-- [ ] Teknik borç kaydedildi (varsa)
+---
 
-### Merge Kriteri
-- [ ] Tüm mekanik kontroller PASS
-- [ ] En az bir code review APPROVED
-- [ ] Dokümantasyon COMPLETE veya NEEDS WORK (minör eksikler kabul edilebilir)
-- [ ] Karar: ONAYLANDI
+## Checklist (Gate 3 Check)
 
-**Not:** Herhangi bir mekanik veya kritik belgesel kontrol başarısız ise merge engellenir.
+### Mechanical (automatic, mandatory)
+- [ ] Test coverage >= 80%
+- [ ] All tests passed (unit, integration, e2e)
+- [ ] Linter and formatter clean
+- [ ] Security scan clean (no known vulnerability)
+- [ ] No performance regression
+
+### Documentary (manual review, mandatory)
+- [ ] At least one reviewer approved
+- [ ] Code quality acceptable
+- [ ] Documentation updated
+- [ ] Migration plan ready if breaking change
+- [ ] Technical debt recorded (if any)
+
+### Merge Criteria
+- [ ] All mechanical checks PASS
+- [ ] At least one code review APPROVED
+- [ ] Documentation COMPLETE or NEEDS WORK (minor gaps acceptable)
+- [ ] Decision: APPROVED
+
+**Note:** If any mechanical or critical documentary check fails, the merge is blocked.

@@ -1,65 +1,65 @@
-# Story: S-XXX — [Story Başlığı]
+# Story: S-XXX — [Story Title]
 
-> Bu template, User Story (S) kayıtları için kullanılır.
-> Story, sprint planlama sırasında oluşturulur ve implementasyon boyunca takip edilir.
+> This template is used for User Story (S) records.
+> Stories are created during sprint planning and tracked throughout implementation.
 
-## Story: S-XXX — [Story başlığı]
+## Story: S-XXX — [Story title]
 
-- **Tarih:** [YYYY-MM-DD]
-- **Durum:** backlog | sprint | in-progress | review | done | blocked
-- **Sprint:** [SP-id referansı, örn. SP-003]
-- **Öncelik:** Kritik / Yüksek / Orta / Düşük
+- **Date:** [YYYY-MM-DD]
+- **Status:** backlog | sprint | in-progress | review | done | blocked
+- **Sprint:** [SP-id reference, e.g. SP-003]
+- **Priority:** Critical / High / Medium / Low
 - **Story points:** [X points]
-- **Atanan:** [@username]
-- **Epic:** [Epic-id veya "standalone"]
+- **Assignee:** [@username]
+- **Epic:** [Epic-id or "standalone"]
 
 ---
 
 ## User Story
 
-**As a** [kullanıcı rolü]  
-**I want** [ne yapabilmek isterim]  
-**So that** [amacım/değerim ne]
+**As a** [user role]  
+**I want** [what I want to be able to do]  
+**So that** [my goal/value]
 
-### Örnek
-**As a** sistem yöneticisi  
-**I want** kullanıcı aktivitelerini filtreleyebilmek  
-**So that** sorunlu davranışları hızlıca tespit edebilirim
+### Example
+**As a** system administrator  
+**I want** to be able to filter user activities  
+**So that** I can quickly detect problematic behavior
 
 ---
 
 ## Acceptance Criteria
 
-> Story'nin "done" sayılması için tüm kriterler karşılanmalı
+> For the story to count as "done", all criteria must be met
 
-- [AC-001] **Given** [başlangıç durumu] **When** [aksiyon] **Then** [beklenen sonuç]
+- [AC-001] **Given** [initial state] **When** [action] **Then** [expected result]
   - Experiment: E-XXX
   - Type: agent-verifiable | manual
   - Measured: true | false
-  - Verify: [test komutu]
-- [AC-002] **Given** [başlangıç durumu] **When** [aksiyon] **Then** [beklenen sonuç]
+  - Verify: [test command]
+- [AC-002] **Given** [initial state] **When** [action] **Then** [expected result]
   - Experiment: E-XXX
   - Type: agent-verifiable | manual
   - Measured: true | false
-  - Verify: [test komutu]
-- [AC-003] **Given** [başlangıç durumu] **When** [aksiyon] **Then** [beklenen sonuç]
+  - Verify: [test command]
+- [AC-003] **Given** [initial state] **When** [action] **Then** [expected result]
   - Experiment: E-XXX
   - Type: agent-verifiable | manual
   - Measured: true | false
-  - Verify: [test komutu]
+  - Verify: [test command]
 
-### Örnek
-- [AC-001] **Given** ben admin panelindeyim **When** "son 7 gün" filtresini seçersem **Then** yalnızca son 7 günün loglarını görürüm
+### Example
+- [AC-001] **Given** I am on the admin panel **When** I select the "last 7 days" filter **Then** I only see the logs from the last 7 days
   - Experiment: E-001
   - Type: agent-verifiable
   - Measured: true
   - Verify: curl http://localhost:8000/api/logs?days=7
-- [AC-002] **Given** log listesi yüklüyken **When** filtreyi değiştirirsem **Then** loading spinner görürüm
+- [AC-002] **Given** the log list is loading **When** I change the filter **Then** I see a loading spinner
   - Experiment: E-001
   - Type: agent-verifiable
   - Measured: true
   - Verify: check_ui_spinner.py
-- [AC-003] **Given** hiç log yoksa **When** sayfayı yüklersem **Then** "Log bulunamadı" mesajı görürüm
+- [AC-003] **Given** there are no logs **When** I load the page **Then** I see the "No logs found" message
   - Experiment: E-001
   - Type: agent-verifiable
   - Measured: true
@@ -69,104 +69,104 @@
 
 ## Technical Tasks
 
-> Story'yi tamamlamak için gereken teknik adımlar
+> Technical steps required to complete the story
 
-- [ ] Task 1: API endpoint implementasyonu (AC: AC-001) — [@username]
+- [ ] Task 1: API endpoint implementation (AC: AC-001) — [@username]
 - [ ] Task 2: Frontend component (AC: AC-002, AC-003) — [@username]
 - [ ] Task 3: Database migration (AC: AC-001) — [@username]
 - [ ] Task 4: Unit tests (AC: AC-001, AC-002, AC-003) — [@username]
 - [ ] Task 5: Integration tests (AC: AC-001) — [@username]
-- [ ] Task 6: Dokümantasyon — [@username]
+- [ ] Task 6: Documentation — [@username]
 
 ---
 
 ## Definition of Done
 
-> Story'nin gerçekten bitmiş sayılması için genel kriterler
+> General criteria for the story to be truly finished
 
-- [DoD-001] Tüm acceptance criteria karşılandı (AC: AC-001, AC-002, AC-003)
+- [DoD-001] All acceptance criteria met (AC: AC-001, AC-002, AC-003)
   - Verify: pytest tests/
   - Evidence: test output
-- [DoD-002] Code review yapıldı ve onaylandı
+- [DoD-002] Code review done and approved
   - Verify: QR-001 record exists
   - Evidence: QR record
-- [DoD-003] Unit test coverage >= %80
+- [DoD-003] Unit test coverage >= 80%
   - Verify: coverage report
   - Evidence: coverage output
-- [DoD-004] Integration test yazıldı ve geçti
+- [DoD-004] Integration test written and passed
   - Verify: pytest tests/integration/
   - Evidence: test output
-- [DoD-005] Dokümantasyon güncellendi
+- [DoD-005] Documentation updated
   - Verify: docs/ updated
   - Evidence: git diff
-- [DoD-006] Staging'de test edildi
+- [DoD-006] Tested on staging
   - Verify: manual test
   - Evidence: test results
-- [DoD-007] Product owner kabul etti
+- [DoD-007] Product owner accepted
   - Verify: PO sign-off
   - Evidence: approval message
 
 ---
 
-## Bağımlılıklar
+## Dependencies
 
-- **Bu story'ye bağımlı:** [Diğer S-id'ler — bu bitmeden başlayamazlar]
-- **Bu story bağımlı:** [Diğer S-id'ler — bunlar bitmeden başlayamaz]
-- **API bağımlılığı:** [Hangi API'ler gerekli, hazır mı]
-- **Altyapı bağımlılığı:** [Database, queue vs.]
+- **Depends on this story:** [Other S-ids — cannot start before this finishes]
+- **This story depends on:** [Other S-ids — cannot start before these finish]
+- **API dependency:** [Which APIs required, ready?]
+- **Infrastructure dependency:** [Database, queue etc.]
 
 ---
 
 ## Design / UX
 
-- **Mockup:** [Figma/Sketch link veya dosya]
-- **UX flow:** [Kullanıcı akış diyagramı]
-- **Design review:** ✓ Yapıldı / ✗ Gerekmiyor / ⚠ Bekliyor
+- **Mockup:** [Figma/Sketch link or file]
+- **UX flow:** [User flow diagram]
+- **Design review:** ✓ Done / ✗ Not needed / ⚠ Pending
 
 ---
 
-## Notlar / İzleme
+## Notes / Tracking
 
-### Blokerler
-- [YYYY-MM-DD]: [Bloker tanımı] → Sahibi: [kim] → Durum: [açık/çözüldü]
+### Blockers
+- [YYYY-MM-DD]: [Blocker description] → Owner: [who] → Status: [open/resolved]
 
-### İlerleme Güncellemeleri
-- [YYYY-MM-DD]: [Günceleme notu, örn. "API tamamlandı, frontend başladı"]
-- [YYYY-MM-DD]: [Günceleme notu]
+### Progress Updates
+- [YYYY-MM-DD]: [Update note, e.g. "API completed, frontend started"]
+- [YYYY-MM-DD]: [Update note]
 
-### Kararlar
-- [YYYY-MM-DD]: [Alınan teknik/tasarım kararı ve gerekçesi]
+### Decisions
+- [YYYY-MM-DD]: [Technical/design decision taken and its rationale]
 
 ---
 
-## Test Stratejisi
+## Test Strategy
 
 ### Unit Tests
-- [Hangi modüller/fonksiyonlar test edilecek]
-- [Test coverage hedefi: %X]
+- [Which modules/functions will be tested]
+- [Test coverage target: %X]
 
 ### Integration Tests
-- [Hangi entegrasyon noktaları test edilecek]
+- [Which integration points will be tested]
 - [API endpoint tests, database tests]
 
 ### Manual Tests
-- [Manuel test senaryoları — QA için]
+- [Manual test scenarios — for QA]
 
 ---
 
-## Araştırma Girdileri
+## Research Inputs
 
-> Bu story hangi araştırma bulgularına dayanıyor
+> Which research findings this story is based on
 
-- [E-id / R-id / D-id / C-id referansları]
-- Örnek: E-045 (performans optimizasyonu onayı), D-012 (kullanıcı akış tasarımı)
+- [E-id / R-id / D-id / C-id references]
+- Example: E-045 (performance optimization approval), D-012 (user flow design)
 
 ---
 
-## Tamamlama
+## Completion
 
-- **Tamamlanma tarihi:** [YYYY-MM-DD]
+- **Completion date:** [YYYY-MM-DD]
 - **PR/MR:** [Pull request link]
-- **QR kaydı:** [QR-id referansı]
-- **Demo:** [Demo link/video veya "yapıldı"]
-- **Retrospective notları:** [Bu story'den öğrenilen dersler]
+- **QR record:** [QR-id reference]
+- **Demo:** [Demo link/video or "done"]
+- **Retrospective notes:** [Lessons learned from this story]

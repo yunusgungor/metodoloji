@@ -1,61 +1,64 @@
-# Deney Kaydı Şablonu (Mod A — Sayısal / Empirik, MEKANİK KAPI)
+# Experiment Record Template (Mode A — Quantitative / Empirical, MECHANICAL GATE)
 
-Yeni bir deney için bu dosyayı kopyala: `docs/experiments/E-NNN.md`
+Copy this file for a new experiment: `docs/experiments/E-NNN.md`
 
-Bu şablon **Mod A (sayısal/empirik)** içindir — kod üretiminin tek meşru yolu. Belgesel
-modlar için: Mod B (nitel) ve Mod D (bağlamsal) → `docs/research/_template.md`; Mod C
-(tasarım) → `docs/design/_template.md`. Manifesto: `docs/bmad/research-methodology.md`.
+This template is for **Mode A (quantitative/empirical)** — the only legitimate path
+to code production. For documentary modes: Mode B (qualitative) and Mode D (contextual)
+→ `docs/research/_template.md`; Mode C (design) → `docs/design/_template.md`.
+Manifesto: `docs/bmad/research-methodology.md`.
 
-Türkçe alan etiketleri **zorunludur** — kapı (`run_experiment.py`) bu etiketleri ayrıştırır.
-`Karar`, `Kapı kanıtı`, `Sonraki adım`, `Durum` satırlarını **elle yazma**; kapı yazar.
+English field labels are **mandatory** — the gate (`run_experiment.py`) parses these
+labels. Do **not** hand-write the `Decision`, `Gate Evidence`, `Next Step`, `Status`
+lines; the gate writes them.
 
 ```markdown
-## Deney: E-NNN — <kısa başlık>
-- **Tarih:** <GG.AA.YYYY>
-- **Durum:** planlandı
-- **Teori:** <hangi teoriden/çerçeveden geldiği — "merak ettim" yetmez>
-- **Hipotez:** H-NNN: "metrik >= eşik"   <!-- ör. H-001: "accuracy >= 0.90" -->
-- **Ölçüm metrikleri:** <metrik adı + eşik, birimsiz sayısal>  <!-- ör. accuracy >= 0.90 -->
-- **Deney tasarımı:** <girdiler, prosedür, kontrol değişkenleri, tekrarlanabilirlik>
-- **Örneklem n:** <örneklem büyüklüğü — kapı paydayı (x/y) ölçüm çıktısından ayrıştırır; bu alan bilgi amaçlıdır>
-- **Kod kapsamı:** <bu onayın açtığı dosyaların glob'ları, virgül/boşluk ayrık; ör. src/** , lib/engine/*.py>
-  <!-- "yok" = kod üretmeyen deney. Kapsam dışı dosyaya yazım guard tarafından engellenir. -->
-- **Ham sonuçlar:** <ölçüm — kapı yazar>
-- **Belirsizlik:** <kapı yazar: örneklem küçük | yok | n bilinmiyor>
-- **Metrik:** <kapı yazar: uyumlu | UYUMSUZ — ölçülen metrik --run çıktısından gelir>
-- **Karar:** <kapı yazar: ONAYLANDI | REDDEDİLDİ — gerekçe>
-- **Kapı kanıtı:** <kapı yazar: GATE-OK-...>
-- **Sonraki adım:** <kapı yazar: Kod'a geç | Teori'ye dön>
+## Experiment: E-NNN — <short title>
+- **Date:** <DD.MM.YYYY>
+- **Status:** planned
+- **Theory:** <which theory/framework this comes from — "I was curious" is not enough>
+- **Hypothesis:** H-NNN: "metric >= threshold"   <!-- e.g. H-001: "accuracy >= 0.90" -->
+- **Measurement Metrics:** <metric name + threshold, unitless numeric>  <!-- e.g. accuracy >= 0.90 -->
+- **Experiment Design:** <inputs, procedure, control variables, reproducibility>
+- **Sample Size n:** <sample size — the gate parses the denominator (x/y) from the measurement output; this field is informational>
+- **Code Scope:** <glob patterns of files this approval opens, comma/space separated; e.g. src/** , lib/engine/*.py>
+  <!-- "none" = experiment that produces no code. Writes to files outside scope are blocked by the guard. -->
+- **Raw Results:** <measurement — the gate writes this>
+- **Uncertainty:** <gate writes: small sample | none | n unknown>
+- **Metric:** <gate writes: consistent | MISMATCH — from the measured metric of the --run output>
+- **Decision:** <gate writes: APPROVED | REJECTED — reason>
+- **Gate Evidence:** <gate writes: GATE-OK-...>
+- **Next Step:** <gate writes: Proceed to Code | Return to Theory>
 ```
 
-## Kapı anahtarını kur (makine başına bir kez)
+## Set up the gate key (once per machine)
 
 ```bash
 python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py --init-secret
-# Anahtar ~/.bmad/gate-key dosyasına yazılır (repo DIŞI). Kontrol:
+# Key is written to ~/.bmad/gate-key (OUTSIDE the repo). Check:
 python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py --check-secret
 ```
 
-## Kapıyı çalıştır
+## Run the gate
 
 ```bash
-# Kapı ölçümü kendisi çalıştırır: değer + metrik adı + payda (x/y) çıktıdan ayrıştırılır.
-# Operatörün sayı beyan etmesi yoktur (--measured kaldırıldı — gerçeklik mekaniktir).
-# Ölçüm betiği korumalı bölgede yaşamalıdır: scratch/ altındaki betik --run ile reddedilir
-# (ör. scripts/bench/ kullanın).
+# The gate runs the measurement itself: value + metric name + denominator (x/y)
+# are parsed from the output. No operator-declared numbers (--measured removed —
+# reality is mechanical).
+# The measurement script must live in a protected area: scripts under scratch/
+# are rejected with --run (e.g. use scripts/bench/).
 python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py \
   --record docs/experiments/E-NNN.md --run "python scripts/bench/bench_xxx.py"
-# Dry-run: kararı YAZMADAN önizle (format/kayıt kontrolü — "kontrol" için --run'ı asla
-# yalnız kullanma, kaydı yanlışlıkla karara bağlar)
+# Dry-run: preview the decision WITHOUT writing (format/record check — never use
+# --run alone for "checking", it would decide the record by mistake)
 python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py \
   --record docs/experiments/E-NNN.md --run "python scripts/bench/bench_xxx.py" --dry-run
 ```
 
-## Kod öncesi doğrula
+## Verify before code
 
 ```bash
 python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py \
   --verify --record docs/experiments/E-NNN.md
 ```
 
-Ham veri dosyalarını `docs/experiments/E-NNN/raw/` altında tut.
+Keep raw data files under `docs/experiments/E-NNN/raw/`.
