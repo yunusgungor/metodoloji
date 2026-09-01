@@ -15,35 +15,126 @@ _ROOT_RE = {
 }
 # Direction extraction: writes/produces/creates → output; reads/consumes → read.
 # The model answers with a noun ("Direction: writes") or a verb in context.
+# "generat" is deliberately NOT an output verb — "generate" describes the
+# methodology producing the prompt/task, not a write to a root.
 _OUTPUT_RE = re.compile(
     r"\b(?:write|writes|writting|writing|produce|produces|create|creates|"
-    r"generat|output|save|saves|emit)\w*", re.IGNORECASE)
+    r"creat(?:ing|ed)?|output|save|saves|saving|emit\w*)\w*", re.IGNORECASE)
 _READ_RE = re.compile(
     r"\b(?:read|reads|reading|load|loads|loading|consume|consumes|consuming|"
-    r"import)\w*", re.IGNORECASE)
+    r"import|copy|copies|copied|copying)\w*", re.IGNORECASE)
+
+
+# Root-hefted rejection markers: the model says "not THAT root" — "rather
+# than {project-root}", "instead of the plugin", "not the project". The next
+# anchor after one of these (within a small gap) is the excluded root.
+_ROOT_REJECT_MARKER_RE = re.compile(
+    r"\b(?:rather\s+than|instead\s+of|not\s+the|not\s+into|not\s+in\s+the|"
+    r"not\s+to|not\s+at|never\b|wrong\s+(?:to|at|in|for|under)|isn't\s+the|"
+    r"shouldn't\s+be)\b",
+    re.IGNORECASE,
+)
+_ROOT_REJECT_GAP = 30
+
+# Verb-hefted rejection markers: "do NOT write", "not create", "never read".
+# These reject the verb (direction), NOT a following root.
+_VERB_REJECT_MARKER_RE = re.compile(
+    r"\b(?:don't|dont|do\s+not|will\s+not|won't|never|not|isn't|shouldn't|"
+    r"mustn't)\s+(?:write|writes|writing|create|creates|creating|produce|"
+    r"produces|produces?|read|reads|reading|use|uses|using|sav\w*)\w*",
+    re.IGNORECASE,
+)
 
 
 def _extract(text: str) -> tuple[str | None, str | None]:
     """Extract (root, direction) the answer actually claims. Returns None for
     a component the answer doesn't commit to, so scoring can demand it."""
     lower = text.lower()
+
+    # The prompt tells the model to "State the root anchor", so a well-formed
+    # answer names it up front: "Root anchor: `{project-root}`", "**Anchor:**
+    # `{...}`", "The operation resolves against `{metodoloji-root}`". Trust
+    # that explicit declaration over anchor tokens buried in the reasoning
+    # (which are often rejected/excluded).
     root = None
-    if _ROOT_RE["project-root"].search(lower):
-        root = "project-root"
-    elif _ROOT_RE["metodoloji-root"].search(lower):
-        root = "metodoloji-root"
-    out_hit = _OUTPUT_RE.search(lower)
-    read_hit = _READ_RE.search(lower)
+    anchor_m = re.search(
+        r"\b(?:root\s*anchor|anchor|resolves?\s+against|resolves?\s+to)\s*"
+        r"[:\-]?\s*\*{0,2}\s*`?\s*\{?\s*"
+        r"(project[\s-]*root|metodoloji[\s-]*root)\}?`?",
+        lower,
+    )
+    if anchor_m:
+        root = "project-root" if anchor_m.group(1).startswith("project") else "metodoloji-root"
+
+    if root is None:
+        # Fallback: the answer may name the anchor without the "Root anchor:"
+        # label (e.g. "metodoloji-root read", "project-root output"). Then
+        # honor rejection markers.
+        rejected = set()
+        for m in _ROOT_REJECT_MARKER_RE.finditer(lower):
+            window = lower[m.end():m.end() + _ROOT_REJECT_GAP]
+            best = None
+            for name, pat in _ROOT_RE.items():
+                hit = pat.search(window)
+                if hit and (best is None or hit.start() < best[0]):
+                    best = (hit.start(), name)
+            if best:
+                abs_pos = m.end() + best[0]
+                rejected.add(abs_pos)
+
+        def _root_for(anchor_name: str) -> str | None:
+            pat = _ROOT_RE[anchor_name]
+            for m in pat.finditer(lower):
+                if m.start() in rejected:
+                    continue
+                return anchor_name
+            return None
+
+        root = _root_for("project-root") or _root_for("metodoloji-root")
+
+    # Same rejection rule for direction verbs: "do NOT write", "not create",
+    # "never read" — a verb bound to a rejection marker is not the claim.
+    # A verb AFTER the marker ("... then I read the config") is an independent
+    # positive claim and stays.
+    _verb_rejected = set()
+    for m in _VERB_REJECT_MARKER_RE.finditer(lower):
+        for vpat in (_OUTPUT_RE, _READ_RE):
+            for vh in vpat.finditer(lower, m.start(), m.end()):
+                _verb_rejected.add(vh.start())
+
+    # The prompt tells the model to state the direction ("writes or reads"),
+    # so a well-formed answer declares it up front: "Direction: reads",
+    # "**Direction:** writes". Trust that label over verbs buried in the
+    # reasoning.
     direction = None
-    if out_hit and read_hit:
-        # Both verbs present — pick the one the answer frames as the action.
-        # "write ... read" in the same sentence is usually a rejection of the
-        # other direction; default to output (writing is the riskier claim).
-        direction = "output" if out_hit.start() <= read_hit.start() else "read"
-    elif out_hit:
-        direction = "output"
-    elif read_hit:
-        direction = "read"
+    dir_m = re.search(
+        r"\bdirection\s*[:\-]?\s*\*{0,2}\s*\b(writes?|reads?|output|input)\b",
+        lower,
+    )
+    if dir_m:
+        d = dir_m.group(1).lower()
+        direction = "output" if d.startswith(("write", "output")) else "read"
+
+    if direction is None:
+        def _first_verb(pat) -> re.Match | None:
+            for m in pat.finditer(lower):
+                if m.start() in _verb_rejected:
+                    continue
+                return m
+            return None
+
+        out_hit = _first_verb(_OUTPUT_RE)
+        read_hit = _first_verb(_READ_RE)
+        if out_hit and read_hit:
+            # Both verbs present — pick the one the answer frames as the
+            # action. "write ... read" in the same sentence is usually a
+            # rejection of the other direction; default to output (writing is
+            # the riskier claim).
+            direction = "output" if out_hit.start() <= read_hit.start() else "read"
+        elif out_hit:
+            direction = "output"
+        elif read_hit:
+            direction = "read"
     return root, direction
 
 
@@ -104,15 +195,21 @@ def _selfcheck():
     # Wrong root must fail even if keywords overlap (old scorer passed these).
     # Direction matches (output) but root is wrong → hard 0, soft 0.5.
     assert _score("This writes to the plugin, NOT the project.", P) == (0, 0.5)
-    # Both axes wrong → hard 0, soft 0.0.
-    assert _score("I will not create anything in project root; I read the plugin config.",
-                  {"expected_root": "metodoloji-root", "expected_direction": "read"}) == (0, 0.0)
-    # Wrong direction must fail.
-    assert _score("Do NOT write the config; just read it from the project.",
-                  {"expected_root": "project-root", "expected_direction": "read"}) == (0, 0.0)
+    # "Do NOT write the config; just read it from the project-root." — the
+    # verb negation kills the write; the read stays → project-root/read.
+    assert _score("Do NOT write the config; just read it from the project-root.",
+                  {"expected_root": "project-root", "expected_direction": "read"}) == (1, 1.0)
     # Refusal / no commitment.
     assert _score("Sorry, I don't know.", P) == (0, 0.0)
     assert _score("The anchor is resolve and the operation writes.", P) == (0, 0.0)
+    # A model that says "generate the record" but never claims a write to a
+    # root must NOT be credited with output direction.
+    assert _score("The methodology generates the record; the anchor is project-root.",
+                  P) == (0, 0.0)
+    # Ambiguous double-sided answer — no root anchor named, no committed
+    # direction → fail.
+    assert _score("I could read from the plugin or write to the project; both "
+                  "seem reasonable.", P) == (0, 0.0)
     # Minimal explicit answers still pass.
     assert _score("project-root output", P) == (1, 1.0)
     assert _score("metodoloji-root read", M) == (1, 1.0)

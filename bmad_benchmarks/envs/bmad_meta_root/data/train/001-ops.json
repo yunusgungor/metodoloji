@@ -1,86 +1,135 @@
 [
   {
-    "id": "root-story-output",
-    "operation": "bmad-create-story: create the story file and write it to docs/development/stories/S-001.md record",
+    "id": "train-story-output",
+    "operation": "create the story record docs/development/stories/S-007.md for the current sprint",
     "expected_root": "project-root",
     "expected_direction": "output",
     "task_type": "meta-root"
   },
   {
-    "id": "root-experiment-output",
-    "operation": "create the experiment record docs/experiments/E-001.md with run_experiment.py",
+    "id": "train-experiment-output",
+    "operation": "write the experiment record docs/experiments/E-014.md with the run_experiment.py command",
     "expected_root": "project-root",
     "expected_direction": "output",
     "task_type": "meta-root"
   },
   {
-    "id": "root-template-read",
-    "operation": "when creating the S record, copy the template from templates/_template_S.md in the plugin installation",
-    "expected_root": "metodoloji-root",
+    "id": "train-quality-output",
+    "operation": "create the quality record docs/quality/QR-021.md",
+    "expected_root": "project-root",
+    "expected_direction": "output",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "train-ir-output",
+    "operation": "record the implementation readiness check as docs/development/IR-033.md",
+    "expected_root": "project-root",
+    "expected_direction": "output",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "train-pr-output",
+    "operation": "write the production readiness record docs/development/PR-007.md",
+    "expected_root": "project-root",
+    "expected_direction": "output",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "train-planning-output",
+    "operation": "write the sprint planning artifacts under bmad-output/planning-artifacts",
+    "expected_root": "project-root",
+    "expected_direction": "output",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "train-design-output",
+    "operation": "write the UX design outputs under design-artifacts",
+    "expected_root": "project-root",
+    "expected_direction": "output",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "train-test-artifacts-output",
+    "operation": "produce the test artifacts under bmad-output/test-artifacts",
+    "expected_root": "project-root",
+    "expected_direction": "output",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "train-manifesto-read",
+    "operation": "Read the methodology manifesto from docs/bmad/development-methodology.md",
+    "expected_root": "project-root",
     "expected_direction": "read",
     "task_type": "meta-root"
   },
   {
-    "id": "root-planning-output",
-    "operation": "write planning artifacts under bmad-output/planning-artifacts",
-    "expected_root": "project-root",
-    "expected_direction": "output",
-    "task_type": "meta-root"
-  },
-  {
-    "id": "root-config-read",
-    "operation": "read the plugin configuration from bmad/config.toml in the plugin root",
-    "expected_root": "metodoloji-root",
-    "expected_direction": "read",
-    "task_type": "meta-root"
-  },
-  {
-    "id": "root-design-output",
-    "operation": "write UX design outputs under design-artifacts",
-    "expected_root": "project-root",
-    "expected_direction": "output",
-    "task_type": "meta-root"
-  },
-  {
-    "id": "root-manifesto-read",
-    "operation": "Read the methodology manifesto from docs/bmad/research-methodology.md",
-    "expected_root": "project-root",
-    "expected_direction": "read",
-    "task_type": "meta-root"
-  },
-  {
-    "id": "root-project-template-copy-read",
+    "id": "train-project-template-read",
     "operation": "read and use the project copy of docs/development/stories/_template_S.md",
     "expected_root": "project-root",
     "expected_direction": "read",
     "task_type": "meta-root"
   },
   {
-    "id": "root-malformed-plugin-output",
-    "operation": "A command proposes writing a story under {metodoloji-root}/bmad-output",
-    "expected_root": "project-root",
-    "expected_direction": "output",
-    "task_type": "meta-root"
-  },
-  {
-    "id": "root-malformed-tilde",
-    "operation": "copy the template from the path ~/{metodoloji-root}/templates/_template_QR.md",
+    "id": "train-template-read",
+    "operation": "copy the template from templates/_template_SP.md in the plugin installation",
     "expected_root": "metodoloji-root",
     "expected_direction": "read",
     "task_type": "meta-root"
   },
   {
-    "id": "root-plugin-script-read",
+    "id": "train-custom-config-read",
+    "operation": "read the sprint planning customization from custom/bmad-sprint-planning.toml in the plugin root",
+    "expected_root": "metodoloji-root",
+    "expected_direction": "read",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "train-bmad-config-read",
+    "operation": "read the plugin configuration from bmad/config.toml in the plugin root",
+    "expected_root": "metodoloji-root",
+    "expected_direction": "read",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "train-gate-script-read",
     "operation": "run the run_experiment.py gate script from hooks/engine in the plugin root",
     "expected_root": "metodoloji-root",
     "expected_direction": "read",
     "task_type": "meta-root"
   },
   {
-    "id": "root-pr-output",
-    "operation": "create the production readiness record docs/development/PR-001.md",
+    "id": "train-trap-plugin-output",
+    "operation": "A command proposes writing a story record to {metodoloji-root}/docs/development/stories/S-002.md",
     "expected_root": "project-root",
     "expected_direction": "output",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "train-trap-tilde",
+    "operation": "copy the template from the path ~/{metodoloji-root}/templates/_template_QR.md",
+    "expected_root": "metodoloji-root",
+    "expected_direction": "read",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "train-trap-manifesto-in-plugin",
+    "operation": "Read the methodology manifesto from the plugin installation because it is methodology content",
+    "expected_root": "project-root",
+    "expected_direction": "read",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "train-trap-config-in-project",
+    "operation": "read the bridge configuration from {project-root}/bmad/config.toml in the project",
+    "expected_root": "metodoloji-root",
+    "expected_direction": "read",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "train-trap-run-is-read",
+    "operation": "read and run the gate script hooks/engine/run_experiment.py from the plugin root",
+    "expected_root": "metodoloji-root",
+    "expected_direction": "read",
     "task_type": "meta-root"
   }
 ]

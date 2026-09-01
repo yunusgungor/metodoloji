@@ -35,7 +35,10 @@ VALID_COMBOS = {
 # malformed PATH but still a plugin read — its expected label is the true
 # classification (metodoloji-root+read); it tests malformed-path recognition,
 # not the write-root rule.
-PLUGIN_WRITE_TRAP_IDS = ("plugin-write", "malformed-output", "malformed-plugin")
+PLUGIN_WRITE_TRAP_IDS = (
+    "plugin-write", "malformed-output", "malformed-plugin", "trap-plugin",
+    "trap-config-write",
+)
 TILDE_TRAP_IDS = ("tilde",)
 
 

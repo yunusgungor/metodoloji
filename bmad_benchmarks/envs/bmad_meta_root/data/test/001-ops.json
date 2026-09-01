@@ -1,42 +1,70 @@
 [
   {
-    "id": "root-malformed-output",
-    "operation": "A command proposes writing a story under {metodoloji-root}/bmad-output",
+    "id": "test-story-output",
+    "operation": "create the story record docs/development/stories/S-003.md",
     "expected_root": "project-root",
     "expected_direction": "output",
     "task_type": "meta-root"
   },
   {
-    "id": "root-manifesto-read",
+    "id": "test-trap-plugin-output",
+    "operation": "A command proposes writing an experiment record to {metodoloji-root}/docs/experiments/E-005.md",
+    "expected_root": "project-root",
+    "expected_direction": "output",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "test-trap-plugin-bmad-output",
+    "operation": "A command proposes writing story artifacts under {metodoloji-root}/bmad-output",
+    "expected_root": "project-root",
+    "expected_direction": "output",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "test-template-read",
+    "operation": "copy the template from templates/_template_PR.md in the plugin installation",
+    "expected_root": "metodoloji-root",
+    "expected_direction": "read",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "test-skill-read",
+    "operation": "read the skill's references/agent-type-guidance.md file in the installation",
+    "expected_root": "metodoloji-root",
+    "expected_direction": "read",
+    "task_type": "meta-root"
+  },
+  {
+    "id": "test-manifesto-read",
     "operation": "Read the methodology manifesto from docs/bmad/research-methodology.md",
     "expected_root": "project-root",
     "expected_direction": "read",
     "task_type": "meta-root"
   },
   {
-    "id": "root-gate-script-read",
-    "operation": "run the run_experiment.py gate script from the {metodoloji-root}/skills/bmad-research-experiment/scripts/ location",
+    "id": "test-gate-script-read",
+    "operation": "run the run_experiment.py gate script from {metodoloji-root}/skills/bmad-research-experiment/scripts/",
     "expected_root": "metodoloji-root",
     "expected_direction": "read",
     "task_type": "meta-root"
   },
   {
-    "id": "root-ir-output",
-    "operation": "create the implementation readiness record docs/development/IR-001.md",
+    "id": "test-trap-config-write",
+    "operation": "thinking of producing the bridge configuration at {metodoloji-root}/custom/bmad-dev-story.toml",
     "expected_root": "project-root",
     "expected_direction": "output",
     "task_type": "meta-root"
   },
   {
-    "id": "root-plugin-write-trap",
-    "operation": "thinking of producing the quality record at {metodoloji-root}/docs/quality/QR-009.md",
+    "id": "test-trap-manifesto-in-plugin",
+    "operation": "Read the development methodology manifesto from the plugin installation because it is methodology",
     "expected_root": "project-root",
-    "expected_direction": "output",
+    "expected_direction": "read",
     "task_type": "meta-root"
   },
   {
-    "id": "root-skill-config-read",
-    "operation": "read the skill's references/agent-type-guidance.md file in the installation",
+    "id": "test-trap-project-config-read",
+    "operation": "read the sprint planning configuration from {project-root}/custom/bmad-sprint-planning.toml",
     "expected_root": "metodoloji-root",
     "expected_direction": "read",
     "task_type": "meta-root"

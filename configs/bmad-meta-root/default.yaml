@@ -18,3 +18,11 @@ train:
   batch_size: 3
   num_epochs: 3
   seed: 42
+
+evaluation:
+  # Cover the WHOLE val/test split. The default (sel_env_num=4) truncates the
+  # first 4 alphabetically-sorted items — the easy ones — so the gate never
+  # sees the adversarial trap items that make meta-root learnable. These match
+  # the current val=9 / test=10 item counts.
+  sel_env_num: 9
+  test_env_num: 10
