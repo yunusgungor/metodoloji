@@ -11,53 +11,127 @@ import concurrent.futures
 import json
 import pathlib
 import re
+import time
 
-from skillopt.model import chat_target
+from skillopt.model import chat_target, chat_optimizer
 
 # Some gateways (e.g. a CMC proxy) return a 503 *as the response body* with a
 # 200 status — the SDK sees a normal reply, so the backend's own retry loop
 # never fires. Detect that inline error and retry at the rollout layer.
+# Also covers the OPTIMIZER path: ReflACT's analyst (reflect) calls hit the
+# same proxy, so a body-level 503 silently kills patch generation (the reflect
+# stage sees a "normal" reply, parses no patch, and the step is skipped). We
+# wrap chat_optimizer the same way chat_target already is.
 _GATEWAY_ERROR_RE = re.compile(
     r"\[?CommandCode error.*?(?:503|service temporarily unavailable"
     r"|rate limit|429|timeout|internal server error)",
     re.IGNORECASE,
 )
 
-_ROLLOUT_RETRIES = 5
-_ROLLOUT_RETRY_DELAY_S = 2.0
+# laguna's :free gateway drops ~20-50% of calls with a body-level 503 under
+# load. Retry enough to absorb transient 503s without making every step
+# extremely slow. workers=2 (config) keeps the parallel 503 spike manageable;
+# the drop filter was removed so the gate always scores the full split.
+# ponytail: fixed count; if 503s persist, use a more stable non-free model.
+_ROLLOUT_RETRIES = 4
+_ROLLOUT_RETRY_DELAY_S = 3.0
+
+
+def _extract_text(output):
+    """chat_target/chat_optimizer return (text, usage) tuples; take the text."""
+    return output[0] if isinstance(output, tuple) else output
+
+
+def _retry_body_gateway_errors(call_fn, *args, **kwargs):
+    """Call an LLM fn; if the *body* contains a gateway error (503/429 returned
+    inside a 200 reply), retry with backoff instead of trusting it as output.
+    Falls back to the last result after _ROLLOUT_RETRIES.
+    Handles both string-returning fns and (text, usage) tuples."""
+    output = None
+    for attempt in range(_ROLLOUT_RETRIES):
+        output = call_fn(*args, **kwargs)
+        text = _extract_text(output)
+        if text and not _GATEWAY_ERROR_RE.search(text):
+            return output
+        if attempt < _ROLLOUT_RETRIES - 1:
+            time.sleep(_ROLLOUT_RETRY_DELAY_S * (2 ** attempt))
+    return output
 
 
 def _call_with_retry(system_prompt, user_prompt, max_completion_tokens):
-    import time
-
-    for attempt in range(_ROLLOUT_RETRIES):
-        output_text, _meta = chat_target(
-            system=system_prompt,
-            user=user_prompt,
-            max_completion_tokens=max_completion_tokens,
-        )
-        if output_text and not _GATEWAY_ERROR_RE.search(output_text):
-            return output_text
-        if attempt < _ROLLOUT_RETRIES - 1:
-            time.sleep(_ROLLOUT_RETRY_DELAY_S * (2 ** attempt))
-    return output_text
+    result = _retry_body_gateway_errors(
+        chat_target,
+        system=system_prompt,
+        user=user_prompt,
+        max_completion_tokens=max_completion_tokens,
+    )
+    # chat_target returns (text, usage); rollout_one expects the text string.
+    return _extract_text(result)
 
 
-def _read_saved_assistant(result):
-    """Return the assistant text from a saved conversation.json, if any."""
-    if not result:
-        return ""
-    item_id = result.get("id", "")
-    if not item_id:
-        return ""
-    conv = pathlib.Path(result.get("_conv_path", ""))
-    if not conv.exists():
-        return ""
-    try:
-        data = json.loads(conv.read_text(encoding="utf-8"))
-        return (data[-1].get("content", "") if data else "") or ""
-    except Exception:
-        return ""
+def call_optimizer_with_retry(system_prompt, user_prompt, max_completion_tokens,
+                              stage="optimizer"):
+    """Like _call_with_retry but for the OPTIMIZER model (ReflACT analyst/reflect).
+    Same body-level 503/429 guard, so reflect never reads an infrastructure
+    error as a model failure (which previously caused silent skip_no_patches)."""
+    result = _retry_body_gateway_errors(
+        chat_optimizer,
+        system=system_prompt,
+        user=user_prompt,
+        max_completion_tokens=max_completion_tokens,
+        stage=stage,
+    )
+    return _extract_text(result)
+
+
+def _patch_optimizer_gateway_retry():
+    """Monkeypatch SkillOpt's chat_optimizer so ReflACT's analyst/reflect AND
+    merge/aggregate calls get the same body-level 503/429 retry guard as target
+    rollouts.
+
+    Every SkillOpt module does `from skillopt.model import chat_optimizer` at
+    import time (reflect, aggregate/merge_patches, trainer, optimizer/*...). So
+    patch the source attribute AND every already-imported submodule's bound
+    name. The wrapper captures the ORIGINAL function so there is no recursion.
+    """
+    import skillopt.model as _sm
+    _orig = _sm.chat_optimizer
+
+    def _wrapped(system, user, max_completion_tokens=16384, retries=5,
+                 stage="optimizer", reasoning_effort=None, timeout=None):
+        text = None
+        usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        for attempt in range(retries):
+            try:
+                out_text, usage = _orig(
+                    system=system, user=user,
+                    max_completion_tokens=max_completion_tokens,
+                    stage=stage, reasoning_effort=reasoning_effort,
+                    timeout=timeout,
+                )
+            except Exception:
+                raise
+            text = out_text or ""
+            if text and not _GATEWAY_ERROR_RE.search(text):
+                return text, usage
+            time.sleep(min(2 ** attempt, 30))
+        return text, usage
+
+    _sm.chat_optimizer = _wrapped
+
+    # Patch every skillopt submodule that already bound the name.
+    import pkgutil
+    import importlib
+    for mod in pkgutil.walk_packages(_sm.__path__, _sm.__name__ + "."):
+        try:
+            m = importlib.import_module(mod.name)
+        except Exception:
+            continue
+        if getattr(m, "chat_optimizer", None) is _orig:
+            m.chat_optimizer = _wrapped
+
+
+_patch_optimizer_gateway_retry()
 
 
 def rollout_one(item, skill_content, out_dir, system_prompt, user_prompt,
@@ -93,27 +167,6 @@ def rollout_one(item, skill_content, out_dir, system_prompt, user_prompt,
     if extra_result:
         result.update(extra_result(output_text, item))
     return result
-
-
-def _read_saved_assistant(result):
-    """Return the assistant text for a result.
-
-    Prefers the in-memory raw output (always present); falls back to the
-    saved conversation.json for results that predate the raw-output field.
-    """
-    if not result:
-        return ""
-    raw = result.get("_raw_output")
-    if raw:
-        return str(raw)
-    conv = pathlib.Path(result.get("_conv_path", ""))
-    if conv.exists():
-        try:
-            data = json.loads(conv.read_text(encoding="utf-8"))
-            return (data[-1].get("content", "") if data else "") or ""
-        except Exception:
-            return ""
-    return ""
 
 
 def run_batch(items, skill_content, out_dir, score_fn, prompt_fn,
@@ -153,28 +206,17 @@ def run_batch(items, skill_content, out_dir, score_fn, prompt_fn,
                 "_raw_output": err_text,
             }
 
-    def _drop_gateway_failures(result):
-        # A persistent gateway error (e.g. a 503 returned *as the response
-        # body*) is an infrastructure failure, not a model failure. Keep it
-        # out of the results list so reflect doesn't read it as a wrong
-        # answer and patch the skill for the wrong reason. The conversation
-        # is still saved for inspection; only the reflect-facing list drops it.
-        if result is None:
-            return None
-        text = _read_saved_assistant(result)
-        if text and _GATEWAY_ERROR_RE.search(text):
-            return None
-        return result
-
     if workers > 1 and len(items) > 1:
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
             results = list(ex.map(_safe, items))
     else:
         results = [_safe(item) for item in items]
 
-    # Drop persistent gateway-failure rollouts so reflect never reads an
-    # infrastructure error as a model failure.
-    results = [r for r in results if r is not None and _drop_gateway_failures(r) is not None]
+    # NOTE: persistent gateway failures (503/429 returned *as the body*) are
+    # NOT dropped here. _call_with_retry already retries them; if one survives
+    # it stays in the list as hard:0 so the gate ALWAYS scores the full split.
+    # Dropping them made the gate score a truncated set (5/9 items vanished)
+    # and reject good patches. Serial rollout (workers=1) keeps the rate low.
 
     (out_dir / "rollouts.json").parent.mkdir(parents=True, exist_ok=True)
     serializable = [

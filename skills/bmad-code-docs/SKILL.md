@@ -143,6 +143,29 @@ path = create_pending(
 # The audit hook automatically catches TODO/FIXME comments and generates pending docs
 ```
 
+#### Choosing the Doc Type
+
+**Pattern (P) vs API (A):**
+- Describes **how a system works as a reusable practice** (a hook, a mechanism,
+  a workflow that "can be used in other projects", "recurs") → **P**, even if a
+  function signature is mentioned.
+- Describes **using/documenting one function's interface** (signature, params,
+  how to call it) → **A**.
+- Test: reuse across projects (P) vs one function's usage contract (A)?
+
+**Pattern (P) vs Decision (D):**
+- Describes **how a mechanism/process works** ("index is auto-updated",
+  "run_batch uses ThreadPoolExecutor") → **P**, even if it says "now uses".
+- Describes **a deliberate choice/policy that was decided** ("we decided to use
+  X instead of Y") → **D**.
+- Test: how something works repeatedly (P) vs a choice that was made (D)?
+
+**Learning (L) vs others:**
+- Auto-loading / recalling context at task start ("system auto-loads relevant
+  code-docs") → **L** (learned behavior).
+- Future task / TODO / next step → **X**.
+- Recurring reusable practice → **P**.
+
 ### Step 4: Show Result
 
 Show the generated or found doc to the user. Add related records (experiment, story) as links.

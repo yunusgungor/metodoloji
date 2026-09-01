@@ -2,13 +2,13 @@ _base_: ../../bmad_benchmarks/envs/_base_/default.yaml
 
 seed: 42
 
-# Weak-but-stable model (bmad-meta-root lesson #2/#4): deepseek-v4-flash
-# already scores ~100% on these tasks; laguna leaves room for the skill to learn.
-# kc/poolside/laguna-s-2.1:free rate-limited mid-training (429); trying the
-# cmc gateway's laguna deployment instead (different upstream account limits).
+# laguna-s-2.1:free could not generalize learned skill rules to held-out val
+# (lesson #10: train rollout 0.667 vs gate 0.222-0.444, 0 accepts in 21 steps).
+# Trying deepseek-v4-flash for this benchmark — measure its val baseline first
+# (want 0.6-0.8, not ≥0.9).
 model:
-  target: cmc/poolside/laguna-s-2.1-free
-  optimizer: cmc/poolside/laguna-s-2.1-free
+  target: cmc/deepseek/deepseek-v4-flash
+  optimizer: cmc/deepseek/deepseek-v4-flash
 
 env:
   name: bmad-code-docs
@@ -18,6 +18,9 @@ env:
   split_mode: split_dir
   split_dir: bmad_benchmarks/envs/bmad_code_docs/data
   max_completion_tokens: 4096
+  # workers=2: serial (1) made each gate eval ~20min (unusable); the 503 spike
+  # from parallel calls is now absorbed by the retry guard (drop removed, so the
+  # gate always scores the full split). 2 workers roughly halves step time.
   workers: 2
 
 train:

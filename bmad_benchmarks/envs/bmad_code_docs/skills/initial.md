@@ -62,6 +62,38 @@ At the start of a task, follow these steps:
 - **When resolving an error** → T doc
 - **When seeing a TODO/FIXME or planning ahead** → X doc
 
+## Choosing Between Pattern (P) and API (A)
+
+- A scenario that describes **how a system works as a reusable practice**
+  (a hook, a mechanism, a workflow that "can be used in other projects",
+  "recurs", "is a pattern") → **P (pattern)** — even if a function signature
+  is mentioned.
+- A scenario that describes **using or documenting a specific function's
+  interface** (signature, params, return, how to call it) → **A (api)**.
+- Key test: does the scenario focus on *reuse across projects* (P) or on
+  *one function's usage contract* (A)?
+
+## Choosing Between Pattern (P) and Decision (D)
+
+- A scenario that describes **how a mechanism/function/process works** (e.g.
+  "the index is auto-updated when a doc is created", "run_batch uses
+  ThreadPoolExecutor for parallel processing") → **P (pattern)** — even if it
+  says "now uses" / "now creates". The subject is *how the system behaves
+  recurrently*, not a deliberate choice.
+- A scenario that describes **a deliberate choice / policy that was decided**
+  (e.g. "we decided to adopt X instead of Y", "a meeting decided ...") → **D
+  (decision)**.
+- Key test: does the scenario describe *how something works repeatedly* (P) or
+  *a choice that was made* (D)?
+
+## Choosing Between Learning (L) and Other Types
+
+- A scenario about **auto-loading / recalling context at task start** (e.g.
+  "system should auto-load relevant code-docs via load_context_for_task()")
+  is a **learned behavior** → **L (learning)**.
+- A scenario about a **future task to do** (TODO, next step) → **X (pending)**.
+- A scenario about a **recurring reusable practice** → **P (pattern)**.
+
 ## Pending (X) Doc Rules
 
 ### When to Create

@@ -136,12 +136,61 @@ Trained rules can contradict reality. When applying a gain:
   `{metodoloji-root}/custom/` (the plugin is read-only for *output*, not for
   the customization layer).
 
+## 10. A weak model can't generalize a learned skill to held-out items
+
+**Symptom (bmad-code-docs, laguna):** `accept=0 reject=15`, best_score stuck at
+baseline through all 21 steps. Gate scores were *real* (0 gateway-503s, 9/9
+items) yet every patch scored below baseline: `sel_hard` 0.222–0.555 vs
+baseline 0.5556. `best_skill.md` == initial skill.
+
+**Cause:** the training-batch rollout looked fine (`rollout_hard` 0.667) but the
+gate on the *held-out* val items never improved. ReflACT kept adding guidance
+(frontmatter template, scenario-detection heuristics) → the skill grows → the
+weak model (`laguna-s-2.1:free`) follows the longer skill *worse*, so every
+candidate regresses the gate. The optimizer is optimizing against a model that
+can't absorb the skill.
+
+**Fixes:**
+- Check **generalization**, not just training-batch score: if `rollout_hard`
+  (train) ≫ `sel_hard` (gate) consistently, the model is overfitting to the
+  train batch / can't apply the grown skill — stop, don't burn 21 steps.
+- A weak model can still learn a *shorter* skill; keep `initial.md` minimal so
+  patches have room, but verify the target model actually improves on the gate
+  after 1–2 steps before committing to a full run.
+- If the gate baseline itself is low (0.3 test_hard) the benchmark items may be
+  too hard for the model; a different (stronger-but-still-roomy) model is worth
+  trying before blaming the data.
+
+## 11. Manual decision-guide edits can beat 21 ReflACT steps
+
+**Symptom (bmad-code-docs, deepseek):** baseline 7/9 (0.778) was ideal, but
+step_0001's patch scored equal (0.7778) → reject (gate needs strict >). The
+model kept confusing **P vs A** (`codoc-val-pattern` → picked `api`) and
+**L vs P** (`codoc-val-context-loading` → picked `pattern`). ReflACT would
+likely grind through all steps hunting for these.
+
+**Fix that worked immediately:** add **explicit decision guides** to
+`initial.md` — "Choosing Between Pattern (P) and API (A)", "Pattern vs
+Decision", "Learning vs Others" with a key test per pair. Result: **val 9/9,
+test 10/10, avg soft 0.993** on the first re-run. The weak model *cannot
+infer* these mappings (lesson #7) — writing them into the skill is cheaper and
+more reliable than 21 optimizer steps.
+- When a scenario says "can be used in other projects"/"recurs"/describes how
+  a mechanism works → **P**, even if a function signature or "now uses"
+  appears. API = one function's usage contract; Decision = a deliberate choice.
+- Auto-load/recall behavior at task start → **L** (learned), not X/P/D.
+- Promote the edited skill to `best_skill.md` and mirror it into the real
+  `skills/<bench>/SKILL.md`.
+
 ## Checklist before any training run
 
 1. `sel_env_num: 0`, `test_env_num: 0` (whole split on gate + test).
 2. Measure a **skill-less baseline** on a sample: want 0.6–0.8, not ≥0.9.
-3. Model is stable (no 503/429 storms); retry+drop filter is in `_base_`.
-4. Reverse traps are **path-less** (don't name the wrong root).
+3. **Smoke the gate early:** after 1–2 steps, check `selection_hard` vs baseline.
+   If every candidate regresses the gate (not a 503 artifact), stop — the model
+   can't absorb the skill.
+4. Model is stable (no 503/429 storms); retry+drop filter is in `_base_`.
+5. Reverse traps are **path-less** (don't name the wrong root).
 5. Scorer trusts explicit declarations (`Root anchor:`, `correct destination`,
    `resolves against`) and handles model-emitted formats.
 6. Data coverage verified (`verify_combinations` passes).
