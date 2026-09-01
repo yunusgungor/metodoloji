@@ -144,7 +144,7 @@ OpenHands Runtime
 
 **Output rule:** Methodology outputs (story, experiment, planning, test artifacts, `bmad-output/`) are always created under `{project-root}` — never under `{metodoloji-root}`.
 
-**Source-material rule:** Methodology *source* — templates (`templates/_template_*.md`), TOML configuration (`bmad/config.toml`, `custom/*.toml`), and plugin scripts (`hooks/engine/*.py`, `bmad/scripts/*.py`) — is **read** from `{metodoloji-root}`. The plugin is read-only; it is never written to. Decide by what the file *is* (record/artifact → `{project-root}`; template/config/script → `{metodoloji-root}`), not by where a path text places it.
+**Source-material rule:** Methodology *source* — templates (`templates/_template_*.md`), TOML configuration (`bmad/config.toml`, `custom/*.toml`), and plugin scripts (`hooks/engine/*.py`, `bmad/scripts/*.py`) — is **read** from `{metodoloji-root}`. The plugin is read-only for methodology *output*: records, artifacts, and bmad-output are never written into it. The one deliberate exception is the **customization** layer — `bmad-customize` writes user overrides under `{metodoloji-root}/custom/`. Decide by what the file *is* (record/artifact → `{project-root}`; template/config/script → `{metodoloji-root}`), not by where a path text places it.
 
 **Tooling-as-instrument rule:** Running a plugin script (`run_experiment.py`, `resolve_customization.py`) *reads* it from `{metodoloji-root}`; the record or artifact the script **produces** is still written to `{project-root}`. The output's root is determined by what it is, not by the script that made it. Manifestos copied into the project (`docs/bmad/*-methodology.md`) are read from `{project-root}`.
 
