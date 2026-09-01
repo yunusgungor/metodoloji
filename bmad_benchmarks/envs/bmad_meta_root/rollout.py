@@ -57,14 +57,27 @@ def _extract(text: str) -> tuple[str | None, str | None]:
     # that explicit declaration over anchor tokens buried in the reasoning
     # (which are often rejected/excluded).
     root = None
-    anchor_m = re.search(
-        r"\b(?:root\s*anchor|anchor|resolves?\s+against|resolves?\s+to)\s*"
-        r"[:\-]?\s*\*{0,2}\s*`?\s*\{?\s*"
-        r"(project[\s-]*root|metodoloji[\s-]*root)\}?`?",
+
+    # A trap answer may name the (invalid) target first, then the correct one:
+    # "resolves to {metodoloji-root} ... but it's invalid; the correct
+    # destination would be under {project-root}". The *correct* root wins.
+    correct_m = re.search(
+        r"\b(?:correct|right|valid)\s+(?:root|anchor|destination|answer|place|location)"
+        r".{0,60}?(project[\s-]*root|metodoloji[\s-]*root)",
         lower,
     )
-    if anchor_m:
-        root = "project-root" if anchor_m.group(1).startswith("project") else "metodoloji-root"
+    if correct_m:
+        root = "project-root" if correct_m.group(1).startswith("project") else "metodoloji-root"
+
+    if root is None:
+        anchor_m = re.search(
+            r"\b(?:root\s*anchor|anchor|resolves?\s+against|resolves?\s+to)\s*"
+            r"[:\-]?\s*\*{0,2}\s*`?\s*\{?\s*"
+            r"(project[\s-]*root|metodoloji[\s-]*root)\}?`?",
+            lower,
+        )
+        if anchor_m:
+            root = "project-root" if anchor_m.group(1).startswith("project") else "metodoloji-root"
 
     if root is None:
         # Fallback: the answer may name the anchor without the "Root anchor:"
