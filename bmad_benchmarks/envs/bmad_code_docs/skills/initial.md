@@ -13,6 +13,23 @@ triggers: ["bmad-code-docs", "recall", "remember", "code docs", "history"]
 1. Every code-doc must contain valid YAML frontmatter: id, type, title, date, tags
 2. Sections are written with English labels
 3. Doc type must be chosen correctly: P, T, D, L, A, X
+4. **Use the exact section headings defined by the doc type** — never invent
+   your own headings. Each type has a fixed set of `##` sections (see below).
+5. Use full type names in `type:` (pattern, troubleshooting, decision, learning,
+   api, pending) — or the short codes P, T, D, L, A, X.
+
+## Required Sections per Type
+
+- **P (pattern):** Pattern, Usage Scenario, Example, Advantages, Disadvantages
+- **T (troubleshooting):** Error, Cause, Solution, Prevention
+- **D (decision):** Decision, Rationale, Results
+- **L (learning):** Learned, Context, Evidence, Application
+- **A (api):** API, Signature, Usage, Notes
+- **X (pending):** Description, Context, Next Steps
+
+Do not rename or reorder these headings. Optional `## Related Records` /
+`## Change History` blocks may follow, but the required headings must appear
+exactly as listed.
 4. Related experiments and stories are added as links
 5. Index updates automatically
 6. **At the start of every task, relevant code-docs are loaded automatically**

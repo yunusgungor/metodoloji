@@ -2,9 +2,13 @@ _base_: ../../bmad_benchmarks/envs/_base_/default.yaml
 
 seed: 42
 
+# Weak-but-stable model (bmad-meta-root lesson #2/#4): deepseek-v4-flash
+# already scores ~100% on these tasks; laguna leaves room for the skill to learn.
+# kc/poolside/laguna-s-2.1:free rate-limited mid-training (429); trying the
+# cmc gateway's laguna deployment instead (different upstream account limits).
 model:
-  target: cmc/deepseek/deepseek-v4-flash
-  optimizer: cmc/deepseek/deepseek-v4-flash
+  target: cmc/poolside/laguna-s-2.1-free
+  optimizer: cmc/poolside/laguna-s-2.1-free
 
 env:
   name: bmad-code-docs

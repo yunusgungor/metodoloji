@@ -3,6 +3,9 @@ from .._base_.rollout import run_batch as _run_batch
 
 _REQUIRED_FRONTMATTER = {"id", "type", "title", "date", "tags"}
 
+# Section headings come from the REAL templates at docs/code-docs/<cat>/_template.md.
+# NOTE: headings are English ("## Decision", NOT "## Karar") — matched loosely so
+# an extra "## Related Records" / "## Change History" block does not break a doc.
 _SECTION_PATTERNS = {
     "P": {
         "Pattern": re.compile(r"##\s*Pattern", re.IGNORECASE),
@@ -41,15 +44,34 @@ _SECTION_PATTERNS = {
     },
 }
 
+# Maps the short code -> full type name (as in the real frontmatter `type:` value).
 _DOC_TYPE_NAMES = {"P": "pattern", "T": "troubleshooting", "D": "decision",
                    "L": "learning", "A": "api", "X": "pending"}
+# Reverse map: accept whatever the model emits for `type:` — short code, full
+# name, or the short code in parens. Keys are lowercased (the matcher lowercases
+# the extracted value before lookup).
+_DOC_TYPE_ACCEPT = {
+    **{code.lower(): code for code in _DOC_TYPE_NAMES},
+    **{name.lower(): code for code, name in _DOC_TYPE_NAMES.items()},
+    **{f"({code.lower()})": code for code in _DOC_TYPE_NAMES},
+}
+
+
+def _extract_frontmatter_block(text):
+    """Return the YAML frontmatter block body, wherever it sits in the text
+    (model often wraps the doc in ```markdown ... ``` fences, so the opener
+    may not be at line start)."""
+    m = re.search(r"^\s*---\s*\n(.*?)\n---", text, re.MULTILINE | re.DOTALL)
+    if not m:
+        return None
+    return m.group(1)
 
 
 def _check_frontmatter(text):
-    fm = re.match(r"^---\n(.+?)\n---", text, re.DOTALL)
+    fm = _extract_frontmatter_block(text)
     if not fm:
         return 0, len(_REQUIRED_FRONTMATTER)
-    found = sum(1 for f in _REQUIRED_FRONTMATTER if f in fm.group(1))
+    found = sum(1 for f in _REQUIRED_FRONTMATTER if f in fm)
     return found, len(_REQUIRED_FRONTMATTER)
 
 
@@ -64,10 +86,10 @@ def _check_sections(text, doc_type):
 def _check_tags(text, expected_tags):
     if not expected_tags:
         return 0, 0
-    fm = re.match(r"^---\n(.+?)\n---", text, re.DOTALL)
+    fm = _extract_frontmatter_block(text)
     if not fm:
         return 0, len(expected_tags)
-    fm_text = fm.group(1).lower()
+    fm_text = fm.lower()
     found = sum(1 for t in expected_tags if t.lower() in fm_text)
     return found, len(expected_tags)
 
@@ -83,9 +105,27 @@ def _check_context_loading(text, context):
     return has_exp_ref or has_ctx or has_doc_ref
 
 
+def _detect_type_code(text):
+    """Return the expected-type short code the model chose, or None.
+
+    Accepts `type: P`, `type: pattern`, `type: (P)` anywhere in the text
+    (frontmatter or inline) — matched on the frontmatter block first, then the
+    whole text. Lowercased and stripped of quotes/brackets before lookup.
+    """
+    fm = _extract_frontmatter_block(text)
+    body = fm if fm else text
+    m = re.search(r"type\s*:\s*([^\s,}]+)", body, re.IGNORECASE)
+    if not m:
+        return None
+    raw = m.group(1).strip().strip('"\'[](){}').lower()
+    if raw.endswith(")"):
+        raw = raw[:-1]
+    return _DOC_TYPE_ACCEPT.get(raw)
+
+
 def _score(output_text, item):
-    type_match = re.search(r"^\s*type:\s*(\w+)", output_text, re.MULTILINE)
-    type_correct = type_match and type_match.group(1) == _DOC_TYPE_NAMES.get(item["expected_type"], "")
+    type_code = _detect_type_code(output_text)
+    type_correct = type_code == item["expected_type"]
     fm_found, fm_total = _check_frontmatter(output_text)
     fm_valid = fm_found == fm_total
     sec_found, sec_total = _check_sections(output_text, item["expected_type"])
@@ -101,31 +141,35 @@ def _score(output_text, item):
 
 
 def _prompt(item, skill_content):
-    doc_type_name = _DOC_TYPE_NAMES.get(item["expected_type"], "pattern")
+    # NOTE: the expected type/tags are NOT leaked to the model — it must infer
+    # them from the scenario (otherwise the skill has nothing to learn). Only
+    # the valid doc categories are given as a constraint.
     system = (
         f"{skill_content}\n\n"
-        f"You are a code documentation expert. Generate a structured code-doc "
-        f"following the methodology. The doc MUST be of type '{doc_type_name}' "
-        f"with valid YAML frontmatter (id, type, title, date, tags) and "
-        f"all required sections."
+        f"You are a code documentation expert. Given a scenario, decide which "
+        f"type of code-doc to create (pattern, troubleshooting, decision, "
+        f"learning, api, or pending) and produce the doc following the "
+        f"methodology. Emit a YAML frontmatter block delimited by --- (with "
+        f"id, type, title, date, tags) followed by the required ## sections. "
+        f"Do not wrap the doc in a markdown code fence."
     )
     user = (
         f"## Scenario\n\n{item['scenario']}\n\n"
-        f"Generate the appropriate code-doc for this scenario. "
-        f"Expected type: {doc_type_name} ({item['expected_type']})\n"
-        f"Expected tags: {', '.join(item.get('expected_tags', []))}"
+        f"Generate the appropriate code-doc for this scenario. Choose the "
+        f"correct doc type yourself from the scenario, and include relevant "
+        f"tags that describe the topic."
     )
     return system, user
 
 
 def _extra_result(output_text, item):
-    type_match = re.search(r"^\s*type:\s*(\w+)", output_text, re.MULTILINE)
+    type_code = _detect_type_code(output_text)
     sec_found, _ = _check_sections(output_text, item["expected_type"])
     tag_found, _ = _check_tags(output_text, item.get("expected_tags", []))
     fm_valid = _check_frontmatter(output_text) == (len(_REQUIRED_FRONTMATTER), len(_REQUIRED_FRONTMATTER))
     return {
         "expected_type": item["expected_type"],
-        "detected_type": type_match.group(1) if type_match else "",
+        "detected_type": type_code if type_code else "",
         "n_expected_sections": len(item.get("expected_sections", [])),
         "n_sections_found": sec_found,
         "n_expected_tags": len(item.get("expected_tags", [])),
@@ -153,6 +197,13 @@ def _selfcheck():
               "expected_sections": ["## Pattern", "## Usage Scenario", "## Example"]}
     hard, soft = _score(perfect_p, item_p)
     assert hard == 1, f"perfect pattern doc should pass, got hard={hard}"
+    # Model often wraps the doc in a ```markdown fence and uses the short code.
+    fenced_p = "```markdown\n" + perfect_p + "\n```"
+    hard2, _ = _score(fenced_p, item_p)
+    assert hard2 == 1, f"fenced pattern doc should still pass, got hard={hard2}"
+    short_type = perfect_p.replace("type: pattern", "type: P")
+    hard3, _ = _score(short_type, item_p)
+    assert hard3 == 1, f"short-code type (P) should pass, got hard={hard3}"
     wrong_type = perfect_p.replace("type: pattern", "type: api")
     assert _score(wrong_type, item_p)[0] == 0
     no_fm = perfect_p.split("---\n", 1)[-1]
@@ -163,6 +214,16 @@ def _selfcheck():
     item_no_sec = {"expected_type": "P", "expected_tags": ["pattern"],
                    "expected_sections": ["## Pattern", "## Usage Scenario"]}
     assert _score(no_section, item_no_sec)[0] == 0
+    # Real decision template uses "## Decision" (English), not "## Karar".
+    real_d = (
+        "---\nid: D-001\n type: decision\n title: \"x\"\n date: 01.09.2026\n"
+        " tags: [decision]\n---\n"
+        "## Decision\n...\n## Rationale\n...\n## Results\n..."
+    )
+    item_d = {"expected_type": "D", "expected_tags": ["decision"],
+              "expected_sections": ["## Decision", "## Rationale", "## Results"]}
+    hard_d, _ = _score(real_d, item_d)
+    assert hard_d == 1, f"real English decision doc should pass, got hard={hard_d}"
     for code in ("P", "T", "D", "L", "A", "X"):
         assert code in _SECTION_PATTERNS, f"missing section table for {code}"
     print("selfcheck OK")
