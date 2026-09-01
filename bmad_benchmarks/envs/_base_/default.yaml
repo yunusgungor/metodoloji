@@ -4,8 +4,12 @@
 seed: 42
 
 evaluation:
-  sel_env_num: 4
-  test_env_num: 4
+  # 0 = cover the ENTIRE val/test split. The old default of 4 truncated the
+  # first alphabetically-sorted items, so the gate/test never saw the harder
+  # items and ReflACT had nothing to optimize (bmad-meta-root lesson). build_eval_batch
+  # treats env_num=0 as "no truncation".
+  sel_env_num: 0
+  test_env_num: 0
   eval_test: true
 
 model:
