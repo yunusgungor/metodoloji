@@ -55,6 +55,10 @@ class BmadAdapter(EnvAdapter):
             split_mode=cfg.get("split_mode", "split_dir"),
         )
         self.dataloader.setup(cfg)
+        # Fail fast on an empty/partial split instead of silently running a
+        # training that has nothing to learn (bmad-meta-root lesson).
+        if hasattr(self.dataloader, "verify_split_data"):
+            self.dataloader.verify_split_data()
 
     def get_dataloader(self):
         return self.dataloader

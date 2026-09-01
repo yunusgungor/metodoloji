@@ -35,3 +35,35 @@ def run_batch(items, skill_content, out_dir, workers=1, max_completion_tokens=40
     return _run_batch(items, skill_content, out_dir, _score, _prompt,
                       max_completion_tokens=max_completion_tokens,
                       workers=workers, default_task_type="code-review")
+
+
+def _selfcheck():
+    item = {"expected_findings": [
+        {"title_keyword": "SQL injection", "category": "security"},
+        {"title_keyword": "race condition", "category": "concurrency"},
+    ]}
+    # Both findings (via title keyword) → pass.
+    assert _score(
+        "Finding 1: SQL injection in the query builder. Finding 2: race condition on the counter.",
+        item,
+    ) == (1, 1.0)
+    # One found → 1/2 → hard 0.
+    assert _score("The diff has a SQL injection.", item) == (0, 0.5)
+    # Category fallback counts too.
+    assert _score(
+        "A security issue and a concurrency issue were found.",
+        item,
+    ) == (1, 1.0)
+    # None → fail.
+    assert _score("Looks fine.", item) == (0, 0.0)
+    # No expected findings → trivially pass.
+    assert _score("anything", {"expected_findings": []}) == (1, 1.0)
+    print("selfcheck OK")
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selfcheck" in sys.argv:
+        _selfcheck()
+        sys.exit(0)
+    sys.exit("rollout.py is a module — import run_batch via the adapter (or run --selfcheck)")

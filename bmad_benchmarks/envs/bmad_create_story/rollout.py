@@ -28,3 +28,36 @@ def run_batch(items, skill_content, out_dir, workers=1, max_completion_tokens=40
     return _run_batch(items, skill_content, out_dir, _score, _prompt,
                       max_completion_tokens=max_completion_tokens,
                       workers=workers, default_task_type="create-story")
+
+
+def _selfcheck():
+    item = {
+        "expected_sections": ["Acceptance Criteria", "Technical Notes"],
+        "expected_metadata_fields": ["status", "priority"],
+    }
+    # All sections + metadata → pass.
+    assert _score(
+        "## Acceptance Criteria\n...\n## Technical Notes\n...\nstatus: draft\npriority: high",
+        item,
+    ) == (1, 1.0)
+    # All sections, no metadata → (1.0 + 0.0)/2 = 0.5 < 0.9 → fail.
+    assert _score(
+        "## Acceptance Criteria\n...\n## Technical Notes\n...",
+        item,
+    ) == (0, 0.5)
+    # Missing one section, all metadata → (0.5 + 1.0)/2 = 0.75 → fail.
+    assert _score(
+        "## Acceptance Criteria\n...\nstatus: draft\npriority: high",
+        item,
+    ) == (0, 0.75)
+    # None → fail.
+    assert _score("A story.", item) == (0, 0.0)
+    print("selfcheck OK")
+
+
+if __name__ == "__main__":
+    import sys
+    if "--selfcheck" in sys.argv:
+        _selfcheck()
+        sys.exit(0)
+    sys.exit("rollout.py is a module — import run_batch via the adapter (or run --selfcheck)")

@@ -262,3 +262,31 @@ def run_custom_batch(items, skill_content, out_dir, record_name, fields,
     return run_batch(items, skill_content, out_dir, _score, _prompt,
                      max_completion_tokens=max_completion_tokens,
                      workers=workers, default_task_type=default_task_type)
+
+
+def _base_selfcheck():
+    """Self-check for the shared field-presence scorer used by custom_*."""
+    # normalize: parens/colons stripped, lowercased, whitespace trimmed.
+    assert normalize_field_label("  Durum: (E-XXX)  ") == "durum e-xxx"
+    assert normalize_field_label("STATUS") == "status"
+    # Full presence.
+    assert score_field_presence(
+        "## Incident\n...\n## Root Cause\n...\n## Action Items\n...",
+        ["Incident", "Root Cause", "Action Items"],
+    ) == (1, 1.0)
+    # Partial: 2/3 fields → soft 0.667 < 0.9 → hard 0.
+    assert score_field_presence(
+        "## Incident\n...\n## Root Cause\n...",
+        ["Incident", "Root Cause", "Action Items"],
+    ) == (0, 0.6666666666666666)
+    # Threshold at 0.9: 3/3 = 1.0 passes; 2/3 fails.
+    assert score_field_presence(
+        "incident, root cause, action items",
+        ["Incident", "Root Cause", "Action Items"],
+    ) == (1, 1.0)
+    # Missing field entirely → fails.
+    assert score_field_presence(
+        "nothing here",
+        ["Incident", "Root Cause"],
+    ) == (0, 0.0)
+    print("selfcheck OK")
