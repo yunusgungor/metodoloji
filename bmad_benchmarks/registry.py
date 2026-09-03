@@ -85,11 +85,20 @@ def register_all_adapters():
 
 def load_benchmark_config(name: str) -> dict:
     """Load YAML config and set model env vars (TARGET_DEPLOYMENT, etc.)."""
-    config_path = CONFIGS_DIR / name / "default.yaml"
-    if not config_path.exists():
-        raise FileNotFoundError(f"Config not found: {config_path}")
-    with open(config_path) as f:
-        cfg = yaml.safe_load(f)
+    # Use skillopt.config._load_yaml so _base_ inheritance is respected
+    # (raw yaml.safe_load would miss _base_ merges and env vars could be stale).
+    try:
+        from skillopt.config import _load_yaml
+        config_path = CONFIGS_DIR / name / "default.yaml"
+        if not config_path.exists():
+            raise FileNotFoundError(f"Config not found: {config_path}")
+        cfg = _load_yaml(str(config_path))
+    except ImportError:
+        config_path = CONFIGS_DIR / name / "default.yaml"
+        if not config_path.exists():
+            raise FileNotFoundError(f"Config not found: {config_path}")
+        with open(config_path) as f:
+            cfg = yaml.safe_load(f)
     target = cfg.get("model", {}).get("target", "")
     if target:
         os.environ["TARGET_DEPLOYMENT"] = target
@@ -101,6 +110,9 @@ def load_benchmark_config(name: str) -> dict:
 
 def build_train_argv(name: str, cfg: dict, extra_args: list[str] | None = None) -> list[str]:
     """Build sys.argv for SkillOpt's train.py."""
+    # Train.py loads the YAML itself (with _base_ merge), so argv is redundant —
+    # but keep it for any harness that reads it, and map structured keys correctly
+    # via the same flatten map skillopt uses.
     config_path = str(CONFIGS_DIR / name / "default.yaml")
     argv = ["train.py", "--config", config_path, "--env", name]
     env = cfg.get("env", {}) if isinstance(cfg.get("env"), dict) else {}
@@ -108,13 +120,24 @@ def build_train_argv(name: str, cfg: dict, extra_args: list[str] | None = None) 
         val = env.get(key) or cfg.get(key)
         if val:
             argv.extend([f"--{key}", str(val)])
-    for key in ("seed", "workers", "limit", "out_root", "minibatch_size", "edit_budget"):
-        val = env.get(key) if isinstance(cfg.get("env"), dict) else None
+    # Forward tuning knobs from their structured homes as well as flat.
+    train = cfg.get("train", {}) if isinstance(cfg.get("train"), dict) else {}
+    gradient = cfg.get("gradient", {}) if isinstance(cfg.get("gradient"), dict) else {}
+    optimizer = cfg.get("optimizer", {}) if isinstance(cfg.get("optimizer"), dict) else {}
+    forwarding = {
+        "seed": train.get("seed"),
+        "workers": cfg.get("workers") if "workers" in cfg else env.get("workers"),
+        "limit": env.get("limit") if "limit" in env else cfg.get("limit"),
+        "out_root": env.get("out_root"),
+        "minibatch_size": gradient.get("minibatch_size"),
+        "edit_budget": optimizer.get("learning_rate"),
+        "analyst_workers": gradient.get("analyst_workers"),
+    }
+    for key, val in forwarding.items():
         if val is None:
-            val = cfg.get(key)
+            val = cfg.get(key) or env.get(key)
         if val is not None:
             argv.extend([f"--{key}", str(val)])
-    train = cfg.get("train", {})
     for key in ("batch_size", "num_epochs"):
         val = train.get(key)
         if val is not None:

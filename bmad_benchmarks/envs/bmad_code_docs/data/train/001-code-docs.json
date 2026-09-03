@@ -56,7 +56,7 @@
       "decision"
     ],
     "expected_sections": [
-      "## Karar",
+      "## Decision",
       "## Rationale",
       "## Results"
     ],
@@ -258,7 +258,7 @@
       "context-loading"
     ],
     "expected_sections": [
-      "## Karar",
+      "## Decision",
       "## Rationale",
       "## Results"
     ],
@@ -437,7 +437,7 @@
       "decision"
     ],
     "expected_sections": [
-      "## Karar",
+      "## Decision",
       "## Rationale",
       "## Results"
     ],

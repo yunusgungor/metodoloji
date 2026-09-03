@@ -1,20 +1,11 @@
 _base_: ../../bmad_benchmarks/envs/_base_/default.yaml
 
-seed: 42
-
-# laguna-s-2.1:free: couldn't generalize (ders #10)
-# deepseek-v4-flash: val 0.778, test 10/10 with decision guides
-# mimo-v2.5-free: val 9/9, 0.994 (too easy, nothing to learn)
-# groq/qwen/qwen3.6-27b: 400 error (model not found on gateway)
-# Qwen2.5-7B-Instruct: first 7 steps skipped (no patches), only 1 accept in 9 steps
-# Now trying lc/qwen2.5-14b-instruct with tuned hyperparams.
+# split: oc/big-pickle target + muse-spark optimizer (2026-09-03)
 model:
-  target: lc/qwen2.5-14b-instruct
-  optimizer: lc/qwen2.5-14b-instruct
-  # openai_compatible uses max_tokens (not max_completion_tokens) — gateway needs it
-  optimizer_backend: openai_compatible
-  target_backend: openai_compatible
-  # More tokens for longer, more detailed patches
+  target: oc/big-pickle
+  optimizer: oc/muse-spark-1.3-contributor-free
+  optimizer_backend: openai_chat
+  target_backend: openai_chat
   rewrite_max_completion_tokens: 8192
 
 env:
@@ -31,15 +22,16 @@ env:
   workers: 2
 
 train:
+  seed: 42
   # batch_size 8: more diverse examples per rollout, helps patch generation
   batch_size: 8
   # 5 epochs: more optimization cycles
-  num_epochs: 5
+  num_epochs: 1  # probe: single epoch
 
 optimizer:
-  # edit_budget 5: allow more edits per step (was 3)
-  learning_rate: 5
+  learning_rate: 3
 
 gradient:
-  # Bigger merge batch for better aggregation
-  merge_batch_size: 8
+  minibatch_size: 2
+  merge_batch_size: 4
+  analyst_workers: 1
