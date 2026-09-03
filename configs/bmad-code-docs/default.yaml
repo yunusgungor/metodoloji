@@ -2,13 +2,20 @@ _base_: ../../bmad_benchmarks/envs/_base_/default.yaml
 
 seed: 42
 
-# laguna-s-2.1:free could not generalize learned skill rules to held-out val
-# (lesson #10: train rollout 0.667 vs gate 0.222-0.444, 0 accepts in 21 steps).
-# Trying deepseek-v4-flash for this benchmark — measure its val baseline first
-# (want 0.6-0.8, not ≥0.9).
+# laguna-s-2.1:free: couldn't generalize (ders #10)
+# deepseek-v4-flash: val 0.778, test 10/10 with decision guides
+# mimo-v2.5-free: val 9/9, 0.994 (too easy, nothing to learn)
+# groq/qwen/qwen3.6-27b: 400 error (model not found on gateway)
+# Qwen2.5-7B-Instruct: first 7 steps skipped (no patches), only 1 accept in 9 steps
+# Now trying lc/qwen2.5-14b-instruct with tuned hyperparams.
 model:
-  target: cmc/deepseek/deepseek-v4-flash
-  optimizer: cmc/deepseek/deepseek-v4-flash
+  target: lc/qwen2.5-14b-instruct
+  optimizer: lc/qwen2.5-14b-instruct
+  # openai_compatible uses max_tokens (not max_completion_tokens) — gateway needs it
+  optimizer_backend: openai_compatible
+  target_backend: openai_compatible
+  # More tokens for longer, more detailed patches
+  rewrite_max_completion_tokens: 8192
 
 env:
   name: bmad-code-docs
@@ -24,5 +31,15 @@ env:
   workers: 2
 
 train:
-  batch_size: 3
-  num_epochs: 3
+  # batch_size 8: more diverse examples per rollout, helps patch generation
+  batch_size: 8
+  # 5 epochs: more optimization cycles
+  num_epochs: 5
+
+optimizer:
+  # edit_budget 5: allow more edits per step (was 3)
+  learning_rate: 5
+
+gradient:
+  # Bigger merge batch for better aggregation
+  merge_batch_size: 8
