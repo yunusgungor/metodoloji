@@ -65,7 +65,11 @@ _ADAPTERS = {
 
 def register_all_adapters():
     """Register all BMAD adapters into SkillOpt's environment registry."""
-    from scripts import train as skillopt_train
+    try:
+        from scripts import train as skillopt_train
+    except ImportError:
+        print("  [skip] SkillOpt not installed — adapters not registered")
+        return
     try:
         from scripts import eval_only as skillopt_eval
     except ImportError:
