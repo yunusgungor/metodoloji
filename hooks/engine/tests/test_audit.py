@@ -85,6 +85,62 @@ def test_event_no_events_for_clean_output():
     assert events == []
 
 
+def test_event_pattern_class_hierarchy():
+    events = _detect_notable_events(
+        "file_editor",
+        {"path": "src/auth.py", "content": "class AuthService(BaseService):\n    pass"},
+        None,
+    )
+    assert any(e["type"] == "pattern" and e["trigger"] == "class_hierarchy"
+               and e["class_name"] == "AuthService" for e in events)
+
+
+def test_event_pattern_keyword_in_comment():
+    events = _detect_notable_events(
+        "file_editor",
+        {"path": "src/auth.py", "content": "# implements the strategy pattern\ndef authenticate(): ..."},
+        None,
+    )
+    assert any(e["type"] == "pattern" and e["trigger"] == "pattern_keyword" for e in events)
+
+
+def test_event_pattern_no_trigger_on_plain_function():
+    events = _detect_notable_events(
+        "file_editor",
+        {"path": "src/utils.py", "content": "def helper():\n    return 1"},
+        None,
+    )
+    assert all(e["type"] != "pattern" for e in events)
+
+
+def test_event_api_route_decorator():
+    events = _detect_notable_events(
+        "file_editor",
+        {"path": "src/routes.py", "content": "@app.get('/users')\ndef get_users(): ..."},
+        None,
+    )
+    assert any(e["type"] == "api" and e["trigger"] == "endpoint_detected"
+               and e["route"] == "/users" for e in events)
+
+
+def test_event_api_filename():
+    events = _detect_notable_events(
+        "file_editor",
+        {"path": "src/views_api.py", "content": "def index(): ..."},
+        None,
+    )
+    assert any(e["type"] == "api" and e["trigger"] == "endpoint_detected" for e in events)
+
+
+def test_event_api_no_trigger_on_regular_file():
+    events = _detect_notable_events(
+        "file_editor",
+        {"path": "src/utils.py", "content": "def helper():\n    return 1"},
+        None,
+    )
+    assert all(e["type"] != "api" for e in events)
+
+
 # --- _validate_methodology_compliance ---------------------------------------
 
 def test_compliance_story_without_ac():

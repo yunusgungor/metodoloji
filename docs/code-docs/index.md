@@ -6,11 +6,13 @@ Structured documentation system used to remember project history and generate ne
 
 ### [Decisions](./decisions/) — 0 records
 
-### [Patterns](./patterns/) — 0 records
+### [Patterns](./patterns/) — 1 records
+- [Test Pattern](./patterns/P-001-test-pattern.md)
 
 ### [Learnings](./learnings/) — 0 records
 
-### [API Usages](./api/) — 0 records
+### [API Usages](./api/) — 1 records
+- [Test API](./api/A-001-test-api.md)
 
 ### [Troubleshooting](./troubleshooting/) — 0 records
 

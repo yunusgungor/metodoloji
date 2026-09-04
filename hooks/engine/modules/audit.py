@@ -17,6 +17,57 @@ def _detect_notable_events(tool_name: str, tool_input: dict, tool_output: dict) 
     events = []
     output_str = str(tool_output) if tool_output else ""
 
+    # 0. Code structure → pattern doc (class hierarchies, design-indicative comments)
+    if tool_name == "file_editor":
+        path = tool_input.get("path", "")
+        content = str(tool_input.get("content", ""))
+        if path.endswith(".py") and content:
+            # Class with inheritance or decorator = design pattern signal
+            class_match = re.search(
+                r"class\s+(\w+)\s*\([^)]+\)", content)
+            if class_match:
+                events.append({
+                    "type": "pattern",
+                    "trigger": "class_hierarchy",
+                    "path": path,
+                    "class_name": class_match.group(1),
+                    "content_preview": content[:200],
+                })
+            else:
+                # Explicit pattern mentions in comments
+                if re.search(r"#.*(?:pattern|strategy|factory|adapter|decorator|observer|singleton|proxy)", content, re.IGNORECASE):
+                    events.append({
+                        "type": "pattern",
+                        "trigger": "pattern_keyword",
+                        "path": path,
+                        "content_preview": content[:200],
+                    })
+
+    # 0b. API endpoint → api doc (route decorators, API file naming)
+    if tool_name == "file_editor":
+        path = tool_input.get("path", "")
+        content = str(tool_input.get("content", ""))
+        if content:
+            route_match = re.search(
+                r"@(?:app|router|blueprint|api_view)\s*\.\s*(get|post|put|delete|patch|route)\s*\(",
+                content)
+            is_api_file = bool(re.search(r"(?:api|route|endpoint|view)s?\.py$", path, re.IGNORECASE))
+
+            if route_match or is_api_file:
+                route_path = ""
+                if route_match:
+                    after = content[route_match.end():]
+                    rp = re.search(r"['\"]([^'\"]+)['\"]", after)
+                    if rp:
+                        route_path = rp.group(1)
+                events.append({
+                    "type": "api",
+                    "trigger": "endpoint_detected",
+                    "path": path,
+                    "route": route_path,
+                    "content_preview": content[:200],
+                })
+
     # 1. Experiment approved → learning doc
     if tool_name == "terminal":
         cmd = str(tool_input.get("command", ""))
@@ -99,7 +150,8 @@ def _try_generate_code_doc(event: dict):
     """Try to generate a code doc from a detected event. Non-blocking."""
     try:
         from .code_docs import (create_learning, create_decision,
-                                create_troubleshooting, create_pending)
+                                create_troubleshooting, create_pending,
+                                create_pattern, create_api)
 
         if event["type"] == "learning" and "experiment_id" in event:
             create_learning(
@@ -142,6 +194,29 @@ def _try_generate_code_doc(event: dict):
                 next_steps="Should be updated manually",
                 priority="normal",
                 tags=["pending", "auto-detected"],
+            )
+
+        elif event["type"] == "pattern" and "path" in event:
+            class_name = event.get("class_name", "")
+            if class_name:
+                title = f"Pattern: {class_name}"
+            else:
+                title = f"Pattern: {os.path.basename(event['path'])}"
+            create_pattern(
+                title=title,
+                pattern=event.get("content_preview", "Code structure detected"),
+                usage=f"Observed in {event['path']}",
+                tags=["pattern", "auto-detected"],
+            )
+
+        elif event["type"] == "api" and "path" in event:
+            route = event.get("route", "")
+            title = f"API: {route}" if route else f"API: {os.path.basename(event['path'])}"
+            create_api(
+                title=title,
+                signature=route or event.get("path", ""),
+                usage=event.get("content_preview", "Endpoint detected"),
+                tags=["api", "auto-detected"],
             )
     except Exception as exc:
         import sys
@@ -254,6 +329,19 @@ def audit(json_in: dict) -> dict:
     notable_events = _detect_notable_events(tool_name, tool_input, tool_output)
     for event in notable_events:
         _try_generate_code_doc(event)
+
+    # Auto-load relevant code-docs for current task context (non-blocking)
+    try:
+        from .code_docs import load_context_for_task
+        task_desc = str(tool_input.get("command", "")) or str(tool_input.get("path", ""))
+        if tool_output:
+            task_desc += " " + str(tool_output)[:200]
+        if task_desc.strip():
+            doc_context = load_context_for_task(task_desc)
+            if doc_context:
+                record["related_docs"] = doc_context
+    except Exception:
+        pass
 
     if warnings:
         record["methodology_warnings"] = warnings

@@ -97,4 +97,14 @@ def stop(json_in: dict) -> dict:
                               f"Complete experiment record before stopping."
                 }
 
-    return {"decision": "allow"}
+    # 3. Surface pending code-docs so the agent sees unfinished work at session end.
+    result = {"decision": "allow"}
+    try:
+        from .code_docs import load_pending_docs
+        pending = load_pending_docs()
+        if pending:
+            result["pending_docs"] = pending
+    except Exception:
+        pass
+
+    return result
