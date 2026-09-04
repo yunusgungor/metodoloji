@@ -28,7 +28,7 @@ Hardening cuts the idea down; this builds it out. Before drafting, offer what th
 
 ## Capture continuously into the memlog
 
-As decisions and directions land, write them to `{target-skill-path}/.memlog.md` through `{metodoloji-root}/hooks/engine/memlog.py` (`init` once when the target is named, then `append --type <decision|direction|assumption|gap|note|event>` as things happen). For a new skill, propose a kebab-case name when the user did not give one; renaming later is a logged decision, not a redo. The memlog is the canonical process memory, the source for resume, and the trail you audit at handoff so the user can confirm their thinking was handled the way they meant. Capture as you go, not in a batch at the end, because the value is in catching the reasoning while it is still fresh.
+As decisions and directions land, write them to `{target-skill-path}/.memlog.md` through `{metodoloji-root}/bmad/scripts/memlog.py` (`init` once when the target is named, then `append --type <decision|direction|assumption|gap|note|event>` as things happen). For a new skill, propose a kebab-case name when the user did not give one; renaming later is a logged decision, not a redo. The memlog is the canonical process memory, the source for resume, and the trail you audit at handoff so the user can confirm their thinking was handled the way they meant. Capture as you go, not in a batch at the end, because the value is in catching the reasoning while it is still fresh.
 
 ## Write the minimal outcome-driven version first
 

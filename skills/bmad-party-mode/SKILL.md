@@ -11,7 +11,7 @@ Run a round-table where these agents talk to each other and to the user like rea
 ## Conventions
 
 - **Paths:** bare paths (e.g. `references/create-party.md`) resolve from `{skill-root}` (where `customize.toml` lives); `{project-root}`-prefixed paths from the project working dir. `{workflow.<name>}` resolves to `customize.toml`'s `[workflow]` table (overrides win).
-- **Scripts** (run via `python3`): `{metodoloji-root}/hooks/engine/resolve_customization.py` resolves `{workflow.*}`; `{skill-root}/scripts/resolve_party.py` resolves the roster, `party_mode`, `memory_enabled`, and scene/`open_cast`; `{metodoloji-root}/hooks/engine/memlog.py` reads/writes per-party memory.
+- **Scripts** (run via `python3`): `{metodoloji-root}/hooks/engine/resolve_customization.py` resolves `{workflow.*}`; `{skill-root}/scripts/resolve_party.py` resolves the roster, `party_mode`, `memory_enabled`, and scene/`open_cast`; `{metodoloji-root}/bmad/scripts/memlog.py` reads/writes per-party memory.
 - **File roles:** a party's memory is the per-party memlog at `{workflow.memory_dir}/<party>/.memlog.md`; custom members and groups live in the user's `customize.toml` overrides. Mechanics in `references/party-memory.md` (memory) and `references/create-party.md` (authoring).
 - **Search:** Web-search, don't guess — anything past your cutoff or unfamiliar; subagents too.
 

@@ -46,7 +46,7 @@ Write it once; do not restate it lower down.}
 1. Load config from `{metodoloji-root}/bmad/config.yaml` (and `.user.yaml` if present). Use sensible defaults for anything missing rather than requiring configuration.
 
 <!-- Keep step 2 only for artifact-producing skills that carry process memory. -->
-2. Resume check. Look for an existing `.memlog.md` in the run folder. If one is found, read it once to rebuild state and continue append-only; otherwise initialize a new memlog with `python3 {metodoloji-root}/hooks/engine/memlog.py init --path <run-folder>/.memlog.md`.
+2. Resume check. Look for an existing `.memlog.md` in the run folder. If one is found, read it once to rebuild state and continue append-only; otherwise initialize a new memlog with `python3 {metodoloji-root}/bmad/scripts/memlog.py init --path <run-folder>/.memlog.md`.
 
 <!-- Keep step 3 only if the author accepted customize.toml. -->
 3. Resolve the `workflow` block: run `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — the OpenHands terminal tool accepts only the command parameter; do NOT add description. If the script fails, merge these three files yourself in base → team → user order — `{skill-root}/customize.toml`, `{metodoloji-root}/custom/{skill-name}.toml`, `{metodoloji-root}/custom/{skill-name}.user.toml` — where scalars override, tables deep-merge, arrays of tables keyed by `code`/`id` replace matching entries and append new ones, and all other arrays append. Reference resolved values as `{workflow.<name>}` everywhere below; never hardcode a path beside a declared scalar.

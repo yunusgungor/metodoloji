@@ -37,9 +37,9 @@ These fight your defaults, in every mode; hold them deliberately. The stance you
 
 **The memlog** is the session's memory: the single source every output builds from, and the file a resume reloads. Whatever isn't in it is gone. Log every idea, decision, question, and bit of user direction — anything you'd regret losing if the window closed — one line each, the gist in the user's meaning, in time order; never edit or reorder. Skip your prompts and small talk. All writes to memlog are atomic and use the script `memlog.py` invoked as follows:
 
-- `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {doc_workspace} --field purpose="<topic>" --field topic="<topic>" --field goal="<goal>" --field mode="<facilitator|partner|autonomous>"` — create it once topic, goal, and stance are known. `purpose` is the intent-bridge field the hook engine reads; keep it the one-line summary of the session.
-- `python3 {metodoloji-root}/hooks/engine/memlog.py append --workspace {doc_workspace} --type <kind> --text "<one-line gist>"` — log one entry. `--type` ∈ `idea`/`insight`/`question`/`decision`/`direction`/`technique` (a switch: `--text "started <name>"`); omit for a plain note. Add `--by user`/`--by coach` to mark authorship — **required in Creative Partner mode** (renders `(idea by user)`); skip it otherwise.
-- `python3 {metodoloji-root}/hooks/engine/memlog.py set --workspace {doc_workspace} --key status --value complete` — flip status at wrap-up.
+- `python3 {metodoloji-root}/bmad/scripts/memlog.py init --workspace {doc_workspace} --field purpose="<topic>" --field topic="<topic>" --field goal="<goal>" --field mode="<facilitator|partner|autonomous>"` — create it once topic, goal, and stance are known. `purpose` is the intent-bridge field the hook engine reads; keep it the one-line summary of the session.
+- `python3 {metodoloji-root}/bmad/scripts/memlog.py append --workspace {doc_workspace} --type <kind> --text "<one-line gist>"` — log one entry. `--type` ∈ `idea`/`insight`/`question`/`decision`/`direction`/`technique` (a switch: `--text "started <name>"`); omit for a plain note. Add `--by user`/`--by coach` to mark authorship — **required in Creative Partner mode** (renders `(idea by user)`); skip it otherwise.
+- `python3 {metodoloji-root}/bmad/scripts/memlog.py set --workspace {doc_workspace} --key status --value complete` — flip status at wrap-up.
 
 ## Run a Session
 

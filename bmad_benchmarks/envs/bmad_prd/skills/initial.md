@@ -28,7 +28,7 @@ updated: YYYY-MM-DD
 
 ## Process
 
-1. **Elicit**: Gather product intent, constraints, audience. Seed the memlog with the session intent: `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {doc_workspace} --field purpose="<PRD/product name>"` — `purpose` is read by the hook engine (intent bridge).
+1. **Elicit**: Gather product intent, constraints, audience. Seed the memlog with the session intent: `python3 {metodoloji-root}/bmad/scripts/memlog.py init --workspace {doc_workspace} --field purpose="<PRD/product name>"` — `purpose` is read by the hook engine (intent bridge).
 2. **Draft**: Generate comprehensive PRD with all sections
 3. **Review**: Validate completeness, consistency, testability
 4. **Finalize**: Apply reviewer gate, triage open items, set status: final

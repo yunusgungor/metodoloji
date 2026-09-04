@@ -153,7 +153,7 @@ If the script refuses, fix `findings.json` and re-run; never hand-edit the HTML.
 Append one memlog event carrying the grade (init the memlog first if `{target-agent-path}/.memlog.md` does not exist):
 
 ```bash
-python3 {metodoloji-root}/hooks/engine/memlog.py append --path {target-agent-path}/.memlog.md --type event --text "analyze: grade <grade>, <c> critical / <h> high / <m> medium / <l> low, report .analysis/<timestamp>/agent-analysis-report.html"
+python3 {metodoloji-root}/bmad/scripts/memlog.py append --path {target-agent-path}/.memlog.md --type event --text "analyze: grade <grade>, <c> critical / <h> high / <m> medium / <l> low, report .analysis/<timestamp>/agent-analysis-report.html"
 ```
 
 ## Present

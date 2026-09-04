@@ -56,10 +56,10 @@ Inside the spec folder:
 
 Deriving the contract from a living log instead of editing the contract in place is what lets the steps around the spec (PRD, UX, architecture, epics) run in any order and feed the same spec without merge drift: the log only accumulates, the artifact is re-rendered. So the spec is updated *only* by re-deriving it here — bmad-spec is its single writer; a hand-edit to `SPEC.md` from outside is unsupported and is overwritten on the next derive.
 
-Writes go through the shared script — `{metodoloji-root}/hooks/engine/memlog.py`, the same location as `resolve_customization.py` (atomic; never read it back except to resume):
+Writes go through the shared script — `{metodoloji-root}/bmad/scripts/memlog.py`, the same location as `resolve_customization.py` (atomic; never read it back except to resume):
 
-- `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {spec-folder} --field purpose="<what is being specced>" --field topic="<what is being specced>"` — once, at create. `purpose` is the intent-bridge field the hook engine reads.
-- `python3 {metodoloji-root}/hooks/engine/memlog.py append --workspace {spec-folder} --type <decision|constraint|capability|assumption|question|direction|note|event> --text "<one-line gist, reason included>"` — as each lands.
+- `python3 {metodoloji-root}/bmad/scripts/memlog.py init --workspace {spec-folder} --field purpose="<what is being specced>" --field topic="<what is being specced>"` — once, at create. `purpose` is the intent-bridge field the hook engine reads.
+- `python3 {metodoloji-root}/bmad/scripts/memlog.py append --workspace {spec-folder} --type <decision|constraint|capability|assumption|question|direction|note|event> --text "<one-line gist, reason included>"` — as each lands.
 - Terminal moments (a validation verdict, "spec finalized") are `--type event` entries; the memlog carries no status field.
 
 ## The Operation

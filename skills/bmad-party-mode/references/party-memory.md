@@ -34,7 +34,7 @@ When a character shows up who isn't in the party's roster — cast from an open-
 ## Write it
 
 ```
-python3 {metodoloji-root}/hooks/engine/memlog.py append \
+python3 {metodoloji-root}/bmad/scripts/memlog.py append \
   --workspace {workflow.memory_dir}/{active} \
   --type <dynamic|moment|callback|outcome> \
   --text "<one succinct line, in the room's own read of it>"

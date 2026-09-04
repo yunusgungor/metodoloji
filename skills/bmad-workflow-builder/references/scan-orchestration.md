@@ -109,7 +109,7 @@ The shell fails loud: a malformed island shows the parse-error banner, an unfill
 Append one memlog event carrying the grade (init the memlog first if `{target-skill-path}/.memlog.md` does not exist):
 
 ```bash
-python3 {metodoloji-root}/hooks/engine/memlog.py append --path {target-skill-path}/.memlog.md --type event --text "analyze: grade <grade>, <c> critical / <h> high / <m> medium / <l> low, report .analysis/<timestamp>/skill-analysis-report.html"
+python3 {metodoloji-root}/bmad/scripts/memlog.py append --path {target-skill-path}/.memlog.md --type event --text "analyze: grade <grade>, <c> critical / <h> high / <m> medium / <l> low, report .analysis/<timestamp>/skill-analysis-report.html"
 ```
 
 ## Present

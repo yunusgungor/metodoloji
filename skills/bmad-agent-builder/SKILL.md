@@ -36,7 +36,7 @@ The builder produces agents along one gradient surfaced as feature decisions, no
 
 4. **Open the floor (interactive only).** Before any structured questions or routing, invite the user to share everything in mind: who the agent is, how it should make them feel, the core outcome, examples, half-formed ideas, paths to existing agents or artifacts. Adapt the invitation to what they already gave you, then one soft "anything else?" surfaces what they almost forgot. This dump replaces most downstream questioning, so let it run. Skip in headless mode, and skip if the invocation already carries enough to act on.
 
-5. **Resume detection.** Once a target agent is identified, glob `{target-agent-path}/.memlog.md`. If one exists, read it once in full to rebuild the prior session's state, then continue append-only through `{metodoloji-root}/hooks/engine/memlog.py`. This `.memlog.md` is the builder's process log and is separate from the agent's sanctum. In headless mode, resume automatically.
+5. **Resume detection.** Once a target agent is identified, glob `{target-agent-path}/.memlog.md`. If one exists, read it once in full to rebuild the prior session's state, then continue append-only through `{metodoloji-root}/bmad/scripts/memlog.py`. This `.memlog.md` is the builder's process log and is separate from the agent's sanctum. In headless mode, resume automatically.
 
 6. **Route to the intent.** Pick the path below from the resolved intent and load only that file. Once the intent is routed, execute each entry in `{agent.activation_steps_append}` in order before the loop begins.
 

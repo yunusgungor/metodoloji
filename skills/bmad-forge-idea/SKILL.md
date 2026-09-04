@@ -54,7 +54,7 @@ Tell the user they can say **"attack this"**, **"defend this"**, or **"switch ro
 ### Set up the session
 
 Derive a kebab-case `{slug}` for the idea and bind the session workspace `{workspace} = {workflow.forge_output_path}/{workflow.run_folder_pattern}` (the pattern fills with `{slug}`). Create the memlog once the goal is known:
-`python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {workspace} --field purpose="<idea>" --field idea="<idea>" --field goal="<goal>"` — `purpose` is the intent-bridge field the hook engine reads.
+`python3 {metodoloji-root}/bmad/scripts/memlog.py init --workspace {workspace} --field purpose="<idea>" --field idea="<idea>" --field goal="<goal>"` — `purpose` is the intent-bridge field the hook engine reads.
 
 Tell the user the path; state is on disk now, so the session survives interruption. If init fails, don't abort — run the forge in-conversation and tell the user state won't persist this session.
 
@@ -89,7 +89,7 @@ When a branch resolves, pause before moving on. Give the user a chance to raise 
 Do not use agreement or praise to make the interaction smoother; they lower pressure and lead to shallower thinking. Agreement is allowed only when it helps the user think better. Praise is noise. Continued engagement and ego-stroking are not objectives. In attack mode, never agree with the idea until the user ends the mode. For each answer, either challenge the weak point or build on the strong point, whichever helps the user think better.
 
 Capture as you go — each decision, assumption, crack, kill, and locked idea, one bullet in the user's meaning:
-`python3 {metodoloji-root}/hooks/engine/memlog.py append --workspace {workspace} --type <decision|assumption|crack|kill|direction|lock|note> --text "<gist>"`
+`python3 {metodoloji-root}/bmad/scripts/memlog.py append --workspace {workspace} --type <decision|assumption|crack|kill|direction|lock|note> --text "<gist>"`
 A `lock` is an idea the user hardens — settled, not to be reopened; locks are what `forged-idea.md` is distilled from. Don't read the memlog back except on resume. If the user raises a different branch, capture it and stay put — the loop and the stray insight both survive.
 
 ## The personas
@@ -118,5 +118,5 @@ The session can end in three valid states:
 
 Always render `{workspace}/forge-report.html` as a self-contained HTML file the user can open, with inline CSS and an inline-SVG seal or stamp. Summarize the outcome, the locked decisions, what was rejected and why, and the weak points that survived scrutiny, in the user's meaning. Credit the personas and parties that pressure-tested the idea by name, icon, and voice. Render a prominent wax-seal-style or stamped outcome mark, matched to the result: `HARDENED`, an `Idea Death Certificate` stamped `KILLED` with the cause of death, or `CLARIFIED`. Tell the user the path.
 
-Flip the status at the end: `python3 {metodoloji-root}/hooks/engine/memlog.py set --workspace {workspace} --key status --value complete`.
+Flip the status at the end: `python3 {metodoloji-root}/bmad/scripts/memlog.py set --workspace {workspace} --key status --value complete`.
 If `{workflow.on_complete}` is non-empty, run all instructions in order.

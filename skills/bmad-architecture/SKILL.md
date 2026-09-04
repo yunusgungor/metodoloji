@@ -37,8 +37,8 @@ The **memlog** (`.memlog.md`) is the run's working memory: every decision, const
 
 Writes go through the shared script (don't read the file back except on resume):
 
-- `python3 {metodoloji-root}/hooks/engine/memlog.py init --workspace {doc_workspace} --field scope="…" --field purpose="…" --field altitude="…"`
-- `python3 {metodoloji-root}/hooks/engine/memlog.py append --workspace {doc_workspace} --type <decision|constraint|version|assumption|question|direction|event> --text "…"`
+- `python3 {metodoloji-root}/bmad/scripts/memlog.py init --workspace {doc_workspace} --field scope="…" --field purpose="…" --field altitude="…"`
+- `python3 {metodoloji-root}/bmad/scripts/memlog.py append --workspace {doc_workspace} --type <decision|constraint|version|assumption|question|direction|event> --text "…"`
 
 ## Resolution rules
 
