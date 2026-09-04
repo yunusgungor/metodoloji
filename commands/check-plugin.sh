@@ -616,7 +616,7 @@ echo "== 5) Engine integrity audit (modular engine: main.py + modules/) =="
 # The canonical is this repo's hooks/engine/ tree; the plugin copy must match the repo.
 # Drift = missing/broken engine file (the old single-file bmad-hooks.py is gone).
 ENGINE_OK=1
-for f in main.py memlog.py resolve_customization.py modules/__init__.py \
+for f in main.py resolve_customization.py modules/__init__.py \
          modules/config.py modules/utils.py modules/archive.py modules/bash_targets.py \
          modules/guard.py modules/audit.py modules/stop.py; do
     if [ ! -f "$PLUGIN_ROOT/hooks/engine/$f" ]; then
@@ -628,7 +628,7 @@ if [ "$ENGINE_OK" -eq 1 ]; then
     if "$PY" -c "
 import py_compile, os, sys
 engine=os.path.normpath(sys.argv[1])
-files=['main.py','memlog.py','resolve_customization.py',
+files=['main.py','resolve_customization.py',
        'modules/__init__.py','modules/config.py','modules/utils.py',
        'modules/archive.py','modules/bash_targets.py','modules/guard.py',
        'modules/audit.py','modules/stop.py']
