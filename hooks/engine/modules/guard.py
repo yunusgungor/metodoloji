@@ -505,11 +505,13 @@ def guard(json_in: dict) -> dict:
                             "reason": f"Story experiment validation failed for {rel}: {reason}"
                         }
                     # 2+3. Metadata + chain validation. Strictness comes from
-                    #      custom/config.toml [hooks] quality_gate:
-                    #      hard → deny (legacy), soft → warn-only.
+                    #      custom/config.toml [hooks] quality_gate ONLY:
+                    #      hard → deny, soft → warn-only. deploy_guard must NOT
+                    #      leak into story-edit strictness (a hard deploy_guard
+                    #      governs deploy commands, not file writes).
                     #      Read live so config changes apply per-call.
-                    from .config import _hook_strictness
-                    soft_gate = _hook_strictness() != "hard"
+                    from .config import hook_gate_mode
+                    soft_gate = hook_gate_mode("quality_gate") != "hard"
                     if soft_gate:
                         warnings = []
                         valid, reason = _validate_story_metadata(story_content)

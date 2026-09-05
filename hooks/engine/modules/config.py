@@ -68,32 +68,14 @@ def _hook_gate_value(gate_key: str) -> str:
                 return "hard"
     return "soft"
 
-def _hook_strictness() -> str:
-    """Backward-compatible combined strictness: 'hard' if EITHER gate is hard.
-
-    Used by guard()'s story-metadata path, which predates the split gate keys.
-    """
-    if _hook_gate_value("quality_gate") == "hard" or _hook_gate_value("deploy_guard") == "hard":
-        return "hard"
-    return "soft"
-
-
 def hook_gate_mode(gate_key: str) -> str:
-    """Public per-call accessor for a [hooks] gate mode: 'soft' | 'hard'.
+    """Public per-call accessor for one [hooks] gate mode: 'soft' | 'hard'.
 
-    Always reads live from custom/config.toml — an import-time constant would
-    go stale the moment config.toml changes after the engine process starts.
+    Each gate key (quality_gate, deploy_guard) is read INDEPENDENTLY and live
+    from custom/config.toml — an import-time constant would go stale, and one
+    gate's mode must never leak into the other's semantics.
     """
     return _hook_gate_value(gate_key)
-
-
-def QUALITY_GATE_HARD() -> bool:
-    """Deprecated shim: use hook_gate_mode() for per-call reads.
-
-    Kept as a function because the value cannot be snapshotted at import time:
-    config.toml may change (or not exist yet) after this module is imported.
-    """
-    return _hook_strictness() == "hard"
 
 # Code classification
 NON_CODE_EXTS = {

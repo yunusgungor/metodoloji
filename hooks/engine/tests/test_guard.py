@@ -270,7 +270,7 @@ def test_guard_soft_gate_warns_not_denies(tmp_path, monkeypatch):
     from modules.guard import guard
     from modules import config
     # Force the soft-gate branch regardless of custom/config.toml.
-    monkeypatch.setattr(config, "_hook_strictness", lambda: "soft")
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "soft")
     stories = tmp_path / "docs/development/stories"
     stories.mkdir(parents=True)
     content = (
@@ -300,7 +300,7 @@ def test_guard_hard_gate_denies_metadata(tmp_path, monkeypatch):
     """quality_gate=hard → story metadata gaps are deny, not warn."""
     from modules.guard import guard
     from modules import config
-    monkeypatch.setattr(config, "_hook_strictness", lambda: "hard")
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
     stories = tmp_path / "docs/development/stories"
     stories.mkdir(parents=True)
     content = (
@@ -328,7 +328,7 @@ def test_guard_soft_gate_still_denies_missing_experiment(tmp_path, monkeypatch):
     DENY — experiment_refs validity is strictness-independent."""
     from modules.guard import guard
     from modules import config
-    monkeypatch.setattr(config, "_hook_strictness", lambda: "soft")
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "soft")
     stories = tmp_path / "docs/development/stories"
     stories.mkdir(parents=True)
     content = (
@@ -362,7 +362,7 @@ def test_guard_soft_gate_combines_scope_and_metadata_warnings(tmp_path, monkeypa
     """soft gate + out-of-scope write → warnings from both, still allow."""
     from modules.guard import guard
     from modules import config
-    monkeypatch.setattr(config, "_hook_strictness", lambda: "soft")
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "soft")
     stories = tmp_path / "docs/development/stories"
     stories.mkdir(parents=True)
     content = (
@@ -387,6 +387,74 @@ def test_guard_soft_gate_combines_scope_and_metadata_warnings(tmp_path, monkeypa
     assert any("missing Type field" in w for w in warns)
     assert any("outside the active scope" in w for w in warns)
     monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
+
+
+def test_guard_mixed_gate_config_story_edit_not_blocked_by_deploy_guard(
+        tmp_path, monkeypatch):
+    """Regression: deploy_guard=hard must NOT block story metadata edits when
+    quality_gate=soft. The story path reads quality_gate ONLY — deploy_guard
+    governs deploy commands, not file writes."""
+    from modules.guard import guard
+    from modules import config
+
+    def mixed_mode(key):
+        return "hard" if key == "deploy_guard" else "soft"
+
+    monkeypatch.setattr(config, "hook_gate_mode", mixed_mode)
+    stories = tmp_path / "docs/development/stories"
+    stories.mkdir(parents=True)
+    content = (
+        "## Story: S-001\n"
+        "## Acceptance Criteria\n"
+        "- [AC-001] Given X When Y Then Z\n"  # missing Type/Measured/Verify
+        "## Technical Tasks\n"
+        "- [ ] do it AC: AC-001\n"
+        "## Definition of Done\n"
+        "- [ ] DoD-001 Verify: manual\n"
+    )
+    (stories / "S-001.md").write_text(content, encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "docs/development/stories/S-001.md",
+                                "content": content}})
+    # quality_gate=soft → warn-only, allow despite deploy_guard=hard.
+    assert res["decision"] == "allow"
+    assert any("missing Type field" in w
+               for w in res.get("methodology_warnings", []))
+
+
+def test_guard_mixed_gate_config_hard_quality_still_denies(tmp_path, monkeypatch):
+    """The mirror direction: quality_gate=hard denies story metadata gaps even
+    when deploy_guard=soft — the story path follows quality_gate."""
+    from modules.guard import guard
+    from modules import config
+
+    def mixed_mode(key):
+        return "hard" if key == "quality_gate" else "soft"
+
+    monkeypatch.setattr(config, "hook_gate_mode", mixed_mode)
+    stories = tmp_path / "docs/development/stories"
+    stories.mkdir(parents=True)
+    content = (
+        "## Story: S-001\n"
+        "## Acceptance Criteria\n"
+        "- [AC-001] Given X When Y Then Z\n"
+        "## Technical Tasks\n"
+        "- [ ] do it AC: AC-001\n"
+        "## Definition of Done\n"
+        "- [ ] DoD-001 Verify: manual\n"
+    )
+    (stories / "S-001.md").write_text(content, encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "docs/development/stories/S-001.md",
+                                "content": content}})
+    assert res["decision"] == "deny"
+    assert "Story metadata validation failed" in res["reason"]
 
 
 def _write_story(tmp_path, key="S-001", status="done"):
@@ -491,7 +559,7 @@ def test_guard_scope_inside_no_warning(tmp_path, monkeypatch):
     """A write inside the active scope gets no scope warning."""
     from modules.guard import guard
     from modules import config
-    monkeypatch.setattr(config, "_hook_strictness", lambda: "soft")
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "soft")
     (tmp_path / "src/auth").mkdir(parents=True)
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)

@@ -81,22 +81,22 @@ def test_first_existing():
         assert _first_existing([Path(f.name)]) == Path(f.name)
 
 
-def test_hook_strictness_parses_hard_with_comment(tmp_path, monkeypatch):
+def test_hook_gate_mode_parses_hard_with_comment(tmp_path, monkeypatch):
     from modules import config
     # A [hooks] quality_gate = "hard" value followed by a # comment must parse.
     cfg = tmp_path / "config.toml"
     cfg.write_text('[hooks]\nquality_gate = "hard"   # "soft" (default) | "hard"\n',
                    encoding="utf-8")
     monkeypatch.setattr(config, "_HOOKS_CFG", cfg)
-    assert config._hook_strictness() == "hard"
+    assert config.hook_gate_mode("quality_gate") == "hard"
 
 
-def test_hook_strictness_default_soft(tmp_path, monkeypatch):
+def test_hook_gate_mode_default_soft(tmp_path, monkeypatch):
     from modules import config
     cfg = tmp_path / "config.toml"
     cfg.write_text('[hooks]\nquality_gate = "soft"\n', encoding="utf-8")
     monkeypatch.setattr(config, "_HOOKS_CFG", cfg)
-    assert config._hook_strictness() == "soft"
+    assert config.hook_gate_mode("quality_gate") == "soft"
 
 
 def test_hook_gate_values_read_independently(tmp_path, monkeypatch):
@@ -109,7 +109,9 @@ def test_hook_gate_values_read_independently(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "_HOOKS_CFG", cfg)
     assert config._hook_gate_value("quality_gate") == "soft"
     assert config._hook_gate_value("deploy_guard") == "hard"
-    assert config._hook_strictness() == "hard"  # combined: either hard → hard
+    # hook_gate_mode is the public accessor — same independent semantics.
+    assert config.hook_gate_mode("quality_gate") == "soft"
+    assert config.hook_gate_mode("deploy_guard") == "hard"
 
 
 def test_health_json_contract_keys():
