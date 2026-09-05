@@ -112,7 +112,7 @@ EXEC_CONFIG_NAME = re.compile(
 # Free zones
 FREE_PREFIXES = (
     "_bmad/", "scratch/", "graft/", ".git/", "tmp/", "temp/",
-    "openhands/", ".metodoloji/", "docs/code-docs/", "bmad_benchmarks/", "hooks/"
+    "openhands/", ".metodoloji/", "docs/code-docs/", "bmad_benchmarks/", "hooks/", "scripts/"
 )
 
 INFRA_FILES = {"scripts/check-methodology.sh", "skills/bmad-research-experiment/scripts/run_experiment.py"}
