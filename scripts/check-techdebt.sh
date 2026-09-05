@@ -11,8 +11,8 @@
 #   5. Orphan TODO: every TD-XXX in a record is referenced in either the active
 #      table or the paid table; [TD-XXX] in comments always in the inventory
 #
-# Usage:  sh commands/check-techdebt.sh
-#            sh commands/check-techdebt.sh --negtest
+# Usage:  sh scripts/check-techdebt.sh
+#            sh scripts/check-techdebt.sh --negtest
 #            (negative-test only: inject ID collision + orphan TODO →
 #             catch MISS → restore)
 # Output:    [OK] / [WARNING] / [ERROR] at the start of each line; overall status at the end.
@@ -37,7 +37,7 @@ from pathlib import Path
 
 PLUGIN = Path(os.environ["PLUGIN_ROOT"])
 td = PLUGIN / "docs" / "development" / "tech-debt.md"
-check_script = PLUGIN / "commands" / "check-techdebt.sh"
+check_script = PLUGIN / "scripts" / "check-techdebt.sh"
 total_stages = 3
 
 def run_check() -> subprocess.CompletedProcess:

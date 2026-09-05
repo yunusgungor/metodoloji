@@ -9,12 +9,12 @@
 #   4. Documentary (B/C/D) record completeness  (run_experiment.py --validate)
 #   5. Engine drift audit               (plugin engine == repo canonical, if repo reachable)
 #   5b. Hard gate enforcement mode (soft/hard — custom/config.toml [hooks])
-#   5c. custom/ bridge TOMLs static quality audit (commands/check-custom.sh)
+#   5c. custom/ bridge TOMLs static quality audit (scripts/check-custom.sh)
 #   6. Development records format check  (run_experiment.py --validate)
 #
-# Usage:  sh commands/check-plugin.sh   (from the plugin root or anywhere;
+# Usage:  sh scripts/check-plugin.sh   (from the plugin root or anywhere;
 #            target project root is cwd or $OPENHANDS_PROJECT_DIR)
-#            sh commands/check-plugin.sh --negtest
+#            sh scripts/check-plugin.sh --negtest
 #            (negative-test only: break the BRIDGE marker → catch §2b MISS → restore)
 # Output:    [OK] / [WARNING] / [ERROR] at the start of each line; overall status at the end.
 
@@ -39,7 +39,7 @@ import json, os, subprocess, sys
 from pathlib import Path
 
 PLUGIN = Path(os.environ["PLUGIN_ROOT"])
-check_script = PLUGIN / "commands" / "check-plugin.sh"
+check_script = PLUGIN / "scripts" / "check-plugin.sh"
 total_stages = 4
 
 # Stage 1/3: .env.example deleted → §6a.2 should catch a WARNING
@@ -715,7 +715,7 @@ if [ -f "$SELF/check-custom.sh" ]; then
     fi
     rm -f /tmp/meth-custom.$$.log
 else
-    echo "[WARNING] commands/check-custom.sh not found (skipped)"
+    echo "[WARNING] scripts/check-custom.sh not found (skipped)"
 fi
 
 echo "== 6) Development records format check =="

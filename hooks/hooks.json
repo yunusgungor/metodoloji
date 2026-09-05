@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh $HOME/.openhands/plugins/installed/metodoloji/hooks/scripts/bootstrap.sh",
+            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/bootstrap.sh",
             "timeout": 30
           }
         ]
@@ -13,31 +13,31 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "/file_editor|terminal/",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "sh $HOME/.openhands/plugins/installed/metodoloji/hooks/scripts/hook-entry.sh guard openhands",
+            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/hook-entry.sh guard claude",
             "timeout": 10
           }
         ]
       },
       {
-        "matcher": "/terminal/",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "sh $HOME/.openhands/plugins/installed/metodoloji/hooks/scripts/hook-entry.sh quality openhands",
+            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/hook-entry.sh quality claude",
             "timeout": 10
           }
         ]
       },
       {
-        "matcher": "/terminal/",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "sh $HOME/.openhands/plugins/installed/metodoloji/hooks/scripts/hook-entry.sh deploy openhands",
+            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/hook-entry.sh deploy claude",
             "timeout": 10
           }
         ]
@@ -45,11 +45,11 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "/file_editor|terminal/",
+        "matcher": "Write|Edit|MultiEdit|Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "sh $HOME/.openhands/plugins/installed/metodoloji/hooks/scripts/hook-entry.sh audit openhands",
+            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/hook-entry.sh audit claude",
             "timeout": 5,
             "async": true
           }
@@ -61,7 +61,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh $HOME/.openhands/plugins/installed/metodoloji/hooks/scripts/hook-entry.sh stop openhands",
+            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/hook-entry.sh stop claude",
             "timeout": 15
           }
         ]

@@ -226,8 +226,8 @@ Config at `~/.skillopt-sleep/config.json` (installed by this repo):
 {
   "transcript_source": "claude",
   "backend": "mock",
-  "skill_roots": ["C:/Users/ASUS/orca/openhands-metodoloji/skills"],
-  "target_skill_path": "C:/Users/ASUS/orca/openhands-metodoloji/skills",
+  "skill_roots": ["C:/Users/ASUS/orca/metodoloji/skills"],
+  "target_skill_path": "C:/Users/ASUS/orca/metodoloji/skills",
   "gate_no_regression": true,
   "dream_rollouts": 3,
   "multi_skill_fanout": true

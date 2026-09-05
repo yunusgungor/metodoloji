@@ -1,3 +1,7 @@
+---
+description: Generate the machine-local ~/.bmad/gate-key used by the methodology's mechanical gates.
+---
+
 # /metodoloji:gate-setup — Generate the gate key (gate-key init)
 
 The methodology's mechanical gates (Mode A approval, QR/PR hard mode) perform HMAC

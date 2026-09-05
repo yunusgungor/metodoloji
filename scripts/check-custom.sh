@@ -15,8 +15,8 @@
 #   6. config.toml [hooks] soft/hard contract (DRY: same parser as §5b)
 #   7. Bridge document §N.N reference drift audit (synced with bridge.md sections)
 #
-# Usage:  sh commands/check-custom.sh
-#            sh commands/check-custom.sh --negtest
+# Usage:  sh scripts/check-custom.sh
+#            sh scripts/check-custom.sh --negtest
 #            (negative-test only: §3 hard-gate + §7 bridge drift (2/2:
 #             delete §N.N, inject "bolum N.N") → catch MISS → restore)
 # Output:    [OK] / [WARNING] / [ERROR] at the start of each line; overall status at the end.
@@ -59,7 +59,7 @@ def has_dev_story_gate_error(text: str) -> bool:
     toml.write_text(text, encoding="utf-8")
     try:
         r = subprocess.run(
-            ["sh", str(PLUGIN / "commands" / "check-custom.sh")],
+            ["sh", str(PLUGIN / "scripts" / "check-custom.sh")],
             capture_output=True, text=True, encoding="utf-8", timeout=30)
         out = r.stdout
         for line in out.splitlines():
@@ -95,7 +95,7 @@ def has_bridge_drift_error(bridge_text: str) -> bool:
     bridge.write_text(bridge_text, encoding="utf-8")
     try:
         r = subprocess.run(
-            ["sh", str(PLUGIN / "commands" / "check-custom.sh")],
+            ["sh", str(PLUGIN / "scripts" / "check-custom.sh")],
             capture_output=True, text=True, encoding="utf-8", timeout=30)
         out = r.stdout
         for line in out.splitlines():
@@ -145,7 +145,7 @@ def has_bolum_drift_error(text: str) -> bool:
     test_toml.write_text(text, encoding="utf-8")
     try:
         r = subprocess.run(
-            ["sh", str(PLUGIN / "commands" / "check-custom.sh")],
+            ["sh", str(PLUGIN / "scripts" / "check-custom.sh")],
             capture_output=True, text=True, encoding="utf-8", timeout=30)
         out = r.stdout
         for line in out.splitlines():

@@ -1,3 +1,7 @@
+---
+description: Verify whether an experiment record is APPROVED and its gate token is not forged.
+---
+
 # /metodoloji:verify — Verify an experiment record
 
 Verifies whether the `{project-root}/docs/experiments/<experiment-id>.md` record is

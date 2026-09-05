@@ -1,3 +1,7 @@
+---
+description: Install the methodology record skeleton (directories + templates) into the target project.
+---
+
 # /metodoloji:init — Install the record skeleton into the target project
 
 This command installs the directories and templates required for the methodology

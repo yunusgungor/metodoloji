@@ -1,5 +1,6 @@
 {
   "name": "metodoloji",
+  "description": "BMAD methodology plugin: record chain, hard gate, skills and bridge TOMLs",
   "owner": {
     "name": "yunusgungor"
   },

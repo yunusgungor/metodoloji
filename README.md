@@ -1,6 +1,6 @@
 # metodoloji — dual-plugin (OpenHands + Claude Code)
 
-BMAD methodology: 125 skills + 74 bridge TOMLs + mechanical gates
+BMAD methodology: 123 skills + 120 bridge TOMLs + mechanical gates
 (guard/stop/quality/deploy) + record chain (E → IR → SP → S → QR → PR).
 Shared `hooks/engine/` core, runtime-specific manifest layers.
 
@@ -8,8 +8,8 @@ Shared `hooks/engine/` core, runtime-specific manifest layers.
 
 | Part | Function |
 |---|---|
-| `skills/` | 122 BMAD skills (native body) |
-| `custom/` | 74 bridge TOMLs (`activation_steps_append` links native outputs to methodology records) + `config.toml` (soft/hard) |
+| `skills/` | 123 BMAD skills (native body) |
+| `custom/` | 120 bridge TOMLs (`activation_steps_append` links native outputs to methodology records) + `config.toml` (soft/hard) |
 | `hooks/` | PreToolUse/PostToolUse/Stop/SessionStart hooks; modular engine structure |
 | `hooks/engine/` | Python engine: `main.py` (entry point), `modules/` (guard, audit, stop, utils, config) |
 | `bmad/` | legacy `_bmad/` module data (bmm, cis, gds, wds, tea, core, bmb) |
@@ -30,23 +30,30 @@ On the first session: `/metodoloji:init` (installs templates) and `/metodoloji:g
 
 ## Installation — Claude Code
 
-**Plugin marketplace** (when available):
+**Plugin marketplace** (ships a manifest at `.claude-plugin/marketplace.json`):
 ```
-/plugin install metodoloji
+/plugin marketplace add https://github.com/yunusgungor/metodoloji
+/plugin install metodoloji@metodoloji
+```
+
+The manifest sets `defaultEnabled: false` (fail-closed guard hooks are opt-in) — after
+installing, enable the plugin explicitly:
+```
+claude plugin enable metodoloji
 ```
 
 **Manual install** — clone the repo and reference in `.claude/settings.json`:
 ```json
 {
   "hooks": {
-    "SessionStart": [{ "hooks": [{ "type": "command", "command": "sh /path/to/openhands-metodoloji/hooks/scripts/bootstrap.sh" }] }],
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "sh /path/to/metodoloji/hooks/scripts/bootstrap.sh" }] }],
     "PreToolUse": [
-      { "matcher": "Write|Edit|MultiEdit", "hooks": [{ "type": "command", "command": "sh /path/to/openhands-metodoloji/hooks/scripts/hook-entry.sh guard claude" }] },
-      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "sh /path/to/openhands-metodoloji/hooks/scripts/hook-entry.sh quality claude" }] },
-      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "sh /path/to/openhands-metodoloji/hooks/scripts/hook-entry.sh deploy claude" }] }
+      { "matcher": "Write|Edit|MultiEdit", "hooks": [{ "type": "command", "command": "sh /path/to/metodoloji/hooks/scripts/hook-entry.sh guard claude" }] },
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "sh /path/to/metodoloji/hooks/scripts/hook-entry.sh quality claude" }] },
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "sh /path/to/metodoloji/hooks/scripts/hook-entry.sh deploy claude" }] }
     ],
-    "PostToolUse": [{ "matcher": "Write|Edit|MultiEdit|Bash", "hooks": [{ "type": "command", "command": "sh /path/to/openhands-metodoloji/hooks/scripts/hook-entry.sh audit claude", "async": true }] }],
-    "Stop": [{ "hooks": [{ "type": "command", "command": "sh /path/to/openhands-metodoloji/hooks/scripts/hook-entry.sh stop claude" }] }]
+    "PostToolUse": [{ "matcher": "Write|Edit|MultiEdit|Bash", "hooks": [{ "type": "command", "command": "sh /path/to/metodoloji/hooks/scripts/hook-entry.sh audit claude", "async": true }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "sh /path/to/metodoloji/hooks/scripts/hook-entry.sh stop claude" }] }]
   }
 }
 ```
@@ -96,9 +103,9 @@ hooks/engine/
 ## Health check
 
 ```sh
-sh commands/check-plugin.sh            # full audit (§0–§6 + §2b + §5b + §5c + drift)
-sh commands/check-plugin.sh --negtest  # negative test: BREAK bridge → catch → restore
-sh commands/check-custom.sh            # custom/ static quality audit only (§0–§6)
+sh scripts/check-plugin.sh            # full audit (§0–§6 + §2b + §5b + §5c + drift)
+sh scripts/check-plugin.sh --negtest  # negative test: BREAK bridge → catch → restore
+sh scripts/check-custom.sh            # custom/ static quality audit only (§0–§6)
 ```
 
 ## Source of truth and drift

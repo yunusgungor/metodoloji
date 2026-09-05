@@ -493,8 +493,8 @@ echo '{"tool_name":"terminal","tool_input":{"command":"ls"}}' | \
 
 ### 10.4 Full Plugin Health Check
 ```bash
-sh commands/check-plugin.sh
-sh commands/check-custom.sh
+sh scripts/check-plugin.sh
+sh scripts/check-custom.sh
 ```
 
 ---

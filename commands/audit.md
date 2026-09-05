@@ -1,3 +1,7 @@
+---
+description: Run the full methodology audit trail check (plugin integrity, bridge TOMLs, record chain).
+---
+
 # /metodoloji:audit — Methodology health check (plugin variant)
 
 Mechanically audits the plugin's own integrity and the record discipline in the target project.
@@ -6,12 +10,12 @@ Mechanically audits the plugin's own integrity and the record discipline in the 
 
 1. Plugin integrity: run this script and summarize the result:
    ```sh
-   sh {metodoloji-root}/commands/check-plugin.sh
+   sh {metodoloji-root}/scripts/check-plugin.sh
    ```
    (0 issues = HEALTHY; §5c custom/ static quality check runs inside this script
    as §5c — no need to run it separately)
 
-2. Custom/ bridge TOMLs (only if an audit is requested): run `commands/check-custom.sh`
+2. Custom/ bridge TOMLs (only if an audit is requested): run `scripts/check-custom.sh`
    to see §0–§7 in detail. `check-plugin.sh` §5c already runs the same sections; this
    step is only used when a custom/-focused report is wanted.
 

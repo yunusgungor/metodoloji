@@ -7,7 +7,7 @@
 
 > **2026-08-26 — SkillOpt tech-debt integration completed.** With 12 commits (957e5c2..8f2eb93),
 > all debt in all 6 manifests was paid (TD-001/002/003/010/011/012), the SkillOpt `techdebt` task
-> category was added (6/6 benchmarks), `commands/check-techdebt.sh` inventory checks mechanically in
+> category was added (6/6 benchmarks), `scripts/check-techdebt.sh` inventory checks mechanically in
 > 5 sections, baseline.json is in the repo (66/66), 151 tests PASS, 3/3 negtest. Active
 > debt: **0**. The next debt cycle will start with new P3 records.
 
@@ -47,7 +47,7 @@
 |----|-------|-------|-------------------|--------|-------|
 | TD-001 | `test_marketplace_json_content` (bmad-module-builder) marked as broken test — still listed as P0 in the manifest | Verified with pytest on 2026-08-26: 9/9 test_scaffold_standalone_module + 7/7 test_scaffold_setup_skill + 21/21 test_validate_module (total 37/37) PASS. Scaffold produces `marketplace_name = f"bmad-{args.module_code}"`, test expects `bmad-exc` — compatible. Debt record was old (2026-08-19) and scaffold had been working correctly since the initial commit; the record was incorrectly updated | 2026-08-26 | — | 1fcc9fd |
 | TD-003 | Test suites of other installed skills (except bmad-workflow-builder) had never been run | Verified with pytest on 2026-08-26 — 9 test files, **114/114 PASS**: bmad-architecture (28) + bmad-brainstorming (27) + bmad-customize (13) + bmad-eval-runner (4+11=15) + bmad-forge-idea (16) + bmad-workflow-builder (2+7+6=15). All active skill tests deterministic and green | 2026-08-26 | — | 1fcc9fd |
-| TD-002 | Monitor false-positive: `tech-debt.md` template placeholders were mistaken for real debt (`sprint-status.sh`/`tech-debt-monitor.sh` showed "4 active debts, P0:1") | `commands/check-techdebt.sh` 5 sections: (1) template/live identity, (2) active ID unique + sequential, (3) P0 hard limit (<=5), (4) no active/paid overlap, (5) orphan TODO; 3-stage `--negtest`; integrated as `check-plugin.sh §6b` | 2026-08-26 | — | 1de54b1 |
+| TD-002 | Monitor false-positive: `tech-debt.md` template placeholders were mistaken for real debt (`sprint-status.sh`/`tech-debt-monitor.sh` showed "4 active debts, P0:1") | `scripts/check-techdebt.sh` 5 sections: (1) template/live identity, (2) active ID unique + sequential, (3) P0 hard limit (<=5), (4) no active/paid overlap, (5) orphan TODO; 3-stage `--negtest`; integrated as `check-plugin.sh §6b` | 2026-08-26 | — | 1de54b1 |
 | TD-010 | Windows UTF-8 corruption in all Python scripts (cp1254) | Added `encoding="utf-8", errors="replace"` to `subprocess.run(..., text=True)` calls (14 files, 19 calls) | 2026-08-19 | — | — |
 | TD-011 | `check-methodology.sh` §2b bridge check false-positive (KÖPRÜ merge seemed "absent") | Added `encoding="utf-8"` to §2b subprocess; `STATUS: HEALTHY` | 2026-08-19 | — | — |
 | TD-012 | SkillOpt API key hard-coded in source (`sk-*` setdefault fallbacks) — security debt + breaking deterministic training | 4 steps: (1) `.env.example` template + `.gitignore` `.env` protection, (2) removed setdefault fallbacks in `optimization/train.py` + `cli.py` + `envs/bmad/adapter.py`, (3) `train._require_llm_env()` errors on missing env in non-`--benchmark` paths, (4) added `check-plugin.sh §6a` 4 sub-checks + 3-stage `--negtest` | 2026-08-26 | — | cf679ea |

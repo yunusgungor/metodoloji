@@ -1,9 +1,14 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "metodoloji",
+  "displayName": "Metodoloji — BMAD Methodology",
   "version": "1.0.0",
-  "description": "BMAD methodology: record chain (E→IR→SP→S→QR→PR), hard gate and 124 skill bridges",
-  "author": "yunusgungor",
+  "description": "BMAD methodology: record chain (E→IR→SP→S→QR→PR), hard gate and 123 skills / 120 bridge TOMLs",
+  "author": {
+    "name": "yunusgungor"
+  },
+  "repository": "https://github.com/yunusgungor/metodoloji",
   "license": "MIT",
-  "repository": "https://github.com/yunusgungor/openhands-metodoloji",
-  "hooks": "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/hooks.json"
+  "keywords": ["bmad", "methodology", "hooks", "research"],
+  "defaultEnabled": false
 }

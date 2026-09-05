@@ -20,7 +20,12 @@ from modules.config import (  # noqa: E402
 
 def test_methodology_root_is_repo_root():
     # config.py is at <root>/hooks/engine/modules/config.py → root is 4 parents up.
-    assert _METHODOLOGY_ROOT.name == "openhands-metodoloji"
+    # The checkout directory may be named after the repo ("metodoloji")
+    # or by a local clone (e.g. "metodoloji") — pin the structural identity instead
+    # of the directory's literal name.
+    assert (_METHODOLOGY_ROOT / "hooks" / "engine").is_dir()
+    assert (_METHODOLOGY_ROOT / "custom").is_dir()
+    assert (_METHODOLOGY_ROOT / "bmad").is_dir()
 
 
 def test_free_prefixes_are_slashed():

@@ -92,7 +92,7 @@ metodoloji/
 ├── custom/                      # 119 bridge TOMLs (33 BRIDGE active) + config.toml
 ├── bmad/                        # Module data (bmm, cis, gds, wds, tea, core, bmb)
 ├── templates/                   # Record templates
-├── commands/                    # Command definitions + check-plugin.sh
+├── commands/                    # Slash-command definitions (.md)
 ├── scripts/                     # Helper scripts
 └── docs/                        # Documentation
 ```
@@ -168,8 +168,8 @@ p = Plugin.load("/path/to/openhands/metodoloji")
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yunusgungor/openhands-metodoloji.git
-cd openhands-metodoloji
+git clone https://github.com/yunusgungor/metodoloji.git
+cd metodoloji
 
 # 2. Verify the plugin directory structure
 ls -la .plugin/plugin.json    # Plugin definition
@@ -246,7 +246,7 @@ python3 skills/bmad-research-experiment/scripts/run_experiment.py --init-secret
 or directly:
 
 ```bash
-sh commands/check-plugin.sh
+sh scripts/check-plugin.sh
 ```
 
 This runs all checks from §0 through §6:
@@ -774,10 +774,10 @@ python3 skills/bmad-research-experiment/scripts/run_experiment.py \
 
 ```bash
 # Full audit
-sh commands/check-plugin.sh
+sh scripts/check-plugin.sh
 
 # Negative test: break BRIDGE → catch → restore
-sh commands/check-plugin.sh --negtest
+sh scripts/check-plugin.sh --negtest
 ```
 
 **Exit codes:**
@@ -889,7 +889,7 @@ Every experiment approval is signed with an HMAC token:
 ### 12.1. Automatic Audit (check-plugin.sh)
 
 ```bash
-sh commands/check-plugin.sh
+sh scripts/check-plugin.sh
 ```
 
 **Check sections:**
@@ -910,7 +910,7 @@ sh commands/check-plugin.sh
 ### 12.2. Negative Test
 
 ```bash
-sh commands/check-plugin.sh --negtest
+sh scripts/check-plugin.sh --negtest
 ```
 
 This test:
@@ -1131,7 +1131,7 @@ git pull
 
 ```bash
 # 1. Plugin installation
-git clone https://github.com/yunusgungor/openhands-metodoloji.git
+git clone https://github.com/yunusgungor/metodoloji.git
 
 # 2. Initial setup (in the OpenHands session)
 /metodoloji:init          # Install the record skeleton
@@ -1148,7 +1148,7 @@ python3 skills/bmad-research-experiment/scripts/run_experiment.py \
 # → Guard now allows the src/ scope
 
 # 5. Health check
-sh commands/check-plugin.sh
+sh scripts/check-plugin.sh
 /metodoloji:audit
 
 # 6. Create records
@@ -1160,4 +1160,4 @@ python3 scripts/create-qr-record.py --story path/to/story.md
 
 > **Note:** This document applies to the `metodoloji` plugin v1.0.0. It should be
 > updated as the plugin evolves. For the latest updates, see the repository:
-> https://github.com/yunusgungor/openhands-metodoloji
+> https://github.com/yunusgungor/metodoloji
