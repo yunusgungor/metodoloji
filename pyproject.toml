@@ -1,3 +1,14 @@
+[project]
+name = "openhands-metodoloji"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "skillopt>=0.2.0",
+    "pyyaml>=6.0",
+    "openai>=1.0",
+    "httpx>=0.24",
+]
+
 [tool.pytest.ini_options]
 testpaths = [
     "hooks/engine/tests",

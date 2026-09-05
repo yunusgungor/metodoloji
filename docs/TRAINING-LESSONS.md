@@ -225,3 +225,22 @@ under {metodoloji-root}").
 **Lesson:** Build corrupted-output regression tests *with* the scorer, not after.
 Each edge case the scorer handles correctly today is a regression test for
 tomorrow's refactor. The bench script is the single source of truth.
+
+## 13. Infrastructure reliability baseline (E-008, E-009)
+
+**Context:** Added `[project].dependencies` to pyproject.toml (skillopt>=0.2.0,
+pyyaml>=6.0, openai>=1.0, httpx>=0.24). Created 3 new test files:
+- `test_registry.py`: BENCHMARKS ↔ _ADAPTERS sync, config existence, adapter import
+- `test_scorers_selfcheck.py`: parametrized _selfcheck() for all 17 benchmarks
+- `test_dataloader.py`: JSON schema validation (id, task_type) for all data files
+
+**Results:**
+- adapter_register_rate = 1.000 (17/17) — all adapters importable
+- benchmark_suite_rate = 1.000 (17/17) — all benchmarks have ≥1 test
+- Total test count: 580 passed, 1 skipped
+
+**Lesson:** The gate's Wilson lower bound is conservative at n=17 (0.82 for 17/17).
+Small-sample advisories are expected for infrastructure checks — they don't block
+code but flag the need for larger samples in future runs. The metric name in the
+hypothesis MUST match the bench script's output suffix (allowed: accuracy, validity,
+precision, score, rate, quality) or the gate flags a MISMATCH.
