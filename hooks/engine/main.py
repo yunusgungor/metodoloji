@@ -75,20 +75,45 @@ def main():
         except Exception:
             pass
 
-    # Output result — Claude Code v2 schema: hookSpecificOutput wrapper
-    claude_result = {
-        "hookSpecificOutput": {
-            "hookEventName": hook_type or "PreToolUse",
+    # Output result — Claude Code v2 schema: hookSpecificOutput wrapper.
+    # Schema differs per event type:
+    #   PreToolUse (guard/quality/deploy) → permissionDecision
+    #   PostToolUse (audit)               → additionalContext
+    #   Stop (stop)                       → additionalContext
+    event_name = hook_type or "PreToolUse"
+    if hook_type in ("guard", "quality", "deploy"):
+        # PreToolUse: permissionDecision controls allow/deny/ask
+        hso = {
+            "hookEventName": "PreToolUse",
             "permissionDecision": result.get("decision", "allow"),
         }
-    }
-    reason = result.get("reason")
-    if reason:
-        claude_result["hookSpecificOutput"]["permissionDecisionReason"] = reason
-    warnings = result.get("methodology_warnings")
-    if warnings:
-        claude_result["hookSpecificOutput"]["additionalContext"] = "\n".join(warnings)
-    print(json.dumps(claude_result, ensure_ascii=False))
+        reason = result.get("reason")
+        if reason:
+            hso["permissionDecisionReason"] = reason
+        warnings = result.get("methodology_warnings")
+        if warnings:
+            hso["additionalContext"] = "\n".join(warnings)
+    elif hook_type == "audit":
+        # PostToolUse: additionalContext feeds info back to the model
+        hso = {"hookEventName": "PostToolUse"}
+        warnings = result.get("methodology_warnings")
+        if warnings:
+            hso["additionalContext"] = "\n".join(warnings)
+    elif hook_type == "stop":
+        # Stop: additionalContext gives feedback so the model can act on it
+        hso = {"hookEventName": "Stop"}
+        reason = result.get("reason")
+        if reason:
+            hso["additionalContext"] = reason
+        pending = result.get("pending_docs")
+        if pending:
+            existing = hso.get("additionalContext", "")
+            hso["additionalContext"] = (existing + "\n" + pending).strip() if existing else pending
+    else:
+        # Unknown hook type — flat allow
+        hso = {"hookEventName": event_name, "permissionDecision": "allow"}
+
+    print(json.dumps({"hookSpecificOutput": hso}, ensure_ascii=False))
 
 
 if __name__ == "__main__":
