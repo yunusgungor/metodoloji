@@ -244,3 +244,32 @@ Small-sample advisories are expected for infrastructure checks — they don't bl
 code but flag the need for larger samples in future runs. The metric name in the
 hypothesis MUST match the bench script's output suffix (allowed: accuracy, validity,
 precision, score, rate, quality) or the gate flags a MISMATCH.
+
+## 14. Skill-less baseline validation: 2/17 in range (E-010)
+
+**Context (E-010):** Measured skill-less baselines for all 17 benchmarks using
+`oc/mimo-v2.5-free`. baseline_accept_rate = 0.118 (2/17 in 0.6–0.8 range).
+
+**Results by category:**
+- **EASY (≥0.9, 6 benchmarks):** code-review, custom-ir/sp/story/qr/pr — model
+  already solves these with substring matching. Nothing to learn; training would
+  waste tokens.
+- **IN RANGE (0.6–0.8, 2 benchmarks):** research-experiment (0.733), code-docs
+  (0.737) — ideal for training.
+- **PARTIAL (0.3–0.6, 5 benchmarks):** prd (0.583), test-design (0.400),
+  meta-mod (0.500), meta-guard (0.500), meta-path (0.333) — model gets some
+  credit but not enough.
+- **HARD (≤0.3, 4 benchmarks):** create-story (0.150), architecture (0.267),
+  meta-chain (0.167), meta-root (0.000) — model fails entirely.
+
+**Root causes:**
+- Custom_* benchmarks: `score_field_presence` passes any text containing the
+  field label strings — the proxy is too lenient (known from E-006/E-007).
+- Meta-root/chain: the model can't classify 2–3 axis problems without a skill.
+- Architecture/create-story: the model produces content but the scorer expects
+  specific invariant/section labels it doesn't use.
+
+**Lesson:** The proxy scorer's leniency (E-006 lesson) directly inflates EASY
+baselines. Fixing scorer quality (Track A) is prerequisite for meaningful
+baseline measurements. For benchmarks where the model genuinely can't perform
+(meta-root, meta-chain), a weaker model or richer training data is needed.
