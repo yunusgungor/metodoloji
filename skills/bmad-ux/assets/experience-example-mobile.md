@@ -2,7 +2,7 @@
 name: Quill
 status: final
 sources:
-  - {planning_artifacts}/prds/quill-2025-08-15/prd.md
+  - {project-root}/docs/design/prds/prd-quill-2025-08-15/prd.md
 updated: 2025-09-02
 ---
 

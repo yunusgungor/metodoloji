@@ -86,8 +86,8 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 |-------|-------------|------------------|---------------|
 | epics | The completed epic for retrospective | whole: `{planning_artifacts}/*epic*.md`, sharded_index: `{planning_artifacts}/*epic*/index.md`, sharded_single: `{planning_artifacts}/*epic*/epic-{{epic_num}}.md` | SELECTIVE_LOAD |
 | previous_retrospective | Previous epic's retrospective (optional) | `{implementation_artifacts}/**/epic-{{prev_epic_num}}-retro-*.md` | SELECTIVE_LOAD |
-| architecture | System architecture for context | whole: `{planning_artifacts}/*architecture*.md`, sharded: `{planning_artifacts}/*architecture*/*.md` | FULL_LOAD |
-| prd | Product requirements for context | whole: `{planning_artifacts}/*prd*.md`, sharded: `{planning_artifacts}/*prd*/*.md` | FULL_LOAD |
+| architecture | System architecture for context | whole: `{project-root}/docs/design/architecture/*architecture*.md`, sharded: `{project-root}/docs/design/architecture/*architecture*/*.md` | FULL_LOAD |
+| prd | Product requirements for context | whole: `{project-root}/docs/design/prds/*prd*.md`, sharded: `{project-root}/docs/design/prds/*prd*/*.md` | FULL_LOAD |
 | document_project | Brownfield project documentation (optional) | sharded: `{planning_artifacts}/*.md` | INDEX_GUIDED |
 
 ## Required Inputs

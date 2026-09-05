@@ -53,7 +53,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
 **Capture; do not author.** The spines are distilled at Finalize toward the memlog. Decisions → `.memlog.md` (canonical), each appended via `python3 {metodoloji-root}/bmad/scripts/memlog.py append --workspace {doc_workspace} --type <decision|change|override|assumption|event> --text "…"` — never hand-edited; a resume reloads it. Creative-tool artifacts → `.working/`. User-supplied visuals (Figma, sketches, brand decks, image folders) → `imports/`, one `memlog.py append` per item. Spines win on conflict.
 
-**Source scan.** Glob `{planning_artifacts}/` for candidate input paths; surface paths only — never read content in the parent. User confirms which apply or adds others; subagent-extracts on confirm.
+**Source scan.** Glob `{project-root}/docs/design/` for candidate input paths (PRDs in `prds/`, architecture in `architecture/`); surface paths only — never read content in the parent. User confirms which apply or adds others; subagent-extracts on confirm.
 
 Brain dump first — even when the user opens with paragraphs (that's intake). Subagent-extract big docs. One "anything else?" probe. Stakes: hobby / internal / consumer / regulated.
 

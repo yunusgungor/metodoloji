@@ -37,10 +37,10 @@ triggers: ["gds-retrospective", "/gds-retrospective", "run a retrospective"]
 |-------|-------------|------------------|---------------|
 | epics | The completed epic for retrospective | whole: `{planning_artifacts}/*epic*.md`, sharded_index: `{planning_artifacts}/*epic*/index.md`, sharded_single: `{planning_artifacts}/*epic*/epic-{{epic_num}}.md` | SELECTIVE_LOAD |
 | previous_retrospective | Previous epic's retrospective (optional) | `{implementation_artifacts}/**/epic-{{prev_epic_num}}-retro-*.md` | SELECTIVE_LOAD |
-| architecture | System architecture for context | whole: `{planning_artifacts}/*architecture*.md`, sharded: `{planning_artifacts}/*architecture*/*.md` | FULL_LOAD |
+| architecture | System architecture for context | whole: `{project-root}/docs/design/architecture/*architecture*.md`, sharded: `{project-root}/docs/design/architecture/*architecture*/*.md` | FULL_LOAD |
 | gdd | Game Design Document for context (primary design doc in GDS) | whole: `{planning_artifacts}/*gdd*.md`, sharded: `{planning_artifacts}/*gdd*/*.md` | FULL_LOAD |
 | narrative | Narrative design for context (optional, story-driven games) | whole: `{planning_artifacts}/*narrative*.md`, sharded: `{planning_artifacts}/*narrative*/*.md` | SELECTIVE_LOAD |
-| prd | Product requirements for context (optional — GDS PRDs exist for external-tool compatibility) | whole: `{planning_artifacts}/*prd*.md`, sharded: `{planning_artifacts}/*prd*/*.md` | SELECTIVE_LOAD |
+| prd | Product requirements for context (optional — GDS PRDs exist for external-tool compatibility) | whole: `{project-root}/docs/design/prds/*prd*.md`, sharded: `{project-root}/docs/design/prds/*prd*/*.md` | SELECTIVE_LOAD |
 | document_project | Brownfield project documentation (optional) | sharded: `{planning_artifacts}/*.md` | INDEX_GUIDED |
 
 ## Required Inputs

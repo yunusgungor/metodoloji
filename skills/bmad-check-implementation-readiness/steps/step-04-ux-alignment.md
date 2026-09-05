@@ -55,8 +55,8 @@ I will:
 
 Search patterns:
 
-- `{planning_artifacts}/*ux*.md` (whole document)
-- `{planning_artifacts}/*ux*/index.md` (sharded)
+- `{project-root}/docs/design/ux-designs/*ux*.md` (whole document)
+- `{project-root}/docs/design/ux-designs/*ux*/index.md` (sharded)
 - Look for UI-related terms in other documents
 
 ### 3. If UX Document Exists

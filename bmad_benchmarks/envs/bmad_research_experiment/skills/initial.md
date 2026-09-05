@@ -18,7 +18,7 @@ triggers: ["bmad-research-experiment", "/bmad-research-experiment", "research-ex
 - `{metodoloji-root}` = plugin root (`~/.openhands/plugins/installed/metodoloji`).
 - `{gate-script}` = `{skill-root}/scripts/run_experiment.py`.
 - `{production-root}` = `{project-root}/lib/graph/` (production modules).
-- `{bench-root}` = `{project-root}/scratch/` (measurement benches).
+- `{bench-root}` = `{project-root}/scripts/bench/` (measurement benches — protected area required by gate).
 - `{user_name}` and `{communication_language}` come from `bmad/config.user.toml`; `{document_output_language}` from `bmad/config.toml`.
 
 ## OpenHands Tool Contract (critical)

@@ -44,8 +44,8 @@ python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment
 # The gate runs the measurement itself: value + metric name + denominator (x/y)
 # are parsed from the output. No operator-declared numbers (--measured removed —
 # reality is mechanical).
-# The measurement script must live in a protected area: scripts under scratch/
-# are rejected with --run (e.g. use scripts/bench/).
+# The measurement script MUST live in a protected area (e.g. scripts/bench/).
+# Scripts in free zones (scratch/, tmp/, temp/) are REJECTED by the gate.
 python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py \
   --record docs/experiments/E-NNN.md --run "python scripts/bench/bench_xxx.py"
 # Dry-run: preview the decision WITHOUT writing (format/record check — never use

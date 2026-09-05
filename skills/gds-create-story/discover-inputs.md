@@ -23,7 +23,7 @@ If a sharded pattern exists for this input, determine the load strategy (default
 
 Load ALL files in the sharded directory. Use this for PRD, Architecture, UX, brownfield docs, or whenever the full picture is needed.
 
-1. Use the glob pattern to find ALL `.md` files (e.g., `{planning_artifacts}/*architecture*/*.md`).
+1. Use the glob pattern to find ALL `.md` files (e.g., `{project-root}/docs/design/architecture/*architecture*/*.md`).
 2. Load EVERY matching file completely.
 3. Concatenate content in logical order: `index.md` first if it exists, then alphabetical.
 4. Store the combined result in a variable named `{pattern_name_content}` (e.g., `{architecture_content}`).
@@ -62,7 +62,7 @@ After applying the matching strategy, mark the pattern as **RESOLVED** and move 
 
 If no sharded matches were found OR no sharded pattern exists for this input:
 
-1. Attempt a glob match on the "whole" pattern (e.g., `{planning_artifacts}/*prd*.md`).
+1. Attempt a glob match on the "whole" pattern (e.g., `{project-root}/docs/design/prds/*prd*.md`).
 2. If matches are found, load ALL matching files completely (no offset/limit).
 3. Store content in variable: `{pattern_name_content}` (e.g., `{prd_content}`).
 4. Mark pattern as **RESOLVED** and move to the next pattern.

@@ -2,7 +2,7 @@
 name: Drift
 status: final
 sources:
-  - {planning_artifacts}/prds/drift-2026-03-12/prd.md
+  - {project-root}/docs/design/prds/prd-drift-2026-03-12/prd.md
 updated: 2026-04-02
 ---
 

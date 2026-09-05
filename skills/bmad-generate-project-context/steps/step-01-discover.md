@@ -44,7 +44,7 @@ Load and analyze project files to identify technologies:
 
 **Architecture Document:**
 
-- Look for `{planning_artifacts}/architecture.md`
+- Look for `{project-root}/docs/design/architecture/architecture.md`
 - Extract technology choices with specific versions
 - Note architectural decisions that affect implementation
 

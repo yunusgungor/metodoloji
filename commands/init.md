@@ -18,11 +18,16 @@ root (resolved at runtime by the hooks: `$CLAUDE_PLUGIN_ROOT` or
    - `docs/development/stories/` — story records (S-NNN.md)
    - `docs/research/` — Mode B/D documentary records
    - `docs/design/` — Mode C documentary records
+   - `docs/design/prds/` — PRD outputs
+   - `docs/design/ux-designs/` — UX design outputs
+   - `docs/design/architecture/` — Architecture spine outputs
    - `docs/bmad/` — manifestos and bridge copies
    - `scratch/` — free zone for exploration code
 
 2. Copy templates (do not overwrite — preserve existing):
    - `{metodoloji-root}/templates/_template_E.md` → `docs/experiments/_template.md`
+   - `{metodoloji-root}/templates/_template_BD.md` → `docs/research/_template.md`
+   - `{metodoloji-root}/templates/_template_C.md` → `docs/design/_template.md`
    - `{metodoloji-root}/templates/_template_IR.md` → `docs/development/_template_IR.md`
    - `{metodoloji-root}/templates/_template_SP.md` → `docs/development/_template_SP.md`
    - `{metodoloji-root}/templates/_template_QR.md` → `docs/development/_template_QR.md`
@@ -30,6 +35,7 @@ root (resolved at runtime by the hooks: `$CLAUDE_PLUGIN_ROOT` or
    - `{metodoloji-root}/templates/_template_S.md` → `docs/development/stories/_template_S.md`
    - `{metodoloji-root}/templates/README.md` → `docs/development/README.md`
    - `{metodoloji-root}/templates/tech-debt.md` → `docs/development/tech-debt.md`
+   - `{metodoloji-root}/templates/scratch-README.md` → `scratch/README.md`
 
 3. Manifesto copies (source: repo texts instead of the plugin's reference copies):
    - Install the bridge and manifesto copies of this methodology package under `docs/bmad/` if present.

@@ -56,7 +56,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
 **Capture; do not author.** The spines are distilled at Finalize. Decisions → `.decision-log.md` (canonical). Creative-tool artifacts → `.working/`. Developer-supplied visuals (Figma, sketches, mood boards, HUD mockups, reference screenshots from other games) → `imports/`, one log line per item. Spines win on conflict.
 
-**Source scan.** Glob `{planning_artifacts}/` for candidate input paths (GDD, PRD, narrative); surface paths only — never read content in the parent. The developer confirms which apply or adds others; subagent-extracts on confirm.
+**Source scan.** Glob `{project-root}/docs/design/` for candidate input paths (PRDs in `prds/`, GDD, narrative); surface paths only — never read content in the parent. The developer confirms which apply or adds others; subagent-extracts on confirm.
 
 Brain dump first — even when the developer opens with paragraphs (that's intake). Subagent-extract big docs. One "anything else?" probe. Stakes: jam / hobby / indie / commercial.
 

@@ -57,7 +57,7 @@ validation_report_template = "assets/validation-report-template.html"
 
 # Run folder location. The PRD, optional addendum, decision log, and optional
 # validation report all land inside `{output_dir}/{output_folder_name}/`.
-output_dir = "{planning_artifacts}/prds"
+output_dir = "{project-root}/docs/design/prds"
 output_folder_name = "prd-{project_name}-{date}"
 
 # Document standards applied to human-consumed docs at Finalize. Each entry is

@@ -258,7 +258,7 @@ The plugin loads automatically. The `SessionStart` hook (`bootstrap.sh`, fail-op
 | Action | Detail |
 |--------|--------|
 | Create directories | `docs/experiments/`, `docs/development/stories/`, `docs/research/`, `docs/design/`, `docs/bmad/`, `scratch/` |
-| Copy templates | E, IR, SP, QR, PR, S templates + README + tech-debt into the respective directories |
+| Copy templates | E, BD, C, IR, SP, QR, PR, S templates + README + tech-debt + scratch-README into the respective directories |
 | Manifesto copies | Bridge and methodology manifestos under `docs/bmad/` |
 | Warning | Tells you to run `/metodoloji:gate-setup` if the gate key is not installed |
 
@@ -1003,7 +1003,7 @@ The following paths are automatically released by the guard:
 | Prefix/Directory | Description |
 |------------------|-------------|
 | `_bmad/` | Legacy BMAD module data |
-| `scratch/` | Free zone for exploratory code |
+| `scratch/` | Free zone — prototyping, temporary scripts, investigation notes (no gate required) |
 | `graft/` | Graft code |
 | `.git/` | Git directories |
 | `tmp/`, `temp/` | Temporary files |
@@ -1319,9 +1319,14 @@ path also consults `quality_gate`: hard → deny, soft → warn-only; the
 
 ### Q: Can I write code in the `scratch/` directory without an experiment?
 
-**A:** Yes. `scratch/` is a free zone; the guard does not audit it. However, code here
-can never go to production — it is for exploration only, and the **gate refuses to run
-measurement scripts from free zones** (use `scripts/bench/`).
+**A:** Yes. `scratch/` is a free zone; the guard does not audit it. Use it for:
+- Quick prototyping and one-off scripts
+- Investigation and analysis notes
+- Temporary benchmark trials (promote stable ones to `scripts/bench/`)
+
+Code here can never go to production — it is for exploration only. The **gate refuses
+to run measurement scripts from free zones** (use `scripts/bench/`). Security patterns
+(`gate-key`, `secret`, `token`) are forbidden even in scratch.
 
 ### Q: Can I share my gate key with someone else?
 

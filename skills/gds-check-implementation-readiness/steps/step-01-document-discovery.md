@@ -68,8 +68,8 @@ Search for each document type using these patterns:
 
 #### B. Architecture Documents
 
-- Whole: `{planning_artifacts}/*architecture*.md`
-- Sharded: `{planning_artifacts}/*architecture*/index.md` and related files
+- Whole: `{project-root}/docs/design/architecture/*architecture*.md`
+- Sharded: `{project-root}/docs/design/architecture/*architecture*/index.md` and related files
 
 #### C. Epics & Stories Documents
 
@@ -78,8 +78,8 @@ Search for each document type using these patterns:
 
 #### D. UX Design Documents
 
-- Whole: `{planning_artifacts}/*ux*.md`
-- Sharded: `{planning_artifacts}/*ux*/index.md` and related files
+- Whole: `{project-root}/docs/design/ux-designs/*ux*.md`
+- Sharded: `{project-root}/docs/design/ux-designs/*ux*/index.md` and related files
 
 ### 3. Organize Findings
 

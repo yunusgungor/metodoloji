@@ -83,13 +83,13 @@ Search for required documents using these patterns (sharded means a large docume
 
 **Architecture Document Search Priority:**
 
-1. `{planning_artifacts}/*architecture*.md` (whole document)
-2. `{planning_artifacts}/*architecture*/index.md` (sharded version)
+1. `{project-root}/docs/design/architecture/*architecture*.md` (whole document)
+2. `{project-root}/docs/design/architecture/*architecture*/index.md` (sharded version)
 
 **UX Design Document Search (Optional):**
 
-1. `{planning_artifacts}/*ux*.md` (whole document)
-2. `{planning_artifacts}/*ux*/index.md` (sharded version)
+1. `{project-root}/docs/design/ux-designs/*ux*.md` (whole document)
+2. `{project-root}/docs/design/ux-designs/*ux*/index.md` (sharded version)
 
 Before proceeding, Ask the user if there are any other documents to include for analysis, and if anything found should be excluded. Wait for user confirmation. Once confirmed, create the {outputFile} from the {epicsTemplate} and in the front matter list the files in the array of `inputDocuments: []`.
 

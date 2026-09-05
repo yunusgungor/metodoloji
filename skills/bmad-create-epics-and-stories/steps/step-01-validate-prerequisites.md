@@ -56,19 +56,19 @@ Search for required documents using these patterns (sharded means a large docume
 
 **PRD Document Search Priority:**
 
-1. `{planning_artifacts}/*prd*.md` (whole document)
-2. `{planning_artifacts}/*prd*/index.md` (sharded version)
+1. `{project-root}/docs/design/prds/*prd*.md` (whole document)
+2. `{project-root}/docs/design/prds/*prd*/index.md` (sharded version)
 
 **Architecture Document Search Priority:**
 
-1. `{planning_artifacts}/*architecture*.md` (whole document)
-2. `{planning_artifacts}/*architecture*/index.md` (sharded version)
+1. `{project-root}/docs/design/architecture/*architecture*.md` (whole document)
+2. `{project-root}/docs/design/architecture/*architecture*/index.md` (sharded version)
 
 **UX Design Document Search (Optional):**
 
-1. `{planning_artifacts}/ux-designs/ux-*/DESIGN.md` and `{planning_artifacts}/ux-designs/ux-*/EXPERIENCE.md` (bmad-ux spine pair)
-2. `{planning_artifacts}/*ux*.md` (legacy whole document)
-3. `{planning_artifacts}/*ux*/index.md` (legacy sharded version)
+1. `{project-root}/docs/design/ux-designs/ux-*/DESIGN.md` and `{project-root}/docs/design/ux-designs/ux-*/EXPERIENCE.md` (bmad-ux spine pair)
+2. `{project-root}/docs/design/ux-designs/*ux*.md` (legacy whole document)
+3. `{project-root}/docs/design/ux-designs/*ux*/index.md` (legacy sharded version)
 
 For each matching bmad-ux run folder, treat `DESIGN.md` and `EXPERIENCE.md` as one UX design contract:
 

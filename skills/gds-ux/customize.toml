@@ -58,7 +58,7 @@ validation_report_template = "assets/validation-report-template.html"
 # boards / Figma exports / HUD sketches), optional mockups/ and wireframes/
 # (promoted artifacts), optional validation-report.* all land inside
 # {ux_output_path}/{run_folder_pattern}/.
-ux_output_path = "{planning_artifacts}/ux-designs"
+ux_output_path = "{project-root}/docs/design/ux-designs"
 run_folder_pattern = "ux-{project_name}-{date}"
 
 # Creative tools registry. Collaborative renderers invoked on demand during
