@@ -1,18 +1,36 @@
 #!/bin/sh
 # bootstrap.sh — SessionStart: check/create the gate-key and inject short context
-# (additionalContext). Non-blocking (fail-open).
+# (additionalContext). Non-blocking (fail-open). Cross-platform: Windows/macOS/Linux.
 SELF=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 SYNCED=$(CDPATH= cd -- "$SELF/../.." && pwd)
 
 WS="${CLAUDE_PROJECT_DIR:-$OPENHANDS_PROJECT_DIR}"
 [ -z "$WS" ] && WS=$(pwd)
 
+# Find a working python interpreter (cross-platform)
+PY=
+for c in python3 python py; do
+    command -v "$c" >/dev/null 2>&1 && PY="$c" && break
+done
+if [ -z "$PY" ]; then
+    # Last resort: try common Windows paths
+    for p in "/c/Python3*/python.exe" "/c/Users/$USER/AppData/Local/Programs/Python/Python3*/python.exe"; do
+        for f in $p; do
+            [ -x "$f" ] && PY="$f" && break 2
+        done
+    done
+fi
+
+if [ -z "$PY" ]; then
+    printf '%s\n' '{"additionalContext":"METODOLOJI active but python not found — hooks disabled. Install Python 3."}'
+    exit 0
+fi
+
 # Auto-setup: create gate-key if missing
 if [ ! -f "$HOME/.bmad/gate-key" ]; then
     mkdir -p "$HOME/.bmad"
-    # Generate a simple gate key (sufficient for HMAC)
-    python3 -c "import secrets; print(secrets.token_hex(32))" > "$HOME/.bmad/gate-key"
-    chmod 600 "$HOME/.bmad/gate-key"
+    "$PY" -c "import secrets; print(secrets.token_hex(32))" > "$HOME/.bmad/gate-key"
+    chmod 600 "$HOME/.bmad/gate-key" 2>/dev/null || true
 fi
 
 # Create missing directories
@@ -30,7 +48,7 @@ fi
 # Forward-slash form: Windows Python accepts both, but backslashes would be
 # escaped as unicode sequences in the inline string literal below.
 PYWS=$(printf '%s' "$PYWS" | tr '\\' '/')
-INTENT_AND_SCOPE=$(python3 -c "
+INTENT_AND_SCOPE=$("$PY" -c "
 import pathlib, os, sys
 def _fields(root):
     cands = []
@@ -68,12 +86,12 @@ export METODOLOJI_INTENT="$INTENT"
 export METODOLOJI_SCOPE="$SCOPE"
 
 # Short context: gate-key status + record chain reminder + active intent + code docs.
-if [ -f "$HOME/.bmad/gate-key" ]; then KEY="present"; else KEY="MISSING — python3 run_experiment.py --init-secret"; fi
+if [ -f "$HOME/.bmad/gate-key" ]; then KEY="present"; else KEY="MISSING — python run_experiment.py --init-secret"; fi
 if [ -n "$INTENT" ]; then INTENT_CTX=" Active intent: $INTENT."; else INTENT_CTX=""; fi
 if [ -n "$SCOPE" ]; then SCOPE_CTX=" Active scope: $SCOPE."; else SCOPE_CTX=""; fi
 
 # Build full context and output as proper JSON (Python handles escaping).
-python3 -c "
+"$PY" -c "
 import json, sys, os, pathlib
 
 plugin = pathlib.Path('$SYNCED')
