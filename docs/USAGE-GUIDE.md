@@ -109,45 +109,50 @@ metodoloji/
 
 ### Hook Flow Diagram
 
-```
-Runtime (OpenHands | Claude Code)
-       │
-       ├── SessionStart ──→ bootstrap.sh (fail-open)
-       │    │                    │
-       │    │              Create gate key (if missing)
-       │    │              Create missing directories (docs/experiments/, .metodoloji/logs/)
-       │    │              Read active .memlog.md → export METODOLOJI_INTENT / METODOLOJI_SCOPE
-       │    │              Inject context: record chain + gate status + pending/recent code docs
-       │    │
-       ├── PreToolUse ────→ hook-entry.sh guard    (Write|Edit|MultiEdit|file_editor|terminal)
-       │    │              hook-entry.sh quality   (Bash|terminal — git commit)
-       │    │              hook-entry.sh deploy    (Bash|terminal — deploy commands)
-       │    │                    │
-       │    │              main.py guard()/quality()/deploy() → read JSON stdin
-       │    │                    │
-       │    │              Normalize tool input (Claude Code ↔ OpenHands vocabularies)
-       │    │                    │
-       │    │              For each detected target:
-       │    │                ├── Story file? → experiment_refs/AC/chain validation
-       │    │                ├── Secret pattern in command/content? → DENY
-       │    │                ├── Free zone? → allow
-       │    │                ├── Non-code target? → allow
-       │    │                └── Scope-matching VERIFIED experiment exists?
-       │    │                      ├── Yes → allow
-       │    │                      └── No → DENY (fail-closed)
-       │    │
-       ├── PostToolUse ───→ hook-entry.sh audit (async, fail-open)
-       │    │                    │
-       │    │              main.py audit() → append JSON record to .metodoloji/logs/hook-audit.log
-       │    │              Methodology compliance warnings (non-blocking)
-       │    │              Notable events → auto-generate code docs (see §7)
-       │    │
-       └── Stop ──────────→ hook-entry.sh stop (fail-closed)
-                │                    │
-                │              main.py stop()
-                │                ├── In-progress story exists? → DENY (intent-aware)
-                │                ├── Unapproved code change exists? → DENY
-                │                └── Pending code docs? → surfaced with the allow
+```mermaid
+flowchart TD
+    subgraph Runtimes["AI Agent Runtimes"]
+        OH["OpenHands / Canvas"]
+        CC["Claude Code"]
+    end
+
+    Runtimes -->|Lifecycle Trigger| RH["hooks/scripts/run-hook.sh<br/><i>(Central Auto-Discovery Dispatcher)</i>"]
+    
+    subgraph Discovery["Root Auto-Discovery"]
+        RH -->|Locates Directory| Cand{"Candidate Paths"}
+        Cand -->|"$CLAUDE_PLUGIN_ROOT<br/>$METODOLOJI_PLUGIN_ROOT"| Found["Plugin Root Found"]
+        Cand -->|"Workspace: /workspace, $PWD"| Found
+        Cand -->|"Cache: ~/.claude/..., ~/.openhands/..."| Found
+        Cand -->|Not Found| FailOpen["Fail-Open: Exit 0<br/><i>(Never blocks agent)</i>"]
+    end
+
+    Found --> BS["bootstrap.sh<br/><i>(SessionStart)</i>"]
+    Found --> HE["hook-entry.sh<br/><i>(PreToolUse / PostToolUse / Stop)</i>"]
+
+    subgraph SessionStartFlow["SessionStart Event"]
+        BS --> K1["Create gate-key (if missing)"]
+        BS --> K2["Ensure directories (.metodoloji, experiments)"]
+        BS --> K3["Intent Bridge: Load .memlog.md"]
+        BS --> K4["Inject Context & Pending Code-Docs"]
+    end
+
+    subgraph HookExecution["Hook Engine (hooks/engine/main.py)"]
+        HE -->|PreToolUse| G{"Target Guard"}
+        G -->|Code File outside Free Zone| EG{"Scope-matching<br/>VERIFIED Experiment?"}
+        EG -->|Yes| OK["Allow Operation"]
+        EG -->|No| DENY["DENY (Fail-Closed)"]
+        
+        HE -->|PreToolUse: git commit| Q{"Quality Gate"}
+        Q -->|IR / SP / QR Missing| QDecision{"Mode: soft or hard?"}
+        QDecision -->|soft| QWarn["Allow + Methodology Warning"]
+        QDecision -->|hard| DENY
+
+        HE -->|PostToolUse| AUD["audit.py<br/><i>Log to hook-audit.log + Auto-Doc</i>"]
+
+        HE -->|Stop| ST{"Stop Hook"}
+        ST -->|In-progress Story or Unapproved Code?| DENY
+        ST -->|Clean| OK
+    end
 ```
 
 ### Root Resolution Rules
@@ -298,12 +303,27 @@ formats, §6a `.env` inventory, §6b tech-debt integrity.
 
 ## 5. Record Chain (E → IR → SP → S → QR → PR)
 
-The record chain is the backbone of the methodology. Each link depends on the next:
+```mermaid
+flowchart LR
+    E["<b>E</b><br/>Experiment<br/><i>(Mode A)</i>"] -->|Gate 1: Readiness| IR["<b>IR</b><br/>Implementation<br/>Readiness"]
+    IR -->|Gate 2: Sprint Scope| SP["<b>SP</b><br/>Sprint<br/>Planning"]
+    SP -->|Implementation Tasks| S["<b>S</b><br/>Story Record<br/><i>(Dev Tasks & AC)</i>"]
+    S -->|Gate 3: Quality Standards| QR["<b>QR</b><br/>Quality<br/>Review"]
+    QR -->|Gate 4: Operational Readiness| PR["<b>PR</b><br/>Production<br/>Readiness"]
 
+    classDef stage fill:#f0f4f8,stroke:#0284c7,stroke-width:2px;
+    classDef gate fill:#fef3c7,stroke:#d97706,stroke-width:1px;
+    class E,IR,SP,S,QR,PR stage;
 ```
-E (Experiment) → IR (Implementation Readiness) → SP (Sprint Planning) → S (Story) → QR (Quality Review) → PR (Production Readiness)
-   Mode A            Gate 1                          Gate 2               Implementation      Gate 3                 Gate 4
-```
+
+| Record | Type | Stage | Gate Enforcement | Output Directory |
+|--------|------|-------|-------------------|------------------|
+| **E** | Mode A | Research/Hypothesis | Mechanical Gate (`GATE-OK-...` token) | `docs/experiments/E-NNN.md` |
+| **IR** | Gate 1 | Specification/Readiness | Verified research records exist | `docs/development/IR-NNN.md` |
+| **SP** | Gate 2 | Sprint Planning | S-id backlog, capacity & debt checked | `docs/development/SP-NNN.md` |
+| **S** | Dev | Story Execution | Task↔AC mapping & experiment refs | `docs/development/stories/S-NNN.md` |
+| **QR** | Gate 3 | Pre-Commit Quality | Coverage >= 80%, clean linters/tests | `docs/quality/QR-NNN.md` |
+| **PR** | Gate 4 | Pre-Deploy Readiness | Staging test, rollback & monitoring | `docs/development/PR-NNN.md` |
 
 ### 5.1. E — Experiment Record (Mode A, Mechanical Gate)
 
@@ -762,10 +782,17 @@ Memlog vocabulary is host-skill-defined (entries are tagged `(idea)`, `(decision
 
 Each skill is customized at three layers (highest priority to lowest):
 
-```
-1. {custom}/{name}.user.toml   → Personal (gitignored)
-2. {custom}/{name}.toml        → Team/organization (committed)
-3. {skill-root}/customize.toml → Skill defaults
+```mermaid
+flowchart TD
+    subgraph Layers["TOML Customization Layers & Precedence"]
+        L1["<b>1. User / Personal Override</b><br/><code>{custom}/{name}.user.toml</code><br/><i>(gitignored — highest priority)</i>"]
+        L2["<b>2. Team / Org Configuration</b><br/><code>{custom}/{name}.toml</code><br/><i>(committed in git repository)</i>"]
+        L3["<b>3. Skill Defaults</b><br/><code>{skill-root}/customize.toml</code><br/><i>(base configuration)</i>"]
+    end
+
+    L3 -->|Deep Merge: Overridden by| L2
+    L2 -->|Deep Merge: Overridden by| L1
+    L1 --> RESOLVED["<b>Effective Runtime Config</b><br/><code>resolve_customization.py</code><br/><i>(Persistent facts & BRIDGE steps)</i>"]
 ```
 
 > Layout note: `{custom}` prefers the **plugin layout** — a `custom/` directory at
@@ -948,6 +975,27 @@ python3 scripts/create-qr-record.py --story path/to/story.md
 
 ## 12. Free Zones and Restricted Areas
 
+```mermaid
+flowchart TD
+    REQ["File Write / Edit Request"] --> SCAN{"Secret Pattern Check<br/><i>(.bmad, gate-key, gate_token...)</i>"}
+    SCAN -->|Detected| DENY_SEC["<b>DENY</b><br/>Security Violation (Instant Block)"]
+    
+    SCAN -->|Clean| ZONE{"Is Path in a Free Zone?<br/><i>(scratch/, docs/, .metodoloji/...)</i>"}
+    ZONE -->|Yes| ALLOW_FREE["<b>ALLOW</b><br/>Free Zone Released"]
+    
+    ZONE -->|No| EXT{"Is Non-Code Asset?<br/><i>(.txt, .json, .md, images...)</i>"}
+    EXT -->|Yes| ALLOW_NONCODE["<b>ALLOW</b><br/>Non-Code Target Released"]
+    
+    EXT -->|No: Code Target| EXP{"Scope-Matching<br/>VERIFIED Experiment?"}
+    EXP -->|Yes| ALLOW_CODE["<b>ALLOW</b><br/>Approved by Gate"]
+    EXP -->|No| DENY_GUARD["<b>DENY</b><br/>Blocked by Guard (Need E-NNN)"]
+
+    classDef allow fill:#dcfce7,stroke:#16a34a,stroke-width:2px;
+    classDef deny fill:#fee2e2,stroke:#dc2626,stroke-width:2px;
+    class ALLOW_FREE,ALLOW_NONCODE,ALLOW_CODE allow;
+    class DENY_SEC,DENY_GUARD deny;
+```
+
 ### 12.1. Free Zones (No Approval Required)
 
 The following paths are automatically released by the guard:
@@ -1009,6 +1057,28 @@ The guard engine detects and blocks the following patterns:
 | Content containing `.bmad` / `gate-key` / `bmad_gate_key` / `load_secret` / `gate_token` / `secret_file` / `secret_env` (any path, including agent zones) | DENY |
 
 ### 13.3. HMAC Token Structure
+
+```mermaid
+flowchart LR
+    subgraph Payload["Record Binding Payload"]
+        C["Experiment Claim<br/><i>(e.g., query_time <= 20)</i>"]
+        M["Measured Value<br/><i>(parsed mechanically)</i>"]
+        I["Experiment ID<br/><i>(e.g., E-001)</i>"]
+        CMD["Measurement Command<br/><i>(e.g., python bench.py)</i>"]
+    end
+
+    subgraph Security["HMAC-SHA256 Signing"]
+        KEY["~/.bmad/gate-key<br/><i>(Machine-Local 32-byte Secret)</i>"]
+        Payload --> HASH["HMAC-SHA256"]
+        KEY --> HASH
+        HASH --> TOKEN["<b>GATE-OK-&lt;hash&gt;</b><br/>Injected into Experiment Record"]
+    end
+
+    TOKEN --> VERIFY{"run_experiment.py<br/>--verify"}
+    VERIFY -->|Matched & Genuine| V_OK["VERIFIED (Code Writing Unlocked)"]
+    VERIFY -->|Tampered / Edited| V_FAIL["FORGED (Instant Rejection)"]
+    VERIFY -->|Small Sample (Wilson)| V_ADV["ADVISORY-BLOCK (Code Locked)"]
+```
 
 Every experiment approval is signed with an HMAC token:
 - In `GATE-OK-<hash>` format, generated with the gate key
