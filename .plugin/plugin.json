@@ -4,6 +4,5 @@
   "description": "BMAD methodology: record chain (E→IR→SP→S→QR→PR), hard gate and 123 skills / 120 bridge TOMLs",
   "author": "yunusgungor",
   "license": "MIT",
-  "repository": "https://github.com/yunusgungor/metodoloji",
-  "hooks": "${OPENHANDS_PLUGIN_ROOT}/hooks/hooks.openhands.json"
+  "repository": "https://github.com/yunusgungor/metodoloji"
 }

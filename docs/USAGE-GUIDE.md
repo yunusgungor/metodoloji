@@ -139,7 +139,7 @@ OpenHands Runtime
 | Placeholder | Value |
 |-------------|-------|
 | `{project-root}` | Target project root (`$OPENHANDS_PROJECT_DIR`) |
-| `{metodoloji-root}` | Plugin installation root (`~/.openhands/plugins/installed/metodoloji`) |
+| `{metodoloji-root}` | Plugin installation root (resolved at runtime: `$CLAUDE_PLUGIN_ROOT` / `$METODOLOJI_PLUGIN_ROOT` if set, else `~/.claude/plugins/cache/yunusgungor/metodoloji/` for Claude Code or `~/.openhands/plugins/installed/metodoloji` for OpenHands) |
 | `{skill-root}` | The skill's location within the plugin |
 
 **Output rule:** Methodology outputs (story, experiment, planning, test artifacts, `bmad-output/`) are always created under `{project-root}` — never under `{metodoloji-root}`.
@@ -157,11 +157,15 @@ OpenHands Runtime
 ```python
 from openhands.sdk.plugin import Plugin
 
-# From GitHub
-p = Plugin.load("github:yunusgungor/metodoloji", repo_path="openhands/metodoloji")
+# From GitHub — fetch first, then load (repo root; no repo_path needed)
+p = Plugin.load(Plugin.fetch("github:yunusgungor/metodoloji"))
 
-# From a local repository
-p = Plugin.load("/path/to/openhands/metodoloji")
+# From a local repository (the repository root)
+p = Plugin.load("/path/to/metodoloji")
+
+# Or persist it and auto-load in later sessions:
+from openhands.sdk.plugin import install_plugin
+install_plugin("github:yunusgungor/metodoloji")  # → ~/.openhands/plugins/installed/metodoloji/
 ```
 
 ### 3.2. Manual Installation
@@ -173,7 +177,7 @@ cd metodoloji
 
 # 2. Verify the plugin directory structure
 ls -la .plugin/plugin.json    # Plugin definition
-ls -la hooks/hooks.json       # Hook definitions
+ls -la hooks/hooks.json       # Hook definitions (unified, auto-discovered by both runtimes)
 ls -la hooks/engine/main.py   # Engine entry point
 
 # 3. Python 3.11+ required (for tomllib)

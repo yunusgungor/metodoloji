@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/bootstrap.sh",
+            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/bootstrap.sh\" ] && exec sh \"$d/hooks/scripts/bootstrap.sh\"; done; exit 1' bootstrap",
             "timeout": 30
           }
         ]
@@ -13,31 +13,31 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit|MultiEdit|file_editor|terminal",
         "hooks": [
           {
             "type": "command",
-            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/hook-entry.sh guard claude",
+            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/hook-entry.sh\" ] && exec sh \"$d/hooks/scripts/hook-entry.sh\" \"$1\"; done; exit 1' hook-entry guard",
             "timeout": 10
           }
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Bash|terminal",
         "hooks": [
           {
             "type": "command",
-            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/hook-entry.sh quality claude",
+            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/hook-entry.sh\" ] && exec sh \"$d/hooks/scripts/hook-entry.sh\" \"$1\"; done; exit 1' hook-entry quality",
             "timeout": 10
           }
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Bash|terminal",
         "hooks": [
           {
             "type": "command",
-            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/hook-entry.sh deploy claude",
+            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/hook-entry.sh\" ] && exec sh \"$d/hooks/scripts/hook-entry.sh\" \"$1\"; done; exit 1' hook-entry deploy",
             "timeout": 10
           }
         ]
@@ -45,11 +45,11 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit|MultiEdit|Bash",
+        "matcher": "Write|Edit|MultiEdit|Bash|file_editor|terminal",
         "hooks": [
           {
             "type": "command",
-            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/hook-entry.sh audit claude",
+            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/hook-entry.sh\" ] && exec sh \"$d/hooks/scripts/hook-entry.sh\" \"$1\"; done; exit 1' hook-entry audit",
             "timeout": 5,
             "async": true
           }
@@ -61,7 +61,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/hook-entry.sh stop claude",
+            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/hook-entry.sh\" ] && exec sh \"$d/hooks/scripts/hook-entry.sh\" \"$1\"; done; exit 1' hook-entry stop",
             "timeout": 15
           }
         ]

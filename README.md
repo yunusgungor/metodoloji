@@ -10,7 +10,7 @@ Shared `hooks/engine/` core, runtime-specific manifest layers.
 |---|---|
 | `skills/` | 123 BMAD skills (native body) |
 | `custom/` | 120 bridge TOMLs (`activation_steps_append` links native outputs to methodology records) + `config.toml` (soft/hard) |
-| `hooks/` | PreToolUse/PostToolUse/Stop/SessionStart hooks; modular engine structure |
+| `hooks/` | `hooks.json` (single unified config auto-discovered by both OpenHands and Claude Code) — PreToolUse/PostToolUse/Stop/SessionStart hooks; modular engine structure |
 | `hooks/engine/` | Python engine: `main.py` (entry point), `modules/` (guard, audit, stop, utils, config) |
 | `bmad/` | legacy `_bmad/` module data (bmm, cis, gds, wds, tea, core, bmb) |
 | `templates/` | IR/SP/QR/PR/S/E/README/tech-debt record templates |
@@ -18,15 +18,46 @@ Shared `hooks/engine/` core, runtime-specific manifest layers.
 
 ## Installation — OpenHands
 
+The plugin root is the repository root (the manifest lives at `.plugin/plugin.json`).
+Load it with the released SDK (`openhands-sdk`):
+
 ```python
 from openhands.sdk.plugin import Plugin
-p = Plugin.load("github:yunusgungor/metodoloji", repo_path="openhands/metodoloji")
+# From GitHub — fetch first, then load
+p = Plugin.load(Plugin.fetch("github:yunusgungor/metodoloji"))
+
+# Or from a local clone (repo root, no repo_path needed)
+p = Plugin.load("/path/to/metodoloji")
 ```
 
-or local: `Plugin.load("<repo>/openhands/metodoloji")`.
+To persist the plugin and have it auto-load in later sessions, install it instead:
+
+```python
+from openhands.sdk.plugin import install_plugin
+install_plugin("github:yunusgungor/metodoloji")   # → ~/.openhands/plugins/installed/metodoloji/
+```
+
+For a `Conversation`, pass a `PluginSource`:
+
+```python
+from openhands.sdk.plugin import PluginSource
+conversation = Conversation(agent=agent, workspace=cwd, plugins=[PluginSource(source="github:yunusgungor/metodoloji")])
+```
+
+Hooks are auto-discovered by both runtimes from `hooks/hooks.json` (no `hooks` field in
+either `plugin.json` manifest is needed — Claude Code's default hooks location is the
+same file, so a single config serves both runtimes). Hook commands resolve the plugin
+root at runtime: `$CLAUDE_PLUGIN_ROOT` (Claude Code), `$METODOLOJI_PLUGIN_ROOT`
+(override for either runtime), the Claude marketplace cache
+(`~/.claude/plugins/cache/yunusgungor/metodoloji/`), or the OpenHands install
+directory (`~/.openhands/plugins/installed/metodoloji/`), in that order.
 
 On the first session: `/metodoloji:init` (installs templates) and `/metodoloji:gate-setup`
 (generates `~/.bmad/gate-key` — machine-local, not committed).
+
+**Note on install size:** `install_plugin()` copies the whole repository (including
+`.git/`, `scratch/`, `.pytest_cache/`) into `~/.openhands/plugins/installed/` — that's
+SDK behavior (`shutil.copytree`, no ignore file), not something the plugin can opt out of.
 
 ## Installation — Claude Code
 
@@ -36,8 +67,8 @@ On the first session: `/metodoloji:init` (installs templates) and `/metodoloji:g
 /plugin install metodoloji@metodoloji
 ```
 
-The manifest sets `defaultEnabled: false` (fail-closed guard hooks are opt-in) — after
-installing, enable the plugin explicitly:
+Both the plugin manifest and the marketplace entry set `defaultEnabled: false`
+(fail-closed guard hooks are opt-in) — after installing, enable the plugin explicitly:
 ```
 claude plugin enable metodoloji
 ```
@@ -72,14 +103,22 @@ The shared engine normalizes both runtimes to a common schema:
 | **audit** | `file_editor`, `terminal` | `Write`, `Edit`, `MultiEdit`, `Bash` | `audit` |
 | **stop** | — | — | `stop` |
 
-Runtime is selected by `hook-entry.sh` via: `RUNTIME=${2:-${METODOLOJI_RUNTIME:-openhands}}`.
-The engine reads `METODOLOJI_RUNTIME` env and `normalize_hook_input()` in `utils.py`
-maps Claude tool names (`Write`→`file_editor`, `Bash`→`terminal`) transparently.
+The unified `hooks/hooks.json` passes no runtime argument — `hook-entry.sh` defaults it
+to `openhands`, and `normalize_hook_input()` in `utils.py` auto-detects the runtime
+from the tool name: Claude names (`Write`→`file_editor`, `Bash`→`terminal`) are mapped
+to the OpenHands schema transparently, so both runtimes need no per-runtime config.
+(`METODOLOJI_RUNTIME` env can still force a runtime if ever needed.)
 
 ## Path variables
 
 - `{project-root}` — target project root (`$OPENHANDS_PROJECT_DIR` or `$CLAUDE_PROJECT_DIR`) — methodology outputs go here
-- `{metodoloji-root}` — this plugin's root (OpenHands: `~/.openhands/plugins/installed/metodoloji`, Claude Code: `${CLAUDE_PLUGIN_ROOT}` or repo clone path) — read-only source
+- `{metodoloji-root}` — this plugin's root (OpenHands: `~/.openhands/plugins/installed/metodoloji` — override with `$METODOLOJI_PLUGIN_ROOT`; Claude Code: `${CLAUDE_PLUGIN_ROOT}` or repo clone path) — read-only source
+
+One unified `hooks/hooks.json` serves both runtimes (auto-discovered by each).
+Matchers are regexes covering both tool vocabularies (`Write|Edit|MultiEdit|file_editor|terminal`,
+`Bash|terminal`); hook commands self-locate the plugin root (see Installation — OpenHands)
+and dispatch to the shared `hooks/engine/` core. The engine auto-detects the runtime
+from the tool name in `normalize_hook_input()`, so no runtime argument is passed.
 
 **Rule:** All methodology outputs (records, bmad-output, artifacts) are created under `{project-root}` — never `{metodoloji-root}`.
 

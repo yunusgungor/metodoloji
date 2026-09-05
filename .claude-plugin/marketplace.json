@@ -9,7 +9,8 @@
       "name": "metodoloji",
       "source": "./",
       "description": "BMAD methodology: record chain, hard gate, 123 skills / 120 bridge TOMLs",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "defaultEnabled": false
     }
   ]
 }
