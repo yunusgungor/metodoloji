@@ -177,13 +177,13 @@ def _run_main(args, stdin_data):
 def test_main_dispatch_guard():
     r = _run_main(["guard"], {"tool_name": "terminal", "tool_input": {"command": "ls"}})
     out = json.loads(r.stdout)
-    assert out["decision"] == "allow"
+    assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
 
 
 def test_main_dispatch_unknown_hook_allows():
     r = _run_main(["nonexistent-hook"], {"tool_name": "terminal"})
     out = json.loads(r.stdout)
-    assert out["decision"] == "allow"
+    assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
 
 
 def test_main_dispatch_bad_stdin_allows():
@@ -197,7 +197,7 @@ def test_main_dispatch_bad_stdin_allows():
         cwd=str(_HOOKS.parent),
     )
     out = json.loads(r.stdout)
-    assert out["decision"] == "allow"
+    assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
 
 
 def test_main_dispatch_runtime_flag(tmp_path, monkeypatch):
@@ -216,7 +216,7 @@ def test_main_dispatch_runtime_flag(tmp_path, monkeypatch):
     )
     assert r.returncode == 0
     out = json.loads(r.stdout)
-    assert out["decision"] == "allow"
+    assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
 
 
 def test_main_dispatch_quality_non_commit_allows(tmp_path, monkeypatch):
@@ -224,4 +224,4 @@ def test_main_dispatch_quality_non_commit_allows(tmp_path, monkeypatch):
     r = _run_main(["quality"], {"tool_name": "terminal",
                                 "tool_input": {"command": "ls -la"}})
     out = json.loads(r.stdout)
-    assert out["decision"] == "allow"
+    assert out["hookSpecificOutput"]["permissionDecision"] == "allow"

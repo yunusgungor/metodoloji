@@ -28,7 +28,7 @@ fi
 _fail() {
     case "$MODE" in
         guard|stop)
-            printf '%s\n' '{"decision":"deny","reason":"Methodology hook engine could not run (no python or missing engine) — fail-closed blocked."}'
+            printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"'"$MODE"'","permissionDecision":"deny","permissionDecisionReason":"Methodology hook engine could not run (no python or missing engine) — fail-closed blocked."}}'
             exit 2
             ;;
         *)  exit 0 ;;

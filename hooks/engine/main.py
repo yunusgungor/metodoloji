@@ -24,7 +24,12 @@ def main():
         json_in = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError, EOFError):
         # If no valid JSON (including closed/empty stdin), allow by default
-        print(json.dumps({"decision": "allow"}))
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": os.environ.get("HOOK_TYPE", "PreToolUse"),
+                "permissionDecision": "allow",
+            }
+        }))
         return
 
     # Determine hook type from environment or arguments.
@@ -70,8 +75,20 @@ def main():
         except Exception:
             pass
 
-    # Output result
-    print(json.dumps(result, ensure_ascii=False))
+    # Output result — Claude Code v2 schema: hookSpecificOutput wrapper
+    claude_result = {
+        "hookSpecificOutput": {
+            "hookEventName": hook_type or "PreToolUse",
+            "permissionDecision": result.get("decision", "allow"),
+        }
+    }
+    reason = result.get("reason")
+    if reason:
+        claude_result["hookSpecificOutput"]["permissionDecisionReason"] = reason
+    warnings = result.get("methodology_warnings")
+    if warnings:
+        claude_result["hookSpecificOutput"]["additionalContext"] = "\n".join(warnings)
+    print(json.dumps(claude_result, ensure_ascii=False))
 
 
 if __name__ == "__main__":
