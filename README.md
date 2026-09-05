@@ -7,9 +7,9 @@ mechanical gates (guard / quality / deploy / stop) that make the
 record chain **E → IR → SP → S → QR → PR** actually enforceable in
 [OpenHands](https://github.com/All-Hands-AI/OpenHands) and [Claude Code](https://code.claude.com).
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/yunusgungor/metodoloji)
-[![Version](https://img.shields.io/badge/version-1.0.0-8A2BE2.svg)](https://github.com/yunusgungor/metodoloji)
-[![Platform: OpenHands + Claude Code](https://img.shields.io/badge/platform-OpenHands%20%2B%20Claude%20Code-4B32C3.svg)](https://github.com/yunusgungor/metodoloji)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Version](https://img.shields.io/badge/version-0.1.0-8A2BE2.svg)
+![Platform: OpenHands + Claude Code](https://img.shields.io/badge/platform-OpenHands%20%2B%20Claude%20Code-4B32C3.svg)
 
 </div>
 
@@ -94,22 +94,13 @@ under your **project root**, never inside the plugin.
 
 ## Documentation
 
-| Document | Contents |
-|---|---|
+
+| Document                               | Contents                                                   |
+| -------------------------------------- | ---------------------------------------------------------- |
 | [**Usage Guide**](docs/USAGE-GUIDE.md) | Everything: records, gates, security, troubleshooting, FAQ |
-| [Claude Code guide](docs/CLAUDE.md) | Claude-specific setup and behavior |
-| [Universality plan](docs/UNIVERSALITY-PLAN.md) | How the methodology generalizes across runtimes |
-| [Training lessons](docs/TRAINING-LESSONS.md) | Lessons learned from applying the method |
+| [Claude Code guide](docs/CLAUDE.md)    | Claude-specific setup and behavior                         |
 
-## Health check
-
-```sh
-sh {metodoloji-root}/scripts/check-plugin.sh            # full audit (§0–§6 + bridge + drift)
-sh {metodoloji-root}/scripts/check-plugin.sh --negtest  # negative test: break a bridge → catch → restore
-sh {metodoloji-root}/scripts/check-custom.sh            # custom/ static quality audit
-```
 
 ## License
 
-MIT. Based on [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD),
-© BMad Code, LLC.
+MIT. Based on [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD)

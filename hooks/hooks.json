@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/bootstrap.sh\" ] && exec sh \"$d/hooks/scripts/bootstrap.sh\"; done; exit 1' bootstrap",
+            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \".\" \"$PWD\" \"/workspace\" \"/workspace/metodoloji\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/run-hook.sh\" ] && exec sh \"$d/hooks/scripts/run-hook.sh\" bootstrap; done; exit 0'",
             "timeout": 30
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/hook-entry.sh\" ] && exec sh \"$d/hooks/scripts/hook-entry.sh\" \"$1\"; done; exit 1' hook-entry guard",
+            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \".\" \"$PWD\" \"/workspace\" \"/workspace/metodoloji\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/run-hook.sh\" ] && exec sh \"$d/hooks/scripts/run-hook.sh\" guard \"$1\"; done; exit 0'",
             "timeout": 10
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/hook-entry.sh\" ] && exec sh \"$d/hooks/scripts/hook-entry.sh\" \"$1\"; done; exit 1' hook-entry quality",
+            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \".\" \"$PWD\" \"/workspace\" \"/workspace/metodoloji\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/run-hook.sh\" ] && exec sh \"$d/hooks/scripts/run-hook.sh\" quality \"$1\"; done; exit 0'",
             "timeout": 10
           }
         ]
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/hook-entry.sh\" ] && exec sh \"$d/hooks/scripts/hook-entry.sh\" \"$1\"; done; exit 1' hook-entry deploy",
+            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \".\" \"$PWD\" \"/workspace\" \"/workspace/metodoloji\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/run-hook.sh\" ] && exec sh \"$d/hooks/scripts/run-hook.sh\" deploy \"$1\"; done; exit 0'",
             "timeout": 10
           }
         ]
@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/hook-entry.sh\" ] && exec sh \"$d/hooks/scripts/hook-entry.sh\" \"$1\"; done; exit 1' hook-entry audit",
+            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \".\" \"$PWD\" \"/workspace\" \"/workspace/metodoloji\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/run-hook.sh\" ] && exec sh \"$d/hooks/scripts/run-hook.sh\" audit \"$1\"; done; exit 0'",
             "timeout": 5,
             "async": true
           }
@@ -61,7 +61,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/hook-entry.sh\" ] && exec sh \"$d/hooks/scripts/hook-entry.sh\" \"$1\"; done; exit 1' hook-entry stop",
+            "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \".\" \"$PWD\" \"/workspace\" \"/workspace/metodoloji\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/run-hook.sh\" ] && exec sh \"$d/hooks/scripts/run-hook.sh\" stop \"$1\"; done; exit 0'",
             "timeout": 15
           }
         ]
