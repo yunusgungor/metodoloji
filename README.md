@@ -8,7 +8,6 @@ actually enforceable in [OpenHands](https://github.com/All-Hands-AI/OpenHands) a
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-8A2BE2.svg)
-![CI](https://github.com/yunusgungor/metodoloji/actions/workflows/ci.yml/badge.svg)
 ![Platform: OpenHands + Claude Code](https://img.shields.io/badge/platform-OpenHands%20%2B%20Claude%20Code-4B32C3.svg)
 
 <img src="docs/images/record-chain.png" alt="Record chain: E → IR → SP → S → QR → PR" width="820" />
