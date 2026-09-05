@@ -63,7 +63,7 @@ def _extract(text: str) -> tuple[str | None, str | None]:
     # destination would be under {project-root}". The *correct* root wins.
     correct_m = re.search(
         r"\b(?:correct|right|valid)\s+(?:root|anchor|destination|answer|place|location)"
-        r".{0,60}?(project[\s-]*root|metodoloji[\s-]*root)",
+        r".*?(project[\s-]*root|metodoloji[\s-]*root)",
         lower,
     )
     if correct_m:

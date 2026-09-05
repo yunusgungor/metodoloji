@@ -194,3 +194,34 @@ more reliable than 21 optimizer steps.
 5. Scorer trusts explicit declarations (`Root anchor:`, `correct destination`,
    `resolves against`) and handles model-emitted formats.
 6. Data coverage verified (`verify_combinations` passes).
+
+## 12. Proxy scorer agreement baseline: 1.000 (40/40)
+
+**Context (E-006, E-007):** Built `bench_scorer_agreement.py` with 40 gold-standard
+test cases across 6 scoring strategies (field-presence, explicit-declaration,
+multi-axis word, section/invariant, rich structural). The scorerAccuracy baseline
+is 1.000 — every scorer agrees with the expected hard/soft output on correct,
+partial, and corrupted cases.
+
+**Key finding:** The proxy scorer is structurally consistent but semantically
+shallow. It can detect heading spam (research_experiment requires ≥20 chars per
+section), missing frontmatter (code_docs), and wrong type codes — but
+`score_field_presence` (custom_ir family) passes any text containing the field
+label strings, even gibberish. This is a known ceiling: the proxy verifies
+*structure*, not *content quality*.
+
+**Corrupted-output regression cases (8):**
+- meta_root: "correct root" declaration override, verb negation, rejection marker
+- meta_guard: double-negative ("not deny" = ALLOW)
+- meta_chain: record token as substring of path must not match
+- architecture: partial invariant match (2/3 < 0.8 threshold)
+- research_experiment: heading spam without content
+- code_docs: missing frontmatter
+
+**Regex fix applied:** meta_root `_extract()` "correct root" pattern changed from
+`.{0,60}?` to `.*?` to handle intervening words ("correct destination would be
+under {metodoloji-root}").
+
+**Lesson:** Build corrupted-output regression tests *with* the scorer, not after.
+Each edge case the scorer handles correctly today is a regression test for
+tomorrow's refactor. The bench script is the single source of truth.
