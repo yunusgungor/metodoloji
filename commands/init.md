@@ -2,7 +2,8 @@
 
 This command installs the directories and templates required for the methodology
 record chain under **{project-root}**. {metodoloji-root} = this plugin's installation
-root (`~/.openhands/plugins/installed/metodoloji`).
+root (OpenHands: `~/.openhands/plugins/installed/metodoloji`,
+Claude Code: `${CLAUDE_PLUGIN_ROOT}` or the repo clone path).
 
 ## Steps
 

@@ -1,8 +1,8 @@
-# metodoloji (OpenHands plugin)
+# metodoloji — dual-plugin (OpenHands + Claude Code)
 
-The OpenHands SDK plugin implementation of the BMAD methodology: 125 skills + 74 bridge
-TOMLs + mechanical gates (guard/stop/quality/deploy) + record chain
-(E → IR → SP → S → QR → PR).
+BMAD methodology: 125 skills + 74 bridge TOMLs + mechanical gates
+(guard/stop/quality/deploy) + record chain (E → IR → SP → S → QR → PR).
+Shared `hooks/engine/` core, runtime-specific manifest layers.
 
 ## What it does
 
@@ -16,7 +16,7 @@ TOMLs + mechanical gates (guard/stop/quality/deploy) + record chain
 | `templates/` | IR/SP/QR/PR/S/E/README/tech-debt record templates |
 | `commands/` | `/metodoloji:init`, `/metodoloji:gate-setup`, `/metodoloji:verify`, `/metodoloji:audit` |
 
-## Installation
+## Installation — OpenHands
 
 ```python
 from openhands.sdk.plugin import Plugin
@@ -28,10 +28,51 @@ or local: `Plugin.load("<repo>/openhands/metodoloji")`.
 On the first session: `/metodoloji:init` (installs templates) and `/metodoloji:gate-setup`
 (generates `~/.bmad/gate-key` — machine-local, not committed).
 
+## Installation — Claude Code
+
+**Plugin marketplace** (when available):
+```
+/plugin install metodoloji
+```
+
+**Manual install** — clone the repo and reference in `.claude/settings.json`:
+```json
+{
+  "hooks": {
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "sh /path/to/openhands-metodoloji/hooks/scripts/bootstrap.sh" }] }],
+    "PreToolUse": [
+      { "matcher": "Write|Edit|MultiEdit", "hooks": [{ "type": "command", "command": "sh /path/to/openhands-metodoloji/hooks/scripts/hook-entry.sh guard claude" }] },
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "sh /path/to/openhands-metodoloji/hooks/scripts/hook-entry.sh quality claude" }] },
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "sh /path/to/openhands-metodoloji/hooks/scripts/hook-entry.sh deploy claude" }] }
+    ],
+    "PostToolUse": [{ "matcher": "Write|Edit|MultiEdit|Bash", "hooks": [{ "type": "command", "command": "sh /path/to/openhands-metodoloji/hooks/scripts/hook-entry.sh audit claude", "async": true }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "sh /path/to/openhands-metodoloji/hooks/scripts/hook-entry.sh stop claude" }] }]
+  }
+}
+```
+
+On the first session: `/metodoloji:init` and `/metodoloji:gate-setup`.
+
+## Hook tool mapping
+
+The shared engine normalizes both runtimes to a common schema:
+
+| Hook | OpenHands tool | Claude Code tool | Engine mode |
+|------|---------------|-----------------|-------------|
+| **guard** | `file_editor` | `Write`, `Edit`, `MultiEdit` | `guard` |
+| **quality** | `terminal` (git commit) | `Bash` (git commit) | `quality` |
+| **deploy** | `terminal` (deploy cmd) | `Bash` (deploy cmd) | `deploy` |
+| **audit** | `file_editor`, `terminal` | `Write`, `Edit`, `MultiEdit`, `Bash` | `audit` |
+| **stop** | — | — | `stop` |
+
+Runtime is selected by `hook-entry.sh` via: `RUNTIME=${2:-${METODOLOJI_RUNTIME:-openhands}}`.
+The engine reads `METODOLOJI_RUNTIME` env and `normalize_hook_input()` in `utils.py`
+maps Claude tool names (`Write`→`file_editor`, `Bash`→`terminal`) transparently.
+
 ## Path variables
 
-- `{project-root}` — target project root (`$OPENHANDS_PROJECT_DIR`) — methodology outputs go here
-- `{metodoloji-root}` — this plugin's root (install root `~/.openhands/plugins/installed/metodoloji`) — read-only source
+- `{project-root}` — target project root (`$OPENHANDS_PROJECT_DIR` or `$CLAUDE_PROJECT_DIR`) — methodology outputs go here
+- `{metodoloji-root}` — this plugin's root (OpenHands: `~/.openhands/plugins/installed/metodoloji`, Claude Code: `${CLAUDE_PLUGIN_ROOT}` or repo clone path) — read-only source
 
 **Rule:** All methodology outputs (records, bmad-output, artifacts) are created under `{project-root}` — never `{metodoloji-root}`.
 

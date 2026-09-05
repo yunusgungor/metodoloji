@@ -1,0 +1,9 @@
+{
+  "name": "metodoloji",
+  "version": "1.0.0",
+  "description": "BMAD methodology: record chain (E→IR→SP→S→QR→PR), hard gate and 124 skill bridges",
+  "author": "yunusgungor",
+  "license": "MIT",
+  "repository": "https://github.com/yunusgungor/openhands-metodoloji",
+  "hooks": "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/hooks.json"
+}

@@ -4,7 +4,7 @@
 SELF=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 SYNCED=$(CDPATH= cd -- "$SELF/../.." && pwd)
 
-WS="$OPENHANDS_PROJECT_DIR"
+WS="${CLAUDE_PROJECT_DIR:-$OPENHANDS_PROJECT_DIR}"
 [ -z "$WS" ] && WS=$(pwd)
 
 # Auto-setup: create gate-key if missing

@@ -8,7 +8,7 @@ import re
 import sys
 
 from .config import GATE_DIR, _BMD_DIR, _KEY_ACCESS_IN_CONTENT, _DONE_RE
-from .utils import is_code_target, is_free, norm_path, rel_to_root, repo_root, extract_story_key_from_content
+from .utils import is_code_target, is_free, norm_path, normalize_hook_input, rel_to_root, repo_root, extract_story_key_from_content
 from .bash_targets import extract_bash_targets
 
 # Import gate script — deferred: sys.exit at module level kills the entire process
@@ -442,8 +442,9 @@ def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> t
 
 def guard(json_in: dict) -> dict:
     """PreToolUse guard: block code writes without approved experiment record."""
-    tool_name = json_in.get("tool_name", "")
-    tool_input = json_in.get("tool_input", {})
+    norm = normalize_hook_input(json_in)
+    tool_name = norm["tool_name"]
+    tool_input = norm["tool_input"]
     _soft_warnings: list[str] = []  # warn-only findings when quality_gate=soft
 
     # Determine targets based on tool
@@ -750,11 +751,12 @@ def quality(json_in: dict) -> dict:
     - A corresponding Quality Record (QR) in docs/quality/ (Gate 3)
     - A Sprint Planning record (SP) in docs/development/ (if story references SP, Gate 2)
     """
-    tool_name = json_in.get("tool_name", "")
+    norm = normalize_hook_input(json_in)
+    tool_name = norm["tool_name"]
     if tool_name != "terminal":
         return {"decision": "allow"}
 
-    command = json_in.get("tool_input", {}).get("command", "")
+    command = norm["tool_input"].get("command", "")
     if not _is_git_commit(command):
         return {"decision": "allow"}
 
@@ -860,11 +862,12 @@ def deploy(json_in: dict) -> dict:
     - A Quality Record (QR) in docs/quality/ (Gate 3)
     - A Production Readiness (PR) record in docs/development/ (Gate 4)
     """
-    tool_name = json_in.get("tool_name", "")
+    norm = normalize_hook_input(json_in)
+    tool_name = norm["tool_name"]
     if tool_name != "terminal":
         return {"decision": "allow"}
 
-    command = json_in.get("tool_input", {}).get("command", "")
+    command = norm["tool_input"].get("command", "")
     if not command or not _DEPLOY_CMD_RE.search(command):
         return {"decision": "allow"}
 

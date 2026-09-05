@@ -18,6 +18,49 @@ from .config import (
 )
 
 
+def normalize_hook_input(json_in: dict) -> dict:
+    """Normalize hook input from either Claude Code or OpenHands to a common schema.
+
+    Claude Code sends: tool_name=Write|Edit|MultiEdit|Bash,
+      tool_input={file_path,content,command,...}
+    OpenHands sends: tool_name=file_editor|terminal,
+      tool_input={path,content,command,...}
+
+    Returns a normalized dict with keys: tool_name, tool_input (with
+    file_path/content/command), raw_tool_name, raw_tool_input.
+    """
+    runtime = os.environ.get("METODOLOJI_RUNTIME", "")
+    tool_name = json_in.get("tool_name", "")
+    tool_input = dict(json_in.get("tool_input", {}))
+
+    raw_name = tool_name
+    raw_input = dict(tool_input)
+
+    if runtime == "claude" or tool_name in ("Write", "Edit", "MultiEdit", "Bash"):
+        # Claude Code → normalize to OpenHands convention
+        if tool_name in ("Write", "Edit", "MultiEdit"):
+            if "file_path" in tool_input and "path" not in tool_input:
+                tool_input["path"] = tool_input["file_path"]
+            tool_name = "file_editor"
+        elif tool_name == "Bash":
+            if "command" not in tool_input and "cmd" in tool_input:
+                tool_input["command"] = tool_input["cmd"]
+            tool_name = "terminal"
+    elif runtime == "openhands" or tool_name in ("file_editor", "terminal"):
+        pass  # already normalized
+    else:
+        # Unknown tool — pass through as-is
+        pass
+
+    return {
+        "tool_name": tool_name,
+        "tool_input": tool_input,
+        "raw_tool_name": raw_name,
+        "raw_tool_input": raw_input,
+        **{k: v for k, v in json_in.items() if k not in ("tool_name", "tool_input")},
+    }
+
+
 def norm_path(p: str) -> str:
     """Normalize path to project-relative, forward-slash, no leading './'."""
     p = (p or "").replace("\\", "/")

@@ -32,5 +32,8 @@ fi
 # Set hook type environment variable
 export HOOK_TYPE="$MODE"
 
+# Runtime selection: 2nd arg > env > default openhands
+RUNTIME="${2:-${METODOLOJI_RUNTIME:-openhands}}"
+
 # Read stdin and pass to engine
-exec "$PY" "$ENGINE" --runtime=openhands
+exec "$PY" "$ENGINE" --runtime=$RUNTIME

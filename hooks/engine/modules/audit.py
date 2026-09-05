@@ -296,8 +296,10 @@ def _check_kopru_consumption(tool_name: str, tool_input: dict) -> list[str]:
 
 def audit(json_in: dict) -> dict:
     """PostToolUse audit: write JSON audit trail + methodology validation."""
-    tool_name = json_in.get("tool_name", "")
-    tool_input = json_in.get("tool_input", {})
+    from .utils import normalize_hook_input
+    norm = normalize_hook_input(json_in)
+    tool_name = norm["tool_name"]
+    tool_input = norm["tool_input"]
     tool_output = json_in.get("tool_output", {})
 
     # Project root anchored like guard/quality/deploy (cwd may differ under
