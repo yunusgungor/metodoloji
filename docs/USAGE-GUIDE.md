@@ -383,12 +383,22 @@ mechanically blocked by `guard`.
 
    Verify exit codes and their meaning:
 
-   | Exit code | Output | Meaning |
-   |-----------|--------|---------|
-   | `0` | `VERIFIED` | APPROVED with genuine token — code may proceed within scope |
-   | `1` | `FORGED` | Token does not match the record's claim/measured/command — invalid |
-   | `1` | `REJECTED` / undecided | Did not pass the gate (or not run yet) |
-   | `2` | `ADVISORY-BLOCK` | Token genuine but **does not unlock code**: small sample (Wilson bound below threshold), `n unknown`, or metric MISMATCH confessed in the record |
+| Exit code | Output | Meaning |
+|-----------|--------|---------|
+| `0` | `VERIFIED` | APPROVED with genuine token — code may proceed within scope |
+| `1` | `FORGED` | Token does not match the record's claim/measured/command — invalid |
+| `1` | `REJECTED` / undecided | Did not pass the gate (or not run yet) |
+| `2` | `ADVISORY-BLOCK` | Token genuine but **does not unlock code**: small sample (Wilson bound below threshold), `n unknown`, or metric MISMATCH confessed in the record |
+
+**Cross-machine records:** the gate key is machine-local and never leaves its
+machine, so an `APPROVED` record signed on another machine reports `FORGED` on
+yours **by design** — this is provenance, not necessarily tampering. Do not edit
+gate-written fields or re-type tokens by hand (that *would* be forging). Instead:
+re-run the same measurement under a new record with your local key and declare
+the link with a plain `Re-Measured-By:` line (e.g. `- **Re-Measured-By:** E-012
+(date)`) at the end of the old record. `check-plugin.sh` §3 then classifies the
+old record as a non-failing `CROSS-MACHINE` warning, provided the re-measurement
+record itself verifies under the local key.
 
 **Field Descriptions:**
 
@@ -1014,6 +1024,13 @@ The following paths are automatically released by the guard:
 | `docs/*/raw/` | Raw data files |
 | `explore_*` | Exploration files |
 | Infrastructure files | `scripts/check-methodology.sh`, `skills/bmad-research-experiment/scripts/run_experiment.py` |
+
+**Conditional self-modification zone:** `hooks/`, `scripts/`, `skills/`,
+`bmad_benchmarks/` and `custom/` (plugin source trees) are released **only when
+the guarded project root IS the methodology plugin's own repository** (the
+plugin working on itself). In any ordinary target project those trees stay
+**protected** — editing plugin source there requires an approved experiment,
+like any other code.
 
 ### 12.2. Protected Areas (Approval Required)
 

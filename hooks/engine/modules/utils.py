@@ -15,6 +15,7 @@ from .config import (
     INFRA_FILES,
     NON_CODE_BASENAMES,
     NON_CODE_EXTS,
+    PLUGIN_FREE_PREFIXES,
 )
 
 
@@ -70,6 +71,25 @@ def norm_path(p: str) -> str:
     return p
 
 
+def _project_is_methodology_root() -> bool:
+    """True when the project being guarded IS this plugin's own repository.
+
+    The plugin root resolved from env always equals the engine's methodology
+    root (the engine lives inside the install dir), so the meaningful signal is
+    the project root: CLAUDE_PROJECT_DIR / OPENHANDS_PROJECT_DIR / cwd. When it
+    resolves to the methodology root, the plugin source trees (hooks/,
+    scripts/, skills/, bmad_benchmarks/, custom/) are released as a
+    self-modification free zone — the methodology working on itself. In any
+    ordinary project those trees stay behind the experiment gate.
+    """
+    try:
+        from .config import _METHODOLOGY_ROOT
+        project_root = repo_root({})
+        return pathlib.Path(project_root).resolve() == pathlib.Path(_METHODOLOGY_ROOT).resolve()
+    except Exception:
+        return False
+
+
 def is_free(path: str) -> bool:
     """True if the project-relative path is inside a free zone (no approval needed)."""
     p = norm_path(path).lstrip("/")
@@ -81,7 +101,13 @@ def is_free(path: str) -> bool:
         return True
     if p.startswith("explore_"):
         return True
-    return any(p.startswith(prefix) for prefix in FREE_PREFIXES)
+    if any(p.startswith(prefix) for prefix in FREE_PREFIXES):
+        return True
+    # Plugin source trees: free ONLY when the project is this repo itself
+    # (self-modification). Otherwise they are protected by the experiment gate.
+    if any(p.startswith(prefix) for prefix in PLUGIN_FREE_PREFIXES):
+        return _project_is_methodology_root()
+    return False
 
 
 def is_code_target(path: str) -> bool:

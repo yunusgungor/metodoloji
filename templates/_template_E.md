@@ -61,4 +61,10 @@ python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment
   --verify --record docs/experiments/E-NNN.md
 ```
 
+**Cross-machine records:** the gate key is machine-local. An APPROVED record signed on
+another machine will report FORGED on yours by design — never hand-edit gate-written
+fields or tokens. Re-run the measurement under a new E record with your local key and
+add a plain `- **Re-Measured-By:** E-NNN (date)` line at the end of the old record;
+`check-plugin.sh` §3 then reports it as a CROSS-MACHINE warning instead of an error.
+
 Keep raw data files under `docs/experiments/E-NNN/raw/`.

@@ -68,6 +68,43 @@ def test_is_free_not_free():
     assert is_free("explore_main.py")
 
 
+def test_plugin_trees_protected_in_ordinary_project(monkeypatch, tmp_path):
+    """hooks/, scripts/, skills/, bmad_benchmarks/ are plugin source trees.
+    When the project root is NOT the methodology root, they are NOT free —
+    the experiment gate applies."""
+    from modules import config, utils
+    monkeypatch.setattr(config, "_METHODOLOGY_ROOT", tmp_path)
+    monkeypatch.setattr(utils, "repo_root", lambda json_in: str(tmp_path / "user-project"))
+    assert not is_free("scripts/tool.py")
+    assert not is_free("hooks/engine/main.py")
+    assert not is_free("skills/bmad-dev-story/SKILL.md")
+    assert not is_free("bmad_benchmarks/envs/x/adapter.py")
+
+
+def test_plugin_trees_free_when_project_is_methodology_root(monkeypatch, tmp_path):
+    """Self-modification: when the project root IS the methodology root,
+    plugin source trees are released without experiment approval."""
+    from modules import config, utils
+    monkeypatch.setattr(config, "_METHODOLOGY_ROOT", tmp_path)
+    monkeypatch.setattr(utils, "repo_root", lambda json_in: str(tmp_path))
+    assert is_free("scripts/tool.py")
+    assert is_free("hooks/engine/main.py")
+    assert is_free("skills/bmad-dev-story/SKILL.md")
+    assert is_free("bmad_benchmarks/envs/x/adapter.py")
+    assert is_free("custom/bmad-dev-story.toml")
+
+
+def test_plugin_trees_protected_when_no_project_env(monkeypatch, tmp_path):
+    """Fail-closed default: with no project-root env, plugin trees stay protected
+    (the check must not silently release them)."""
+    from modules import config, utils
+    monkeypatch.setattr(config, "_METHODOLOGY_ROOT", tmp_path)
+    # repo_root falls back to os.getcwd() — pin it away from the methodology root.
+    monkeypatch.setattr(utils, "repo_root", lambda json_in: "/somewhere/else")
+    assert not is_free("scripts/tool.py")
+    assert not is_free("skills/anything.py")
+
+
 def test_is_code_target_classification():
     # Code: unknown/executable extensions are code
     assert is_code_target("src/foo.py")

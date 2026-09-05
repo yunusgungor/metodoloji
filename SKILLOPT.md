@@ -221,13 +221,14 @@ sh scripts/skillopt-sleep.sh unschedule  # Remove it
 > live baseline. `skillopt-sleep` refuses to stage a proposal without a baseline
 > pin — that is by design (gate_no_regression).
 
-Config at `~/.skillopt-sleep/config.json` (installed by this repo):
+Config at `~/.skillopt-sleep/config.json` (installed by this repo — adjust the
+`skill_roots` / `target_skill_path` values to your local checkout):
 ```json
 {
   "transcript_source": "claude",
   "backend": "mock",
-  "skill_roots": ["C:/Users/ASUS/orca/metodoloji/skills"],
-  "target_skill_path": "C:/Users/ASUS/orca/metodoloji/skills",
+  "skill_roots": ["<path-to-metodoloji-checkout>/skills"],
+  "target_skill_path": "<path-to-metodoloji-checkout>/skills",
   "gate_no_regression": true,
   "dream_rollouts": 3,
   "multi_skill_fanout": true

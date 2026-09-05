@@ -193,7 +193,8 @@ else
 fi
 rm -f /tmp/meth-selfcheck.$$.log
 if echo '{}' | "$PY" "$PLUGIN_ROOT/hooks/engine/main.py" guard --runtime=openhands >/tmp/meth-hooks.$$.log 2>&1; then
-    if grep -q '"decision"' /tmp/meth-hooks.$$.log; then
+    # v2 schema emits hookSpecificOutput.permissionDecision; accept legacy flat "decision" too
+    if grep -q -e '"permissionDecision"' -e '"decision"' /tmp/meth-hooks.$$.log; then
         echo "[OK]   hook engine running (main.py guard → returned a decision)"
     else
         echo "[ERROR] hook engine returned no decision:"
@@ -208,7 +209,7 @@ fi
 rm -f /tmp/meth-hooks.$$.log
 # quality hook test (PreToolUse — terminalmatcher)
 if echo '{}' | "$PY" "$PLUGIN_ROOT/hooks/engine/main.py" quality --runtime=openhands >/tmp/meth-quality.$$.log 2>&1; then
-    if grep -q '"decision"' /tmp/meth-quality.$$.log; then
+    if grep -q -e '"permissionDecision"' -e '"decision"' /tmp/meth-quality.$$.log; then
         echo "[OK]   hook engine running (main.py quality → returned a decision)"
     else
         echo "[ERROR] hook engine quality returned no decision:"
@@ -223,7 +224,7 @@ fi
 rm -f /tmp/meth-quality.$$.log
 # deploy hook test (PreToolUse — terminalmatcher)
 if echo '{}' | "$PY" "$PLUGIN_ROOT/hooks/engine/main.py" deploy --runtime=openhands >/tmp/meth-deploy.$$.log 2>&1; then
-    if grep -q '"decision"' /tmp/meth-deploy.$$.log; then
+    if grep -q -e '"permissionDecision"' -e '"decision"' /tmp/meth-deploy.$$.log; then
         echo "[OK]   hook engine running (main.py deploy → returned a decision)"
     else
         echo "[ERROR] hook engine deploy returned no decision:"
@@ -576,6 +577,27 @@ for rec in "$PROJECT_ROOT"/docs/experiments/*.md; do
             # Does not open code writing, so not counted in FOUND (guard stayed closed),
             # but must NOT be reported as FORGED.
             echo "[OK]   $rec -> VERIFIED (ADVISORY-BLOCK: genuine token, small sample — code stayed closed)"
+        elif grep -q 'Re-Measured-By:' "$rec"; then
+            # CROSS-MACHINE provenance, not tampering: the record was approved under a
+            # different machine's gate key (the HMAC key is machine-local and never
+            # leaves its machine, so --verify on another machine reports FORGED by
+            # design). The operator has declared the re-measurement record via the
+            # plain 'Re-Measured-By:' marker; that record must verify under THIS key.
+            remeasured=$(grep 'Re-Measured-By:' "$rec" | head -1 | sed 's/.*Re-Measured-By:\*\{0,2\}[[:space:]]*\(E-[0-9][0-9]*\).*/\1/')
+            rmrec="$PROJECT_ROOT/docs/experiments/$remeasured.md"
+            rmvrc=3
+            [ -n "$remeasured" ] && [ -f "$rmrec" ] && \
+                { "$PY" "$GATE" --verify --record "$rmrec" >/dev/null 2>&1; rmvrc=$?; }
+            # exit 0 = VERIFIED, exit 2 = ADVISORY-BLOCK (token genuine, small sample —
+            # provenance needs genuineness, not code unlock, so both count).
+            if [ "$rmvrc" -eq 0 ] || [ "$rmvrc" -eq 2 ]; then
+                echo "[WARN] $rec -> CROSS-MACHINE: approved under another machine's key (token not re-derivable here by design)."
+                echo "       Re-measured by $remeasured under this machine's key -> VERIFIED. Gate fields untouched."
+            else
+                echo "[ERROR] $rec -> CROSS-MACHINE but re-measurement missing/unverified: $remeasured."
+                echo "        Create docs/experiments/$remeasured.md and run the gate: run_experiment.py --record ... --run ..."
+                PROBLEMS=$((PROBLEMS + 1))
+            fi
         else
             echo "[ERROR] $rec -> approved but --verify failed (FORGED?)"
             PROBLEMS=$((PROBLEMS + 1))

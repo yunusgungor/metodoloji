@@ -78,7 +78,22 @@ def _hook_strictness() -> str:
     return "soft"
 
 
-QUALITY_GATE_HARD = _hook_strictness() == "hard"
+def hook_gate_mode(gate_key: str) -> str:
+    """Public per-call accessor for a [hooks] gate mode: 'soft' | 'hard'.
+
+    Always reads live from custom/config.toml — an import-time constant would
+    go stale the moment config.toml changes after the engine process starts.
+    """
+    return _hook_gate_value(gate_key)
+
+
+def QUALITY_GATE_HARD() -> bool:
+    """Deprecated shim: use hook_gate_mode() for per-call reads.
+
+    Kept as a function because the value cannot be snapshotted at import time:
+    config.toml may change (or not exist yet) after this module is imported.
+    """
+    return _hook_strictness() == "hard"
 
 # Code classification
 NON_CODE_EXTS = {
@@ -109,11 +124,19 @@ EXEC_CONFIG_NAME = re.compile(
     r"(?:docker-compose|compose)[^/]*\.ya?ml$|package\.json$)"
 )
 
-# Free zones
+# Free zones — project-relative prefixes that never need experiment approval.
+# NOTE: hooks/, scripts/, skills/ and bmad_benchmarks/ are deliberately NOT here.
+# Those are plugin source trees and stay protected by the experiment gate in any
+# ordinary project; see PLUGIN_FREE_PREFIXES for the self-modification exemption.
 FREE_PREFIXES = (
     "_bmad/", "scratch/", "graft/", ".git/", "tmp/", "temp/",
-    "openhands/", ".metodoloji/", "docs/code-docs/", "bmad_benchmarks/", "hooks/", "scripts/", "skills/"
+    "openhands/", ".metodoloji/", "docs/code-docs/",
 )
+
+# Plugin source trees that are free ONLY when the plugin root resolves to the
+# methodology root (i.e. this repository running as its own project). Resolved
+# per-call in utils.is_free(); under test it is monkeypatched via config._METHODOLOGY_ROOT.
+PLUGIN_FREE_PREFIXES = ("hooks/", "scripts/", "skills/", "bmad_benchmarks/", "custom/")
 
 INFRA_FILES = {"scripts/check-methodology.sh", "skills/bmad-research-experiment/scripts/run_experiment.py"}
 

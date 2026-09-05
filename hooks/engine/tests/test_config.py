@@ -14,6 +14,7 @@ from modules.config import (  # noqa: E402
     CODE_DOCS_TYPES,
     FREE_PREFIXES,
     NON_CODE_EXTS,
+    PLUGIN_FREE_PREFIXES,
     TAR_ARG_OPTS,
 )
 
@@ -31,6 +32,17 @@ def test_methodology_root_is_repo_root():
 def test_free_prefixes_are_slashed():
     for p in FREE_PREFIXES:
         assert p.endswith("/"), f"free prefix should end with /: {p!r}"
+    for p in PLUGIN_FREE_PREFIXES:
+        assert p.endswith("/"), f"plugin free prefix should end with /: {p!r}"
+
+
+def test_plugin_trees_not_in_plain_free_prefixes():
+    # Plugin source trees must NOT be unconditionally free: in ordinary projects
+    # they stay behind the experiment gate. utils.is_free() releases them only
+    # when the project root IS the methodology root (self-modification).
+    for tree in ("hooks/", "scripts/", "skills/", "bmad_benchmarks/"):
+        assert tree not in FREE_PREFIXES, f"{tree} must be a conditional plugin-free prefix"
+        assert tree in PLUGIN_FREE_PREFIXES
 
 
 def test_agent_zones_are_free_prefixes():
