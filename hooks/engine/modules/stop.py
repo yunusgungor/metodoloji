@@ -1,20 +1,11 @@
 """Stop logic for Stop hook."""
 
 import json
-import os
 import pathlib
 import re
 
-from .config import _DONE_RE
 from .guard import find_approved
-from .utils import is_free, norm_path
-
-# ponytail: directory-level prune — skip known-non-code dirs entirely
-_CODE_SUFFIXES = frozenset({".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".go", ".rs"})
-_SKIP_DIRS = frozenset({
-    ".git", "__pycache__", "node_modules", ".metodoloji", "scratch",
-    "tmp", "temp", "docs", "templates", "commands", ".plugin", "bmad",
-})
+from .utils import is_code_target, is_free, rel_to_root
 
 
 def _check_story_status(root: str, intent: str = "") -> tuple[bool, str]:
@@ -60,6 +51,50 @@ def _check_story_status(root: str, intent: str = "") -> tuple[bool, str]:
     return False, ""
 
 
+def _session_touched_code(root: str) -> list[str]:
+    """Code files this session actually wrote (from the audit trail).
+
+    No audit log (fresh session / logging disabled) → [] → allow.
+    Pre-existing brownfield files are never listed: only PostToolUse
+    records this session wrote count.
+    """
+    from .bash_targets import extract_bash_targets
+    from .config import log_file
+
+    log_path = pathlib.Path(root).absolute() / log_file()
+    try:
+        lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return []
+    touched: set[str] = set()
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        tool = str(rec.get("tool", ""))
+        tool_input = rec.get("input", {})
+        if not isinstance(tool_input, dict):
+            continue
+        if tool in ("file_editor", "notebook_editor"):
+            path = tool_input.get("path", "") or tool_input.get("file_path", "")
+            if path:
+                rel = rel_to_root(root, str(path))
+                if rel and is_code_target(rel):
+                    touched.add(rel)
+        elif tool == "terminal":
+            command = tool_input.get("command", "") or tool_input.get("cmd", "")
+            if command:
+                for target in extract_bash_targets(str(command)):
+                    rel = rel_to_root(root, str(target))
+                    if rel and is_code_target(rel):
+                        touched.add(rel)
+    return sorted(touched)
+
+
 def stop(json_in: dict) -> dict:
     """Stop hook: block stop if unapproved code changes or incomplete stories exist."""
     from .utils import repo_root
@@ -77,25 +112,19 @@ def stop(json_in: dict) -> dict:
     if should_block:
         return {"decision": "deny", "reason": reason}
 
-    # 2. Check for unapproved code changes (directory-level prune for speed)
-    for dirpath, dirnames, filenames in os.walk(root):
-        # Prune known non-code directories in-place
-        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
-        for fname in filenames:
-            ext = pathlib.PurePosixPath(fname).suffix.lower()
-            if ext not in _CODE_SUFFIXES:
-                continue
-            full = pathlib.Path(dirpath) / fname
-            rel = norm_path(str(full.relative_to(root)))
-            if is_free(rel):
-                continue
-            approved, _ = find_approved(rel)
-            if not approved:
-                return {
-                    "decision": "deny",
-                    "reason": f"Unapproved code changes detected: {rel}. "
-                              f"Complete experiment record before stopping."
-                }
+    # 2. Check for unapproved code changes — SESSION-TOUCHED files only.
+    # ponytail: audit log is the touched set; whole-tree scan false-blocks
+    # brownfield projects (pre-existing code ≠ this session did it).
+    for rel in _session_touched_code(root):
+        if is_free(rel):
+            continue
+        approved, _ = find_approved(rel, root=root)
+        if not approved:
+            return {
+                "decision": "deny",
+                "reason": f"Unapproved code changes detected: {rel}. "
+                          f"Complete experiment record before stopping."
+            }
 
     # 3. Surface pending code-docs so the agent sees unfinished work at session end.
     result = {"decision": "allow"}

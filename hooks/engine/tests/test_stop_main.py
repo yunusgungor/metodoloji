@@ -129,12 +129,24 @@ def test_stop_allows_clean_tree(tmp_path, monkeypatch):
     assert res["decision"] == "allow"
 
 
+def _seed_audit_log(root, records):
+    import json
+    log = root / ".metodoloji/logs/hook-audit.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with open(log, "a", encoding="utf-8") as f:
+        for rec in records:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+
 def test_stop_allows_free_zone_code(tmp_path, monkeypatch):
     scratch = tmp_path / "scratch"
     scratch.mkdir()
     (scratch / "explore.py").write_text("x = 1\n", encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    _seed_audit_log(tmp_path, [
+        {"tool": "file_editor", "input": {"path": "scratch/explore.py"}},
+    ])
     res = stop({})
     assert res["decision"] == "allow"
 
@@ -144,9 +156,24 @@ def test_stop_denies_unapproved_code(tmp_path, monkeypatch):
     (tmp_path / "src/main.py").write_text("print(1)\n", encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    _seed_audit_log(tmp_path, [
+        {"tool": "file_editor", "input": {"path": "src/main.py"}},
+    ])
     res = stop({})
     assert res["decision"] == "deny"
     assert "Unapproved code changes" in res["reason"]
+
+
+def test_stop_allows_preexisting_brownfield_code(tmp_path, monkeypatch):
+    # Regression: files that exist on disk but were NOT touched this session
+    # (no audit-log record) must not block stop.
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src/main.py").write_text("print(1)\n", encoding="utf-8")
+    (tmp_path / "prisma.config.ts").write_text("export default {}\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    res = stop({})
+    assert res["decision"] == "allow"
 
 
 def test_stop_skips_non_code_dirs(tmp_path, monkeypatch):
