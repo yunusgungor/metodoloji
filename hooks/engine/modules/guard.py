@@ -569,15 +569,18 @@ def guard(json_in: dict) -> dict:
         if not is_code_target(rel):
             continue
 
-        # Find approved record
+        # Find approved record. code_guard=soft (brownfield adoption in
+        # custom/config.toml [hooks]) relaxes a missing approval to warn-only.
         approved, detail = find_approved(rel, root=root)
         if not approved:
-            return {
-                "decision": "deny",
-                "reason": f"No approved experiment record for {rel}: {detail}. "
-                          f"Create a hypothesis, measure, and get approval with "
-                          f"run_experiment.py --record docs/experiments/E-XXX.md --run <cmd>"
-            }
+            from .config import hook_gate_mode
+            msg = (f"No approved experiment record for {rel}: {detail}. "
+                   f"Create a hypothesis, measure, and get approval with "
+                   f"run_experiment.py --record docs/experiments/E-XXX.md --run <cmd>")
+            if hook_gate_mode("code_guard") == "soft":
+                _soft_warnings.append(msg)
+                continue
+            return {"decision": "deny", "reason": msg}
 
     # --- Intent-scope check (warn-only) ---
     # If the active scope (e.g. "scope: src/auth" in the memlog) exists, a

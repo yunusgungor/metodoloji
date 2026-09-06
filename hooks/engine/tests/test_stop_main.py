@@ -164,6 +164,128 @@ def test_stop_denies_unapproved_code(tmp_path, monkeypatch):
     assert "Unapproved code changes" in res["reason"]
 
 
+def _seed_session_start(root):
+    import json, time
+    from modules.stop import _SESSION_MARKER_TYPE
+    log = root / ".metodoloji/logs/hook-audit.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with open(log, "a", encoding="utf-8") as f:
+        f.write(json.dumps({"type": _SESSION_MARKER_TYPE,
+                            "timestamp": time.time()}) + "\n")
+
+
+def test_stop_hook_active_allows(tmp_path, monkeypatch):
+    # stop_hook_active=true (Claude re-fire after a deny) must never deny —
+    # the loop breaker, even with unapproved touched code on disk.
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src/main.py").write_text("print(1)\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    _seed_audit_log(tmp_path, [
+        {"tool": "file_editor", "input": {"path": "src/main.py"}},
+    ])
+    res = stop({"stop_hook_active": True})
+    assert res["decision"] == "allow"
+
+
+def test_stop_deny_budget_allows_second_fire(tmp_path, monkeypatch):
+    # First deny records stop_deny; the second fire (same session) allows.
+    from modules.stop import _stop_denies_so_far
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src/main.py").write_text("print(1)\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    _seed_audit_log(tmp_path, [
+        {"tool": "file_editor", "input": {"path": "src/main.py"}},
+    ])
+    first = stop({})
+    assert first["decision"] == "deny"
+    assert _stop_denies_so_far(str(tmp_path)) == 1
+    second = stop({})
+    assert second["decision"] == "allow"
+
+
+def test_stop_soft_guard_allows(tmp_path, monkeypatch):
+    # stop_guard=soft (brownfield adoption) never blocks the session close.
+    from modules import config
+    monkeypatch.setattr(config, "hook_gate_mode",
+                        lambda key: "soft" if key == "stop_guard" else "hard")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src/main.py").write_text("print(1)\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    _seed_audit_log(tmp_path, [
+        {"tool": "file_editor", "input": {"path": "src/main.py"}},
+    ])
+    res = stop({})
+    assert res["decision"] == "allow"
+
+
+def test_stop_previous_session_touches_ignored(tmp_path, monkeypatch):
+    # Touches before the session_start marker don't count: yesterday's
+    # unapproved work must not wedge today's session.
+    import time
+    from modules.stop import _SESSION_MARKER_TYPE
+    import json
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src/old.py").write_text("x=1\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    _seed_audit_log(tmp_path, [
+        {"tool": "file_editor", "input": {"path": "src/old.py"}},
+    ])
+    log = tmp_path / ".metodoloji/logs/hook-audit.log"
+    with open(log, "a", encoding="utf-8") as f:
+        f.write(json.dumps({"type": _SESSION_MARKER_TYPE,
+                            "timestamp": time.time()}) + "\n")
+    res = stop({})
+    assert res["decision"] == "allow"
+
+
+def test_stop_stale_sprint_status_ignored(tmp_path, monkeypatch):
+    # sprint-status older than the session marker never blocks (brownfield
+    # leftover); without a marker, legacy blocking stays.
+    import os, time
+    cand = tmp_path / ".metodoloji"
+    cand.mkdir(parents=True)
+    (cand / "sprint-status.yaml").write_text(
+        "stories:\n  1-2-login: in-progress\n", encoding="utf-8")
+    old = time.time() - 3600
+    os.utime(cand / "sprint-status.yaml", (old, old))
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    _seed_session_start(tmp_path)  # marker newer than the stale status
+    res = stop({})
+    assert res["decision"] == "allow"
+
+
+def test_stop_ignores_shell_variable_targets(tmp_path, monkeypatch):
+    # Regression (live find): a heredoc rewrite command containing
+    # "$spool_file" must not produce a literal "$spool_file" touched entry.
+    from modules.stop import _session_touched_code
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    _seed_audit_log(tmp_path, [
+        {"tool": "terminal", "input": {"command": "cat > $spool_file << 'EOF'\nx\nEOF"}},
+        {"tool": "file_editor", "input": {"path": "$out/main.py"}},
+    ])
+    assert _session_touched_code(str(tmp_path)) == []
+
+
+def test_stop_stale_sprint_status_blocks_without_marker(tmp_path, monkeypatch):
+    # No session marker (old bootstrap) → legacy behavior preserved.
+    cand = tmp_path / ".metodoloji"
+    cand.mkdir(parents=True)
+    (cand / "sprint-status.yaml").write_text(
+        "stories:\n  1-2-login: in-progress\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = stop({})
+    assert res["decision"] == "deny"
+
+
 def test_stop_allows_preexisting_brownfield_code(tmp_path, monkeypatch):
     # Regression: files that exist on disk but were NOT touched this session
     # (no audit-log record) must not block stop.

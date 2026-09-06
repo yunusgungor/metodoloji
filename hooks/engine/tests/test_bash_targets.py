@@ -222,6 +222,13 @@ def test_unrelated_command_no_targets():
     assert extract_bash_targets("git status") == []
 
 
+def test_shell_variable_targets_dropped():
+    # Unexpanded $vars are not real paths (live find: "$spool_file" wedge).
+    assert extract_bash_targets("cat > $spool_file << 'EOF'\nx\nEOF") == []
+    assert extract_bash_targets("echo hi > ${OUT_DIR}/x.txt") == []
+    assert extract_bash_targets("cp a.py $DEST/b.py") == []
+
+
 # --- _read_patch_targets directly -------------------------------------------
 
 def test_read_patch_targets(tmp_path):

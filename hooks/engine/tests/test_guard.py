@@ -555,6 +555,35 @@ def test_gates_read_independent_keys(tmp_path, monkeypatch):
     assert "Implementation Readiness" in d["reason"]
 
 
+def test_guard_code_guard_soft_warns_not_denies(tmp_path, monkeypatch):
+    """code_guard=soft (brownfield): unapproved write warns, still allows."""
+    from modules.guard import guard
+    from modules import config
+    monkeypatch.setattr(config, "hook_gate_mode",
+                        lambda key: "soft" if key == "code_guard" else "hard")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "src/main.py", "content": "print(1)"}})
+    assert res["decision"] == "allow"
+    assert any("No approved experiment record" in w
+               for w in res.get("methodology_warnings", []))
+
+
+def test_guard_code_guard_hard_still_denies(tmp_path, monkeypatch):
+    """Default code_guard=hard: unapproved write still denies."""
+    from modules.guard import guard
+    from modules import config
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "src/main.py", "content": "print(1)"}})
+    assert res["decision"] == "deny"
+
+
 def test_guard_scope_inside_no_warning(tmp_path, monkeypatch):
     """A write inside the active scope gets no scope warning."""
     from modules.guard import guard

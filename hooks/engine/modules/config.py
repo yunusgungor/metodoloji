@@ -35,22 +35,26 @@ def log_file() -> str:
 
 
 # --- Gate strictness ---------------------------------------------------------
-# custom/config.toml [hooks] quality_gate / deploy_guard (soft|hard). Default
-# soft: commit/deploy gates warn (allow + methodology_warnings) instead of
-# blocking; "hard" opts into denial. Read live per-call so config edits apply
-# without a reload. Each key is read independently.
+# custom/config.toml [hooks]: quality_gate / deploy_guard / code_guard /
+# stop_guard (soft|hard). quality/deploy default soft (warn-only); code/stop
+# default hard (fail-closed — code writes and session close stay mechanical
+# unless a project explicitly relaxes them, e.g. brownfield adoption).
+# Read live per-call so config edits apply without a reload. Each key is
+# read independently.
 _HOOKS_CFG = _METHODOLOGY_ROOT / "custom" / "config.toml"
 
-def _hook_gate_value(gate_key: str) -> str:
-    """Return the value of a [hooks] gate key: 'hard' when set, else 'soft'.
+def _hook_gate_value(gate_key: str, default: str = "soft") -> str:
+    """Return the value of a [hooks] gate key: 'hard' when set, else `default`.
 
-    A malformed/missing config fails soft (permissive). Only the named key is
-    read, so quality_gate and deploy_guard stay independent.
+    A malformed/missing config falls back to `default` (soft for
+    quality_gate/deploy_guard; hard for code_guard — code writes stay
+    fail-closed unless explicitly relaxed). Only the named key is
+    read, so gates stay independent.
     """
     try:
         text = _HOOKS_CFG.read_text(encoding="utf-8")
     except OSError:
-        return "soft"
+        return default
     in_hooks = False
     for line in text.splitlines():
         stripped = line.strip()
@@ -64,18 +68,27 @@ def _hook_gate_value(gate_key: str) -> str:
             key = key.strip()
             # Strip a trailing # comment and surrounding quotes.
             val = val.split("#", 1)[0].strip().strip('"').strip("'")
-            if key == gate_key and val == "hard":
-                return "hard"
-    return "soft"
+            if key == gate_key and val in ("hard", "soft"):
+                return val
+    return default
+
+# Per-key defaults: commit/deploy gates are warn-only unless opted into hard;
+# code/stop gates stay mechanical unless a project explicitly relaxes them.
+_GATE_DEFAULTS = {
+    "quality_gate": "soft",
+    "deploy_guard": "soft",
+    "code_guard": "hard",
+    "stop_guard": "hard",
+}
 
 def hook_gate_mode(gate_key: str) -> str:
     """Public per-call accessor for one [hooks] gate mode: 'soft' | 'hard'.
 
-    Each gate key (quality_gate, deploy_guard) is read INDEPENDENTLY and live
-    from custom/config.toml — an import-time constant would go stale, and one
-    gate's mode must never leak into the other's semantics.
+    Each gate key is read INDEPENDENTLY and live from custom/config.toml —
+    an import-time constant would go stale, and one gate's mode must never
+    leak into the other's semantics.
     """
-    return _hook_gate_value(gate_key)
+    return _hook_gate_value(gate_key, _GATE_DEFAULTS.get(gate_key, "soft"))
 
 # Code classification
 NON_CODE_EXTS = {
@@ -86,7 +99,19 @@ NON_CODE_EXTS = {
     ".pdf", ".zip", ".gz", ".tar", ".bz2", ".xz", ".7z", ".rar",
     ".sqlite", ".db", ".sqlite3", ".parquet", ".arrow", ".npy", ".npz", ".h5",
     ".hdf5", ".pkl", ".pickle", ".feather",
+    # Toolchain config: real code lives elsewhere; gating these files only
+    # produces brownfield false-blocks (e.g. prisma.config.ts).
+    ".config.js", ".config.ts", ".config.mjs", ".config.cjs",
 }
+
+# Basename-level toolchain config (matched against the full relative path):
+# bundler/linter/formatter/ORM configs are not application code.
+NON_CODE_CONFIG_RES = (
+    re.compile(r"(?i)(?:^|/)(?:prisma|vite|vitest|webpack|rollup|esbuild|babel|eslint|prettier|"
+               r"postcss|tailwind|jest|playwright|cypress|next|nuxt|astro)\.config\.[a-z0-9]+$"),
+    re.compile(r"(?i)(?:^|/)(?:tsconfig(?:\..*)?|jsconfig(?:\..*)?|package-lock\.json|"
+               r"yarn\.lock|pnpm-lock\.yaml|bun\.lockb?)$"),
+)
 
 NON_CODE_BASENAMES = {
     ".gitignore", ".gitattributes", ".gitkeep", ".ignore",

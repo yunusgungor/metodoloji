@@ -3,6 +3,7 @@
 import json
 import pathlib
 import re
+import time
 
 from .guard import find_approved
 from .utils import is_code_target, is_free, rel_to_root
@@ -51,11 +52,63 @@ def _check_story_status(root: str, intent: str = "") -> tuple[bool, str]:
     return False, ""
 
 
+def _latest_session_start(root: str) -> float:
+    """Newest session_start marker timestamp in the audit log (0.0 = none)."""
+    from .config import log_file
+    log_path = pathlib.Path(root).absolute() / log_file()
+    try:
+        lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return 0.0
+    newest = 0.0
+    for line in lines:
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(rec, dict) and rec.get("type") == _SESSION_MARKER_TYPE:
+            try:
+                newest = max(newest, float(rec.get("timestamp", 0) or 0))
+            except (TypeError, ValueError):
+                pass
+    return newest
+
+
+def _story_status_is_stale(root: str, intent: str) -> bool:
+    """True when the sprint-status file predates this session's start.
+
+    A leftover in-progress story from a previous session must not wedge a new
+    one; the intent-named story still blocks (explicit user focus wins).
+    No session marker (old bootstrap) → not stale, legacy blocking behavior.
+    """
+    from .utils import _story_key_from_intent
+    if intent and _story_key_from_intent(intent):
+        return False
+    session_start = _latest_session_start(root)
+    if not session_start:
+        return False
+    newest = 0.0
+    for candidate in [
+        pathlib.Path(root) / "bmad-output" / "implementation-artifacts" / "sprint-status.yaml",
+        pathlib.Path(root) / "_bmad-output" / "implementation-artifacts" / "sprint-status.yaml",
+        pathlib.Path(root) / ".metodoloji" / "sprint-status.yaml",
+    ]:
+        try:
+            if candidate.is_file():
+                newest = max(newest, candidate.stat().st_mtime)
+        except OSError:
+            pass
+    if not newest:
+        return False
+    return newest < session_start
+
+
 def _session_touched_code(root: str) -> list[str]:
     """Code files this session actually wrote (from the audit trail).
 
-    No audit log (fresh session / logging disabled) → [] → allow.
-    Pre-existing brownfield files are never listed: only PostToolUse
+    Only lines after the newest session_start marker count; no marker (fresh
+    session / logging disabled) → whole log counts once, then the marker is
+    written. Pre-existing brownfield files are never listed: only PostToolUse
     records this session wrote count.
     """
     from .bash_targets import extract_bash_targets
@@ -66,6 +119,7 @@ def _session_touched_code(root: str) -> list[str]:
         lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
         return []
+    lines = lines[_session_start_offset(root):]
     touched: set[str] = set()
     for line in lines:
         line = line.strip()
@@ -75,19 +129,21 @@ def _session_touched_code(root: str) -> list[str]:
             rec = json.loads(line)
         except ValueError:
             continue
+        if not isinstance(rec, dict) or "tool" not in rec:
+            continue  # session_start / stop_deny markers carry no tool input
         tool = str(rec.get("tool", ""))
         tool_input = rec.get("input", {})
         if not isinstance(tool_input, dict):
             continue
         if tool in ("file_editor", "notebook_editor"):
             path = tool_input.get("path", "") or tool_input.get("file_path", "")
-            if path:
+            if path and "$" not in str(path):
                 rel = rel_to_root(root, str(path))
                 if rel and is_code_target(rel):
                     touched.add(rel)
         elif tool == "terminal":
             command = tool_input.get("command", "") or tool_input.get("cmd", "")
-            if command:
+            if command and "$" not in str(command):
                 for target in extract_bash_targets(str(command)):
                     rel = rel_to_root(root, str(target))
                     if rel and is_code_target(rel):
@@ -95,21 +151,122 @@ def _session_touched_code(root: str) -> list[str]:
     return sorted(touched)
 
 
+# Marker the audit log carries per session start; stop only counts lines
+# after the newest marker, so yesterday's unapproved touches never block
+# today's session.
+_SESSION_MARKER_TYPE = "session_start"
+
+# stop_hook_active re-fires (Claude re-invokes Stop after a deny) let the
+# session close: one push-back per stretch of work, never a wedge.
+_MAX_STOP_DENIES_PER_SESSION = 1
+
+
+def _stop_denies_so_far(root: str) -> int:
+    """Count session_start markers + stop denies already recorded this session."""
+    from .config import log_file
+    log_path = pathlib.Path(root).absolute() / log_file()
+    try:
+        lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return 0
+    # Find the newest session marker; count denies after it.
+    start = 0
+    for i, line in enumerate(lines):
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(rec, dict) and rec.get("type") == _SESSION_MARKER_TYPE:
+            start = i + 1
+    denies = 0
+    for line in lines[start:]:
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(rec, dict) and rec.get("type") == "stop_deny":
+            denies += 1
+    return denies
+
+
+def record_session_start(root: str) -> None:
+    """Append a session_start marker (called by the audit hook on SessionStart).
+
+    Carries a timestamp so stop can tell stale sprint-status leftovers from
+    this session's stories, and so the touched-set starts after this line.
+    """
+    from .config import log_file
+    log_path = pathlib.Path(root).absolute() / log_file()
+    try:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"type": _SESSION_MARKER_TYPE,
+                                "timestamp": time.time()},
+                               ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
+
+def _record_stop_deny(root: str, reason: str) -> None:
+    """Append a stop_deny marker so the next re-fire knows its deny budget."""
+    from .config import log_file
+    log_path = pathlib.Path(root).absolute() / log_file()
+    try:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"type": "stop_deny", "reason": reason[:200]},
+                               ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
+
+def _session_start_offset(root: str) -> int:
+    """Index of the first audit line after the newest session_start marker (0 = none)."""
+    from .config import log_file
+    log_path = pathlib.Path(root).absolute() / log_file()
+    try:
+        lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return 0
+    offset = 0
+    for i, line in enumerate(lines):
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(rec, dict) and rec.get("type") == _SESSION_MARKER_TYPE:
+            offset = i + 1
+    return offset
+
+
 def stop(json_in: dict) -> dict:
     """Stop hook: block stop if unapproved code changes or incomplete stories exist."""
     from .utils import repo_root
     root = repo_root(json_in)
 
+    # 0. Loop breaker: stop_hook_active means Claude re-invoked Stop after a
+    #    previous deny — honor the deny budget instead of wedging the session.
+    if json_in.get("stop_hook_active"):
+        return {"decision": "allow"}
+    from .config import hook_gate_mode
+    if hook_gate_mode("stop_guard") == "soft":
+        return {"decision": "allow"}
+    if _stop_denies_so_far(root) >= _MAX_STOP_DENIES_PER_SESSION:
+        return {"decision": "allow"}
+
     # 1. Check for incomplete stories (intent-aware: if the session intent
     #    names a specific story, only that story blocks stop). A memlog whose
     #    status is 'complete' means the session's work is done — no story check.
+    #    A stale sprint-status older than the session start never blocks
+    #    (brownfield leftover), unless the intent names that story.
     from .utils import _active_intent, _active_progress
     intent = _active_intent(root)
     progress = _active_progress(root)
     if progress and progress.lower() in ("complete", "done", "completed"):
         intent = ""  # work finished — don't block on in-progress stories
     should_block, reason = _check_story_status(root, intent=intent)
-    if should_block:
+    if should_block and not _story_status_is_stale(root, intent):
+        _record_stop_deny(root, reason)
         return {"decision": "deny", "reason": reason}
 
     # 2. Check for unapproved code changes — SESSION-TOUCHED files only.
@@ -120,11 +277,10 @@ def stop(json_in: dict) -> dict:
             continue
         approved, _ = find_approved(rel, root=root)
         if not approved:
-            return {
-                "decision": "deny",
-                "reason": f"Unapproved code changes detected: {rel}. "
-                          f"Complete experiment record before stopping."
-            }
+            reason = (f"Unapproved code changes detected: {rel}. "
+                      f"Complete experiment record before stopping.")
+            _record_stop_deny(root, reason)
+            return {"decision": "deny", "reason": reason}
 
     # 3. Surface pending code-docs so the agent sees unfinished work at session end.
     result = {"decision": "allow"}

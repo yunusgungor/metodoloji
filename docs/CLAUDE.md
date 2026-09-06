@@ -35,15 +35,23 @@ per-call, so config edits apply without a reload:
 [hooks]
 quality_gate = "soft"   # "soft" (default) | "hard"
 deploy_guard = "soft"   # "soft" (default) | "hard"
+code_guard = "hard"     # "hard" (default) | "soft" (brownfield adoption)
+stop_guard = "hard"     # "hard" (default) | "soft" (brownfield adoption)
 ```
 
-- **soft** (default) — a missing IR/QR/SP (quality) or IR/QR/SP/PR (deploy) record
+- **soft** (default for quality/deploy) — a missing IR/QR/SP (quality) or IR/QR/SP/PR (deploy) record
   becomes a warning: `allow` + `methodology_warnings`. Nothing blocks.
 - **hard** — the same missing records cause `DENY`.
-- **guard** and **stop** are always fail-closed (mechanical): writing code and closing
-  the session require an approved, scope-matching VERIFIED experiment record. The
-  guard's story-metadata path also follows `quality_gate` (hard → deny, soft →
-  warn-only) — except the `experiment_refs` check, which always denies.
+- **guard** and **stop** are fail-closed by default (mechanical): writing code and closing
+  the session require an approved, scope-matching VERIFIED experiment record — but only
+  for files **this session touched** (audit-log based, never a whole-tree scan).
+  Brownfield projects set `code_guard` / `stop_guard = "soft"` until the first
+  VERIFIED scope exists. The guard's story-metadata path also follows
+  `quality_gate` (hard → deny, soft → warn-only) — except the `experiment_refs`
+  check, which always denies.
+- **Stop is loop-safe**: `stop_hook_active` re-fires allow, one deny per session
+  max, stale sprint-status ignored. Never duplicate the Stop registration
+  (plugin manifest + manual `settings.json` entry = "Ran 2 stop hooks").
 - Two independent layers: the fail-open/fail-closed column above is what happens when
   the **engine cannot run** (guard/stop deny + exit 2; quality/deploy/audit pass
   silently), while soft/hard is what happens when the engine runs but the **record

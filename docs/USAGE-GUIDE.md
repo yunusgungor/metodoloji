@@ -609,7 +609,8 @@ the Claude marketplace cache and the OpenHands install dir; the first path conta
   - AC metadata, Task↔AC mapping, DoD structure, methodology chain
   - In **soft** mode (`quality_gate = "soft"`) metadata/chain violations become warn-only; the `experiment_refs` check always denies
 - Code target + outside free zone → looks for a **scope-matching VERIFIED** experiment record
-- No approved experiment → `DENY` (code writing is blocked)
+- No approved experiment → `DENY` (code writing is blocked), unless `code_guard = "soft"` (brownfield adoption in `custom/config.toml [hooks]`) → `allow` + `methodology_warnings`. Tighten back to `"hard"` once the first VERIFIED experiment scope exists.
+- Shell-variable targets (`$var`, `${var}`) in terminal commands are dropped — never treated as literal paths
 - Secret reference in a terminal command or in written content → `DENY` (security violation; the content scan runs before the free-zone check so agent zones cannot bypass it)
 - Allow result may carry warn-only `methodology_warnings` (e.g. writes outside the active memlog scope)
 
@@ -621,6 +622,7 @@ the Claude marketplace cache and the OpenHands install dir; the first path conta
 | Code dirs | `src/`, `lib/`, `tools/`, `bin/`, `core/`, `app/` | ✅ Yes |
 | Exec config | `.github/workflows/*`, `.gitlab-ci.yml`, `docker-compose*.yml`, `package.json` | ✅ Yes |
 | Unknown extensions | anything not listed as non-code (fail-closed whitelist) | ✅ Yes |
+| Toolchain config | `prisma/vite/jest.config.*`, `tsconfig*.json`, lockfiles | ❌ No (free) |
 | Documents | `.md`, `.txt`, `.rst` | ❌ No (free) |
 | Data/config | `.json`, `.toml`, `.yaml`, `.csv`, `.log`, `.lock` | ❌ No (free) |
 | Media/assets | `.png`, `.jpg`, `.svg`, fonts, archives | ❌ No (free) |
@@ -684,9 +686,12 @@ Stories: 1-2-user-auth. Create QR with: python3 scripts/create-qr-record.py ...
 ### 6.6. Stop (Stop) — Fail-Closed
 
 **Behavior:**
-1. In-progress story exists? → `DENY` (intent-aware: if the session intent names a specific story, e.g. "finish S-003", only that story blocks; a memlog `status: complete` disables the story check entirely)
-2. Unapproved code change exists? → `DENY` (walks code files outside skip/free dirs)
+0. Loop breaker first: `stop_hook_active=true` (Claude re-fire after a deny) → `allow`. Otherwise one deny per session is recorded (`stop_deny` in the audit log); the next fire allows. `stop_guard = "soft"` → always `allow`.
+1. In-progress story exists? → `DENY` (intent-aware: if the session intent names a specific story, e.g. "finish S-003", only that story blocks; a memlog `status: complete` disables the story check entirely; a sprint-status file older than this session's start marker is treated as a stale brownfield leftover and ignored unless the intent names that story)
+2. Unapproved code change exists? → `DENY` — session-touched files only (PostToolUse records in `.metodoloji/logs/hook-audit.log` after the newest `session_start` marker). Pre-existing files never block. Shell-variable targets (`$var`) are dropped, never treated as literal paths.
 3. Clean → `allow`, and any pending code docs (`docs/code-docs/pending/`) are surfaced as `pending_docs`
+
+The Stop output uses the loop-safe envelope: top-level `decision: "block"` + `reason` on deny (exit 0, never exit 2 — exit 2 re-triggers the hook and wedges the session), plus `hookSpecificOutput.additionalContext` feedback.
 
 **Sprint status lookup order:** `bmad-output/implementation-artifacts/sprint-status.yaml` → legacy `_bmad-output/...` → `.metodoloji/sprint-status.yaml`
 
@@ -1304,7 +1309,10 @@ in a **new** record and re-run the gate.
 
 ### 16.7. Stop Hook Is Not Closing the Session
 
-**Cause:** There is an incomplete story or an unapproved code change.
+**Cause:** There is an incomplete story or an unapproved code change — or a
+duplicate Stop registration ("Ran 2 stop hooks" in the transcript means two
+hook sources fire: the plugin manifest plus a manual `Stop` entry in
+`.claude/settings.json` or `~/.claude/settings.json`; remove one via `/hooks`).
 
 **Solution:**
 ```bash
@@ -1313,6 +1321,10 @@ cat bmad-output/implementation-artifacts/sprint-status.yaml
 
 # Complete or re-status the in-progress story
 # Add experiment scope for unapproved files
+
+# Brownfield shortcut (existing project, no experiment history yet):
+# custom/config.toml [hooks] → stop_guard = "soft" (and code_guard = "soft"
+# for writes), then tighten back to "hard" after the first VERIFIED scope.
 ```
 
 If the session's work is finished, set the memlog status:
@@ -1320,18 +1332,23 @@ If the session's work is finished, set the memlog status:
 python3 bmad/scripts/memlog.py set --workspace . --key status --value complete
 ```
 
+The Stop hook can only push back once per session (deny budget = 1, then
+`stop_hook_active` re-fires allow) — it can delay a close, never wedge it.
+Sprint-status files older than the session start never block; touches from
+previous sessions don't count.
+
 ---
 
 ## 17. Frequently Asked Questions
 
-### Q: What do the `quality_gate` / `deploy_guard` soft/hard modes do?
+### Q: What do the `quality_gate` / `deploy_guard` / `code_guard` / `stop_guard` soft/hard modes do?
 
 **A:** They are read live (per-call) from `custom/config.toml [hooks]`:
-- `soft` (default) — a missing IR/QR/SP/PR record becomes a **warning** (allow + `methodology_warnings`), nothing blocks
-- `hard` — `quality` DENYs `git commit` and `deploy` DENYs deploy commands when the chain is missing
+- `soft` (default for quality/deploy) — a missing IR/QR/SP/PR record becomes a **warning** (allow + `methodology_warnings`), nothing blocks
+- `hard` (default for code/stop) — `guard` DENYs unapproved code writes and `stop` DENYs session close with unapproved session-touched changes
+- `code_guard = "soft"` / `stop_guard = "soft"` — brownfield adoption mode: writes warn instead of deny, session close never blocks. Tighten back to `"hard"` after the first VERIFIED experiment scope.
 
-`guard` and `stop` are always fail-closed (mechanical). The guard's story-metadata
-path also consults `quality_gate`: hard → deny, soft → warn-only; the
+The guard's story-metadata path also consults `quality_gate`: hard → deny, soft → warn-only; the
 `experiment_refs` check denies regardless of mode.
 
 ### Q: Can I write code in the `scratch/` directory without an experiment?

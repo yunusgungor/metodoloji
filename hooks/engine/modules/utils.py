@@ -14,6 +14,7 @@ from .config import (
     FREE_PREFIXES,
     INFRA_FILES,
     NON_CODE_BASENAMES,
+    NON_CODE_CONFIG_RES,
     NON_CODE_EXTS,
     PLUGIN_FREE_PREFIXES,
 )
@@ -117,6 +118,10 @@ def is_code_target(path: str) -> bool:
     first = p.split("/", 1)[0]
     ext = pathlib.PurePosixPath(base).suffix.lower()
     if p == "dev/null" or p.startswith("dev/null/"):
+        return False
+    # Toolchain config (prisma.config.ts, tsconfig.json, lockfiles): not
+    # application code — never a code target, even under CODE_DIRS.
+    if any(rx.search(p) for rx in NON_CODE_CONFIG_RES):
         return False
     if base.lower() in CODE_BASENAMES or first in CODE_DIRS:
         return True

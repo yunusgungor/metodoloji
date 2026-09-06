@@ -129,3 +129,26 @@ def test_health_json_contract_keys():
 def test_non_code_exts_includes_markup_and_assets():
     for ext in (".md", ".json", ".yaml", ".png", ".pdf", ".zip", ".sqlite"):
         assert ext in NON_CODE_EXTS, ext
+
+
+def test_gate_defaults_code_stop_hard_quality_deploy_soft(tmp_path, monkeypatch):
+    """New gates default safe: code/stop hard, quality/deploy soft."""
+    from modules import config
+    cfg = tmp_path / "config.toml"
+    cfg.write_text('[hooks]\n', encoding="utf-8")
+    monkeypatch.setattr(config, "_HOOKS_CFG", cfg)
+    assert config.hook_gate_mode("code_guard") == "hard"
+    assert config.hook_gate_mode("stop_guard") == "hard"
+    assert config.hook_gate_mode("quality_gate") == "soft"
+    assert config.hook_gate_mode("deploy_guard") == "soft"
+
+
+def test_gate_explicit_soft_code_guard(tmp_path, monkeypatch):
+    """Brownfield adoption: code_guard=soft parses and is independent."""
+    from modules import config
+    cfg = tmp_path / "config.toml"
+    cfg.write_text('[hooks]\ncode_guard = "soft"\nstop_guard = "hard"\n',
+                   encoding="utf-8")
+    monkeypatch.setattr(config, "_HOOKS_CFG", cfg)
+    assert config.hook_gate_mode("code_guard") == "soft"
+    assert config.hook_gate_mode("stop_guard") == "hard"

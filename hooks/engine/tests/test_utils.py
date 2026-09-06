@@ -139,6 +139,19 @@ def test_is_code_target_exec_config():
     assert is_code_target("package.json")
 
 
+def test_is_code_target_toolchain_config_not_code():
+    # Brownfield false-block class: bundler/ORM/TS configs are not app code.
+    assert not is_code_target("prisma.config.ts")
+    assert not is_code_target("backend/prisma.config.ts")
+    assert not is_code_target("vite.config.ts")
+    assert not is_code_target("tsconfig.json")
+    assert not is_code_target("tsconfig.node.json")
+    assert not is_code_target("package-lock.json")
+    # Real code still gated, even next to configs.
+    assert is_code_target("src/main.py")
+    assert is_code_target("prisma/schema-helper.py")
+
+
 def test_rel_to_root():
     assert rel_to_root("C:/proj", "C:/proj/src/x.py") == "src/x.py"
     assert rel_to_root("C:/proj", "src/x.py", "C:/proj") == "src/x.py"

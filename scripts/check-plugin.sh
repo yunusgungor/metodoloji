@@ -670,31 +670,36 @@ else
 fi
 
 echo "== 5b) Hard gate enforcement mode (soft/hard) =="
-# quality-gate and deploy-guard hooks are config-gated: custom/config.toml [hooks].
+# quality/deploy/code/stop gates are config-gated: custom/config.toml [hooks].
+# quality+deploy default soft; code+stop default hard (fail-closed).
 "$PY" - <<'PY'
 import tomllib, os, sys
 PLUGIN = os.environ.get("PLUGIN_ROOT") or "."
 PROJECT = os.environ.get("PROJECT_ROOT") or "."
 cfg = os.path.join(PLUGIN, "custom", "config.toml")
-mode_default = "soft"
-qg, dg = mode_default, mode_default
-src = "(no config — soft default)"
+qg, dg, cg, sg = "soft", "soft", "hard", "hard"
+src = "(no config — defaults: quality/deploy soft, code/stop hard)"
 if os.path.isfile(cfg):
     try:
         d = tomllib.load(open(cfg, "rb"))
         h = d.get("hooks", {}) or {}
         qg = str(h.get("quality_gate", "soft")).strip().lower()
         dg = str(h.get("deploy_guard", "soft")).strip().lower()
+        cg = str(h.get("code_guard", "hard")).strip().lower()
+        sg = str(h.get("stop_guard", "hard")).strip().lower()
         src = "config"
     except Exception as e:
         print("  [ERROR] config parse: %s" % e)
         sys.exit(1)
 problems = []
-for name, val in (("quality_gate", qg), ("deploy_guard", dg)):
+for name, val in (("quality_gate", qg), ("deploy_guard", dg),
+                  ("code_guard", cg), ("stop_guard", sg)):
     if val not in ("soft", "hard"):
         problems.append("%s = %r (invalid — must be soft|hard)" % (name, val))
 print("  quality_gate: %s (%s)" % (qg, src))
 print("  deploy_guard: %s (%s)" % (dg, src))
+print("  code_guard: %s (%s)" % (cg, src))
+print("  stop_guard: %s (%s)" % (sg, src))
 if qg == "hard" or dg == "hard":
     import glob as _glob
     _dev = os.path.join(PROJECT, "docs", "development")
@@ -705,10 +710,12 @@ if qg == "hard" or dg == "hard":
         problems.append("hard mode active but no real record in docs/development/ "
                         "(IR-/SP-/QR-/PR-) — every commit/push/deploy is blocked; "
                         "switch to soft or produce a record first")
-print("  note: quality/deploy hooks are ACTIVE in OpenHands runtime (hooks.json:")
+print("  note: guard/quality/deploy/stop hooks are ACTIVE (hooks.json:")
 print("       PreToolUse -> guard/quality/deploy, Stop -> stop, PostToolUse -> audit).")
-print("       quality_gate/deploy_guard values are now enforced at the hook level;")
-print("       quality: DENY git commit without IR/QR/SP; deploy: DENY deploy without IR/QR/SP/PR.")
+print("       quality_gate/deploy_guard/code_guard/stop_guard enforced at hook level;")
+print("       quality: DENY git commit without IR/QR/SP; deploy: DENY deploy without IR/QR/SP/PR;")
+print("       guard: DENY unapproved writes (code_guard=soft → warn);")
+print("       stop: DENY close on unapproved session touches (stop_guard=soft → allow).")
 if problems:
     for p in problems:
         print("  MISS: %s" % p)

@@ -35,12 +35,18 @@ project_knowledge = "{project-root}/docs"
 design_artifacts = "{project-root}/design-artifacts"
 
 # --- Hook enforcement modu ---
-# guard (PreToolUse) + stop (Stop) run fail-closed — code writing and session
-# close without an approved experiment record return DENY.
+# code_guard / stop_guard run fail-closed (default "hard") — code writing and
+# session close without an approved experiment record return DENY.
 # quality_gate / deploy_guard control the commit & deploy gates:
 #   "soft" (default) → warn-only (allow + methodology_warnings), never blocks.
 #   "hard"           → DENY on missing IR/QR/SP/PR records.
+# Brownfield adoption (existing project, no experiment history yet): set
+#   code_guard = "soft"   # unapproved writes warn instead of deny
+#   stop_guard = "soft"   # session close never blocked by the record chain
+# Tighten back to "hard" once the first VERIFIED experiment scope exists.
 # Read live per-call by the hook engine.
 [hooks]
 quality_gate = "soft"   # "soft" (default) | "hard"
 deploy_guard = "soft"   # "soft" (default) | "hard"
+code_guard = "hard"     # "hard" (default) | "soft" (brownfield adoption)
+stop_guard = "hard"     # "hard" (default) | "soft" (brownfield adoption)

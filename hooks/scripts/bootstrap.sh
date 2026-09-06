@@ -115,6 +115,12 @@ try:
 except Exception:
     pass
 
+try:
+    from modules.stop import record_session_start
+    record_session_start('$PYWS')
+except Exception:
+    pass
+
 print(json.dumps({'additionalContext': ctx}))
 " 2>/dev/null || printf '%s\n' "{\"additionalContext\":\"METODOLOJI active (plugin: $SYNCED). Record chain: E → IR → SP → S → QR → PR. Before writing code you need a scope-matching VERIFIED experiment approval; gate key: $KEY.$INTENT_CTX$SCOPE_CTX Record templates: /metodoloji:init\"}"
 exit 0

@@ -13,7 +13,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modules.guard import guard, quality, deploy
-from modules.audit import audit
+from modules.audit import audit, session_start
 from modules.stop import stop
 
 
@@ -52,6 +52,8 @@ def main():
         result = deploy(json_in)
     elif hook_type == "audit":
         result = audit(json_in)
+    elif hook_type == "session_start":
+        result = session_start(json_in)
     elif hook_type == "stop":
         result = stop(json_in)
     else:
@@ -79,7 +81,8 @@ def main():
     # Schema differs per event type:
     #   PreToolUse (guard/quality/deploy) → permissionDecision
     #   PostToolUse (audit)               → additionalContext
-    #   Stop (stop)                       → additionalContext
+    #   Stop (stop)                       → decision block/reason (loop-safe)
+    #   SessionStart                      → additionalContext
     event_name = hook_type or "PreToolUse"
     if hook_type in ("guard", "quality", "deploy"):
         # PreToolUse: permissionDecision controls allow/deny/ask
@@ -100,15 +103,28 @@ def main():
         if warnings:
             hso["additionalContext"] = "\n".join(warnings)
     elif hook_type == "stop":
-        # Stop: additionalContext gives feedback so the model can act on it
-        hso = {"hookEventName": "Stop"}
+        # Stop: top-level decision block/reason is the documented loop-safe
+        # pattern; additionalContext carries the feedback so the model can
+        # act on it. stop_hook_active re-fires pass stop_hook_active=true in
+        # stdin, which stop() honors by allowing.
+        out = {}
         reason = result.get("reason")
+        if result.get("decision") == "deny":
+            out["decision"] = "block"
+            if reason:
+                out["reason"] = reason
+        hso = {"hookEventName": "Stop"}
         if reason:
             hso["additionalContext"] = reason
         pending = result.get("pending_docs")
         if pending:
             existing = hso.get("additionalContext", "")
             hso["additionalContext"] = (existing + "\n" + pending).strip() if existing else pending
+        print(json.dumps({**out, "hookSpecificOutput": hso}, ensure_ascii=False))
+        return
+    elif hook_type == "session_start":
+        # SessionStart: context injection only, never blocks.
+        hso = {"hookEventName": "SessionStart"}
     else:
         # Unknown hook type — flat allow
         hso = {"hookEventName": event_name, "permissionDecision": "allow"}

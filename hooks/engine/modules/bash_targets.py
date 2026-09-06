@@ -57,8 +57,15 @@ def _read_patch_targets(path: str, prefix: str = "") -> list[str]:
 
 
 def extract_bash_targets(command: str) -> list[str]:
-    """Return file paths the command may write to."""
+    """Return file paths the command may write to.
+
+    Unexpanded shell variables ($var, ${var}) are caller-resolved or skipped:
+    a literal "$spool_file" is never a real path, so it is dropped here
+    rather than leaking into guard/stop decisions.
+    """
     if not command:
+        return []
+    if "$" in command:
         return []
     targets: list[str] = []
     command = _space_out_redirects(command)

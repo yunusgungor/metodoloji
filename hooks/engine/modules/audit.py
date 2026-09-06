@@ -294,6 +294,22 @@ def _check_kopru_consumption(tool_name: str, tool_input: dict) -> list[str]:
     return warnings
 
 
+def session_start(json_in: dict) -> dict:
+    """SessionStart: stamp a session_start marker into the audit trail.
+
+    Stop counts touched files and deny budget only after the newest marker,
+    so previous sessions' unapproved touches and stale sprint-status
+    leftovers never wedge a new session. Fail-open (never blocks startup).
+    """
+    from .utils import repo_root
+    try:
+        from .stop import record_session_start
+        record_session_start(repo_root(json_in))
+    except Exception:
+        pass
+    return {"decision": "allow"}
+
+
 def audit(json_in: dict) -> dict:
     """PostToolUse audit: write JSON audit trail + methodology validation."""
     from .utils import normalize_hook_input
