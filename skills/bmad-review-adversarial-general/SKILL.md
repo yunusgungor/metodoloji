@@ -46,3 +46,11 @@ Output findings as a Markdown list: descriptions only, no severity, priority, or
 
 - HALT if zero findings — this is suspicious, re-analyze or ask for guidance
 - HALT if content is empty or unreadable
+
+## Customization
+
+Load this skill's effective configuration before acting (three-layer merge:
+skill `customize.toml` ← team `custom/<skill>.toml` ← personal
+`custom/<skill>.user.toml`):
+
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`

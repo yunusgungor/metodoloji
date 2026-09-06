@@ -148,3 +148,11 @@ x. Proceed / No Further Actions
   1. Apply to the current enhanced version of the content
   2. Show the improvements made
   3. Return to the prompt for additional elicitations or completion
+
+## Customization
+
+Load this skill's effective configuration before acting (three-layer merge:
+skill `customize.toml` ← team `custom/<skill>.toml` ← personal
+`custom/<skill>.user.toml`):
+
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`

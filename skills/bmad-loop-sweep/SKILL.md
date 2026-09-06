@@ -98,3 +98,11 @@ result and burns a retry.
 Write the result.json per `./automation-mode.md` and state in one line how
 many entries went to each category. End your turn. Do not edit any file other
 than the result file.
+
+## Customization
+
+Load this skill's effective configuration before acting (three-layer merge:
+skill `customize.toml` ← team `custom/<skill>.toml` ← personal
+`custom/<skill>.user.toml`):
+
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`

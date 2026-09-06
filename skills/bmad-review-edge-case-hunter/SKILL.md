@@ -82,3 +82,11 @@ No extra text, no explanations, no markdown wrapping. An empty array `[]` is val
 ## HALT CONDITIONS
 
 - If content is empty or cannot be decoded as text, return `[{"location":"N/A","trigger_condition":"Input empty or undecodable","guard_snippet":"Provide valid content to review","potential_consequence":"Review skipped — no analysis performed"}]` and stop
+
+## Customization
+
+Load this skill's effective configuration before acting (three-layer merge:
+skill `customize.toml` ← team `custom/<skill>.toml` ← personal
+`custom/<skill>.user.toml`):
+
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`

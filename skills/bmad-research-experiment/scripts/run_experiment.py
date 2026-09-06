@@ -304,8 +304,8 @@ def hypothesis_claim(hypothesis: str) -> tuple[str, str]:
 
 
 def gate_token(claim: str, measured: float, did: str, secret: bytes,
-               cmd: str | None = None) -> str:
-    """GATE-OK token: HMAC-SHA256(secret, 'GATE-OK|did|claim|measured[|cmd_sha256]').
+               cmd: str | None = None, scope: str | None = None) -> str:
+    """GATE-OK token: HMAC-SHA256(secret, 'GATE-OK|did|claim|measured[|cmd_sha256][|scope]').
 
     Secret-gated: without the key the token cannot be reproduced, so a forged
     APPROVED record cannot pass --verify (unlike the old sha1(claim|measured)
@@ -313,10 +313,15 @@ def gate_token(claim: str, measured: float, did: str, secret: bytes,
     cmd: the measurement command. When given, the token binds to the EXACT
     measurement (new-style); editing 'Measurement Command' after approval breaks the
     token. Legacy tokens (cmd=None) keep verifying — backward compatibility.
+    scope: the record's Code Scope. When given, the token binds to the approved
+    file set — widening the scope after approval breaks the token. Records
+    approved before scope binding verify via the legacy path.
     """
     payload = f"GATE-OK|{did}|{claim}|{measured}"
     if cmd is not None:
         payload += "|" + hashlib.sha256(cmd.encode("utf-8")).hexdigest()
+    if scope is not None:
+        payload += "|" + hashlib.sha256(" ".join(sorted(parse_scope(scope))).encode("utf-8")).hexdigest()
     mac = hmac.new(secret, payload.encode("utf-8"), hashlib.sha256).hexdigest()
     return f"GATE-OK-{did}-{mac[:32]}"
 
@@ -408,13 +413,27 @@ _KNOWN_INTERP = {"python", "python3", "py", "sh", "bash", "zsh", "node", "nodejs
                  "deno", "bun", "perl", "ruby", "php", "rscript", "uv"}
 
 
+# Single-flag interpreter options that take no value (skipped to find the script).
+_INTERP_VALUELESS = frozenset({
+    "-u", "-b", "-B", "-E", "-I", "-O", "-OO", "-q", "-s", "-S", "-v", "-V",
+    "-W", "-X", "-x", "--verbose",
+})
+
+
 def _bench_target(cmd: str) -> str | None:
     """Return the first script/file path the measurement command EXECUTES (for target checking).
 
     'python3 src/bench.py data.csv' -> 'src/bench.py' (not data arguments);
     'sh scripts/bench.sh' -> 'scripts/bench.sh'; './bench' -> './bench';
-    inline (-c/-m) -> None (no file target).
+    interpreter flags ('python3 -u bench.py') are skipped; inline (-c/-m) ->
+    None (no file target). Shell chains (';', '&&', '|') invalidate the
+    command (None) — only a single measurable command is gateable.
     """
+    # A chained command mixes several programs' outputs; the gate cannot tell
+    # which one produced the measured line — refuse to attribute it. Checked
+    # on the raw string: shlex glues ';' to the neighbor ('a.py;').
+    if re.search(r"(?<![<>])\s*(?:;|\&\&|\|\||\|)\s*\S", cmd):
+        return None
     try:
         toks = shlex.split(cmd)
     except ValueError:
@@ -429,14 +448,40 @@ def _bench_target(cmd: str) -> str | None:
             break
     if base0 in _KNOWN_INTERP:
         i = 1
+        # Skip valueless flags ('-u') and flags with values ('-W ignore').
+        # -m/-c ALWAYS switch to inline mode (a following token is a module
+        # name or code string, never a script path).
+        while i < len(toks) and toks[i].startswith("-") and toks[i] not in ("-", "--"):
+            if toks[i] in ("-m", "-c"):
+                return None  # inline — dosya hedefi yok
+            if toks[i] in _INTERP_VALUELESS:
+                i += 1
+            elif "=" in toks[i]:
+                i += 1
+            else:
+                # Unknown flag shape: may take a value — skip both only when
+                # the next token doesn't look like a script.
+                if i + 1 < len(toks) and not toks[i + 1].startswith("-") \
+                        and "/" not in toks[i + 1] and not toks[i + 1].endswith(".py"):
+                    i += 2
+                else:
+                    i += 1
+            if i < len(toks) and toks[i] in ("-c", "-m"):
+                return None
         if i >= len(toks) or toks[i].startswith("-"):
-            return None  # -c / -m / inline — dosya hedefi yok
+            return None
     return toks[i]
 
 
 def bench_in_free_zone(cmd: str) -> bool:
-    """True if the run command executes a script inside a free zone (scratch/tmp/temp)."""
+    """True if the run command executes a script inside a free zone (scratch/tmp/temp).
+
+    Unattributable commands (shell chains) count as free-zone: the gate must
+    refuse what it cannot attribute.
+    """
     bench = _bench_target(cmd)
+    if bench is None and any(t in cmd for t in (";", "&&", "||", "|")):
+        return True
     return bool(bench and _AGENT_BENCH_ZONE.search(bench.replace("\\", "/")))
 
 
@@ -603,7 +648,7 @@ def main() -> int:
     lines = upsert(lines, "- **Measurement Command:**", args.run)
 
     if passed:
-        tok = gate_token(claim, val, did, secret, args.run)
+        tok = gate_token(claim, val, did, secret, args.run, fields.get("Code Scope", ""))
         lines = upsert(lines, "- **Decision:**", f"APPROVED — {hid}: {summary}")
         lines = upsert(lines, "- **Gate Evidence:**", f'measured={val} claim="{claim}" {tok}')
         lines = upsert(lines, "- **Next Step:**", "Proceed to Code")
@@ -652,29 +697,42 @@ def verify(path: str) -> int:
         if not m:
             print(f"FORGED: {path} says APPROVED but has no valid gate evidence.")
             return 1
-        measured, claim, tok = float(m.group(1)), m.group(2), m.group(3)
+        try:
+            measured = float(m.group(1))
+        except ValueError:
+            print(f"FORGED: {path} gate evidence measured value is not a number.")
+            return 1
+        claim, tok = m.group(2), m.group(3)
         # Cross-check: the hypothesis claim recorded in the Hypothesis field must match
         # the claim the gate actually evaluated. Editing the threshold after approval
-        # (then keeping the token) is a forged outcome.
+        # (then keeping the token) is a forged outcome. Whitespace is
+        # canonicalized first — formatting alone must not forge a record.
         try:
             _, recorded_claim = hypothesis_claim(fields.get("Hypothesis", ""))
         except ValueError as exc:
             print(f"FORGED: record Hypothesis cannot be parsed ({exc}).")
             return 1
-        if recorded_claim.strip() != claim:
+        if re.sub(r"\s+", " ", recorded_claim.strip()) != re.sub(r"\s+", " ", claim.strip()):
             print(f"FORGED: recorded Hypothesis claim '{recorded_claim}' != gate claim '{claim}'.")
             return 1
-        # Rule: token binds to 'Measurement Command' in the record (new-style).
-        # Records WITH this field only accept new-style tokens — changing the field
-        # and keeping the old (non-command-bound) token, or deleting the field while
-        # keeping the old token, is FORGED (downgrade).
-        # Records WITHOUT this field are pre-rule records verified with legacy token.
+        # Rule: token binds to 'Measurement Command' + 'Code Scope' in the
+        # record (new-style). Records WITH the command field accept the
+        # scope-bound token; a cmd-only token from before scope binding is
+        # grandfathered (migration path) — but changing the command OR
+        # widening the scope after approval breaks the token (FORGED).
+        # Records WITHOUT the command field are pre-rule records verified
+        # with the legacy token.
         cmd_field = fields.get("Measurement Command", "").strip()
-        new_tok = gate_token(claim, measured, deney_id(text), secret, cmd_field) if cmd_field \
-            else None
-        legacy_ok = tok == gate_token(claim, measured, deney_id(text), secret)
+        scope_field = fields.get("Code Scope", "").strip()
+        did = deney_id(text)
+        new_tok = gate_token(claim, measured, did, secret, cmd_field,
+                             scope_field) if cmd_field else None
+        cmd_only_tok = gate_token(claim, measured, did, secret, cmd_field) if cmd_field else None
+        legacy_ok = tok == gate_token(claim, measured, did, secret)
         if new_tok is not None and tok == new_tok:
             ok = True
+        elif cmd_field and tok == cmd_only_tok:
+            ok = True  # pre-scope-binding approval — re-measure to bind scope
         elif cmd_field:
             ok = False  # field present but doesn't match new-style token => forged/downgrade
         else:

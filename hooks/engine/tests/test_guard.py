@@ -555,6 +555,44 @@ def test_gates_read_independent_keys(tmp_path, monkeypatch):
     assert "Implementation Readiness" in d["reason"]
 
 
+def test_guard_notes_story_filename_not_story(tmp_path, monkeypatch):
+    """notes-S-001.md is an ordinary file, not a story — no metadata gate."""
+    from modules.guard import guard
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "docs/notes-S-001.md",
+                                "content": "hello"}})
+    assert res["decision"] == "allow"
+
+
+def test_guard_frontmatter_body_rule_not_fence(tmp_path, monkeypatch):
+    """A '---' rule inside the body must not truncate the frontmatter."""
+    from modules.guard import _parse_experiment_refs
+    content = ("---\n"
+               "experiment_refs:\n"
+               "  - id: E-001\n"
+               "    status: APPROVED\n"
+               "---\n"
+               "## Body\n---\nrest\n")
+    refs = _parse_experiment_refs(content)
+    assert len(refs) == 1 and refs[0]["id"] == "E-001"
+
+
+def test_guard_frontmatter_top_level_key_ends_refs():
+    """status: draft after the refs is frontmatter, not part of the ref."""
+    from modules.guard import _parse_experiment_refs
+    content = ("---\n"
+               "experiment_refs:\n"
+               "  - id: E-001\n"
+               "    status: APPROVED\n"
+               "status: draft\n"
+               "---\n")
+    refs = _parse_experiment_refs(content)
+    assert refs == [{"id": "E-001", "status": "APPROVED"}]
+
+
 def test_guard_secret_context_still_denies(tmp_path, monkeypatch):
     """Access context (call/assign) still denies — narrowing only drops prose."""
     from modules.guard import guard

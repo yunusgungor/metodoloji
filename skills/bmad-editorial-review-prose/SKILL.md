@@ -92,3 +92,11 @@ Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayini is
 - HALT with error if content is empty or fewer than 3 words
 - HALT with error if reader_type is not `humans` or `llm`
 - If no issues found after thorough review, output "No editorial issues identified" (this is valid completion, not an error)
+
+## Customization
+
+Load this skill's effective configuration before acting (three-layer merge:
+skill `customize.toml` ← team `custom/<skill>.toml` ← personal
+`custom/<skill>.user.toml`):
+
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`

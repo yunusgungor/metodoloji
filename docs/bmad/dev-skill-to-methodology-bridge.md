@@ -182,6 +182,40 @@ When all DoD items are verified in `bmad-dev-story` Step 9, the QR record is cre
    - The QR Record Path field is filled in
 4. The record chain is completed: S → QR → PR
 
+### §2.5a Implementation Readiness (IR) Record Creation
+
+When `bmad-check-implementation-readiness` completes, the IR record is created:
+
+1. The `docs/development/IR-<sequence>.md` file is created
+2. Copy the template from `templates/_template_IR.md` and fill the fields from the
+   native readiness report with English labels:
+   - **Date**, **Status**: `preparing` | `READY` | `INCOMPLETE`
+   - **Research inputs**, **Design documents**, **Success criteria**
+   - **Technical dependencies**, **Risk assessment**, **Gaps**
+   - **Decision**: `READY` | `INCOMPLETE` + rationale
+   - **Next step**: `proceed to sprint planning` | `return to research`
+3. Add the reference `Methodology record: docs/development/IR-<sequence>.md` to the
+   native report. The Decision field must be READY or INCOMPLETE and the Date field
+   must be present (`scripts/check-methodology.sh §6` checks this).
+4. The record chain is established: E → IR → SP.
+
+### §2.5b Sprint Planning (SP) Record Creation
+
+When `bmad-sprint-planning` completes, the SP record is created:
+
+1. The `docs/development/SP-<sequence>.md` file is created
+2. Copy the template from `templates/_template_SP.md` and fill the fields from the
+   native sprint output with English labels:
+   - **Date**, **Status**: `planned` | `in progress` | `completed` | `cancelled`
+   - **Sprint goal**: one sentence
+   - **Stories**: S-id list + priority + story points
+   - **Capacity**: estimated points / team velocity
+   - **Blockers**: known blockers + resolution plan
+   - **Dependencies**, **Technical debt**
+3. The Status field must be from the allowed values and the Date field must be
+   present (`scripts/check-methodology.sh §6` checks this).
+4. The record chain is established: IR → SP → S.
+
 ### §2.6 Production Readiness (PR) Record Creation (BRIDGE #4)
 
 Before a production deploy, the deploy guard (Gate 4) requires a Production Readiness

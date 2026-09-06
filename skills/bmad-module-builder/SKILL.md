@@ -37,3 +37,11 @@ Detect user's intent:
   - **Validate Module (VM)** — "I want to check that my module's setup skill is complete and correct"
 
 If `--headless` or `-H` is passed, route to CM with headless mode.
+
+## Customization
+
+Load this skill's effective configuration before acting (three-layer merge:
+skill `customize.toml` ← team `custom/<skill>.toml` ← personal
+`custom/<skill>.user.toml`):
+
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`

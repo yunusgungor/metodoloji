@@ -232,3 +232,11 @@ right fix is out of scope for a spec edit (e.g. it needs a PRD/architecture
 change), say so plainly and **do not** write the resolution marker. Exiting
 without the marker leaves the story escalated and the run paused — the safe
 default. The orchestrator will not re-arm a story with no recorded resolution.
+
+## Customization
+
+Load this skill's effective configuration before acting (three-layer merge:
+skill `customize.toml` ← team `custom/<skill>.toml` ← personal
+`custom/<skill>.user.toml`):
+
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`

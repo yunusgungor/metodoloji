@@ -12,6 +12,7 @@ from modules.utils import (  # noqa: E402
     _active_progress,
     _active_scope,
     _story_key_from_intent,
+    rel_to_root,
     extract_story_key_from_content,
     is_code_target,
     is_free,
@@ -137,6 +138,41 @@ def test_is_code_target_exec_config():
     assert is_code_target(".github/workflows/ci.yml")
     assert is_code_target("docker-compose.yml")
     assert is_code_target("package.json")
+
+
+def test_norm_path_dotdot_and_slashes():
+    assert norm_path("src//a.py") == "src/a.py"
+    assert norm_path("scratch/../src/x.py") == "src/x.py"
+    assert norm_path("  src/x.py  ") == "src/x.py"
+    assert norm_path("C:\\x\\y.py") == "/x/y.py"
+
+
+def test_rel_to_root_sibling_prefix_not_stripped():
+    # /repo-evil/x under root /repo must NOT rebase as repo-internal.
+    assert rel_to_root("/repo", "/repo-evil/x.py") == "/repo-evil/x.py"
+    assert rel_to_root("/repo", "/repo/src/x.py") == "src/x.py"
+
+
+def test_story_key_from_intent_md_suffix():
+    # removesuffix semantics: 1-2-mod keeps its trailing 'd'.
+    assert _story_key_from_intent("finish 1-2-mod.md") == "1-2-mod"
+    assert _story_key_from_intent("finish S-003.md") == "S-003"
+
+
+def test_normalize_notebook_edit():
+    from modules.utils import normalize_hook_input
+    norm = normalize_hook_input({"tool_name": "NotebookEdit",
+                                 "tool_input": {"file_path": "nb/x.ipynb"}})
+    assert norm["tool_name"] == "notebook_editor"
+    assert norm["tool_input"]["path"] == "nb/x.ipynb"
+
+
+def test_normalize_unknown_tool_flagged():
+    from modules.utils import normalize_hook_input
+    norm = normalize_hook_input({"tool_name": "FutureTool",
+                                 "tool_input": {}})
+    assert norm["tool_name"] == "unknown"
+    assert norm["raw_tool_name"] == "FutureTool"
 
 
 def test_is_code_target_src_md_not_code():

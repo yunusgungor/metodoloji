@@ -25,9 +25,10 @@ Mechanically audits the plugin's own integrity and the record discipline in the 
 4. Approved experiment inventory: run `--verify` on each E record and report the
    VERIFIED/FORGED distribution (`/metodoloji:verify` logic).
 
-5. Hook configuration: read the `quality_gate`/`deploy_guard` values in
-   `custom/config.toml [hooks]` (soft/hard; not bound hooks in OpenHands —
-   guard/stop run fail-closed).
+5. Hook configuration: read the `quality_gate`/`deploy_guard`/`code_guard`/
+   `stop_guard` values in `custom/config.toml [hooks]` (soft/hard;
+   quality/deploy default soft, code/stop default hard — brownfield projects
+   relax code/stop to soft until the first VERIFIED scope exists).
 
 6. Result report: PASS/FAIL list + fix suggestions. If you find an issue requiring a
    negative test (e.g. bridge cannot resolve), show the script's

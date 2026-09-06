@@ -42,5 +42,11 @@ root (resolved at runtime by the hooks: `$CLAUDE_PLUGIN_ROOT` or
 
 4. If no gate key exists, warn: run `/metodoloji:gate-setup`.
 
-5. Print a summary: installed directories, skipped (existing) files, next step
+5. Existing project (brownfield) note: if the target already has code but no
+   experiment history, set `code_guard = "soft"` and `stop_guard = "soft"` in
+   `custom/config.toml [hooks]` so writes warn instead of deny and session
+   close never blocks. Tighten both back to `"hard"` after the first VERIFIED
+   experiment scope exists.
+
+6. Print a summary: installed directories, skipped (existing) files, next step
    (`/metodoloji:audit` health check).

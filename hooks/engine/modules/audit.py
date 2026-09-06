@@ -9,18 +9,22 @@ import time
 from .config import log_file
 
 
+# Detection window: regexes run on the preview, never the whole body.
+_DETECT_WINDOW = 8192
+
+
 def _detect_notable_events(tool_name: str, tool_input: dict, tool_output: dict) -> list[dict]:
     """Detect notable events that should trigger code doc generation.
 
     Returns list of events with type and context for doc creation.
     """
     events = []
-    output_str = str(tool_output) if tool_output else ""
+    output_str = str(tool_output)[:_DETECT_WINDOW] if tool_output else ""
 
     # 0. Code structure → pattern doc (class hierarchies, design-indicative comments)
     if tool_name == "file_editor":
         path = tool_input.get("path", "")
-        content = str(tool_input.get("content", ""))
+        content = str(tool_input.get("content", ""))[:_DETECT_WINDOW]
         if path.endswith(".py") and content:
             # Class with inheritance or decorator = design pattern signal
             class_match = re.search(
@@ -46,7 +50,7 @@ def _detect_notable_events(tool_name: str, tool_input: dict, tool_output: dict) 
     # 0b. API endpoint → api doc (route decorators, API file naming)
     if tool_name == "file_editor":
         path = tool_input.get("path", "")
-        content = str(tool_input.get("content", ""))
+        content = str(tool_input.get("content", ""))[:_DETECT_WINDOW]
         if content:
             route_match = re.search(
                 r"@(?:app|router|blueprint|api_view)\s*\.\s*(get|post|put|delete|patch|route)\s*\(",
@@ -111,7 +115,7 @@ def _detect_notable_events(tool_name: str, tool_input: dict, tool_output: dict) 
     # 4. Incomplete work / future plans → pending doc
     if tool_name == "file_editor":
         path = tool_input.get("path", "")
-        content = str(tool_input.get("content", ""))
+        content = str(tool_input.get("content", ""))[:_DETECT_WINDOW]
         # Detect TODO/FIXME/HACK comments
         todo_matches = re.findall(r"(?:TODO|FIXME|HACK|XXX|OPTIMIZE)[:\s]*(.+)", content, re.IGNORECASE)
         for todo in todo_matches[:3]:  # Max 3 per file

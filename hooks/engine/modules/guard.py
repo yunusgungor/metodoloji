@@ -75,6 +75,31 @@ def verify_record(rec: str) -> tuple[int, str]:
 
 # Matches native story files (1-2-user-auth.md) AND methodology story records (S-001.md)
 _STORY_RE = re.compile(r"(?:\b\d+-\d+-[a-z][a-z0-9-]*\.md\b|\bS-\d+\.md\b)", re.IGNORECASE)
+# Basename-anchored variant: notes-S-001.md or a/b-S-001.md/notes.md must NOT
+# count as story files (substring match would drag ordinary files into the
+# story metadata chain).
+_STORY_BASENAME_RE = re.compile(r"^(?:\d+-\d+-[a-z][a-z0-9-]*\.md|S-\d+\.md)$", re.IGNORECASE)
+
+
+def _is_story_file(rel: str) -> bool:
+    """True when the path's basename is exactly a story filename."""
+    base = rel.replace("\\", "/").rsplit("/", 1)[-1]
+    return bool(_STORY_BASENAME_RE.match(base))
+
+
+def _frontmatter_block(content: str) -> str:
+    """Return the YAML frontmatter body ('' when absent).
+
+    The closing fence must sit alone on its line: a body rule (`---`) never
+    ends the block early.
+    """
+    lines = content.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return ""
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            return "\n".join(lines[1:i])
+    return ""
 
 
 def _parse_experiment_refs(content: str) -> list[dict]:
@@ -83,37 +108,41 @@ def _parse_experiment_refs(content: str) -> list[dict]:
     Returns a list of dicts with keys: id, scope, status.
     Returns empty list if no experiment_refs found or parsing fails.
     """
-    # Look for YAML frontmatter between --- delimiters
-    fm_match = re.match(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
-    if not fm_match:
+    frontmatter = _frontmatter_block(content)
+    if not frontmatter:
         return []
-    frontmatter = fm_match.group(1)
 
-    # Find experiment_refs block — simple line-by-line parse
+    # Find experiment_refs block — indentation-aware line parse. Only lines
+    # indented DEEPER than the experiment_refs key belong to the block; a
+    # top-level key (status: draft) ends it instead of merging into the ref.
     refs: list[dict] = []
-    in_refs = False
+    refs_indent: int | None = None
     current: dict = {}
+    current_indent = 0
     for line in frontmatter.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("experiment_refs"):
-            in_refs = True
+        if not line.strip():
             continue
-        if in_refs:
-            if stripped.startswith("- "):
-                if current:
-                    refs.append(current)
-                current = {}
-                inner = stripped[2:].strip()
-                # Handle inline: - id: E-001
-                kv = inner.split(":", 1)
-                if len(kv) == 2:
-                    current[kv[0].strip()] = kv[1].strip()
-            elif ":" in stripped and current:
-                kv = stripped.split(":", 1)
+        indent = len(line) - len(line.lstrip())
+        stripped = line.strip()
+        if refs_indent is None:
+            if stripped.startswith("experiment_refs"):
+                refs_indent = indent
+            continue
+        if indent <= refs_indent:
+            break  # back at top level — block is over
+        if stripped.startswith("- "):
+            if current:
+                refs.append(current)
+            current = {}
+            current_indent = indent
+            inner = stripped[2:].strip()
+            # Handle inline: - id: E-001
+            kv = inner.split(":", 1)
+            if len(kv) == 2:
                 current[kv[0].strip()] = kv[1].strip()
-            elif stripped and not stripped.startswith("-") and not ":" in stripped:
-                # End of experiment_refs block
-                break
+        elif ":" in stripped and current and indent > current_indent:
+            kv = stripped.split(":", 1)
+            current[kv[0].strip()] = kv[1].strip()
     if current:
         refs.append(current)
     return refs
@@ -410,25 +439,27 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
 
 
 # Verified-scope cache: find_approved runs gate.verify (HMAC) over every
-# record per call. Cache per record mtime so repeated writes in a session
-# don't re-verify unchanged records. Bounded (128 entries) and keyed by
-# absolute path — a changed record (new mtime) re-verifies.
-_VERIFY_CACHE: dict[str, tuple[float, int, str]] = {}
+# record per call. Cache per (mtime_ns, size) so repeated writes in a session
+# don't re-verify unchanged records. Bounded (128 entries); rc=3 (key
+# missing) is never cached — it would stick after --init-secret.
+_VERIFY_CACHE: dict[str, tuple[tuple[int, int], int, str]] = {}
 
 
 def _cached_verify(rec: str) -> tuple[int, str]:
-    """verify_record with a small mtime-keyed cache."""
+    """verify_record with a small mtime+size-keyed cache."""
     try:
-        mtime = pathlib.Path(rec).stat().st_mtime
+        st = pathlib.Path(rec).stat()
+        key = (st.st_mtime_ns, st.st_size)
     except OSError:
         return verify_record(rec)
     hit = _VERIFY_CACHE.get(rec)
-    if hit is not None and hit[0] == mtime:
+    if hit is not None and hit[0] == key:
         return hit[1], hit[2]
     rc, scope = verify_record(rec)
-    if len(_VERIFY_CACHE) >= 128:
-        _VERIFY_CACHE.pop(next(iter(_VERIFY_CACHE)))
-    _VERIFY_CACHE[rec] = (mtime, rc, scope)
+    if rc != 3:
+        if len(_VERIFY_CACHE) >= 128:
+            _VERIFY_CACHE.pop(next(iter(_VERIFY_CACHE)))
+        _VERIFY_CACHE[rec] = (key, rc, scope)
     return rc, scope
 
 
@@ -442,17 +473,28 @@ def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> t
     recs_dir = recs_dir or "docs/experiments"
     if pathlib.PurePosixPath(recs_dir).is_absolute():
         return False, "absolute recs_dir rejected"
+    # rc=2 (ADVISORY-BLOCK) is genuine-but-locked: surface its reason instead
+    # of lumping it with forged/undecided rc=1.
     base = pathlib.Path(root) / recs_dir
     if not base.is_dir():
         return False, "docs/experiments/ not found"
     key_missing = False
     best = None
+    advisory = None
     for rec in sorted(base.glob("*.md")):
         if rec.name == "_template.md":
             continue
         rc, scope = _cached_verify(str(rec))
         if rc == 3:
             key_missing = True
+            continue
+        if rc == 2:
+            # Genuine token but locked (small sample / n unknown / metric
+            # mismatch) — remember why instead of reporting "no record".
+            if advisory is None:
+                advisory = (f"record {rec} is ADVISORY-BLOCKED (genuine token, "
+                            f"code stays closed: small sample, n unknown, or metric "
+                            f"mismatch — re-measure in a new record)")
             continue
         if rc != 0:
             continue
@@ -466,7 +508,7 @@ def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> t
             best = f"record {rec} scope not matched"
     if key_missing:
         return False, "gate key not configured (python3 run_experiment.py --init-secret)"
-    return False, best or "no approved experiment record"
+    return False, advisory or best or "no approved experiment record"
 
 
 def guard(json_in: dict) -> dict:
@@ -500,6 +542,17 @@ def guard(json_in: dict) -> dict:
         if path:
             targets = [path]
 
+    elif tool_name == "unknown":
+        # normalize_hook_input flagged a tool the gate doesn't understand —
+        # warn (visible) instead of silently allowing a write we can't judge.
+        return {
+            "decision": "allow",
+            "methodology_warnings": [
+                f"Unrecognized tool '{norm['raw_tool_name']}' — guard skipped; "
+                f"verify this write manually."
+            ],
+        }
+
     # Check each target
     root = repo_root(json_in)
     for target in targets:
@@ -508,7 +561,8 @@ def guard(json_in: dict) -> dict:
         # --- Story file validation (runs BEFORE free/code checks) ---
         # Story files (S-NNN.md or N-N-slug.md) need metadata validation
         # regardless of being in a free zone or non-code target.
-        if _STORY_RE.search(rel):
+        # Basename-anchored: notes-S-001.md is NOT a story file.
+        if _is_story_file(rel):
             try:
                 story_content = ""
                 if tool_name == "file_editor":

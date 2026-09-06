@@ -161,6 +161,23 @@ def test_gate_token_binds_cmd():
     assert a != b
 
 
+def test_gate_token_binds_scope():
+    a = gate.gate_token("c >= 0.9", 1.0, "E-X", b"k", "cmd", "src/**")
+    b = gate.gate_token("c >= 0.9", 1.0, "E-X", b"k", "cmd", "src/**,lib/**")
+    assert a != b
+
+
+def test_verify_scope_widening_forges(tmp_path, monkeypatch):
+    # Approved for "none", then scope widened post-approval → FORGED.
+    monkeypatch.setenv("BMAD_GATE_KEY", "test-secret")
+    rec = _write_approved(tmp_path)
+    text = rec.read_text(encoding="utf-8")
+    lines = text.splitlines(keepends=False)
+    lines = gate.upsert(lines, "- **Code Scope:**", "src/**")
+    rec.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    assert gate.verify(str(rec)) == 1
+
+
 def test_gate_token_differs_by_secret():
     a = gate.gate_token("c >= 0.9", 1.0, "E-X", b"k1")
     b = gate.gate_token("c >= 0.9", 1.0, "E-X", b"k2")
@@ -218,7 +235,7 @@ def _write_approved(tmp_path, secret=b"test-secret", cmd="run x"):
     lines = gate.upsert(lines, "- **Uncertainty:**", "none (adequate)")
     lines = gate.upsert(lines, "- **Metric:**", "consistent")
     lines = gate.upsert(lines, "- **Measurement Command:**", cmd)
-    tok = gate.gate_token("fake_accuracy >= 0.90", 1.0, "E-001", secret, cmd)
+    tok = gate.gate_token("fake_accuracy >= 0.90", 1.0, "E-001", secret, cmd, "none")
     lines = gate.upsert(lines, "- **Decision:**", "APPROVED — H-001: measured=1.0 >= threshold=0.90")
     lines = gate.upsert(
         lines, "- **Gate Evidence:**",
@@ -246,7 +263,7 @@ def test_verify_small_sample_advisory_block(tmp_path, monkeypatch):
     lines = gate.upsert(lines, "- **Uncertainty:**", "n=4 (small sample: 95% Wilson lower bound 0.55 < threshold 0.9)")
     lines = gate.upsert(lines, "- **Metric:**", "consistent")
     lines = gate.upsert(lines, "- **Measurement Command:**", "cmd")
-    tok = gate.gate_token("fake_accuracy >= 0.90", 0.91, "E-001", b"test-secret", "cmd")
+    tok = gate.gate_token("fake_accuracy >= 0.90", 0.91, "E-001", b"test-secret", "cmd", "none")
     lines = gate.upsert(lines, "- **Decision:**", "APPROVED — H-001: measured=0.91 >= threshold=0.90")
     lines = gate.upsert(lines, "- **Gate Evidence:**", f'measured=0.91 claim="fake_accuracy >= 0.90" {tok}')
     lines = gate.upsert(lines, "- **Next Step:**", "Proceed to Code")
@@ -264,7 +281,7 @@ def test_verify_metric_mismatch_advisory_block(tmp_path, monkeypatch):
     lines = gate.upsert(lines, "- **Uncertainty:**", "none (n=40)")
     lines = gate.upsert(lines, "- **Metric:**", "MISMATCH — measured other_metric, claimed fake_accuracy")
     lines = gate.upsert(lines, "- **Measurement Command:**", "cmd")
-    tok = gate.gate_token("fake_accuracy >= 0.90", 1.0, "E-001", b"test-secret", "cmd")
+    tok = gate.gate_token("fake_accuracy >= 0.90", 1.0, "E-001", b"test-secret", "cmd", "none")
     lines = gate.upsert(lines, "- **Decision:**", "APPROVED — H-001: measured=1.0 >= threshold=0.90")
     lines = gate.upsert(lines, "- **Gate Evidence:**", f'measured=1.0 claim="fake_accuracy >= 0.90" {tok}')
     lines = gate.upsert(lines, "- **Next Step:**", "Proceed to Code")

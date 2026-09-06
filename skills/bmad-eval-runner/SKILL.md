@@ -107,3 +107,11 @@ Tell the user where the run folder is when you finish.
 - Timing and token counts land on disk the moment they are measured.
 - Failures cite specific expectations with evidence, and a pass that looks superficial is flagged rather than papered over.
 - A baseline run that the skill no longer wins points to retiring the skill, not patching it.
+
+## Customization
+
+Load this skill's effective configuration before acting (three-layer merge:
+skill `customize.toml` ← team `custom/<skill>.toml` ← personal
+`custom/<skill>.user.toml`):
+
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`

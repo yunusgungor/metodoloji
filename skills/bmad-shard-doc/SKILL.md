@@ -111,3 +111,11 @@ Present user with options for the original document:
 ## HALT CONDITIONS
 
 - HALT if npx command fails or produces no output files
+
+## Customization
+
+Load this skill's effective configuration before acting (three-layer merge:
+skill `customize.toml` ← team `custom/<skill>.toml` ← personal
+`custom/<skill>.user.toml`):
+
+Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow`

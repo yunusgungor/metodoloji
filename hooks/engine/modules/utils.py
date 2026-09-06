@@ -38,21 +38,31 @@ def normalize_hook_input(json_in: dict) -> dict:
     raw_name = tool_name
     raw_input = dict(tool_input)
 
-    if runtime == "claude" or tool_name in ("Write", "Edit", "MultiEdit", "Bash"):
+    if runtime == "claude" or tool_name in ("Write", "Edit", "MultiEdit",
+                                                  "NotebookEdit", "Bash"):
         # Claude Code → normalize to OpenHands convention
         if tool_name in ("Write", "Edit", "MultiEdit"):
             if "file_path" in tool_input and "path" not in tool_input:
                 tool_input["path"] = tool_input["file_path"]
             tool_name = "file_editor"
+        elif tool_name == "NotebookEdit":
+            if "file_path" in tool_input and "path" not in tool_input:
+                tool_input["path"] = tool_input["file_path"]
+            tool_name = "notebook_editor"
         elif tool_name == "Bash":
             if "command" not in tool_input and "cmd" in tool_input:
                 tool_input["command"] = tool_input["cmd"]
             tool_name = "terminal"
-    elif runtime == "openhands" or tool_name in ("file_editor", "terminal"):
+    elif runtime == "openhands" or tool_name in ("file_editor", "terminal",
+                                                        "notebook_editor"):
         pass  # already normalized
+    elif tool_name in ("", None):
+        pass  # no tool info (e.g. Stop/SessionStart payloads) — nothing to map
     else:
-        # Unknown tool — pass through as-is
-        pass
+        # Unknown tool — never silently pass through the gate. Mark it so
+        # guard() treats it as unrecognized (warn-only) instead of allowing
+        # a code write it doesn't understand.
+        tool_name = "unknown"
 
     return {
         "tool_name": tool_name,
@@ -65,11 +75,26 @@ def normalize_hook_input(json_in: dict) -> dict:
 
 def norm_path(p: str) -> str:
     """Normalize path to project-relative, forward-slash, no leading './'."""
-    p = (p or "").replace("\\", "/")
+    p = (p or "").strip().replace("\\", "/")
     p = re.sub(r"^[a-zA-Z]:", "", p)  # Remove drive letter
+    p = re.sub(r"/{2,}", "/", p)  # collapse duplicate slashes
     while p.startswith("./"):
         p = p[2:]
-    return p
+    # Resolve .. and . lexically without touching the filesystem.
+    parts: list[str] = []
+    absolute = p.startswith("/")
+    for seg in p.split("/"):
+        if seg in ("", "."):
+            continue
+        if seg == "..":
+            if parts and parts[-1] != "..":
+                parts.pop()
+            elif not absolute:
+                parts.append(seg)
+            continue
+        parts.append(seg)
+    out = "/".join(parts)
+    return ("/" + out) if absolute else out
 
 
 def _project_is_methodology_root() -> bool:
@@ -171,7 +196,11 @@ def repo_root(json_in: dict) -> str:
 
 
 def rel_to_root(root: str, p: str, cwd: str | None = None) -> str:
-    """Resolve a possibly-relative path against cwd (or root) and relativize to root."""
+    """Resolve a possibly-relative path against cwd (or root) and relativize to root.
+
+    Only a slash-boundary prefix match strips the root: /repo-evil/x under
+    root /repo stays absolute (never rebased as repo-internal).
+    """
     if not p:
         return ""
     p = p.strip().strip("\"'")
@@ -181,10 +210,10 @@ def rel_to_root(root: str, p: str, cwd: str | None = None) -> str:
         if os.path.isabs(p) or re.match(r"^[a-zA-Z]:[/\\]", p)
         else os.path.join(base, p)
     )
-    r = norm_path(root)
+    r = norm_path(root).rstrip("/")
     f = norm_path(full)
-    if r and (f.startswith(r.rstrip("/") + "/") or f.startswith(r)):
-        f = f[len(r.rstrip("/")):].lstrip("/")
+    if r and (f == r or f.startswith(r + "/")):
+        return f[len(r):].lstrip("/")
     return f
 
 
@@ -316,5 +345,7 @@ def _story_key_from_intent(intent: str) -> str:
     m = _STORY_KEY_IN_INTENT.search(intent)
     if not m:
         return ""
-    key = (m.group(1) or m.group(2) or m.group(3) or m.group(4) or "").rstrip(".md")
+    key = m.group(1) or m.group(2) or m.group(3) or m.group(4) or ""
+    if key.endswith(".md"):
+        key = key[: -len(".md")]  # rstrip strips chars, not the suffix
     return key.strip()
