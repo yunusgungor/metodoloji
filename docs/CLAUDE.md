@@ -6,7 +6,7 @@ Claude Code plugin for BMAD methodology enforcement.
 
 - **Record chain**: E → IR → SP → S → QR → PR (experiment → implementation readiness → sprint planning → story → quality review → production readiness)
 - **Mechanical gates**: guard (write/edit blocking, always fail-closed), quality (`git commit` chain check), deploy (deploy-command chain check), audit (post-write trail), stop (session-end validation, always fail-closed)
-- **123 skills** with **120 customization TOMLs** (33 active BRIDGEs linking native outputs to methodology records)
+- **123 skills** with **119 customization TOMLs** (33 active BRIDGEs linking native outputs to methodology records)
 
 ## Hooks
 

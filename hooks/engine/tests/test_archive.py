@@ -190,6 +190,27 @@ def test_tar_no_archive_arg():
     assert targets_from_tar(["-xf"]) == []
 
 
+def test_tar_traversal_members_dropped(tmp_path):
+    archive, _ = _make_tar(tmp_path, {"../evil.py": b"x", "src/ok.py": b"y",
+                                      "/abs.py": b"z"})
+    res = targets_from_tar(["-xf", str(archive)])
+    assert res == ["src/ok.py"]
+
+
+def test_unzip_traversal_members_dropped(tmp_path):
+    archive = _make_zip(tmp_path, {"../evil.py": b"x", "src/ok.py": b"y"})
+    res = targets_from_unzip([str(archive)])
+    assert res == ["src/ok.py"]
+
+
+def test_member_size_limit(tmp_path, monkeypatch):
+    from modules import archive as archive_mod
+    monkeypatch.setattr(archive_mod, "ARCHIVE_MAX_MEMBER", 2)
+    archive = _make_zip(tmp_path, {"big.py": b"xxx"})
+    res = targets_from_unzip([str(archive)])
+    assert res == []  # limit exceeded → conservative fallback
+
+
 # --- targets_from_unzip -----------------------------------------------------
 
 def _make_zip(tmp_path, members):

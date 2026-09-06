@@ -103,6 +103,25 @@ def _story_status_is_stale(root: str, intent: str) -> bool:
     return newest < session_start
 
 
+def _read_session_lines(root: str) -> list[str]:
+    """Audit lines after the newest session_start marker (all lines if none)."""
+    from .config import log_file
+    log_path = pathlib.Path(root).absolute() / log_file()
+    try:
+        lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return []
+    offset = 0
+    for i, line in enumerate(lines):
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(rec, dict) and rec.get("type") == _SESSION_MARKER_TYPE:
+            offset = i + 1
+    return lines[offset:]
+
+
 def _session_touched_code(root: str) -> list[str]:
     """Code files this session actually wrote (from the audit trail).
 
@@ -112,14 +131,8 @@ def _session_touched_code(root: str) -> list[str]:
     records this session wrote count.
     """
     from .bash_targets import extract_bash_targets
-    from .config import log_file
 
-    log_path = pathlib.Path(root).absolute() / log_file()
-    try:
-        lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
-    except OSError:
-        return []
-    lines = lines[_session_start_offset(root):]
+    lines = _read_session_lines(root)
     touched: set[str] = set()
     for line in lines:
         line = line.strip()
@@ -162,24 +175,9 @@ _MAX_STOP_DENIES_PER_SESSION = 1
 
 
 def _stop_denies_so_far(root: str) -> int:
-    """Count session_start markers + stop denies already recorded this session."""
-    from .config import log_file
-    log_path = pathlib.Path(root).absolute() / log_file()
-    try:
-        lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
-    except OSError:
-        return 0
-    # Find the newest session marker; count denies after it.
-    start = 0
-    for i, line in enumerate(lines):
-        try:
-            rec = json.loads(line)
-        except ValueError:
-            continue
-        if isinstance(rec, dict) and rec.get("type") == _SESSION_MARKER_TYPE:
-            start = i + 1
+    """Count stop denies already recorded this session (after the marker)."""
     denies = 0
-    for line in lines[start:]:
+    for line in _read_session_lines(root):
         try:
             rec = json.loads(line)
         except ValueError:
@@ -272,6 +270,7 @@ def stop(json_in: dict) -> dict:
     # 2. Check for unapproved code changes — SESSION-TOUCHED files only.
     # ponytail: audit log is the touched set; whole-tree scan false-blocks
     # brownfield projects (pre-existing code ≠ this session did it).
+    # find_approved caches verify results by record mtime, so stop stays fast.
     for rel in _session_touched_code(root):
         if is_free(rel):
             continue

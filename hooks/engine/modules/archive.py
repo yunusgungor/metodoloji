@@ -9,6 +9,7 @@ import zipfile
 from .config import (
     ARCHIVE_MAX_COMPRESSED,
     ARCHIVE_MAX_FILE,
+    ARCHIVE_MAX_MEMBER,
     ARCHIVE_MAX_MEMBERS,
     ARCHIVE_MAX_UNCOMPRESSED,
     TAR_ARG_OPTS,
@@ -102,6 +103,17 @@ def archive_fileobj(path: str) -> io.RawIOBase:
     return LimitReader(fh, ARCHIVE_MAX_COMPRESSED)  # type: ignore[arg-type]
 
 
+def _safe_member(dest: str, name: str) -> str | None:
+    """Join dest + member name; None when the member escapes (../, absolute)."""
+    if not name or name.startswith("/") or name.startswith("\\"):
+        return None
+    parts = [seg for seg in name.replace("\\", "/").split("/") if seg not in ("", ".")]
+    if not parts or any(seg == ".." for seg in parts):
+        return None
+    clean = "/".join(parts)
+    return dest.rstrip("/\\") + "/" + clean if dest else clean
+
+
 def targets_from_tar(args: list[str]) -> list[str]:
     """tar -x[f...] <archive> [-C <dir>] — extract write targets using stdlib."""
     archive = None
@@ -149,14 +161,14 @@ def targets_from_tar(args: list[str]) -> list[str]:
                 if i >= ARCHIVE_MAX_MEMBERS:
                     raise ArchiveLimitError("member limit exceeded")
                 if member.isfile():
+                    if member.size > ARCHIVE_MAX_MEMBER:
+                        raise ArchiveLimitError("member size limit exceeded")
                     total += member.size
                     if total > ARCHIVE_MAX_UNCOMPRESSED:
                         raise ArchiveLimitError("total size limit exceeded")
-                    out.append(
-                        dest.rstrip("/\\") + "/" + member.name
-                        if dest
-                        else member.name
-                    )
+                    safe = _safe_member(dest, member.name)
+                    if safe is not None:
+                        out.append(safe)
     except (OSError, tarfile.TarError, ValueError):
         return conservative_dest(dest)
     return out
@@ -184,7 +196,7 @@ def targets_from_unzip(args: list[str]) -> list[str]:
         return []
     archive, files = nonflag[0], nonflag[1:]
     if files:
-        return [dest.rstrip("/\\") + "/" + f if dest else f for f in files]
+        return [s for s in (_safe_member(dest, f) for f in files) if s is not None]
     out: list[str] = []
     try:
         if os.path.getsize(archive) > ARCHIVE_MAX_FILE:
@@ -197,14 +209,14 @@ def targets_from_unzip(args: list[str]) -> list[str]:
             for info in infos:
                 if info.is_dir():
                     continue
+                if info.file_size > ARCHIVE_MAX_MEMBER:
+                    raise ArchiveLimitError("member size limit exceeded")
                 total += info.file_size
                 if total > ARCHIVE_MAX_UNCOMPRESSED:
                     raise ArchiveLimitError("total size limit exceeded")
-                out.append(
-                    dest.rstrip("/\\") + "/" + info.filename
-                    if dest
-                    else info.filename
-                )
+                safe = _safe_member(dest, info.filename)
+                if safe is not None:
+                    out.append(safe)
     except (OSError, zipfile.BadZipFile, NotImplementedError):
         return conservative_dest(dest)
     return out

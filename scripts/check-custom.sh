@@ -544,10 +544,15 @@ except Exception as e:
 h = d.get("hooks", {}) or {}
 qg = str(h.get("quality_gate", "soft")).strip().lower()
 dg = str(h.get("deploy_guard", "soft")).strip().lower()
+cg = str(h.get("code_guard", "hard")).strip().lower()
+sg = str(h.get("stop_guard", "hard")).strip().lower()
 print("  quality_gate: %s" % qg)
 print("  deploy_guard: %s" % dg)
+print("  code_guard: %s" % cg)
+print("  stop_guard: %s" % sg)
 problems = []
-for name, val in (("quality_gate", qg), ("deploy_guard", dg)):
+for name, val in (("quality_gate", qg), ("deploy_guard", dg),
+                  ("code_guard", cg), ("stop_guard", sg)):
     if val not in ("soft", "hard"):
         problems.append("%s = %r (invalid — must be soft|hard)" % (name, val))
 if problems:
@@ -560,6 +565,35 @@ if [ $? -eq 0 ]; then
     echo "[OK]   config soft/hard contract valid"
 else
     echo "[WARNING] config soft/hard issue (see above)"
+    PROBLEMS=$((PROBLEMS + 1))
+fi
+
+echo "== 6b) custom/ ↔ skills/ pairing (orphan TOMLs, missing SKILL.md) =="
+# Every custom/<name>.toml (except config.toml) must pair with skills/<name>/SKILL.md.
+"$PY" - <<'PY'
+import glob, os, sys
+PLUGIN = os.environ.get("PLUGIN_ROOT") or "."
+problems = []
+for path in sorted(glob.glob(os.path.join(PLUGIN, "custom", "*.toml"))):
+    name = os.path.basename(path)[:-5]
+    if name == "config":
+        continue
+    skill_md = os.path.join(PLUGIN, "skills", name, "SKILL.md")
+    if not os.path.isfile(skill_md):
+        problems.append("%s.toml: no matching skills/%s/SKILL.md (orphan)" % (name, name))
+for skill_dir in sorted(glob.glob(os.path.join(PLUGIN, "skills", "*"))):
+    if not os.path.isdir(skill_dir):
+        continue
+    if not os.path.isfile(os.path.join(skill_dir, "SKILL.md")):
+        problems.append("skills/%s: SKILL.md missing" % os.path.basename(skill_dir))
+for p in problems:
+    print("  MISS: %s" % p)
+raise SystemExit(1 if problems else 0)
+PY
+if [ $? -eq 0 ]; then
+    echo "[OK]   custom/ ↔ skills/ pairing intact"
+else
+    echo "[WARNING] orphan TOML or missing SKILL.md (see above)"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 

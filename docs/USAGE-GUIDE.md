@@ -35,14 +35,14 @@
 
 ### What Does the Plugin Do?
 
-`metodoloji` is the plugin implementation of the **BMAD (Build Methodology for Agent-Driven development)** methodology for OpenHands and Claude Code. It ships with 123 skills + 120 customization TOMLs (33 BRIDGE active) + mechanical gates + a record chain.
+`metodoloji` is the plugin implementation of the **BMAD (Build Methodology for Agent-Driven development)** methodology for OpenHands and Claude Code. It ships with 123 skills + 119 customization TOMLs (33 BRIDGE active) + mechanical gates + a record chain.
 
 Core components:
 
 | Component | Function |
 |-----------|----------|
 | `skills/` | 123 BMAD skills (native body) |
-| `custom/` | 120 customization TOMLs (33 active with BRIDGE: `activation_steps_append`/`principles` → links native outputs to methodology records) + `config.toml` (soft/hard gates) |
+| `custom/` | 119 customization TOMLs (33 active with BRIDGE: `activation_steps_append`/`principles` → links native outputs to methodology records) + `config.toml` (soft/hard gates) |
 | `hooks/` | `hooks.json` (unified, auto-discovered by both runtimes) + `engine/` (Python) + `scripts/` (`bootstrap.sh`, `hook-entry.sh`) |
 | `hooks/engine/` | Python engine: `main.py` (entry), `resolve_customization.py` (thin re-export), `modules/` (guard, audit, stop, utils, config, archive, bash_targets, code_docs) |
 | `bmad/` | Module data (bmm, cis, gds, wds, tea, core, bmb, bmad-loop, `_config`) + `bmad/scripts/` (canonical `resolve_customization.py`, `resolve_config.py`, `memlog.py`) |
@@ -99,7 +99,7 @@ metodoloji/
 │       ├── bootstrap.sh         # SessionStart: gate-key + directories + context + intent
 │       └── hook-entry.sh        # Single dispatch point → Python engine
 ├── skills/                      # 123 BMAD skill directories
-├── custom/                      # 120 TOMLs (33 BRIDGE active) + config.toml
+├── custom/                      # 119 TOMLs (33 BRIDGE active) + config.toml
 ├── bmad/                        # Module data + scripts (resolve_customization, memlog)
 ├── templates/                   # Record templates
 ├── commands/                    # Slash-command definitions (.md)
@@ -634,15 +634,17 @@ the Claude marketplace cache and the OpenHands install dir; the first path conta
 
 **Behavior:**
 - Appends every call to `.metodoloji/logs/hook-audit.log` as one JSON line, stamped with the active session `intent` and memlog `progress`
-- Produces methodology compliance warnings on story files (non-blocking) + bridge-consistency warnings (e.g. story `done` without QR)
-- Detects notable events and auto-generates code docs (see §7)
+- File/command **bodies are redacted** to a 300-char preview (`content`, `code`, `source`… keys) — paths, commands and flags stay whole so stop/guard keep working; full bodies never land in the log
+- Produces methodology compliance warnings on story files (non-blocking) + QR-file DoD warnings (the done-story→QR directory scan lives in `check-plugin.sh`, not on the per-write hot path)
+- Detects notable events and auto-generates code docs (see §7); related-docs context loading runs on terminal calls only (file writes already trigger doc generation)
+- Log write failures are fail-open (stderr note, never a crash)
 
 **Audit record structure:**
 ```json
 {
   "timestamp": 1757068800.0,
   "tool": "file_editor",
-  "input": { "path": "src/main.py", "content": "..." },
+  "input": { "path": "src/main.py", "content": "print(1)... [truncated 6000 chars]" },
   "output_summary": "...",
   "intent": "optimize query time",
   "progress": "in-progress",
@@ -1052,9 +1054,11 @@ All source code files and executable configuration files:
 ### 12.3. Secret Scanning Beyond Free Zones
 
 Even in files under `scratch/`, `tmp/`, `temp/`, content patterns such as
-`.bmad` directories, `gate-key`, `bmad_gate_key`, `load_secret`, `gate_token`,
-`secret_file` or `secret_env` issue a **DENY** (the content scan runs before the
-free-zone check).
+`.bmad` directories, `gate-key`, `bmad_gate_key` and `gate_token` issue a
+**DENY** (the content scan runs before the free-zone check).
+`load_secret` / `secret_file` / `secret_env` only deny in an access context
+(call, assignment or bracket — `load_secret(`, `secret_file =`, `secret_env[`),
+so ordinary prose mentioning them stays allowed.
 
 ---
 
@@ -1076,7 +1080,8 @@ The guard engine detects and blocks the following patterns:
 |---------|--------|
 | Terminal command containing `gate-key` / `bmad_gate_key` | DENY |
 | Terminal command referencing the `.bmad` directory | DENY |
-| Content containing `.bmad` / `gate-key` / `bmad_gate_key` / `load_secret` / `gate_token` / `secret_file` / `secret_env` (any path, including agent zones) | DENY |
+| Content containing `.bmad` / `gate-key` / `bmad_gate_key` / `gate_token` (any path, including agent zones) | DENY |
+| Content with `load_secret` / `secret_file` / `secret_env` in access context (call/assign/bracket) | DENY |
 
 ### 13.3. HMAC Token Structure
 

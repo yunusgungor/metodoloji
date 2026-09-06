@@ -555,6 +555,50 @@ def test_gates_read_independent_keys(tmp_path, monkeypatch):
     assert "Implementation Readiness" in d["reason"]
 
 
+def test_guard_secret_context_still_denies(tmp_path, monkeypatch):
+    """Access context (call/assign) still denies — narrowing only drops prose."""
+    from modules.guard import guard
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "scratch/notes.md",
+                                "content": "x = load_secret('k')"}})
+    assert res["decision"] == "deny"
+
+
+def test_guard_secret_prose_no_longer_denies(tmp_path, monkeypatch):
+    """Bare 'secret_env' in prose is not an access — no deny."""
+    from modules.guard import guard
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "scratch/notes.md",
+                                "content": "the secret_env carries over"}})
+    assert res["decision"] == "allow"
+
+
+def test_guard_verify_cache_skips_reverify(tmp_path, monkeypatch):
+    """Unchanged records verify once; second find_approved hits the cache."""
+    import sys
+    from modules.guard import find_approved, _VERIFY_CACHE
+    guard_mod = sys.modules["modules.guard"]
+    (tmp_path / "docs/experiments").mkdir(parents=True)
+    (tmp_path / "docs/experiments/E-001.md").write_text("# E\n", encoding="utf-8")
+    calls = []
+    monkeypatch.setattr(guard_mod, "verify_record",
+                        lambda rec: (calls.append(rec) or (0, "src/**")))
+    monkeypatch.setattr(guard_mod, "_load_gate", lambda: True)
+    monkeypatch.setattr(guard_mod, "gate",
+                        type("G", (), {"scope_matches": staticmethod(lambda s, t: True)})(),
+                        raising=False)
+    _VERIFY_CACHE.clear()
+    find_approved("src/a.py", root=str(tmp_path))
+    find_approved("src/b.py", root=str(tmp_path))
+    assert len(calls) == 1
+
+
 def test_guard_code_guard_soft_warns_not_denies(tmp_path, monkeypatch):
     """code_guard=soft (brownfield): unapproved write warns, still allows."""
     from modules.guard import guard

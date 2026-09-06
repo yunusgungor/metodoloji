@@ -112,12 +112,23 @@ def is_free(path: str) -> bool:
 
 
 def is_code_target(path: str) -> bool:
-    """True if the path is a code target (whitelist: everything except data/markup/asset)."""
+    """True if the path is a code target (whitelist: everything except data/markup/asset).
+
+    Order is deliberate: non-code signals (extension/basename, toolchain
+    config) win over the CODE_DIRS directory shortcut, so `src/*.md` is
+    never code just for living under src/.
+    """
     p = norm_path(path).lstrip("/")
     base = pathlib.PurePosixPath(p).name
-    first = p.split("/", 1)[0]
+    first = p.split("/", 1)[0].lower()
     ext = pathlib.PurePosixPath(base).suffix.lower()
     if p == "dev/null" or p.startswith("dev/null/"):
+        return False
+    # Executable CI/config (workflows, compose, package.json) is always code,
+    # even with a data extension like .yml — the pipeline runs it.
+    if EXEC_CONFIG_NAME.search(p):
+        return True
+    if ext in NON_CODE_EXTS or base.lower() in NON_CODE_BASENAMES:
         return False
     # Toolchain config (prisma.config.ts, tsconfig.json, lockfiles): not
     # application code — never a code target, even under CODE_DIRS.
@@ -125,10 +136,6 @@ def is_code_target(path: str) -> bool:
         return False
     if base.lower() in CODE_BASENAMES or first in CODE_DIRS:
         return True
-    if EXEC_CONFIG_NAME.search(p):
-        return True
-    if ext in NON_CODE_EXTS or base.lower() in NON_CODE_BASENAMES:
-        return False
     return True
 
 
@@ -213,25 +220,28 @@ def _memlog_split(text: str) -> dict:
 
 
 def _active_memlog_meta(root: str) -> dict:
-    """Return the frontmatter of the most recent .memlog.md under root ({} if none)."""
+    """Return the frontmatter of the most recent .memlog.md under root ({} if none).
+
+    Only the four canonical locations are checked — no recursive walk, so
+    every hook call pays at most four stat calls. A memlog anywhere else is
+    invisible to the intent bridge by design (documented in USAGE-GUIDE §8).
+    """
     root = os.path.abspath(root)
     cands: list[pathlib.Path] = []
     for base in ("bmad-output", ".metodoloji", "docs", ""):
         p = pathlib.Path(root) / base / ".memlog.md"
-        if p.is_file():
-            cands.append(p)
-    # Also scan recursively for any .memlog.md under the root (bounded).
-    if not cands:
-        for p in pathlib.Path(root).rglob(".memlog.md"):
-            try:
-                if p.is_file():
-                    cands.append(p)
-            except OSError:
-                continue
+        try:
+            if p.is_file():
+                cands.append(p)
+        except OSError:
+            continue
     if not cands:
         return {}
     newest = max(cands, key=lambda p: p.stat().st_mtime)
-    return _memlog_split(newest.read_text(encoding="utf-8", errors="replace"))
+    try:
+        return _memlog_split(newest.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return {}
 
 
 def _active_intent(root: str, env_override: bool = True) -> str:

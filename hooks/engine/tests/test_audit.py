@@ -11,6 +11,7 @@ sys.path.insert(0, str(_HOOKS))
 from modules.audit import (  # noqa: E402
     _check_kopru_consumption,
     _detect_notable_events,
+    _redacted_input,
     _validate_methodology_compliance,
     audit,
 )
@@ -170,7 +171,9 @@ def test_compliance_non_story_no_warnings():
 
 # --- _check_kopru_consumption ------------------------------------------------
 
-def test_kopru_done_story_no_qr(tmp_path, monkeypatch):
+def test_kopru_done_story_check_moved_to_static_audit(tmp_path, monkeypatch):
+    # The done-story→QR directory scan moved to check-plugin.sh (static
+    # audit); the per-write hot path only checks the edited QR file itself.
     root = tmp_path
     (root / "docs/development/stories").mkdir(parents=True)
     (root / "docs/quality").mkdir(parents=True)  # quality dir exists but empty
@@ -178,13 +181,11 @@ def test_kopru_done_story_no_qr(tmp_path, monkeypatch):
         "## Story: S-001\n- **Status:** done\n", encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(root))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    # Forward-slash path: the code's regex expects /stories/S-NNN.md and the
-    # real project-relative path (as passed by the hook) is forward-slash.
     warnings = _check_kopru_consumption(
         "file_editor",
         {"path": "docs/development/stories/S-001.md", "content": "x"},
     )
-    assert any("no QR record exists" in w for w in warnings)
+    assert warnings == []
 
 
 def test_kopru_done_story_windows_backslash_path(tmp_path, monkeypatch):
@@ -210,6 +211,37 @@ def test_kopru_qr_without_dod():
         {"path": "docs/quality/QR-001.md", "content": "## Decision\nok"},
     )
     assert any("DoD" in w for w in warnings)
+
+
+def test_redacted_input_truncates_bodies_keeps_paths():
+    big = "x" * 5000
+    out = _redacted_input({"path": "src/main.py", "content": big,
+                           "command": "echo hi"})
+    assert out["path"] == "src/main.py"
+    assert out["command"] == "echo hi"
+    assert len(out["content"]) < len(big)
+    assert "truncated 5000 chars" in out["content"]
+
+
+def test_redacted_input_short_bodies_untouched():
+    out = _redacted_input({"path": "src/a.py", "content": "print(1)"})
+    assert out == {"path": "src/a.py", "content": "print(1)"}
+
+
+def test_audit_log_redacts_content(tmp_path, monkeypatch):
+    import json
+    root = tmp_path
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(root))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    big = "SECRET-DATA " * 500
+    audit({"tool_name": "file_editor",
+           "tool_input": {"path": "src/main.py", "content": big},
+           "tool_output": None})
+    log = root / ".metodoloji/logs/hook-audit.log"
+    logged = json.loads(log.read_text(encoding="utf-8").splitlines()[-1])
+    assert logged["input"]["path"] == "src/main.py"
+    assert len(logged["input"]["content"]) < len(big)
+    assert "truncated 6000 chars" in logged["input"]["content"]
 
 
 # --- audit() end-to-end ------------------------------------------------------

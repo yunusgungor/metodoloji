@@ -26,11 +26,16 @@ if [ -z "$PY" ]; then
     exit 0
 fi
 
-# Auto-setup: create gate-key if missing
+# Auto-setup: create gate-key if missing (atomic write — a crashed python
+# must never leave a truncated zero-byte key behind).
 if [ ! -f "$HOME/.bmad/gate-key" ]; then
     mkdir -p "$HOME/.bmad"
-    "$PY" -c "import secrets; print(secrets.token_hex(32))" > "$HOME/.bmad/gate-key"
-    chmod 600 "$HOME/.bmad/gate-key" 2>/dev/null || true
+    if "$PY" -c "import secrets; print(secrets.token_hex(32))" > "$HOME/.bmad/gate-key.tmp"; then
+        mv "$HOME/.bmad/gate-key.tmp" "$HOME/.bmad/gate-key"
+        chmod 600 "$HOME/.bmad/gate-key" 2>/dev/null || true
+    else
+        rm -f "$HOME/.bmad/gate-key.tmp"
+    fi
 fi
 
 # Create missing directories

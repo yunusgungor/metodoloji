@@ -309,6 +309,52 @@ def test_stop_skips_non_code_dirs(tmp_path, monkeypatch):
 
 
 # --- main() dispatch --------------------------------------------------------
+# ponytail: subprocess dispatch tests live here (engine entry contract),
+# not in a new file — one place for "main.py speaks the hook schema".
+
+def test_main_bad_stdin_stop_blocks(tmp_path):
+    import subprocess
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = str(tmp_path)
+    env["HOOK_TYPE"] = "stop"
+    r = subprocess.run(
+        [sys.executable, str(MAIN_PY)],
+        input="not-json",
+        capture_output=True, text=True, encoding="utf-8", timeout=30,
+        env=env, cwd=str(_HOOKS.parent),
+    )
+    out = json.loads(r.stdout)
+    assert out["decision"] == "block"
+
+
+def test_main_bad_stdin_guard_denies(tmp_path):
+    import subprocess
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = str(tmp_path)
+    env["HOOK_TYPE"] = "guard"
+    r = subprocess.run(
+        [sys.executable, str(MAIN_PY)],
+        input="not-json",
+        capture_output=True, text=True, encoding="utf-8", timeout=30,
+        env=env, cwd=str(_HOOKS.parent),
+    )
+    out = json.loads(r.stdout)
+    assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+def test_main_session_start_returns_context(tmp_path):
+    import subprocess
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = str(tmp_path)
+    r = subprocess.run(
+        [sys.executable, str(MAIN_PY), "session_start"],
+        input=json.dumps({}),
+        capture_output=True, text=True, encoding="utf-8", timeout=30,
+        env=env, cwd=str(_HOOKS.parent),
+    )
+    out = json.loads(r.stdout)
+    assert out["hookSpecificOutput"]["hookEventName"] == "SessionStart"
+    assert "METODOLOJI" in out["hookSpecificOutput"].get("additionalContext", "")
 
 def _run_main(args, stdin_data):
     return subprocess.run(

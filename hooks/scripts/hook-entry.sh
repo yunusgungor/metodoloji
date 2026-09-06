@@ -3,9 +3,11 @@
 # Usage: sh hook-entry.sh <guard|quality|deploy|stop|audit|session_start> [runtime]
 # Cross-platform: Windows/macOS/Linux.
 # Policies (Claude parity):
-#   guard/stop     fail-closed  (engine missing → deny + exit 2)
+#   guard          fail-closed  (engine missing → deny + exit 2)
+#   stop           fail-closed, loop-safe (decision block + exit 0; exit 2
+#                  re-triggers Stop and wedges the session)
 #   quality/deploy fail-open    (engine missing → silent pass)
-#   audit          fail-open
+#   audit/session_start fail-open
 SELF=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 PLUGIN_ROOT=$(CDPATH= cd -- "$SELF/../.." && pwd)
 ENGINE="$PLUGIN_ROOT/hooks/engine/main.py"
@@ -25,6 +27,8 @@ if [ -z "$PY" ]; then
     done
 fi
 
+# MODE comes from $1 (our own hooks.json, not user input), but pin it to the
+# known set anyway so a typo can never interpolate into the JSON output.
 _fail() {
     case "$MODE" in
         # Stop uses the loop-safe envelope: decision block + exit 0. Exit 2 on
@@ -35,10 +39,18 @@ _fail() {
             exit 0
             ;;
         guard)
-            printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"'"$MODE"'","permissionDecision":"deny","permissionDecisionReason":"Methodology hook engine could not run (no python or missing engine) — fail-closed blocked."}}'
+            printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Methodology hook engine could not run (no python or missing engine) — fail-closed blocked."}}'
             exit 2
             ;;
-        *)  exit 0 ;;
+        quality|deploy|audit|bootstrap|session_start)
+            exit 0
+            ;;
+        *)
+            # Unknown mode: treat as guard (fail-closed) — never silently pass
+            # a hook we don't recognize.
+            printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Unknown methodology hook mode — fail-closed blocked."}}'
+            exit 2
+            ;;
     esac
 }
 

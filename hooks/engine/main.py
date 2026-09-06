@@ -19,11 +19,32 @@ from modules.stop import stop
 
 def main():
     """Main entry point for hook execution."""
-    # Read JSON input from stdin
+    # Read JSON input from stdin. Empty stdin is only fail-open for
+    # non-blocking hooks; guard/stop stay fail-closed (their _fail path in
+    # hook-entry.sh already denies, this keeps direct-engine calls safe).
     try:
         json_in = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError, EOFError):
-        # If no valid JSON (including closed/empty stdin), allow by default
+        hook_type = os.environ.get("HOOK_TYPE", "")
+        for arg in sys.argv[1:]:
+            if not arg.startswith("-"):
+                hook_type = arg
+        if hook_type == "stop":
+            print(json.dumps({
+                "decision": "block",
+                "reason": "Methodology hook received no input — fail-closed blocked.",
+                "hookSpecificOutput": {"hookEventName": "Stop"},
+            }))
+            return
+        if hook_type == "guard":
+            print(json.dumps({
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": "Methodology hook received no input — fail-closed blocked.",
+                }
+            }))
+            return
         print(json.dumps({
             "hookSpecificOutput": {
                 "hookEventName": os.environ.get("HOOK_TYPE", "PreToolUse"),
@@ -125,6 +146,9 @@ def main():
     elif hook_type == "session_start":
         # SessionStart: context injection only, never blocks.
         hso = {"hookEventName": "SessionStart"}
+        ctx = result.get("additionalContext")
+        if ctx:
+            hso["additionalContext"] = ctx
     else:
         # Unknown hook type — flat allow
         hso = {"hookEventName": event_name, "permissionDecision": "allow"}

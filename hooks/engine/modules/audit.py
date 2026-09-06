@@ -246,41 +246,47 @@ def _validate_methodology_compliance(tool_name: str, tool_input: dict) -> list[s
     return warnings
 
 
+# Preview caps for the audit trail: bodies never land whole in the log.
+_INPUT_PREVIEW_LEN = 300
+_OUTPUT_PREVIEW_LEN = 500
+# Keys whose values are file/command bodies, not metadata — preview only.
+_BODY_KEYS = frozenset({"content", "code", "source", "text", "body", "output"})
+
+
+def _redacted_input(tool_input: dict) -> dict:
+    """Copy tool input with body values reduced to preview + length.
+
+    Paths, commands and flags stay whole (stop/guard need them); only
+    potentially large or sensitive bodies are cut.
+    """
+    redacted = {}
+    for key, value in tool_input.items():
+        if key in _BODY_KEYS and isinstance(value, str) and len(value) > _INPUT_PREVIEW_LEN:
+            redacted[key] = value[:_INPUT_PREVIEW_LEN] + f"... [truncated {len(value)} chars]"
+        elif key in _BODY_KEYS and isinstance(value, list):
+            joined = "\n".join(str(v) for v in value)
+            if len(joined) > _INPUT_PREVIEW_LEN:
+                redacted[key] = joined[:_INPUT_PREVIEW_LEN] + f"... [truncated {len(joined)} chars]"
+            else:
+                redacted[key] = value
+        else:
+            redacted[key] = value
+    return redacted
+
+
 def _check_kopru_consumption(tool_name: str, tool_input: dict) -> list[str]:
     """Check if bridge outputs exist for recently modified files.
 
-    When a story file or methodology record is modified, verify that
-    the corresponding chain records exist. Non-blocking warnings.
+    Scoped to the modified file only (never a directory scan): a QR edit
+    without DoD items warns; the done-story→QR chain check lives in
+    check-plugin.sh (static audit), not on the per-write hot path.
     """
     warnings = []
-    from .utils import repo_root
-    root = repo_root({})
-    root = os.path.abspath(root)
 
     if tool_name == "file_editor":
         path = tool_input.get("path", "")
         if not path:
             return warnings
-
-        # Check: S-NNN.md modified → methodology record should exist
-        if re.search(r"/stories/S-\d+\.md$", path, re.IGNORECASE):
-            stories_dir = pathlib.Path(root) / "docs" / "development" / "stories"
-            if stories_dir.is_dir():
-                for s_file in stories_dir.glob("S-*.md"):
-                    try:
-                        content = s_file.read_text(encoding="utf-8", errors="replace")
-                    except OSError:
-                        continue
-                    # Check if done but no QR
-                    if re.search(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(done)", content, re.IGNORECASE):
-                        qr_dir = pathlib.Path(root) / "docs" / "quality"
-                        if qr_dir.is_dir():
-                            qr_files = list(qr_dir.glob("QR-*.md"))
-                            if not qr_files:
-                                warnings.append(
-                                    f"Bridge inconsistency: {s_file.name} status is 'done' but no QR record exists. "
-                                    f"The bmad-code-review or bmad-dev-story bridge has not run yet."
-                                )
 
         # Check: QR-NNN.md modified → should have DoD items
         if re.search(r"/QR-\d+\.md$", path, re.IGNORECASE):
@@ -300,6 +306,7 @@ def session_start(json_in: dict) -> dict:
     Stop counts touched files and deny budget only after the newest marker,
     so previous sessions' unapproved touches and stale sprint-status
     leftovers never wedge a new session. Fail-open (never blocks startup).
+    Returns additionalContext so the SessionStart event can inject it.
     """
     from .utils import repo_root
     try:
@@ -307,7 +314,22 @@ def session_start(json_in: dict) -> dict:
         record_session_start(repo_root(json_in))
     except Exception:
         pass
-    return {"decision": "allow"}
+    try:
+        from .code_docs import load_pending_docs, load_recent_docs
+        ctx = "METODOLOJI session started. Record chain: E → IR → SP → S → QR → PR."
+        pending = load_pending_docs()
+        recent = load_recent_docs(n=5)
+        if pending or recent:
+            ctx += "\n\n"
+        if pending:
+            ctx += pending
+        if recent:
+            if pending:
+                ctx += "\n"
+            ctx += recent
+        return {"decision": "allow", "additionalContext": ctx}
+    except Exception:
+        return {"decision": "allow"}
 
 
 def audit(json_in: dict) -> dict:
@@ -323,11 +345,12 @@ def audit(json_in: dict) -> dict:
     from .utils import repo_root, _active_intent, _active_progress
     root = repo_root(json_in)
 
-    # Build audit record
+    # Build audit record. File content is NEVER logged whole: large or
+    # sensitive bodies stay out of the trail (preview + length only).
     record = {
         "timestamp": time.time(),
         "tool": tool_name,
-        "input": tool_input,
+        "input": _redacted_input(tool_input),
         "output_summary": str(tool_output)[:500] if tool_output else None,
         # Intent bridge: stamp each record with the active session intent so
         # the log answers "who did what, under which intent".
@@ -348,30 +371,37 @@ def audit(json_in: dict) -> dict:
     for event in notable_events:
         _try_generate_code_doc(event)
 
-    # Auto-load relevant code-docs for current task context (non-blocking)
-    try:
-        from .code_docs import load_context_for_task
-        task_desc = str(tool_input.get("command", "")) or str(tool_input.get("path", ""))
-        if tool_output:
-            task_desc += " " + str(tool_output)[:200]
-        if task_desc.strip():
-            doc_context = load_context_for_task(task_desc)
-            if doc_context:
-                record["related_docs"] = doc_context
-    except Exception:
-        pass
+    # Auto-load relevant code-docs for current task context (non-blocking).
+    # Terminal-only: file_editor bodies already trigger doc generation above;
+    # scanning the whole code-docs tree per write is the audit hot path.
+    if tool_name == "terminal":
+        try:
+            from .code_docs import load_context_for_task
+            task_desc = str(tool_input.get("command", ""))
+            if tool_output:
+                task_desc += " " + str(tool_output)[:200]
+            if task_desc.strip():
+                doc_context = load_context_for_task(task_desc)
+                if doc_context:
+                    record["related_docs"] = doc_context
+        except Exception:
+            pass
 
     if warnings:
         record["methodology_warnings"] = warnings
 
     log_path = pathlib.Path(root).absolute() / log_file()
 
-    # Ensure log directory exists
-    log_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        # Ensure log directory exists
+        log_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Append record
-    with open(log_path, "a", encoding="utf-8") as f:
-        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        # Append record
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except OSError as exc:
+        import sys
+        print(f"audit log write failed: {exc}", file=sys.stderr)
 
     result = {"decision": "allow"}
     if warnings:

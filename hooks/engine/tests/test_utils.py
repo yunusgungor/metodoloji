@@ -139,6 +139,13 @@ def test_is_code_target_exec_config():
     assert is_code_target("package.json")
 
 
+def test_is_code_target_src_md_not_code():
+    # CODE_DIRS shortcut must not promote data files: src/*.md is docs.
+    assert not is_code_target("src/README.md")
+    assert not is_code_target("SRC/notes.md")
+    assert not is_code_target("Src/data.json")
+
+
 def test_is_code_target_toolchain_config_not_code():
     # Brownfield false-block class: bundler/ORM/TS configs are not app code.
     assert not is_code_target("prisma.config.ts")

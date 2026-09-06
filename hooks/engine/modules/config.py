@@ -4,8 +4,15 @@ import os
 import pathlib
 import re
 
-# Runtime detection
+# Runtime detection. Module-level constant kept for backward compatibility,
+# but main.py sets METODOLOJI_RUNTIME from --runtime= AFTER imports, so live
+# code must call runtime() instead of reading RUNTIME.
 RUNTIME = os.environ.get("METODOLOJI_RUNTIME", "claude")
+
+
+def runtime() -> str:
+    """Live runtime value (main.py may set it after import)."""
+    return os.environ.get("METODOLOJI_RUNTIME", "claude")
 
 # Gate script location — resolved inside the methodology root.
 # config.py lives at <methodology-root>/hooks/engine/modules/config.py:
@@ -43,14 +50,16 @@ def log_file() -> str:
 # read independently.
 _HOOKS_CFG = _METHODOLOGY_ROOT / "custom" / "config.toml"
 
-def _hook_gate_value(gate_key: str, default: str = "soft") -> str:
-    """Return the value of a [hooks] gate key: 'hard' when set, else `default`.
+def _hook_gate_value(gate_key: str, *args) -> str:
+    """Return the value of a [hooks] gate key: 'hard'/'soft' when set, else default.
 
-    A malformed/missing config falls back to `default` (soft for
-    quality_gate/deploy_guard; hard for code_guard — code writes stay
-    fail-closed unless explicitly relaxed). Only the named key is
-    read, so gates stay independent.
+    Default comes from _GATE_DEFAULTS (soft for quality_gate/deploy_guard,
+    hard for code_guard/stop_guard). A positional default may be passed for
+    backward compatibility with single-arg mocks in tests; the table wins
+    when no override is given. Only the named key is read, so gates stay
+    independent.
     """
+    default = args[0] if args else _GATE_DEFAULTS.get(gate_key, "soft")
     try:
         text = _HOOKS_CFG.read_text(encoding="utf-8")
     except OSError:
@@ -88,7 +97,7 @@ def hook_gate_mode(gate_key: str) -> str:
     an import-time constant would go stale, and one gate's mode must never
     leak into the other's semantics.
     """
-    return _hook_gate_value(gate_key, _GATE_DEFAULTS.get(gate_key, "soft"))
+    return _hook_gate_value(gate_key)
 
 # Code classification
 NON_CODE_EXTS = {
@@ -166,6 +175,8 @@ ARCHIVE_MAX_FILE = 512 * 1024 * 1024
 ARCHIVE_MAX_COMPRESSED = 64 * 1024 * 1024
 ARCHIVE_MAX_MEMBERS = 200_000
 ARCHIVE_MAX_UNCOMPRESSED = 2 * 1024 * 1024 * 1024
+# Per-member cap: without it a single 2GB member passes the total check.
+ARCHIVE_MAX_MEMBER = 256 * 1024 * 1024
 
 TAR_ARG_OPTS = frozenset({
     "-C", "--directory", "-f", "--file", "--exclude", "--owner", "--group",
@@ -178,6 +189,13 @@ TAR_ARG_OPTS = frozenset({
 # Secret protection
 _BMD_DIR = re.compile(r"(?i)(?:^|[\\/~\s\"'=])\.bmad(?=[\\/\s\"'*?\[\]]|$)")
 _AGENT_ZONES = ("scratch/", "tmp/", "temp/")
+# Secret access needs an access context (assignment, env read, file open),
+# not a bare substring — "secret_env" alone appears in ordinary prose.
 _KEY_ACCESS_IN_CONTENT = re.compile(
-    r"(?i)(?:\.bmad|gate-key|bmad_gate_key|load_secret|gate_token|secret_file|secret_env)"
+    r"(?i)(?:"
+    r"\.bmad(?=[\\/\s\"'*?\[\]]|$)|"  # .bmad dir reference (path boundary)
+    r"gate-key|"                       # key filename — specific enough bare
+    r"bmad_gate_key|gate_token|"        # exact key/token identifiers
+    r"(?:load_secret|secret_file|secret_env)\s*[(=:\[]"  # call/assign/open context
+    r")"
 )

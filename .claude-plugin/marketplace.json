@@ -8,7 +8,7 @@
     {
       "name": "metodoloji",
       "source": "./",
-      "description": "BMAD methodology: record chain, hard gate, 123 skills / 120 bridge TOMLs",
+      "description": "BMAD methodology: record chain, hard gate, 123 skills / 119 bridge TOMLs",
       "version": "1.0.0",
       "defaultEnabled": false
     }

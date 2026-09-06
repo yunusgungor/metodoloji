@@ -29,7 +29,7 @@ def _load_gate():
         import run_experiment as _gate  # noqa: E402
         gate = _gate
         return True
-    except ImportError as exc:
+    except Exception as exc:
         sys.stderr.write(f"metodoloji-hooks: gate import failed — {exc}\n")
         return False
 
@@ -409,6 +409,29 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
     return True, ""
 
 
+# Verified-scope cache: find_approved runs gate.verify (HMAC) over every
+# record per call. Cache per record mtime so repeated writes in a session
+# don't re-verify unchanged records. Bounded (128 entries) and keyed by
+# absolute path — a changed record (new mtime) re-verifies.
+_VERIFY_CACHE: dict[str, tuple[float, int, str]] = {}
+
+
+def _cached_verify(rec: str) -> tuple[int, str]:
+    """verify_record with a small mtime-keyed cache."""
+    try:
+        mtime = pathlib.Path(rec).stat().st_mtime
+    except OSError:
+        return verify_record(rec)
+    hit = _VERIFY_CACHE.get(rec)
+    if hit is not None and hit[0] == mtime:
+        return hit[1], hit[2]
+    rc, scope = verify_record(rec)
+    if len(_VERIFY_CACHE) >= 128:
+        _VERIFY_CACHE.pop(next(iter(_VERIFY_CACHE)))
+    _VERIFY_CACHE[rec] = (mtime, rc, scope)
+    return rc, scope
+
+
 def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> tuple[bool, str]:
     """Find a VERIFIED record whose scope matches target."""
     if not _load_gate():
@@ -417,6 +440,8 @@ def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> t
     if not root:
         root = repo_root({})
     recs_dir = recs_dir or "docs/experiments"
+    if pathlib.PurePosixPath(recs_dir).is_absolute():
+        return False, "absolute recs_dir rejected"
     base = pathlib.Path(root) / recs_dir
     if not base.is_dir():
         return False, "docs/experiments/ not found"
@@ -425,13 +450,17 @@ def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> t
     for rec in sorted(base.glob("*.md")):
         if rec.name == "_template.md":
             continue
-        rc, scope = verify_record(str(rec))
+        rc, scope = _cached_verify(str(rec))
         if rc == 3:
             key_missing = True
             continue
         if rc != 0:
             continue
-        if gate.scope_matches(scope, target_rel):
+        try:
+            matched = gate.scope_matches(scope, target_rel)
+        except Exception:
+            continue
+        if matched:
             return True, f"record {rec} (scope matched)"
         if best is None:
             best = f"record {rec} scope not matched"
@@ -765,7 +794,7 @@ def quality(json_in: dict) -> dict:
     if not _is_git_commit(command):
         return {"decision": "allow"}
 
-    root = repo_root({})
+    root = repo_root(json_in)
     root = os.path.abspath(root)
     return _apply_gate_strictness(_check_gate_records(root, "git commit blocked"),
                                   "quality_gate")
@@ -794,8 +823,8 @@ def _apply_gate_strictness(result: dict, gate_key: str) -> dict:
     """
     if result.get("decision") != "deny":
         return result
-    from .config import _hook_gate_value
-    if _hook_gate_value(gate_key) != "hard":
+    from .config import hook_gate_mode
+    if hook_gate_mode(gate_key) != "hard":
         return {"decision": "allow", "methodology_warnings": [result["reason"]]}
     return result
 
@@ -876,7 +905,7 @@ def deploy(json_in: dict) -> dict:
     if not command or not _DEPLOY_CMD_RE.search(command):
         return {"decision": "allow"}
 
-    root = repo_root({})
+    root = repo_root(json_in)
     root = os.path.abspath(root)
     return _apply_gate_strictness(_check_gate_records(root, "Deploy blocked", include_pr=True),
                                   "deploy_guard")

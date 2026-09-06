@@ -2,7 +2,7 @@
 
 # metodoloji
 
-**BMAD methodology as a dual-runtime plugin** — 125 skills, 123 bridge TOMLs and
+**BMAD methodology as a dual-runtime plugin** — 123 skills, 119 bridge TOMLs and
 mechanical gates that make the record chain **E → IR → SP → S → QR → PR**
 actually enforceable in [OpenHands](https://github.com/All-Hands-AI/OpenHands) and [Claude Code](https://code.claude.com).
 
@@ -50,10 +50,10 @@ edit, commit and deploy, and refuse to proceed unless the methodology says so.
 
 ## Skill Ecosystem
 
-125 skills bridged to methodology records via 123 custom TOMLs. Skills are namespaced by domain:
+123 skills bridged to methodology records via 119 custom TOMLs. Skills are namespaced by domain:
 
 <div align="center">
-<img src="docs/images/skill-ecosystem.png" alt="Skill ecosystem: 8 domain namespaces radiating from a 125-skill hub" width="760" />
+<img src="docs/images/skill-ecosystem.png" alt="Skill ecosystem: 8 domain namespaces radiating from a 123-skill hub" width="760" />
 </div>
 
 | Namespace | Skills | Description |
@@ -153,8 +153,8 @@ metodoloji/
 │   ├── hooks.json          # single manifest, shared by both runtimes
 │   ├── scripts/            # run-hook.sh, bootstrap.sh, hook-entry.sh
 │   └── engine/             # main.py + 10+ enforcement modules
-├── skills/                 # 125 skill directories (SKILL.md + customize.toml)
-├── custom/                 # 123 bridge TOMLs  (skill ↔ record mappings)
+├── skills/                 # 123 skill directories (SKILL.md + customize.toml)
+├── custom/                 # 119 bridge TOMLs  (skill ↔ record mappings)
 ├── configs/                # 17 named config packages (default.yaml)
 ├── templates/              # record templates: _template_{E,IR,SP,S,QR,PR}.md
 ├── commands/               # slash commands: init, gate-setup, audit, verify
