@@ -321,6 +321,44 @@ def test_deep_merge_tables_and_scalars():
     assert rc.deep_merge(base, over) == {"a": {"b": 10, "c": 2}, "list": [1, 2, 3]}
 
 
+def test_bridge_arrays_replace_not_append(plugin, tmp_path):
+    project = _make_project(tmp_path)
+    # Installer YAML carries the FULL value of a key, not a delta: the legacy
+    # bridge must REPLACE arrays, not append ("en" + ["tr"] must not become
+    # ["en", "tr"] — the real repo duplicated every list that way).
+    _write_toml(plugin / "bmad" / "config.toml", '[modules.wds]\nproduct_languages = ["en"]\n')
+    _write_yaml(project / "bmad" / "wds" / "config.yaml", "product_languages:\n  - tr\n")
+    out = _run(plugin, project, "--module", "wds")
+    assert out["wds"]["product_languages"] == ["tr"]
+
+
+def test_same_file_layers_not_double_applied(tmp_path):
+    # When the methodology runs AS its own project, {metodoloji-root} ==
+    # {project-root} and plugin/project layers point at the SAME files.
+    # Double-applying append-merged arrays duplicated every list (4 → 8).
+    import shutil
+    import subprocess
+
+    root = tmp_path / "selfhost"
+    root.mkdir()
+    _write_toml(
+        root / "bmad" / "config.toml",
+        '[modules.gds]\nprimary_platform = ["unity", "unreal", "godot", "other"]\n',
+    )
+    dest = root / "bmad" / "scripts"
+    dest.mkdir(parents=True)
+    shutil.copy(_SCRIPT, dest / "resolve_config.py")
+    cmd = [
+        sys.executable, str(dest / "resolve_config.py"),
+        "--project-root", str(root), "--module", "gds",
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+    import json
+    out = json.loads(proc.stdout)
+    assert out["gds"]["primary_platform"] == ["unity", "unreal", "godot", "other"]
+
+
 def test_keyed_array_merge_by_code():
     base = {"agents": [{"code": "x", "name": "A"}, {"code": "y", "name": "B"}]}
     over = {"agents": [{"code": "y", "name": "B2"}]}

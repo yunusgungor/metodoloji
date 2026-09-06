@@ -64,6 +64,10 @@ Merge rules (same as resolve_customization.py):
   - Tables: deep merge
   - Arrays of tables where every item shares `code` or `id`: merge by that key
   - All other arrays: append
+
+  Exception — the legacy YAML bridge REPLACES arrays instead of appending:
+  installer YAML files carry full values, not deltas (see
+  ``_legacy_bridge_merge``).
 """
 
 import argparse
@@ -268,9 +272,11 @@ def apply_legacy_bridge(project_root: Path, merged: dict, wanted_modules: list[s
         if section or core_keys:
             # Even a core-only legacy file (no module-specific keys) registers
             # the module, so `--module <code>` keeps resolving for old installs.
-            modules_table[code] = deep_merge(dict(modules_table.get(code) or {}), section)
+            modules_table[code] = _legacy_bridge_merge(
+                dict(modules_table.get(code) or {}), section
+            )
     if legacy_core:
-        result["core"] = deep_merge(dict(result.get("core") or {}), legacy_core)
+        result["core"] = _legacy_bridge_merge(dict(result.get("core") or {}), legacy_core)
     if modules_table:
         result["modules"] = modules_table
 
@@ -342,6 +348,27 @@ def deep_merge(base, override):
     return override
 
 
+def _legacy_bridge_merge(base: dict, override: dict) -> dict:
+    """deep_merge variant for the legacy YAML bridge: arrays REPLACE.
+
+    deep_merge's array rule is append (correct for additive overrides such as
+    agent rosters). The bridge is different: installer YAML files hold the
+    FULL value of every key, and the installer wrote identical values into
+    both config.toml and config.yaml — appending there DUPLICATED every list
+    (product_languages: [en, en]). At the bridge boundary arrays are replaced
+    wholesale; TOML layers applied afterwards keep their own semantics.
+    """
+    if isinstance(base, dict) and isinstance(override, dict):
+        result = dict(base)
+        for key, over_val in override.items():
+            if key in result and isinstance(result[key], dict) and isinstance(over_val, dict):
+                result[key] = _legacy_bridge_merge(result[key], over_val)
+            else:
+                result[key] = over_val
+        return result
+    return override
+
+
 def extract_key(data, dotted_key: str):
     parts = dotted_key.split(".")
     current = data
@@ -405,6 +432,23 @@ def main():
     project_user = load_toml(project_bmad_dir / "config.user.toml")
     output_team = load_toml(project_output_dir / "config.toml")
     output_user = load_toml(project_output_dir / "config.user.toml")
+
+    # Dedup guard: when the methodology runs AS its own project (this repo),
+    # {metodoloji-root} == {project-root} and the plugin and project layers
+    # resolve to the SAME files. Loading them twice double-applies array
+    # append semantics (4-element lists became 8). Skip identical paths —
+    # the later project layer has no new information to add.
+    def _same_file(a: Path, b: Path) -> bool:
+        return a.exists() and b.exists() and a.resolve() == b.resolve()
+
+    if _same_file(bmad_dir / "config.toml", project_bmad_dir / "config.toml"):
+        project_team = {}
+    if _same_file(bmad_dir / "config.user.toml", project_bmad_dir / "config.user.toml"):
+        project_user = {}
+    if _same_file(custom_dir / "config.toml", project_bmad_dir / "config.toml"):
+        project_team = {}
+    if _same_file(custom_dir / "config.user.toml", project_bmad_dir / "config.user.toml"):
+        project_user = {}
 
     merged = deep_merge(base_team, base_user)
     merged = deep_merge(merged, custom_team)
