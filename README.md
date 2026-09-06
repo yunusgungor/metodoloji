@@ -2,13 +2,13 @@
 
 # metodoloji
 
-**BMAD methodology as a dual-runtime plugin** — 123 skills, 119 bridge TOMLs and
-mechanical gates that make the record chain **E → IR → SP → S → QR → PR**
-actually enforceable in [OpenHands](https://github.com/All-Hands-AI/OpenHands) and [Claude Code](https://code.claude.com).
+**BMAD methodology as a dual-runtime plugin for [OpenHands](https://github.com/All-Hands-AI/OpenHands) and [Claude Code](https://code.claude.com)**
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.0-8A2BE2.svg)
-![Platform: OpenHands + Claude Code](https://img.shields.io/badge/platform-OpenHands%20%2B%20Claude%20Code-4B32C3.svg)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.0.0-8A2BE2.svg?style=flat-square)
+![Platform](https://img.shields.io/badge/platform-OpenHands%20%2B%20Claude%20Code-4B32C3.svg?style=flat-square)
+
+<br/>
 
 <img src="docs/images/record-chain.png" alt="Record chain: E → IR → SP → S → QR → PR" width="820" />
 
@@ -16,103 +16,78 @@ actually enforceable in [OpenHands](https://github.com/All-Hands-AI/OpenHands) a
 
 ---
 
-## Built on BMAD 🧡
+## The problem
 
-**metodoloji is inspired by — and would not exist without — the
-[BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD) project**
-(*Breakthrough Method for Agile AI-Driven Development*) and the wider
-[BMAD ecosystem](https://bmadcode.com). We are deeply grateful to the BMad Code team
-for creating and open-sourcing a methodology that puts thinking back into
-agent-driven development. This plugin adapts their ideas into a ready-to-install
-plugin with mechanical enforcement. **Thank you! 🙏**
+AI coding agents are fast — and dangerously eager to write code before anyone has *thought*. There's no built-in gate between "I have an idea" and "I'm already touching files."
+
+**metodoloji** fixes this mechanically. It enforces a six-stage record chain:
+
+```
+E → IR → SP → S → QR → PR
+```
+
+Every stage must be completed and HMAC-signed before the next one unlocks. Hooks watch every file edit, commit, and deploy — and block if the methodology isn't satisfied.
 
 ---
 
-## What it does
+## How it works
 
-Agentic coding tools are great at writing code — and too eager to write it before
-anyone has *thought*. `metodoloji` fixes that **mechanically**: hooks watch every
-edit, commit and deploy, and refuse to proceed unless the methodology says so.
+The same `hooks/hooks.json` manifest is auto-discovered by both runtimes. OpenHands and Claude Code share one hook engine; each command resolves its installation path at runtime. Methodology records are always written to your **project root**, never inside the plugin.
 
-<div align="center">
-<img src="docs/images/hook-architecture.png" alt="Hook architecture: SessionStart, PreToolUse guard/quality/deploy, PostToolUse audit, Stop — all feeding into hooks/engine/main.py" width="760" />
-</div>
+**Guard (fail-closed)** — writing any code requires an approved Experiment record. No approval → no edit.
 
-**Guard (fail-closed)** — writing code requires an **approved experiment (E)**. No approval, no edit.
-
-**Quality / Deploy (soft or hard)** — `git commit` and deploy commands require the full record chain (IR → SP → QR → PR).
+**Quality / Deploy** — `git commit` and deploy commands require the full chain: IR → SP → QR → PR.
 
 **Stop (fail-closed)** — the session cannot close with unfinished stories or unapproved changes.
 
-**PostToolUse audit** — every write, edit and bash call is logged to `.metodoloji/logs/hook-audit.log` asynchronously.
+**PostToolUse audit** — every write, edit, and bash call is logged to `.metodoloji/logs/hook-audit.log` asynchronously.
+
+### Record chain stages
+
+
+| Stage | Full name                | Purpose                                        |
+| ----- | ------------------------ | ---------------------------------------------- |
+| E     | Experiment               | Define hypothesis, scope, and success criteria |
+| IR    | Implementation Readiness | Verify design and prerequisites before coding  |
+| SP    | Sprint Plan              | Break work into traceable stories              |
+| S     | Story                    | Atomic unit of implementable work              |
+| QR    | Quality Review           | Gate before merge — tests, coverage, review    |
+| PR    | Production Readiness     | Final checklist before deploy                  |
+
 
 ---
 
-## Skill Ecosystem
+## Installation
 
-123 skills bridged to methodology records via 119 custom TOMLs. Skills are namespaced by domain:
+> The plugin is **opt-in** — you must enable it explicitly.
 
-<div align="center">
-<img src="docs/images/skill-ecosystem.png" alt="Skill ecosystem: 8 domain namespaces radiating from a 123-skill hub" width="760" />
-</div>
-
-| Namespace | Skills | Description |
-|-----------|--------|-------------|
-| `bmad-*` | 60+ | Core methodology — agents, research, architecture, PRD, story, review |
-| `gds-*` | 25+ | Game development studio — design, code, test, playtest |
-| `wds-*` | 9 | Workflow design studio — brief → scenarios → UX → assets → evolution |
-| `bmad-testarch-*` | 6 | Test architecture — framework, design, ATDD, NFR, trace, CI |
-| `bmad-cis-*` / `bmad-tea-*` | 8 | Creative intelligence — innovation, storytelling, design thinking |
-| `bmad-loop-*` | 3 | Automation loop — setup, sweep, resolve |
-| `qa-*` / `eval-*` | 4 | Quality gates and benchmark runners |
-| `memory` / `sync` | 2 | Cross-session context persistence |
-
----
-
-## Quick start
-
-### Platform Installation
-
-<div align="center">
-<img src="docs/images/platform-install.png" alt="Installation steps for OpenHands SDK and Claude Code marketplace" width="760" />
-</div>
-
-### OpenHands (SDK)
+### OpenHands
 
 ```python
-from openhands.sdk.plugin import Plugin
-
-# Load from GitHub
-Plugin.load(Plugin.fetch("github:yunusgungor/metodoloji"))
-
-# Or persist it and auto-load in later sessions
 from openhands.sdk.plugin import install_plugin
-install_plugin("github:yunusgungor/metodoloji")  # → ~/.openhands/plugins/installed/metodoloji/
+install_plugin("github:yunusgungor/metodoloji")
+# installs to → ~/.openhands/plugins/installed/metodoloji/
 ```
 
-### Claude Code (marketplace)
+### Claude Code
 
-```
+```bash
 /plugin marketplace add https://github.com/yunusgungor/metodoloji
 /plugin install metodoloji@metodoloji
 claude plugin enable metodoloji
 ```
 
-> The plugin is **opt-in** (`defaultEnabled: false`) — enable it explicitly, as above.
-
 ### First session
 
 ```bash
-/metodoloji:init          # install the record skeleton + templates into your project
-/metodoloji:gate-setup    # generate ~/.bmad/gate-key (machine-local, HMAC signing)
+/metodoloji:init        # creates record skeleton + templates in your project
+/metodoloji:gate-setup  # generates ~/.bmad/gate-key (machine-local HMAC secret)
 ```
 
-Then run an experiment, get it **APPROVED** through the gate, and the guard opens
-your code scope (`{metodoloji-root}` = this plugin's installation root —
-`~/.openhands/plugins/installed/metodoloji/` on OpenHands,
-`~/.claude/plugins/cache/yunusgungor/metodoloji/` on Claude Code):
+Once set up, run an experiment and get it **APPROVED** to open your code scope:
 
 ```bash
+# {metodoloji-root} resolves at runtime to the plugin's installation directory
 python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py \
   --record docs/experiments/E-001.md \
   --run "python scripts/bench/bench.py"
@@ -120,65 +95,21 @@ python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment
 
 ---
 
-## How it works
-
-```
-E (Experiment) → IR (Implementation Readiness) → SP (Sprint Planning)
-→ S (Story) → QR (Quality Review) → PR (Production Readiness)
-```
-
-A single unified `hooks/hooks.json` is auto-discovered by **both** runtimes —
-OpenHands and Claude Code share the same hook engine, and hook commands resolve
-their own installation path at runtime. Methodology outputs are always written
-under your **project root**, never inside the plugin.
-
-### Security model
-
-HMAC-signed gate records prevent forgery. The gate key lives at `~/.bmad/gate-key` — machine-local, never committed. A tampered or missing signature causes the guard hook to fail-closed immediately.
-
-```
-~/.bmad/gate-key   ←  machine-local HMAC secret
-     │
-     ▼
-hooks/engine/main.py  ←  verifies every E record signature before allowing writes
-     │
-     └── on failure → exit(1) → Claude/OpenHands blocks the tool call
-```
-
-### Directory layout
-
-```
-metodoloji/
-├── hooks/
-│   ├── hooks.json          # single manifest, shared by both runtimes
-│   ├── scripts/            # run-hook.sh, bootstrap.sh, hook-entry.sh
-│   └── engine/             # main.py + 10+ enforcement modules
-├── skills/                 # 123 skill directories (SKILL.md + customize.toml)
-├── custom/                 # 119 bridge TOMLs  (skill ↔ record mappings)
-├── configs/                # 17 named config packages (default.yaml)
-├── templates/              # record templates: _template_{E,IR,SP,S,QR,PR}.md
-├── commands/               # slash commands: init, gate-setup, audit, verify
-├── docs/
-│   ├── images/             # infographic PNGs (record-chain, hook-architecture, …)
-│   ├── USAGE-GUIDE.md      # full reference (records, gates, security, FAQ)
-│   ├── CLAUDE.md           # Claude-specific setup and behavior
-│   └── experiments/        # sample experiment records (E-001 … E-013)
-└── bmad/                   # BMAD module help CSVs and config
-```
-
----
-
 ## Documentation
 
-| Document | Contents |
-|----------|----------|
-| [**Usage Guide**](docs/USAGE-GUIDE.md) | Everything: records, gates, security, troubleshooting, FAQ |
-| [Claude Code guide](docs/CLAUDE.md) | Claude-specific setup and behavior |
-| [Training lessons](docs/TRAINING-LESSONS.md) | Lessons learned from running the methodology |
-| [Dev methodology](docs/bmad/development-methodology.md) | Internal development methodology |
+
+| Document                                     | Contents                                             |
+| -------------------------------------------- | ---------------------------------------------------- |
+| [**Usage Guide**](docs/USAGE-GUIDE.md)       | Records, gates, security model, troubleshooting, FAQ |
+| [Claude Code guide](docs/CLAUDE.md)          | Claude-specific setup and behaviour                  |
+| [Training lessons](docs/TRAINING-LESSONS.md) | Lessons learned from running the methodology         |
+
 
 ---
 
-## License
+<div align="center">
 
-MIT. Based on [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD)
+MIT License · Built on [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD) — thank you to the BMad Method team 🙏
+
+</div>
+
