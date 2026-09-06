@@ -320,7 +320,7 @@ def stop(json_in: dict) -> dict:
     result = {"decision": "allow"}
     try:
         from .code_docs import load_pending_docs
-        pending = load_pending_docs()
+        pending = load_pending_docs(root=root)
         if pending:
             result["pending_docs"] = pending
     except Exception:

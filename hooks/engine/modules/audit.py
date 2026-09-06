@@ -150,8 +150,15 @@ def _detect_notable_events(tool_name: str, tool_input: dict, tool_output: dict) 
     return events
 
 
-def _try_generate_code_doc(event: dict):
-    """Try to generate a code doc from a detected event. Non-blocking."""
+def _try_generate_code_doc(event: dict, audit_record: dict | None = None,
+                           root: str | None = None):
+    """Try to generate a code doc from a detected event. Non-blocking.
+
+    On failure the error is written to stderr AND stamped into *audit_record*
+    (if provided) so the audit trail captures the failure instead of silently
+    dropping it.  *root* is forwarded to all create_* calls so docs land in
+    the correct project directory rather than relying on env vars.
+    """
     try:
         from .code_docs import (create_learning, create_decision,
                                 create_troubleshooting, create_pending,
@@ -161,6 +168,7 @@ def _try_generate_code_doc(event: dict):
             create_learning(
                 experiment_id=event["experiment_id"],
                 record_path=event["record_path"],
+                root=root,
             )
 
         elif event["type"] == "decision" and "path" in event:
@@ -168,6 +176,7 @@ def _try_generate_code_doc(event: dict):
                 title=f"Architecture change: {os.path.basename(event['path'])}",
                 decision=event.get("content_preview", "Architecture file modified"),
                 rationale="Auto-detected by audit hook",
+                root=root,
             )
 
         elif event["type"] == "troubleshooting" and "command" in event:
@@ -176,6 +185,7 @@ def _try_generate_code_doc(event: dict):
                 error=event.get("error_preview", "Error detected"),
                 cause="Auto-detected by audit hook",
                 solution="Fix not yet added — manual update needed",
+                root=root,
             )
 
         elif event["type"] == "pending":
@@ -198,6 +208,7 @@ def _try_generate_code_doc(event: dict):
                 next_steps="Should be updated manually",
                 priority="normal",
                 tags=["pending", "auto-detected"],
+                root=root,
             )
 
         elif event["type"] == "pattern" and "path" in event:
@@ -211,6 +222,7 @@ def _try_generate_code_doc(event: dict):
                 pattern=event.get("content_preview", "Code structure detected"),
                 usage=f"Observed in {event['path']}",
                 tags=["pattern", "auto-detected"],
+                root=root,
             )
 
         elif event["type"] == "api" and "path" in event:
@@ -221,10 +233,16 @@ def _try_generate_code_doc(event: dict):
                 signature=route or event.get("path", ""),
                 usage=event.get("content_preview", "Endpoint detected"),
                 tags=["api", "auto-detected"],
+                root=root,
             )
     except Exception as exc:
         import sys
-        print(f"code-docs generation warning: {exc}", file=sys.stderr)  # Non-blocking, but visible for debugging
+        msg = f"code-docs generation warning [{event.get('type', '?')}]: {exc}"
+        print(msg, file=sys.stderr)
+        # Stamp failure into audit record so the trail is not silent
+        if audit_record is not None:
+            errs = audit_record.setdefault("code_doc_errors", [])
+            errs.append({"event_type": event.get("type"), "error": str(exc)})
 
 
 def _validate_methodology_compliance(tool_name: str, tool_input: dict) -> list[str]:
@@ -313,16 +331,17 @@ def session_start(json_in: dict) -> dict:
     Returns additionalContext so the SessionStart event can inject it.
     """
     from .utils import repo_root
+    root = repo_root(json_in)
     try:
         from .stop import record_session_start
-        record_session_start(repo_root(json_in))
+        record_session_start(root)
     except Exception:
         pass
     try:
         from .code_docs import load_pending_docs, load_recent_docs
         ctx = "METODOLOJI session started. Record chain: E → IR → SP → S → QR → PR."
-        pending = load_pending_docs()
-        recent = load_recent_docs(n=5)
+        pending = load_pending_docs(root=str(root))
+        recent = load_recent_docs(n=5, root=str(root))
         if pending or recent:
             ctx += "\n\n"
         if pending:
@@ -373,7 +392,7 @@ def audit(json_in: dict) -> dict:
     # Detect notable events for code doc generation (non-blocking)
     notable_events = _detect_notable_events(tool_name, tool_input, tool_output)
     for event in notable_events:
-        _try_generate_code_doc(event)
+        _try_generate_code_doc(event, audit_record=record, root=str(root))
 
     # Auto-load relevant code-docs for current task context (non-blocking).
     # Terminal-only: file_editor bodies already trigger doc generation above;
@@ -385,7 +404,7 @@ def audit(json_in: dict) -> dict:
             if tool_output:
                 task_desc += " " + str(tool_output)[:200]
             if task_desc.strip():
-                doc_context = load_context_for_task(task_desc)
+                doc_context = load_context_for_task(task_desc, root=str(root))
                 if doc_context:
                     record["related_docs"] = doc_context
         except Exception:

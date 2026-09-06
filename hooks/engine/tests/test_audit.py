@@ -305,3 +305,167 @@ def test_audit_log_intent_empty_when_no_memlog(tmp_path, monkeypatch):
     log = root / ".metodoloji/logs/hook-audit.log"
     line = json.loads(log.read_text(encoding="utf-8").splitlines()[-1])
     assert line.get("intent") == ""
+
+
+# ---------------------------------------------------------------------------
+# New tests for fixes applied 2026-09-06
+# ---------------------------------------------------------------------------
+
+# --- _try_generate_code_doc error stamping ----------------------------------
+
+def test_try_generate_code_doc_stamps_error_on_failure(tmp_path, monkeypatch):
+    """On failure, _try_generate_code_doc stamps code_doc_errors into audit_record."""
+    import sys
+    from modules.audit import _try_generate_code_doc
+
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+
+    # Make the directory read-only so create_pending will fail
+    docs_dir = tmp_path / "docs/code-docs/pending"
+    docs_dir.mkdir(parents=True)
+    docs_dir.chmod(0o444)
+
+    audit_record = {}
+    try:
+        _try_generate_code_doc(
+            {"type": "pending", "trigger": "todo_detected",
+             "path": "src/x.py", "description": "fix me"},
+            audit_record=audit_record,
+        )
+    finally:
+        docs_dir.chmod(0o755)  # restore for cleanup
+
+    assert "code_doc_errors" in audit_record
+    assert audit_record["code_doc_errors"][0]["event_type"] == "pending"
+
+
+def test_try_generate_code_doc_no_stamp_on_success(tmp_path, monkeypatch):
+    """On success, no code_doc_errors key is added to audit_record."""
+    from modules.audit import _try_generate_code_doc
+
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+
+    audit_record = {}
+    _try_generate_code_doc(
+        {"type": "pending", "trigger": "todo_detected",
+         "path": "src/x.py", "description": "something to fix"},
+        audit_record=audit_record,
+    )
+    assert "code_doc_errors" not in audit_record
+
+
+def test_try_generate_code_doc_error_printed_to_stderr(tmp_path, monkeypatch, capsys):
+    """Failure message is printed to stderr regardless of audit_record."""
+    from modules.audit import _try_generate_code_doc
+
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+
+    docs_dir = tmp_path / "docs/code-docs/pending"
+    docs_dir.mkdir(parents=True)
+    docs_dir.chmod(0o444)
+
+    try:
+        _try_generate_code_doc(
+            {"type": "pending", "trigger": "todo_detected",
+             "path": "src/x.py", "description": "fix me"},
+        )
+    finally:
+        docs_dir.chmod(0o755)
+
+    captured = capsys.readouterr()
+    assert "code-docs generation warning" in captured.err
+
+
+def test_audit_stamps_code_doc_errors_in_log(tmp_path, monkeypatch):
+    """When code-doc generation fails, the error shows up in the audit log record."""
+    import json
+    root = tmp_path
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(root))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+
+    # Create a read-only pending dir so auto-generation of pending docs fails
+    pending_dir = root / "docs/code-docs/pending"
+    pending_dir.mkdir(parents=True)
+    pending_dir.chmod(0o444)
+
+    try:
+        audit({
+            "tool_name": "file_editor",
+            "tool_input": {"path": "src/main.py", "content": "# TODO: fix this"},
+            "tool_output": None,
+        })
+    finally:
+        pending_dir.chmod(0o755)
+
+    log = root / ".metodoloji/logs/hook-audit.log"
+    assert log.exists()
+    record = json.loads(log.read_text(encoding="utf-8").splitlines()[-1])
+    assert "code_doc_errors" in record
+
+
+# --- session_start root propagation -----------------------------------------
+
+def test_session_start_uses_repo_root(tmp_path, monkeypatch):
+    """session_start reads code-docs from the resolved repo root, not cwd."""
+    import json
+    from modules.audit import session_start
+
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+
+    # Place a pending doc in the tmp_path code-docs
+    pending_dir = tmp_path / "docs/code-docs/pending"
+    pending_dir.mkdir(parents=True)
+    (pending_dir / "X-001-pending.md").write_text(
+        '---\nid: X-001\ntype: pending\ntitle: "Session pending"\n'
+        'date: 06.09.2026\ntags: [pending]\npriority: normal\nstatus: pending\n---\n',
+        encoding="utf-8",
+    )
+
+    result = session_start({"cwd": str(tmp_path)})
+    assert result["decision"] == "allow"
+    ctx = result.get("additionalContext", "")
+    assert "Session pending" in ctx
+
+
+def test_try_generate_code_doc_writes_to_given_root(tmp_path, monkeypatch):
+    """_try_generate_code_doc(root=...) writes docs to the given root, not env root."""
+    monkeypatch.delenv("CLAUDE_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    from modules.audit import _try_generate_code_doc
+
+    audit_record = {}
+    _try_generate_code_doc(
+        {"type": "pending", "trigger": "todo_detected",
+         "path": "src/x.py", "description": "root prop test"},
+        audit_record=audit_record,
+        root=str(tmp_path),
+    )
+    assert "code_doc_errors" not in audit_record
+    pending_dir = tmp_path / "docs/code-docs/pending"
+    assert pending_dir.exists()
+    docs = list(pending_dir.glob("X-*.md"))
+    assert len(docs) == 1
+    assert "root prop test" in docs[0].read_text(encoding="utf-8")
+
+
+def test_audit_end_to_end_docs_in_correct_root(tmp_path, monkeypatch):
+    """audit() end-to-end: TODO in file_editor content creates pending doc in project root."""
+    import json
+    root = tmp_path
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(root))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+
+    audit({
+        "tool_name": "file_editor",
+        "tool_input": {"path": "src/main.py", "content": "# TODO: integrate billing"},
+        "tool_output": None,
+    })
+
+    pending_dir = root / "docs/code-docs/pending"
+    docs = list(pending_dir.glob("X-*.md")) if pending_dir.exists() else []
+    assert len(docs) == 1
+    assert "billing" in docs[0].read_text(encoding="utf-8")

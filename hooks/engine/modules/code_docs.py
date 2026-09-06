@@ -40,24 +40,36 @@ def _get_project_root() -> pathlib.Path:
     Priority:
     1. CLAUDE_PROJECT_DIR (Claude Code standard)
     2. OPENHANDS_PROJECT_DIR (OpenHands standard)
-    3. os.getcwd() (last resort)
+    3. os.getcwd() (last resort — emits a warning to stderr)
     """
-    root = (
-        os.environ.get("CLAUDE_PROJECT_DIR")
-        or os.environ.get("OPENHANDS_PROJECT_DIR")
-        or os.getcwd()
+    claude_dir = os.environ.get("CLAUDE_PROJECT_DIR")
+    openhands_dir = os.environ.get("OPENHANDS_PROJECT_DIR")
+    root = claude_dir or openhands_dir
+    if root:
+        return pathlib.Path(root).absolute()
+    # cwd fallback: may point to the wrong directory when hooks run in
+    # a subprocess spawned from a different working directory.
+    import sys
+    cwd = os.getcwd()
+    print(
+        f"code_docs: WARNING — neither CLAUDE_PROJECT_DIR nor OPENHANDS_PROJECT_DIR "
+        f"is set. Falling back to cwd={cwd!r}. "
+        f"docs/code-docs may be written to the wrong location.",
+        file=sys.stderr,
     )
-    return pathlib.Path(root).absolute()
+    return pathlib.Path(cwd).absolute()
 
 
-def _get_code_docs_root() -> pathlib.Path:
+def _get_code_docs_root(root: str | None = None) -> pathlib.Path:
+    if root is not None:
+        return pathlib.Path(root).absolute() / CODE_DOCS_DIR
     return _get_project_root() / CODE_DOCS_DIR
 
 
-def _next_id(doc_type: str) -> str:
+def _next_id(doc_type: str, root: str | None = None) -> str:
     """Generate next sequential ID for a doc type."""
     info = DOC_TYPES[doc_type]
-    docs_dir = _get_code_docs_root() / info["dir"]
+    docs_dir = _get_code_docs_root(root) / info["dir"]
     if not docs_dir.exists():
         return f"{info['prefix']}-001"
 
@@ -79,12 +91,13 @@ def _slugify(text: str, max_len: int = 40) -> str:
     return slug[:max_len]
 
 
-def _write_doc(doc_type: str, slug: str, content: str) -> pathlib.Path:
+def _write_doc(doc_type: str, slug: str, content: str,
+               root: str | None = None) -> pathlib.Path:
     """Write a code doc file and return its path."""
     info = DOC_TYPES[doc_type]
-    doc_id = _next_id(doc_type)
+    doc_id = _next_id(doc_type, root=root)
     filename = f"{doc_id}-{slug}.md"
-    docs_dir = _get_code_docs_root() / info["dir"]
+    docs_dir = _get_code_docs_root(root) / info["dir"]
     docs_dir.mkdir(parents=True, exist_ok=True)
     path = docs_dir / filename
     # Replace placeholder ID in content with actual ID
@@ -93,15 +106,14 @@ def _write_doc(doc_type: str, slug: str, content: str) -> pathlib.Path:
     return path
 
 
-def _update_index():
+def _update_index(root: str | None = None):
     """Regenerate index.md from actual doc files."""
-    root = _get_code_docs_root()
-    index_path = root / "index.md"
+    docs_root = _get_code_docs_root(root)
+    index_path = docs_root / "index.md"
 
     if not index_path.exists():
-        # Create index.md from scratch
+        # Create index.md from scratch, then fall through to rebuild categories
         _create_index(index_path)
-        return
 
     lines = index_path.read_text(encoding="utf-8").splitlines()
     # Find the categories section and rebuild it
@@ -113,7 +125,7 @@ def _update_index():
             new_lines.append(line)
             new_lines.append("")
             for doc_type, info in DOC_TYPES.items():
-                type_dir = root / info["dir"]
+                type_dir = docs_root / info["dir"]
                 docs = sorted(type_dir.glob(f"{info['prefix']}-*.md")) if type_dir.exists() else []
                 new_lines.append(f"### [{TYPE_NAMES[doc_type]}](./{info['dir']}/) — {len(docs)} records")
                 for doc in docs[:5]:  # Show latest 5
@@ -134,7 +146,11 @@ def _update_index():
 
 
 def _create_index(index_path: pathlib.Path):
-    """Create a new index.md file."""
+    """Create a new index.md file with empty category stubs.
+
+    The caller (_update_index) always falls through to rebuild categories
+    immediately after, so the '0 records' lines are overwritten in the same call.
+    """
     content = """# Code Docs Index
 
 Structured documentation system used to remember project history and generate new knowledge.
@@ -486,58 +502,63 @@ status: pending
 # --- Write functions ---
 
 def create_learning(experiment_id: str, record_path: str,
-                    title: str = "", tags: list[str] | None = None) -> pathlib.Path:
+                    title: str = "", tags: list[str] | None = None,
+                    root: str | None = None) -> pathlib.Path:
     """Create and write a learning doc. Returns the path."""
     content = build_learning_doc(experiment_id, record_path, title, tags)
     slug = _slugify(title or f"experiment-{experiment_id}-learning")
-    path = _write_doc("learning", slug, content)
-    _update_index()
+    path = _write_doc("learning", slug, content, root=root)
+    _update_index(root=root)
     return path
 
 
 def create_decision(title: str, decision: str, rationale: str,
                     results: str = "", tags: list[str] | None = None,
                     related_experiments: list[str] | None = None,
-                    related_stories: list[str] | None = None) -> pathlib.Path:
+                    related_stories: list[str] | None = None,
+                    root: str | None = None) -> pathlib.Path:
     """Create and write a decision doc. Returns the path."""
     content = build_decision_doc(title, decision, rationale, results,
                                   tags, related_experiments, related_stories)
     slug = _slugify(title)
-    path = _write_doc("decision", slug, content)
-    _update_index()
+    path = _write_doc("decision", slug, content, root=root)
+    _update_index(root=root)
     return path
 
 
 def create_troubleshooting(title: str, error: str, cause: str,
                            solution: str, prevention: str = "",
-                           tags: list[str] | None = None) -> pathlib.Path:
+                           tags: list[str] | None = None,
+                           root: str | None = None) -> pathlib.Path:
     """Create and write a troubleshooting doc. Returns the path."""
     content = build_troubleshooting_doc(title, error, cause, solution,
                                          prevention, tags)
     slug = _slugify(title)
-    path = _write_doc("troubleshooting", slug, content)
-    _update_index()
+    path = _write_doc("troubleshooting", slug, content, root=root)
+    _update_index(root=root)
     return path
 
 
 def create_pattern(title: str, pattern: str, usage: str,
                    example: str = "", pros: str = "", cons: str = "",
-                   tags: list[str] | None = None) -> pathlib.Path:
+                   tags: list[str] | None = None,
+                   root: str | None = None) -> pathlib.Path:
     """Create and write a pattern doc. Returns the path."""
     content = build_pattern_doc(title, pattern, usage, example, pros, cons, tags)
     slug = _slugify(title)
-    path = _write_doc("pattern", slug, content)
-    _update_index()
+    path = _write_doc("pattern", slug, content, root=root)
+    _update_index(root=root)
     return path
 
 
 def create_api(title: str, signature: str, usage: str,
-               notes: str = "", tags: list[str] | None = None) -> pathlib.Path:
+               notes: str = "", tags: list[str] | None = None,
+               root: str | None = None) -> pathlib.Path:
     """Create and write an API doc. Returns the path."""
     content = build_api_doc(title, signature, usage, notes, tags)
     slug = _slugify(title)
-    path = _write_doc("api", slug, content)
-    _update_index()
+    path = _write_doc("api", slug, content, root=root)
+    _update_index(root=root)
     return path
 
 
@@ -545,20 +566,27 @@ def create_pending(title: str, description: str, context: str = "",
                    next_steps: str = "", priority: str = "normal",
                    tags: list[str] | None = None,
                    related_experiments: list[str] | None = None,
-                   related_stories: list[str] | None = None) -> pathlib.Path:
+                   related_stories: list[str] | None = None,
+                   root: str | None = None) -> pathlib.Path:
     """Create and write a pending doc. Returns the path."""
     content = build_pending_doc(title, description, context, next_steps,
                                 priority, tags, related_experiments, related_stories)
     slug = _slugify(title)
-    path = _write_doc("pending", slug, content)
-    _update_index()
+    path = _write_doc("pending", slug, content, root=root)
+    _update_index(root=root)
     return path
 
 
 # --- Recall functions ---
 
 def _parse_frontmatter(content: str) -> dict:
-    """Parse YAML frontmatter from markdown content."""
+    """Parse YAML frontmatter from markdown content.
+
+    Handles both LF and CRLF line endings (files may arrive from Windows
+    editors or be git-checked-out with core.autocrlf=true).
+    """
+    # Normalise to LF so the regex and splitlines() work uniformly
+    content = content.replace("\r\n", "\n").replace("\r", "\n")
     match = re.match(r"^---\n(.+?)\n---", content, re.DOTALL)
     if not match:
         return {}
@@ -573,12 +601,12 @@ def _parse_frontmatter(content: str) -> dict:
     return fm
 
 
-def recall_by_tag(tag: str) -> list[dict]:
+def recall_by_tag(tag: str, root: str | None = None) -> list[dict]:
     """Find all docs matching a tag."""
     results = []
-    root = _get_code_docs_root()
+    docs_root = _get_code_docs_root(root)
     for doc_type, info in DOC_TYPES.items():
-        type_dir = root / info["dir"]
+        type_dir = docs_root / info["dir"]
         if not type_dir.exists():
             continue
         for doc in type_dir.glob(f"{info['prefix']}-*.md"):
@@ -599,12 +627,12 @@ def recall_by_tag(tag: str) -> list[dict]:
     return results
 
 
-def recall_by_experiment(experiment_id: str) -> list[dict]:
+def recall_by_experiment(experiment_id: str, root: str | None = None) -> list[dict]:
     """Find all docs related to a specific experiment."""
     results = []
-    root = _get_code_docs_root()
+    docs_root = _get_code_docs_root(root)
     for doc_type, info in DOC_TYPES.items():
-        type_dir = root / info["dir"]
+        type_dir = docs_root / info["dir"]
         if not type_dir.exists():
             continue
         for doc in type_dir.glob(f"{info['prefix']}-*.md"):
@@ -625,13 +653,13 @@ def recall_by_experiment(experiment_id: str) -> list[dict]:
     return results
 
 
-def recall_by_type(doc_type: str) -> list[dict]:
+def recall_by_type(doc_type: str, root: str | None = None) -> list[dict]:
     """List all docs of a specific type."""
     if doc_type not in DOC_TYPES:
         return []
     info = DOC_TYPES[doc_type]
-    root = _get_code_docs_root()
-    type_dir = root / info["dir"]
+    docs_root = _get_code_docs_root(root)
+    type_dir = docs_root / info["dir"]
     if not type_dir.exists():
         return []
     results = []
@@ -649,14 +677,15 @@ def recall_by_type(doc_type: str) -> list[dict]:
     return results
 
 
-def recall_all() -> dict[str, list[dict]]:
+def recall_all(root: str | None = None) -> dict[str, list[dict]]:
     """Get all code docs grouped by type."""
-    return {dt: recall_by_type(dt) for dt in DOC_TYPES}
+    return {dt: recall_by_type(dt, root=root) for dt in DOC_TYPES}
 
 
 # --- Auto-loading functions ---
 
-def load_context_for_task(task_description: str, task_type: str = "") -> str:
+def load_context_for_task(task_description: str, task_type: str = "",
+                          root: str | None = None) -> str:
     """Load relevant code-docs for a given task description.
 
     Scans task description for keywords, finds matching docs,
@@ -670,7 +699,7 @@ def load_context_for_task(task_description: str, task_type: str = "") -> str:
 
     # Search by keywords (tags)
     for keyword in keywords:
-        docs = recall_by_tag(keyword)
+        docs = recall_by_tag(keyword, root=root)
         for doc in docs:
             if doc["id"] not in seen_ids:
                 seen_ids.add(doc["id"])
@@ -679,14 +708,14 @@ def load_context_for_task(task_description: str, task_type: str = "") -> str:
     # Search by experiment references
     exp_matches = re.findall(r"E-\d+", task_description)
     for exp_id in exp_matches:
-        docs = recall_by_experiment(exp_id)
+        docs = recall_by_experiment(exp_id, root=root)
         for doc in docs:
             if doc["id"] not in seen_ids:
                 seen_ids.add(doc["id"])
                 results.append(doc)
 
     # Always include pending items (they need attention)
-    pending = recall_by_type("pending")
+    pending = recall_by_type("pending", root=root)
     for doc in pending:
         if doc["id"] not in seen_ids:
             seen_ids.add(doc["id"])
@@ -754,13 +783,13 @@ def _format_context(docs: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def load_recent_docs(n: int = 5) -> str:
+def load_recent_docs(n: int = 5, root: str | None = None) -> str:
     """Load N most recent code-docs (by date in frontmatter)."""
     all_docs = []
-    root = _get_code_docs_root()
+    docs_root = _get_code_docs_root(root)
 
     for doc_type, info in DOC_TYPES.items():
-        type_dir = root / info["dir"]
+        type_dir = docs_root / info["dir"]
         if not type_dir.exists():
             continue
         for doc in type_dir.glob(f"{info['prefix']}-*.md"):
@@ -781,9 +810,9 @@ def load_recent_docs(n: int = 5) -> str:
     return _format_context(all_docs[:n])
 
 
-def load_pending_docs() -> str:
+def load_pending_docs(root: str | None = None) -> str:
     """Load all pending docs that need attention."""
-    pending = recall_by_type("pending")
+    pending = recall_by_type("pending", root=root)
     if not pending:
         return ""
     return _format_context(pending)

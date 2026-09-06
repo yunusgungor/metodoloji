@@ -36,112 +36,89 @@ What the user wants to do:
 
 #### Automatic Context Loading
 
-Automatically load relevant code docs at the start of every task:
+Relevant code docs are loaded automatically by the hooks engine at session start and on every terminal tool call — **you do not need to call any Python code yourself**. The hook surface is:
 
-```python
-# Find and load relevant docs based on task description
-from hooks.engine.modules.code_docs import load_context_for_task
-context = load_context_for_task("Test the guard hook free-zone bypass")
-# → Returns related pattern, learning, and pending docs
+- `SessionStart` → loads pending + recent docs into `additionalContext`
+- `PostToolUse (terminal)` → calls `load_context_for_task(command)` and stamps related docs into the audit record
+- `Stop` → surfaces pending docs as `additionalContext` before session close
 
-# Load most recently added docs
-from hooks.engine.modules.code_docs import load_recent_docs
-recent = load_recent_docs(n=5)
-
-# Load pending items (those needing attention)
-from hooks.engine.modules.code_docs import load_pending_docs
-pending = load_pending_docs()
-```
+> **Note:** The code below shows the *hook-internal API* (relative imports inside `hooks/engine/modules/`). These functions are **not callable from this skill directly** — they run inside the hook process. Reference them only to understand what the hooks do automatically.
+>
+> ```python
+> # Hook-internal reference — do NOT copy-paste as runnable agent code
+> from .code_docs import load_context_for_task   # called by audit hook (terminal)
+> from .code_docs import load_pending_docs        # called by stop hook + session_start
+> from .code_docs import load_recent_docs         # called by session_start
+> ```
 
 #### Recall/Query
 
-Use the `{metodoloji-root}/hooks/engine/modules/code_docs.py` module:
+As a skill agent your job is to **read files directly** from `{code-docs-root}`. Use the index, then open individual files:
 
-```python
-# Search by tag
-from hooks.engine.modules.code_docs import recall_by_tag
-results = recall_by_tag("auth")
+1. Read `{code-docs-root}/index.md` — see all categories and counts
+2. List `{code-docs-root}/decisions/`, `patterns/`, `learnings/`, etc.
+3. Open individual `D-NNN-*.md`, `P-NNN-*.md`, … files to read content
 
-# Search by experiment ID
-from hooks.engine.modules.code_docs import recall_by_experiment
-results = recall_by_experiment("E-001")
+Filtering examples (pseudocode for your reasoning, not executable imports):
 
-# List by type
-from hooks.engine.modules.code_docs import recall_by_type
-results = recall_by_type("decision")
-
-# Get all
-from hooks.engine.modules.code_docs import recall_all
-all_docs = recall_all()
+```
+# By tag: scan frontmatter of all files in the relevant subdirectory
+# By experiment: look for related_experiments: [E-001] in frontmatter
+# By type: list files in the corresponding subdirectory (decisions/, patterns/, …)
+# All: read index.md, then open files as needed
 ```
 
 #### Record Generation
 
-```python
-# Decision record
-from hooks.engine.modules.code_docs import create_decision
-path = create_decision(
-    title="Use session-based auth instead of JWT",
-    decision="We used session-based auth",
-    rationale="More secure, lower XPS risk",
-    tags=["auth", "security"],
-    related_experiments=["E-001"]
-)
+As a skill agent you **create files directly** — write the markdown file to the correct subdirectory under `{code-docs-root}`, then update `{code-docs-root}/index.md`.
 
-# Learning record
-from hooks.engine.modules.code_docs import create_learning
-path = create_learning(
-    experiment_id="E-001",
-    record_path="docs/experiments/E-001.md",
-    title="Guard hook free-zone bypass",
-    tags=["guard", "hooks"]
-)
+> **Hook-internal API reference** (these functions run inside the hook process, not in this skill — shown here so you understand the auto-generation side):
+>
+> ```python
+> # Hook-internal reference only — do NOT use as runnable agent code
+> from .code_docs import create_decision, create_learning, create_troubleshooting
+> from .code_docs import create_pattern, create_api, create_pending
+> ```
 
-# Error resolution
-from hooks.engine.modules.code_docs import create_troubleshooting
-path = create_troubleshooting(
-    title="Gate key error",
-    error="gate key not configured",
-    cause="run_experiment.py --init-secret was not run",
-    solution="python3 run_experiment.py --init-secret",
-    prevention="Add to the bootstrap script"
-)
+**Manual creation steps:**
 
-# Pattern
-from hooks.engine.modules.code_docs import create_pattern
-path = create_pattern(
-    title="Async audit logging",
-    pattern="Audit hook runs on PostToolUse, writes JSON-lines",
-    usage="Triggered after every tool usage",
-    example="def audit(json_in): ...",
-    pros="Non-blocking, simple",
-    cons="File size can grow"
-)
+1. Determine the doc type and pick the next sequential ID:
+   - Decision → `D-NNN` in `docs/code-docs/decisions/`
+   - Pattern → `P-NNN` in `docs/code-docs/patterns/`
+   - Learning → `L-NNN` in `docs/code-docs/learnings/`
+   - API → `A-NNN` in `docs/code-docs/api/`
+   - Troubleshooting → `T-NNN` in `docs/code-docs/troubleshooting/`
+   - Pending → `X-NNN` in `docs/code-docs/pending/`
 
-# API usage
-from hooks.engine.modules.code_docs import create_api
-path = create_api(
-    title="run_experiment.py API",
-    signature="def run_experiment(record: str, run: str = None, verify: bool = False) -> dict",
-    usage="result = run_experiment(record='docs/experiments/E-001.md', run='python bench.py')",
-    notes="Test with --dry-run first"
-)
+2. Write the file as `{ID}-{slug}.md` with required frontmatter:
+   ```
+   ---
+   id: D-001
+   type: decision
+   title: "Use session-based auth instead of JWT"
+   date: 06.09.2026
+   tags: [auth, security]
+   related_experiments: [E-001]
+   status: active
+   ---
+   ```
 
-# Pending item / intention
-from hooks.engine.modules.code_docs import create_pending
-path = create_pending(
-    title="Add self-improvement loop",
-    description="The training system should learn from its own results — generate new training data from successful rollouts",
-    context="SkillOpt optimizes the current skill but does not feed results back",
-    next_steps="1. Add metadata tracking 2. Build skill evolution mechanism 3. Cross-benchmark transfer",
-    priority="high",
-    tags=["training", "improvement", "pending"],
-    related_experiments=["E-001"]
-)
+3. Update `{code-docs-root}/index.md` — increment the count and add a link under the relevant category.
 
-# Automatic detection (TODO/FIXME)
-# The audit hook automatically catches TODO/FIXME comments and generates pending docs
-```
+**Doc shapes by type:**
+
+- **Decision:** `## Decision`, `## Rationale`, `## Results`, `## Related Records`
+- **Pattern:** `## Pattern`, `## Usage Scenario`, `## Example`, `## Advantages`, `## Disadvantages`
+- **Learning:** `## Learned`, `## Context`, `## Evidence`, `## Application`, `## Related Records`
+- **API:** `## API`, `## Signature`, `## Usage`, `## Notes`
+- **Troubleshooting:** `## Error`, `## Cause`, `## Solution`, `## Prevention`
+- **Pending:** `## Description`, `## Context`, `## Next Steps`, `## Related Records`
+
+Automatic generation by hooks (no agent action needed):
+- Experiment approval → learning doc (guard hook)
+- TODO/FIXME in edited file → pending doc (audit hook)
+- Architecture file change → decision doc (audit hook)
+- Error in terminal output → troubleshooting doc (audit hook)
 
 #### Choosing the Doc Type
 
@@ -183,8 +160,8 @@ Show the generated or found doc to the user. Add related records (experiment, st
 
 ## HALT CONDITIONS
 
-- HALT if `{code-docs-root}` does not exist
-- HALT if `code_docs.py` module is not importable
+- HALT if `{code-docs-root}` does not exist (the `docs/code-docs/` folder must exist at project root)
+- HALT if `{code-docs-root}/index.md` is missing and cannot be created
 - HALT if user provides invalid doc type (must be: decision, pattern, learning, api, troubleshooting, pending)
 
 ## VALIDATION
