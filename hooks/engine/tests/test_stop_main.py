@@ -221,6 +221,22 @@ def test_stop_soft_guard_allows(tmp_path, monkeypatch):
     assert res["decision"] == "allow"
 
 
+def test_stop_tail_bound_respected(tmp_path, monkeypatch):
+    # _SESSION_TAIL_LINES bounds the read: stop stays O(session) — only the
+    # newest lines are considered, older history is cut.
+    import sys
+    stop_mod = sys.modules["modules.stop"]
+    monkeypatch.setattr(stop_mod, "_SESSION_TAIL_LINES", 5)
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    _seed_audit_log(tmp_path, [
+        {"tool": "file_editor", "input": {"path": "src/old.py"}},
+    ] * 3 + [
+        {"tool": "file_editor", "input": {"path": "src/new.py"}},
+    ] * 5)
+    assert stop_mod._session_touched_code(str(tmp_path)) == ["src/new.py"]
+
+
 def test_stop_previous_session_touches_ignored(tmp_path, monkeypatch):
     # Touches before the session_start marker don't count: yesterday's
     # unapproved work must not wedge today's session.

@@ -48,6 +48,14 @@ def log_file() -> str:
 # unless a project explicitly relaxes them, e.g. brownfield adoption).
 # Read live per-call so config edits apply without a reload. Each key is
 # read independently.
+#
+# NOTE (deliberate): this reads the plugin's own custom/config.toml, NOT the
+# four-layer bmad resolve_config.py merge (bmad/config.toml →
+# bmad/config.user.toml → custom/config.toml → custom/config.user.toml).
+# Hook enforcement is plugin policy, not project configuration: the layers
+# above let a PROJECT override its own behavior, but a target project must
+# never be able to silently relax the guard that watches it. Personal
+# preference layers (config.user.toml) are opt-in via the brownfield keys.
 _HOOKS_CFG = _METHODOLOGY_ROOT / "custom" / "config.toml"
 
 def _hook_gate_value(gate_key: str, *args) -> str:

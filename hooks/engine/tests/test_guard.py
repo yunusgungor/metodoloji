@@ -593,6 +593,29 @@ def test_guard_frontmatter_top_level_key_ends_refs():
     assert refs == [{"id": "E-001", "status": "APPROVED"}]
 
 
+def test_guard_chain_cache_avoids_reread(tmp_path, monkeypatch):
+    """Unchanged QR files are read once across repeated chain checks."""
+    from modules.guard import _validate_methodology_chain, _CHAIN_TEXT_CACHE
+    import pathlib
+    (tmp_path / "docs/quality").mkdir(parents=True)
+    (tmp_path / "docs/development/stories").mkdir(parents=True)
+    qr = tmp_path / "docs/quality/QR-001.md"
+    qr.write_text("# QR\nStory S-001 approved\n", encoding="utf-8")
+    content = "## Story: S-001\n- **Status:** done\n"
+    _CHAIN_TEXT_CACHE.clear()
+    reads = []
+    orig_read = pathlib.Path.read_text
+    def counting(self, *a, **k):
+        reads.append(str(self))
+        return orig_read(self, *a, **k)
+    monkeypatch.setattr(pathlib.Path, "read_text", counting)
+    _validate_methodology_chain(content, "docs/development/stories/S-001.md",
+                                root=str(tmp_path))
+    _validate_methodology_chain(content, "docs/development/stories/S-001.md",
+                                root=str(tmp_path))
+    assert reads.count(str(qr)) == 1
+
+
 def test_guard_secret_context_still_denies(tmp_path, monkeypatch):
     """Access context (call/assign) still denies — narrowing only drops prose."""
     from modules.guard import guard

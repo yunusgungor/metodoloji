@@ -330,6 +330,29 @@ def _validate_story_metadata(content: str) -> tuple[bool, str]:
 
 # --- Methodology Chain Validation ---
 
+# Chain text cache: methodology-chain checks read whole record dirs per story
+# write. Keyed (mtime_ns, size), bounded — unchanged records are not re-read.
+_CHAIN_TEXT_CACHE: dict[str, tuple[tuple[int, int], str]] = {}
+
+
+def _cached_text(path: "pathlib.Path") -> str:
+    """Read a chain record, cached by (mtime_ns, size)."""
+    s = str(path)
+    try:
+        st = path.stat()
+        key = (st.st_mtime_ns, st.st_size)
+    except OSError:
+        return path.read_text(encoding="utf-8", errors="replace")
+    hit = _CHAIN_TEXT_CACHE.get(s)
+    if hit is not None and hit[0] == key:
+        return hit[1]
+    text = path.read_text(encoding="utf-8", errors="replace")
+    if len(_CHAIN_TEXT_CACHE) >= 256:
+        _CHAIN_TEXT_CACHE.pop(next(iter(_CHAIN_TEXT_CACHE)))
+    _CHAIN_TEXT_CACHE[s] = (key, text)
+    return text
+
+
 def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> tuple[bool, str]:
     """Validate that the methodology chain is intact for a story file.
 
@@ -366,7 +389,10 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
     if not story_key:
         return True, ""
 
-    # Check 1: If status is 'done', QR record must exist
+    # Check 1: If status is 'done', QR record must exist.
+    # ponytail: read each QR file at most once per story write — the chain
+    # cache below keeps (mtime_ns, size) so repeated writes don't re-read
+    # unchanged records.
     if status == "done":
         qr_dir = pathlib.Path(root) / "docs" / "quality"
         if qr_dir.is_dir():
@@ -374,7 +400,7 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
             found_qr = False
             for qr_file in qr_dir.glob("QR-*.md"):
                 try:
-                    qr_content = qr_file.read_text(encoding="utf-8", errors="replace")
+                    qr_content = _cached_text(qr_file)
                     if story_key in qr_content:
                         found_qr = True
                         break
@@ -400,7 +426,7 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
                 if meth_file.name == target_name:
                     continue
                 try:
-                    meth_content = meth_file.read_text(encoding="utf-8", errors="replace")
+                    meth_content = _cached_text(meth_file)
                     if story_key in meth_content:
                         found_meth = True
                         break
@@ -421,7 +447,7 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
             found_sp = False
             for sp_file in dev_dir.glob("SP-*.md"):
                 try:
-                    sp_content = sp_file.read_text(encoding="utf-8", errors="replace")
+                    sp_content = _cached_text(sp_file)
                     if story_key in sp_content or sp_id in sp_content:
                         found_sp = True
                         break

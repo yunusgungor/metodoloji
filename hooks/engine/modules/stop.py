@@ -53,9 +53,33 @@ def _check_story_status(root: str, intent: str = "") -> tuple[bool, str]:
 
 
 def _latest_session_start(root: str) -> float:
-    """Newest session_start marker timestamp in the audit log (0.0 = none)."""
+    """Newest session_start marker timestamp in the audit log (0.0 = none).
+
+    Scans from the TAIL: the newest marker is almost always near the end, so
+    a bounded tail read replaces the full-file parse. Falls back to the full
+    file only when the tail holds no marker.
+    """
     from .config import log_file
     log_path = pathlib.Path(root).absolute() / log_file()
+    try:
+        with open(log_path, "rb") as f:
+            f.seek(0, 2)
+            size = f.tell()
+            f.seek(max(0, size - 65536))
+            tail = f.read().decode("utf-8", errors="replace").splitlines()
+    except OSError:
+        return 0.0
+    for line in reversed(tail):
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(rec, dict) and rec.get("type") == _SESSION_MARKER_TYPE:
+            try:
+                return float(rec.get("timestamp", 0) or 0)
+            except (TypeError, ValueError):
+                return 0.0
+    # No marker in tail — full scan (old logs predate the tail window).
     try:
         lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
@@ -103,14 +127,25 @@ def _story_status_is_stale(root: str, intent: str) -> bool:
     return newest < session_start
 
 
+# Cap on session lines read per stop: a bounded tail covers any realistic
+# session; unbounded growth would make stop O(history).
+_SESSION_TAIL_LINES = 20000
+
+
 def _read_session_lines(root: str) -> list[str]:
-    """Audit lines after the newest session_start marker (all lines if none)."""
+    """Audit lines after the newest session_start marker (all lines if none).
+
+    Single reader shared by touched-set + deny-budget (one file read per
+    stop, not one per helper). Bounded to the newest _SESSION_TAIL_LINES so
+    stop stays O(session), never O(history).
+    """
     from .config import log_file
     log_path = pathlib.Path(root).absolute() / log_file()
     try:
         lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
         return []
+    lines = lines[-_SESSION_TAIL_LINES:]
     offset = 0
     for i, line in enumerate(lines):
         try:
