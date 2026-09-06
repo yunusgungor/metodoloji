@@ -50,7 +50,7 @@ These map directly onto the script CLIs below; anything not listed there (case s
 
 ## On activation
 
-1. Resolve config the way `bmad-workflow-builder` does (`{metodoloji-root}/bmad/config.yaml` then `config.user.yaml`, falling back to `bmb/config.yaml`). Resolve `{user_name}`, `{communication_language}`, `{bmad_builder_reports}` and apply them through the session.
+1. Resolve config by running `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module bmb` (merges plugin defaults with `{project-root}` overrides; project values win). Resolve `{user_name}`, `{communication_language}`, `{bmad_builder_reports}` and apply them through the session.
 
 2. If `--headless` was passed, set `{headless_mode}=true`, skip every confirmation below, pick the safest defaults, and proceed.
 

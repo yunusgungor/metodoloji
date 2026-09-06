@@ -68,7 +68,7 @@ Treat each entry in `{workflow.persistent_facts}` as foundational context. `file
 
 ### Step 4: Load config
 
-Load `{metodoloji-root}/bmad/gds/config.yaml` and resolve `{user_name}`, `{communication_language}`,
+Resolve config by running: `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module gds` (merges plugin defaults with `{project-root}` overrides; project values win) and resolve `{user_name}`, `{communication_language}`,
 `{document_output_language}`, `{implementation_artifacts}`, `{project_knowledge}`. If `{implementation_artifacts}` is
 unresolved, fall back to `./investigations/` and surface the fallback before initializing.
 

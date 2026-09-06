@@ -57,7 +57,7 @@ Treat every entry in `{workflow.persistent_facts}` as foundational context you c
 
 ### Step 4: Load Config
 
-Load config from `{metodoloji-root}/bmad/bmm/config.yaml` and resolve:
+Resolve config by running: `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module bmm` (merges plugin defaults with `{project-root}` overrides; project values win). Resolve:
 
 - `project_name`, `user_name`
 - `communication_language`, `document_output_language`
@@ -92,7 +92,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
 ## Required Inputs
 
-- `agent_roster` = resolved via `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --key agents` (merges four layers in order: `bmad/config.toml`, `bmad/config.user.toml`, `bmad/custom/config.toml`, `bmad/custom/config.user.toml`)
+- `agent_roster` = resolved via `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --key agents` (merges four plugin layers then four `{project-root}` layers — project values win)
 
 ## Execution
 

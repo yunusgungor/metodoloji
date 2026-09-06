@@ -24,7 +24,7 @@ This skill helps you bring BMad modules to life — from the first spark of an i
 
 ## On Activation
 
-Load available config from `{metodoloji-root}/bmad/config.yaml` and `{metodoloji-root}/bmad/config.user.yaml` (root level and `bmb` section). If neither exists, fall back to `{metodoloji-root}/bmad/bmb/config.yaml` (legacy per-module format). If still missing, let the user know `bmad-builder-setup` can configure the module at any time. Use sensible defaults for anything not configured.
+Resolve config by running `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module bmb` (merges plugin defaults with `{project-root}` overrides; project values win). If the module is unknown, let the user know `bmad-builder-setup` can configure the module at any time. Use sensible defaults for anything not configured.
 
 Detect user's intent:
 

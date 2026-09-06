@@ -12,6 +12,7 @@ dependencies = [
 [tool.pytest.ini_options]
 testpaths = [
     "hooks/engine/tests",
+    "bmad/tests",
     "bmad_benchmarks/tests",
     "scripts/tests",
     "skills/bmad-architecture/scripts/tests",

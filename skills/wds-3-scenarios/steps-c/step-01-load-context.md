@@ -55,7 +55,7 @@ Read all prerequisite artifacts (Product Brief, Trigger Map) and detect whether 
 
 ### 1. Read Configuration
 
-Read `{metodoloji-root}/bmad/wds/config.yaml` and extract:
+Resolve config by running: `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module wds` (merges plugin defaults with `{project-root}` overrides; project values win). Extract:
 - `project_name`
 - `output_folder`
 - `user_name`

@@ -7,7 +7,7 @@
   </description>
 
   <prerequisites>
-    <require file="{project-root}/_bmad/wds/config.yaml" label="WDS project config"/>
+    <require command="python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module wds" label="WDS project config (resolved centrally; project-root values win)"/>
     <require file="{output_folder}/A-Product-Brief/product-brief.md" label="Product Brief (Phase 1)"/>
     <require file="{output_folder}/B-Trigger-Map/trigger-map.md" label="Trigger Map (Phase 2)"/>
   </prerequisites>
@@ -18,7 +18,7 @@
 
   <initialization>
     <instruction>
-      Read {project-root}/_bmad/wds/config.yaml and resolve: project_name, output_folder,
+      Run `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module wds` and resolve: project_name, output_folder,
       user_name, communication_language, document_output_language.
     </instruction>
     <instruction>
@@ -39,7 +39,7 @@
 
   <step id="1-load-context" name="Load project context" step-file="steps-c/step-01-load-context.md">
     <instruction>
-      Read {project-root}/_bmad/wds/config.yaml completely and extract all required fields.
+      Run `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module wds` and extract all required fields.
     </instruction>
     <instruction>
       Read {output_folder}/A-Product-Brief/product-brief.md completely. Extract and note:

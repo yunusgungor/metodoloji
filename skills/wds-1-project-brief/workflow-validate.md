@@ -17,7 +17,7 @@ Read `{output_folder}/_progress/00-design-log.md` before starting.
 
 ### Configuration Loading
 
-1. Load project config from `{metodoloji-root}/bmad/wds/config.yaml`
+1. Resolve project config by running: `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module wds`
 2. Locate Product Brief at `{output_folder}/A-Product-Brief/`
 3. Begin validation: Load and execute `./steps-v/step-01-brief-completeness.md`
 

@@ -36,7 +36,7 @@ Phase 8 is **menu-driven**, not linear. Each activity is a compressed version of
 
 ### 1. Configuration Loading
 
-Load and read full config from `{metodoloji-root}/bmad/wds/config.yaml` and resolve:
+Resolve config by running: `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module wds` (merges plugin defaults with `{project-root}` overrides; project values win) and resolve:
 - `project_name`, `output_folder`, `user_name`
 - `communication_language`, `document_output_language`
 

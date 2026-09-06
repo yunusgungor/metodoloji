@@ -43,7 +43,7 @@ Write it once; do not restate it lower down.}
 
 ## On Activation
 
-1. Load config from `{metodoloji-root}/bmad/config.yaml` (and `.user.yaml` if present). Use sensible defaults for anything missing rather than requiring configuration.
+1. Resolve config by running `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module core` (merges plugin defaults with `{project-root}` overrides; project values win). Use sensible defaults for anything missing rather than requiring configuration.
 
 <!-- Keep step 2 only for artifact-producing skills that carry process memory. -->
 2. Resume check. Look for an existing `.memlog.md` in the run folder. If one is found, read it once to rebuild state and continue append-only; otherwise initialize a new memlog with `python3 {metodoloji-root}/bmad/scripts/memlog.py init --path <run-folder>/.memlog.md`.

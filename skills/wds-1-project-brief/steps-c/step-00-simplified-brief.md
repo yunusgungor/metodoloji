@@ -43,7 +43,7 @@ Guide the user through a quick, focused session to capture the essential project
 - Available context: Project configuration, user name, communication language
 - Focus: Essential project context in minimal time
 - Limits: No deep competitive analysis, no Trigger Map, no detailed positioning
-- Dependencies: Config loaded from `{metodoloji-root}/bmad/wds/config.yaml`
+- Dependencies: Config resolved via `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module wds`
 
 ## Sequence of Instructions (Do not deviate, skip, or optimize)
 

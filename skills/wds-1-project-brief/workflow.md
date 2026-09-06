@@ -28,7 +28,7 @@ This phase routes to the appropriate workflow mode and brief level.
 
 ### 1. Configuration Loading
 
-Load and read full config from `{metodoloji-root}/bmad/wds/config.yaml` and resolve:
+Resolve config by running: `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module wds` (merges plugin defaults with `{project-root}` overrides; project values win) and resolve:
 
 - `project_name`, `output_folder`, `user_name`, `communication_language`, `document_output_language`
 - `brief_level` from `{output_folder}/wds-workflow-status.yaml:config.brief_level`

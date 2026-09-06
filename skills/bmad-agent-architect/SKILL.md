@@ -47,7 +47,7 @@ Treat every entry in `{agent.persistent_facts}` as foundational context you carr
 
 ### Step 5: Load Config
 
-Load config from `{metodoloji-root}/bmad/bmm/config.yaml` and resolve:
+Resolve config by running: `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module bmm` (merges plugin defaults with `{project-root}` overrides; project values win). Resolve:
 - Use `{user_name}` for greeting
 - Use `{communication_language}` for all communications
 - Use `{document_output_language}` for output documents

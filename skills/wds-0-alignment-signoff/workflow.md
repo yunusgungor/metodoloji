@@ -35,7 +35,7 @@ description: Create alignment around your idea before starting the project
 
 ### 1. Configuration Loading
 
-Load and read full config from `{metodoloji-root}/bmad/wds/config.yaml` and resolve:
+Resolve config by running: `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module wds` (merges plugin defaults with `{project-root}` overrides; project values win) and resolve:
 - `project_name`, `output_folder`, `user_name`, `communication_language`
 
 ### 2. Design Log

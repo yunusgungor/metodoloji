@@ -37,7 +37,7 @@ Steps 1–4 below.
 
 ### Step 1: Locate the ledger
 
-Read `{metodoloji-root}/bmad/bmm/config.yaml` to resolve `implementation_artifacts`,
+Run `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module bmm` to resolve `implementation_artifacts`,
 then read `{implementation_artifacts}/deferred-work.md` in full. Open entries
 are `### DW-<n>:` blocks whose `status:` line is `open`. If the ledger is
 missing or unreadable, escalate `CRITICAL` (`type: missing-ledger`) per

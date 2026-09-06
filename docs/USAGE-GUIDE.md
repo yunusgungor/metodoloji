@@ -828,11 +828,53 @@ override the item by its `code`/`id` with a no-op description.
 
 ### 9.2. Central Config Merge (resolve_config.py)
 
-`bmad/config.toml` is resolved through **four layers** (last wins):
-`bmad/config.toml` → `bmad/config.user.toml` → `custom/config.toml` (team) →
-`custom/config.user.toml` (personal, gitignored). Artifact paths in
-`custom/config.toml` point outputs at `{project-root}` (`bmad-output/`,
-`docs/`), never inside the plugin.
+Config resolves through **eight layers** — the four plugin layers (last wins
+among themselves), then four **project-root layers** that override everything
+before them:
+
+| Priority | Layer | Owned by |
+|---|---|---|
+| 1 (lowest) | `{metodoloji-root}/bmad/config.toml` | installer (regenerated on install) |
+| 2 | `{metodoloji-root}/bmad/config.user.toml` | installer (regenerated on install) |
+| 3 | `{metodoloji-root}/custom/config.toml` | plugin team (committed in the plugin) |
+| 4 | `{metodoloji-root}/custom/config.user.toml` | plugin user (gitignored) |
+| 5 | `{project-root}/bmad/config.toml` | **project team (committed)** |
+| 6 | `{project-root}/bmad/config.user.toml` | **project user (gitignored)** |
+| 7 | `{project-root}/bmad-output/config.toml` | **project team, output-local** |
+| 8 (highest) | `{project-root}/bmad-output/config.user.toml` | **project user, output-local** |
+
+Project-root layers let a user configure BMad entirely from their own repo —
+never touching the plugin. Team-wide settings go in the committed
+`{project-root}/bmad/config.toml`; personal settings go in a gitignored
+`.user.toml` file:
+
+```toml
+# {project-root}/bmad/config.user.toml  (personal — never commit)
+[core]
+user_name = "Ayla"
+communication_language = "Turkish"
+
+# {project-root}/bmad/config.toml  (team — commit)
+[modules.tea]
+risk_threshold = "p0"
+```
+
+**Legacy YAML bridge.** Older installs carry per-module `config.yaml` files
+(e.g. `{project-root}/bmad/tea/config.yaml`). The resolver reads them as a
+layer *between* the plugin and project TOML layers: they override plugin
+defaults and are overridden by any project TOML. Migrate by moving values
+into a project TOML layer and deleting the YAML files.
+
+**Flat module output.** Skills resolve their config with:
+
+```bash
+python3 bmad/scripts/resolve_config.py --project-root . --module tea
+```
+
+which returns shared `core` keys overlaid by that module's keys — the same
+shape the legacy per-module config.yaml had. `--module core` returns just
+the core section. Artifact paths in the plugin layers point outputs at
+`{project-root}` (`bmad-output/`, `docs/`), never inside the plugin.
 
 ### 9.3. Bridge TOML Structure
 

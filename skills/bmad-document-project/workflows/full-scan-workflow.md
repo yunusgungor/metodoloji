@@ -10,7 +10,7 @@
 
 ### Configuration Loading
 
-Load config from `{metodoloji-root}/bmad/bmm/config.yaml` and resolve:
+Resolve config by running: `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module bmm` (merges plugin defaults with `{project-root}` overrides; project values win). Resolve:
 
 - `project_knowledge`
 - `user_name`

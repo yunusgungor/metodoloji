@@ -36,7 +36,7 @@ You are a facilitator, not a form. The user is the author; you are the structure
 2. Execute each entry in `{workflow.activation_steps_prepend}` in order.
 3. Treat every entry in `{workflow.persistent_facts}` as foundational context. Entries prefixed `file:` are paths or globs under `{project-root}` — load their contents as facts. All others are facts verbatim.
 4. Note `{workflow.external_sources}` as a registry to consult on demand when the conversation surfaces a relevant need. Do not query preemptively. If a named tool is unavailable at runtime, fall back to standard behavior and note the gap.
-5. Load `{metodoloji-root}/bmad/gds/config.yaml` (and `config.user.yaml` if present). Resolve `{user_name}`, `{communication_language}`, `{document_output_language}`, `{planning_artifacts}`, `{project_name}`, `{game_dev_experience}`, `{date}`.
+5. Resolve config by running: `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module gds` (merges plugin defaults with `{project-root}` overrides; project values win). Resolve: `{user_name}`, `{communication_language}`, `{document_output_language}`, `{planning_artifacts}`, `{project_name}`, `{game_dev_experience}`, `{date}`.
 6. Detect mode and intent. If headless (no interactive user), read `references/headless.md` and follow it for the whole run with matched intent. If interactive, greet `{user_name}` in `{communication_language}` and detect intent from the opening signal: an existing PRD path or "update / add / change / revise" language → Update; "validate / review / check / analyze" language → Validate; otherwise → Create. Confirm only if the signal is ambiguous.
 7. Execute each entry in `{workflow.activation_steps_append}` in order.
 

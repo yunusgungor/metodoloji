@@ -46,7 +46,7 @@ Treat every entry in `{workflow.persistent_facts}` as foundational context you c
 
 ### Step 4: Load Config
 
-Load config from `{metodoloji-root}/bmad/tea/config.yaml` and resolve:
+Resolve config by running: `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module tea` (merges plugin defaults with `{project-root}` overrides; project values win). Resolve:
 
 - `user_name`
 - `project_name`

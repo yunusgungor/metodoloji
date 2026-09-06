@@ -49,7 +49,7 @@ When invoked from another prompt or process:
 python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --key agents
 ```
 
-The resolver merges four layers in order: `bmad/config.toml` (installer base, team-scoped), `bmad/config.user.toml` (installer base, user-scoped), `bmad/custom/config.toml` (team overrides), and `bmad/custom/config.user.toml` (personal overrides). Each entry under `agents` is keyed by the agent's `code` and carries `name`, `title`, `icon`, `description`, `module`, and `team`.
+The resolver merges eight layers in order — four plugin layers (`bmad/config.toml` installer base, `bmad/config.user.toml`, `custom/config.toml` team overrides, `custom/config.user.toml` personal overrides) and four project-root layers that override the plugin (`{project-root}/bmad/config.toml`, `{project-root}/bmad/config.user.toml`, `{project-root}/bmad-output/config.toml`, `{project-root}/bmad-output/config.user.toml`). Legacy per-module `config.yaml` files under `{project-root}/bmad/<module>/` are bridged between the plugin and project TOML layers. Each entry under `agents` is keyed by the agent's `code` and carries `name`, `title`, `icon`, `description`, `module`, and `team`.
 
 #### CSV Structure
 

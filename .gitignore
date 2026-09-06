@@ -6,3 +6,6 @@ _generated_splits/
 
 # SkillOpt training outputs
 outputs/
+
+# Personal config layer in the output-local project layer (never commit)
+bmad-output/config.user.toml

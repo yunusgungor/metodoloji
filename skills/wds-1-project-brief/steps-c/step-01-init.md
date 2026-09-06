@@ -44,7 +44,7 @@ Welcome the user, explain the Product Brief workflow scope, set time expectation
 - Available context: Project configuration, user name, communication language, brief level
 - Focus: Welcome, expectations, initial context gathering
 - Limits: No strategic exploration yet
-- Dependencies: Config loaded from `{metodoloji-root}/bmad/wds/config.yaml`
+- Dependencies: Config resolved via `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module wds`
 
 ## Sequence of Instructions (Do not deviate, skip, or optimize)
 

@@ -58,7 +58,7 @@ Treat every entry in `{agent.persistent_facts}` as foundational context for the 
 
 {/if-customizable}
 {if-module}
-Load available config from `{metodoloji-root}/bmad/config.yaml` and `{metodoloji-root}/bmad/config.user.yaml` (root level and `{module-code}` section). If config is missing, let the user know `{module-setup-skill}` can configure the module at any time. Resolve and apply throughout the session (defaults in parens):
+Resolve config by running `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module {module-code}` (merges plugin defaults with `{project-root}` overrides; project values win). If the module is unknown, let the user know `{module-setup-skill}` can configure the module at any time. Resolve and apply throughout the session (defaults in parens):
 
 - `{user_name}` ({default}) — address the user by name
 - `{communication_language}` ({default}) — use for all communications
@@ -66,7 +66,7 @@ Load available config from `{metodoloji-root}/bmad/config.yaml` and `{metodoloji
 - plus any module-specific output paths with their defaults
   {/if-module}
   {if-standalone}
-  Load available config from `{metodoloji-root}/bmad/config.yaml` and `{metodoloji-root}/bmad/config.user.yaml` if present. Resolve and apply throughout the session (defaults in parens):
+  Resolve config by running `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module core`. Resolve and apply throughout the session (defaults in parens):
 - `{user_name}` ({default}) — address the user by name
 - `{communication_language}` ({default}) — use for all communications
 - `{document_output_language}` ({default}) — use for generated document content

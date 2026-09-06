@@ -12,7 +12,7 @@ This skill was consolidated into `bmad-prd`. It is retained as a thin compatibil
 
 1. Resolve customization: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — the OpenHands terminal tool accepts only the command parameter; do NOT add description. This picks up any `{metodoloji-root}/custom/bmad-validate-prd.toml` and `bmad-validate-prd.user.toml` overrides for the legacy fields (`activation_steps_prepend`, `activation_steps_append`, `persistent_facts`, `on_complete`).
 
-2. Load `{metodoloji-root}/bmad/bmm/config.yaml` (and `config.user.yaml` if present) to resolve `{user_name}` and `{communication_language}`.
+2. Run `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module bmm` and use the result to resolve `{user_name}` and `{communication_language}`.
 
 3. Emit a deprecation notice to the user in `{communication_language}`:
 
