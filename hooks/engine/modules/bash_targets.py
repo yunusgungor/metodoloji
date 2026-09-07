@@ -74,11 +74,16 @@ def extract_bash_targets(command: str) -> list[str]:
     except ValueError:
         return []
 
-    # Split command on && / ; / |
+    # Split command on && / || / ; / | / & — every per-command branch below
+    # must scan its own segment, never the flat token stream, or operators
+    # leak in as targets (2026-09-07: `git checkout -- a.py && git status |
+    # head` yielded ['a.py', '&&', 'git', 'status', '|', 'head'] and the stop
+    # hook denied on the phantom `&&`).
+    _SHELL_OPS = ("&&", "||", ";", "|", "&")
     seg_tokens: list[list[str]] = []
     _cur: list[str] = []
     for _t in tokens:
-        if _t in ("&&", "||", ";", "|"):
+        if _t in _SHELL_OPS:
             if _cur:
                 seg_tokens.append(_cur)
                 _cur = []
@@ -87,19 +92,33 @@ def extract_bash_targets(command: str) -> list[str]:
     if _cur:
         seg_tokens.append(_cur)
 
+    def _seg_after(idx: int) -> list[str]:
+        """Tokens after idx up to the next shell operator (this segment only)."""
+        out: list[str] = []
+        for t in tokens[idx + 1 :]:
+            if t in _SHELL_OPS:
+                break
+            out.append(t)
+        return out
+
+
     for i, tok in enumerate(tokens):
+        if tok in _SHELL_OPS:
+            continue
         if tok in (">", ">>"):
-            if i + 1 < len(tokens) and not tokens[i + 1].startswith("&"):
-                targets.append(tokens[i + 1])
+            after = _seg_after(i)
+            if after and not after[0].startswith("&"):
+                targets.append(after[0])
         elif tok == "tee":
-            for j in range(i + 1, len(tokens)):
-                if not tokens[j].startswith("-"):
-                    targets.append(tokens[j])
+            for t in _seg_after(i):
+                if not t.startswith("-"):
+                    targets.append(t)
                     break
         elif tok == "sed":
-            has_i = any(t.startswith("-i") for t in tokens[i + 1 : i + 3])
+            after = _seg_after(i)
+            has_i = any(t.startswith("-i") for t in after[:2])
             if has_i:
-                tail = [t for t in tokens[i + 1 :] if not t.startswith("-") and t != "-e"]
+                tail = [t for t in after if not t.startswith("-") and t != "-e"]
                 if len(tail) >= 2:
                     targets.extend(tail[1:])
                 elif tail:
@@ -112,14 +131,15 @@ def extract_bash_targets(command: str) -> list[str]:
                         targets.append(nonflag[-1])
                     break
         elif tok in ("curl", "wget"):
-            if "-o" in tokens[i + 1 : i + 3]:
-                idx = tokens.index("-o", i + 1)
-                if idx + 1 < len(tokens):
-                    targets.append(tokens[idx + 1])
+            after = _seg_after(i)
+            if "-o" in after[:2]:
+                idx = after.index("-o")
+                if idx + 1 < len(after):
+                    targets.append(after[idx + 1])
         elif tok.startswith("of="):  # dd of=/path
             targets.append(tok[3:])
         elif tok == "git":
-            rest = tokens[i + 1 :]
+            rest = _seg_after(i)
             if rest and rest[0] in ("apply", "am"):
                 args_after = rest[1:]
                 prefix = ""
@@ -137,7 +157,7 @@ def extract_bash_targets(command: str) -> list[str]:
                     if t and not t.startswith("-")
                 )
         elif tok == "patch":
-            rest = tokens[i + 1 :]
+            rest = _seg_after(i)
             nonflags = [t for t in rest if not t.startswith("-")]
             if "<" in rest:
                 j = rest.index("<")
@@ -149,7 +169,7 @@ def extract_bash_targets(command: str) -> list[str]:
                 targets.append(nonflags[0])
                 targets.extend(_read_patch_targets(nonflags[1]))
         elif tok == "tar":
-            args_after = tokens[i + 1 :]
+            args_after = _seg_after(i)
             _extract = False
             _skip_next = False
             _n = 0
@@ -173,7 +193,7 @@ def extract_bash_targets(command: str) -> list[str]:
             if _extract:
                 targets.extend(targets_from_tar(args_after))
         elif tok == "unzip":
-            targets.extend(targets_from_unzip(tokens[i + 1 :]))
+            targets.extend(targets_from_unzip(_seg_after(i)))
         elif tok.startswith("python"):
             for m in re.finditer(
                 r"""\bopen\(\s*['"]([^'"]+)['"]\s*,\s*['"](?:w|a|w\+|a\+)['"]\s*\)""",
