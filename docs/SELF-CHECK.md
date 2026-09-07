@@ -33,6 +33,7 @@ that list.
 | §6 | Development-record format (Decision/Status value + Date on IR/SP/QR/PR/S/PM records) | `docs/development/`, `docs/quality/` |
 | §6a | `.env` inventory: no committed `.env`, `.env.example` present, `.env` in `.gitignore` | repo root |
 | §6b | Tech-debt inventory integrity (delegates to `scripts/check-techdebt.sh`) | `tech-debt.md` inventories |
+| §6c | **Template copy identity** — the init-copied docs templates (`docs/experiments/_template.md`, `docs/development/_template_IR/SP/QR/PR.md`, `docs/development/stories/_template_S.md`, `docs/development/README.md`) must stay byte-identical to the canonical `templates/` files (`tech-debt.md` is covered by §6b); pairs whose destination dir does not exist are skipped | `templates/` ↔ `docs/*_template*` copies |
 
 **Direct answer to a recurring question:** does the self-check verify that the
 manifesto is wired to *every* surface and that per-surface layers

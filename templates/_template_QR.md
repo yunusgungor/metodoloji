@@ -54,6 +54,34 @@
 
 ---
 
+## AC Verification Results
+
+> One row per acceptance criterion of the reviewed story (S-XXX). AC
+> identifiers and their `Verify:` methods must match the story's Acceptance
+> Criteria section. Standard format: `| AC | Status | Method | Evidence |`.
+
+| AC | Status | Method | Evidence |
+|----|--------|--------|----------|
+| AC-XXX | ✅ verified / ⏳ pending / ❌ failed | [method: e.g. guard unit test, curl, pytest] | [evidence output] |
+| AC-XXX | ✅ verified / ⏳ pending / ❌ failed | [method] | [evidence output] |
+
+---
+
+## DoD Verification Results
+
+> One row per Definition-of-Done item of the reviewed story (S-XXX). DoD
+> identifiers must match the story's Definition of Done. The audit's QR DoD
+> check validates this table structurally: every item needs an identifier and
+> a recorded status/evidence cell. Standard format:
+> `| DoD Item | Status | Evidence | Date |`.
+
+| DoD Item | Status | Evidence | Date |
+|----------|--------|----------|------|
+| DoD-XXX | ✅ passed / ❌ failed | [evidence] | [YYYY-MM-DD] |
+| DoD-XXX | ✅ passed / ❌ failed | [evidence] | [YYYY-MM-DD] |
+
+---
+
 ## Documentary Checks (Manual Review)
 
 ### Code Review
@@ -113,6 +141,7 @@
 - [ ] Linter and formatter clean
 - [ ] Security scan clean (no known vulnerability)
 - [ ] No performance regression
+- [ ] AC and DoD verification results tables present (identifier + evidence per item)
 
 ### Documentary (manual review, mandatory)
 - [ ] At least one reviewer approved

@@ -12,6 +12,7 @@
 #   5b. Hard gate enforcement mode (soft/hard — custom/config.toml [hooks])
 #   5c. custom/ bridge TOMLs static quality audit (scripts/check-custom.sh)
 #   6. Development records format check  (run_experiment.py --validate)
+#   6c. Template copy identity (templates/ ↔ docs/_template copies)
 #   Coverage map (authoritative for docs/wiki — see docs/SELF-CHECK.md)
 #   docs/images/*.png are illustrative (svg_to_png.py), NOT self-check inputs.
 #
@@ -19,7 +20,8 @@
 #            target project root is cwd or $OPENHANDS_PROJECT_DIR)
 #            sh scripts/check-plugin.sh --negtest
 #            (negative tests: §6a .env inventory, §2b BRIDGE visibility,
-#             §1b dispatch locator drift — break → catch MISS → restore)
+#             §1b dispatch locator drift, §6c template copy drift —
+#             break → catch MISS → restore)
 # Output:    [OK] / [WARNING] / [ERROR] at the start of each line; overall status at the end.
 
 set -u
@@ -44,7 +46,7 @@ from pathlib import Path
 
 PLUGIN = Path(os.environ["PLUGIN_ROOT"])
 check_script = PLUGIN / "scripts" / "check-plugin.sh"
-total_stages = 5
+total_stages = 6
 
 # Stage 1/3: .env.example deleted → §6a.2 should catch a WARNING
 print(f"[1/{total_stages}] does §6a emit a WARNING when .env.example is deleted")
@@ -172,6 +174,31 @@ try:
         sys.exit(1)
 finally:
     hj.write_text(hj_orig, encoding="utf-8")
+
+# Stage 6/6: docs template copy desynced from templates/ → §6c should catch DRIFT
+print(f"[6/{total_stages}] does §6c catch template copy drift")
+tmpl = PLUGIN / "templates" / "_template_IR.md"
+cp = PLUGIN / "docs" / "development" / "_template_IR.md"
+if not tmpl.is_file() or not cp.is_file():
+    print("  [ERROR] test setup broken: templates/_template_IR.md or docs copy missing")
+    sys.exit(1)
+tmpl_orig = tmpl.read_bytes()
+cp_orig = cp.read_bytes()
+try:
+    cp.write_bytes(cp_orig + b"\n<!-- negtest drift -->\n")
+    r = subprocess.run(
+        ["sh", str(check_script)],
+        capture_output=True, text=True, encoding="utf-8", timeout=60,
+        cwd=str(PLUGIN),
+    )
+    if "DRIFT" in r.stdout and r.returncode == 1:
+        print("  [OK] §6c template copy drift caught, exit=1")
+    else:
+        print(f"  [ERROR] §6c drift expected, output: ...{r.stdout[-400:]!r}")
+        sys.exit(1)
+finally:
+    cp.write_bytes(cp_orig)
+    tmpl.write_bytes(tmpl_orig)
 
 print(f"[OK] all {total_stages} negtest stages successful")
 sys.exit(0)
@@ -941,6 +968,70 @@ if [ -x "$SELF/check-techdebt.sh" ]; then
     fi
 else
     echo "[WARNING] $SELF/check-techdebt.sh not found or not executable — §6b skipped"
+    PROBLEMS=$((PROBLEMS + 1))
+fi
+
+echo "== 6c) Template copy identity (templates/ ↔ docs/_template copies) =="
+# /metodoloji:init copies templates/_template_*.md into the project docs. The
+# plugin repo itself dogfoods those docs copies (docs/development/…,
+# docs/experiments/…), so they must stay byte-identical to the canonical
+# templates/ files — updating a template in only one place is drift. tech-debt.md
+# is excluded here because check-techdebt §1 (run in §6b) already enforces it.
+# Pairs whose destination dir does not exist yet (docs/research/, docs/design/)
+# are skipped: those record families are not used inside the plugin itself.
+"$PY" - <<'PY'
+import os, sys
+from pathlib import Path
+PLUGIN = Path(os.environ.get("PLUGIN_ROOT") or ".")
+
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
+# label, canonical source, init destination (relative to the plugin root).
+PAIRS = [
+    ("experiments E", "templates/_template_E.md", "docs/experiments/_template.md"),
+    ("development IR", "templates/_template_IR.md", "docs/development/_template_IR.md"),
+    ("development SP", "templates/_template_SP.md", "docs/development/_template_SP.md"),
+    ("development QR", "templates/_template_QR.md", "docs/development/_template_QR.md"),
+    ("development PR", "templates/_template_PR.md", "docs/development/_template_PR.md"),
+    ("development S", "templates/_template_S.md", "docs/development/stories/_template_S.md"),
+    ("development README", "templates/README.md", "docs/development/README.md"),
+]
+
+problems = []
+checked = 0
+skipped = 0
+for label, src, dst in PAIRS:
+    s = PLUGIN / src
+    d = PLUGIN / dst
+    if not s.is_file():
+        problems.append("%s: source missing %s" % (label, src))
+        continue
+    if not d.is_file():
+        if d.parent.is_dir():
+            problems.append("%s: copy missing %s (re-run /metodoloji:init)" % (label, dst))
+        else:
+            skipped += 1
+            print("  SKIP %s: no %s/ in plugin (record family not used yet)"
+                  % (label, d.parent))
+        continue
+    checked += 1
+    if s.read_bytes() != d.read_bytes():
+        problems.append("%s: DRIFT %s <> %s (update templates/ AND the docs copy together)"
+                        % (label, src, dst))
+print("  template pairs checked: %d, skipped (dir absent): %d" % (checked, skipped))
+for p in problems:
+    print("  MISS: %s" % p)
+print("  problems: %d" % len(problems))
+sys.exit(1 if problems else 0)
+PY
+if [ $? -eq 0 ]; then
+    echo "[OK]   docs template copies identical to templates/ (no drift)"
+else
+    echo "[ERROR] template copy drift (see above) — templates/ ↔ docs copies out of sync"
     PROBLEMS=$((PROBLEMS + 1))
 fi
 
