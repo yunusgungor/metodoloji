@@ -937,3 +937,37 @@ def test_guard_terminal_opaque_creation_warns_bypass(tmp_path, monkeypatch):
     assert res["decision"] == "allow"
     assert any("content is not visible" in w
                for w in res.get("methodology_warnings", []))
+
+
+def test_guard_terminal_existing_story_unreadable_warns(tmp_path, monkeypatch):
+    """An existing story that cannot be read (OSError, e.g. permissions) is not
+    silently skipped: guard flags it exactly like an opaque creation."""
+    import sys as _sys
+    from modules.guard import guard
+    from modules import config
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
+    target = _story_path(tmp_path, "S-001")
+    Path(target).write_text("## Story: S-001\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+
+    class _Unreadable:
+        """pathlib.Path stand-in: exists but its content cannot be read."""
+        def __init__(self, *a, **k):
+            pass
+        def is_file(self):
+            return True
+        def read_text(self, *a, **k):
+            raise OSError("permission denied")
+
+    class _FakePathlib:
+        Path = _Unreadable
+
+    guard_mod = _sys.modules["modules.guard"]
+    monkeypatch.setattr(guard_mod, "pathlib", _FakePathlib())
+    res = guard({"tool_name": "terminal",
+                 "tool_input": {"command": f"echo x >> {target}"}})
+    assert res["decision"] == "allow"
+    assert any("content is not visible" in w
+               for w in res.get("methodology_warnings", []))
