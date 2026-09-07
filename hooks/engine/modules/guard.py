@@ -314,14 +314,33 @@ def _validate_story_metadata(content: str) -> tuple[bool, str]:
     dod_match = re.search(r"##\s+Definition\s+of\s+Done\s*\n(.*?)(?=\n##\s|\Z)", content, re.DOTALL | re.IGNORECASE)
     if dod_match:
         dod_section = dod_match.group(1)
-        for line in dod_section.splitlines():
-            line = line.strip()
-            if line.startswith("- [ ]") or line.startswith("- [x]"):
-                if not _DOD_ID_RE.search(line):
-                    issues.append(f"DoD item without identifier: {line[:60]}...")
-                if not _VERIFY_FIELD_RE.search(line) and "Verify:" not in line:
-                    # Check next lines for Verify field
-                    pass
+        dod_lines = dod_section.splitlines()
+        # A DoD item is a checkbox bullet ("- [ ] DoD-001 …") or a token bullet
+        # ("- [DoD-001] …" — the record-template style). The Verify field may sit
+        # on the item line itself OR on the indented sub-lines that follow the
+        # item (template style: "- [DoD-001] All ACs met" then "  - Verify: pytest tests/").
+        for i, raw in enumerate(dod_lines):
+            line = raw.strip()
+            is_checkbox = line.startswith(("- [ ]", "- [x]", "- [X]"))
+            is_token = line.startswith("- ") and bool(_DOD_ID_RE.search(line))
+            if not (is_checkbox or is_token):
+                continue
+            if not _DOD_ID_RE.search(line):
+                issues.append(f"DoD item without identifier: {line[:60]}...")
+            if _VERIFY_FIELD_RE.search(line) or "Verify:" in line:
+                continue
+            # No inline Verify on the item line — scan the indented sub-lines
+            # that belong to this item (until the next non-indented line).
+            has_verify = False
+            j = i + 1
+            while j < len(dod_lines) and dod_lines[j][:1].isspace():
+                sub = dod_lines[j].strip()
+                if _VERIFY_FIELD_RE.search(sub) or "Verify:" in sub:
+                    has_verify = True
+                    break
+                j += 1
+            if not has_verify:
+                issues.append(f"DoD item missing Verify field: {line[:60]}...")
 
     if issues:
         return False, "; ".join(issues[:5])  # Limit to 5 issues

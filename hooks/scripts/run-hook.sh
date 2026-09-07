@@ -2,6 +2,12 @@
 # run-hook.sh — Central hook dispatcher across Claude Code, OpenHands Canvas/Local, and CI
 # Discovers the plugin root reliably and routes to bootstrap.sh or hook-entry.sh.
 # Usage: sh run-hook.sh <bootstrap|guard|quality|deploy|audit|stop> [args...]
+#
+# The candidate roots below are the SINGLE SOURCE OF TRUTH for plugin-root
+# discovery. hooks/hooks.json embeds per-hook copies of this locator loop because
+# neither runtime injects a guaranteed plugin-root env var — when an install path
+# changes, update THIS list and the hooks.json copies together. scripts/check-plugin.sh
+# §1b mechanically verifies the hooks.json copies never drift from this list.
 
 TARGET_HOOK="$1"
 [ -n "$1" ] && shift

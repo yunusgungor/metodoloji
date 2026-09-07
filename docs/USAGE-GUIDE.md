@@ -597,7 +597,12 @@ self-locate the plugin root:
 
 Each command is a locator loop over `$CLAUDE_PLUGIN_ROOT`, `$METODOLOJI_PLUGIN_ROOT`,
 the Claude marketplace cache and the OpenHands install dir; the first path containing
-`hooks/scripts/hook-entry.sh` wins.
+`hooks/scripts/run-hook.sh` wins. The loop is duplicated per hook because neither
+runtime injects a guaranteed plugin-root env var into hook commands — the candidate
+roots are owned by `hooks/scripts/run-hook.sh` (single source of truth for plugin-root
+discovery) and the per-hook copies must stay in sync with it; `scripts/check-plugin.sh`
+§1b verifies that mechanically, so an install-path change can never silently desync the
+hook dispatcher.
 
 ### 6.2. Guard (PreToolUse) — Fail-Closed
 

@@ -315,26 +315,26 @@ def test_audit_log_intent_empty_when_no_memlog(tmp_path, monkeypatch):
 
 def test_try_generate_code_doc_stamps_error_on_failure(tmp_path, monkeypatch):
     """On failure, _try_generate_code_doc stamps code_doc_errors into audit_record."""
-    import sys
+    from modules import code_docs
     from modules.audit import _try_generate_code_doc
 
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
 
-    # Make the directory read-only so create_pending will fail
-    docs_dir = tmp_path / "docs/code-docs/pending"
-    docs_dir.mkdir(parents=True)
-    docs_dir.chmod(0o444)
+    # Fail the code-doc write deterministically. A read-only chmod does NOT
+    # block writes on Windows (directories ignore the read-only bit), so we
+    # make the underlying _write_doc raise instead — same error path, every OS.
+    def _boom(*_args, **_kwargs):
+        raise OSError("simulated write failure (read-only dir)")
+
+    monkeypatch.setattr(code_docs, "_write_doc", _boom)
 
     audit_record = {}
-    try:
-        _try_generate_code_doc(
-            {"type": "pending", "trigger": "todo_detected",
-             "path": "src/x.py", "description": "fix me"},
-            audit_record=audit_record,
-        )
-    finally:
-        docs_dir.chmod(0o755)  # restore for cleanup
+    _try_generate_code_doc(
+        {"type": "pending", "trigger": "todo_detected",
+         "path": "src/x.py", "description": "fix me"},
+        audit_record=audit_record,
+    )
 
     assert "code_doc_errors" in audit_record
     assert audit_record["code_doc_errors"][0]["event_type"] == "pending"
@@ -358,22 +358,23 @@ def test_try_generate_code_doc_no_stamp_on_success(tmp_path, monkeypatch):
 
 def test_try_generate_code_doc_error_printed_to_stderr(tmp_path, monkeypatch, capsys):
     """Failure message is printed to stderr regardless of audit_record."""
+    from modules import code_docs
     from modules.audit import _try_generate_code_doc
 
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
 
-    docs_dir = tmp_path / "docs/code-docs/pending"
-    docs_dir.mkdir(parents=True)
-    docs_dir.chmod(0o444)
+    # Cross-platform failure injection (chmod-based tricks do not work on
+    # Windows — directories ignore the read-only bit).
+    def _boom(*_args, **_kwargs):
+        raise OSError("simulated write failure (read-only dir)")
 
-    try:
-        _try_generate_code_doc(
-            {"type": "pending", "trigger": "todo_detected",
-             "path": "src/x.py", "description": "fix me"},
-        )
-    finally:
-        docs_dir.chmod(0o755)
+    monkeypatch.setattr(code_docs, "_write_doc", _boom)
+
+    _try_generate_code_doc(
+        {"type": "pending", "trigger": "todo_detected",
+         "path": "src/x.py", "description": "fix me"},
+    )
 
     captured = capsys.readouterr()
     assert "code-docs generation warning" in captured.err
@@ -382,23 +383,24 @@ def test_try_generate_code_doc_error_printed_to_stderr(tmp_path, monkeypatch, ca
 def test_audit_stamps_code_doc_errors_in_log(tmp_path, monkeypatch):
     """When code-doc generation fails, the error shows up in the audit log record."""
     import json
+    from modules import code_docs
     root = tmp_path
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(root))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
 
-    # Create a read-only pending dir so auto-generation of pending docs fails
-    pending_dir = root / "docs/code-docs/pending"
-    pending_dir.mkdir(parents=True)
-    pending_dir.chmod(0o444)
+    # Fail auto-generation of the pending doc deterministically: read-only
+    # directories do not block writes on Windows, so monkeypatch the write
+    # instead of relying on chmod (platform-independent).
+    def _boom(*_args, **_kwargs):
+        raise OSError("simulated write failure (read-only dir)")
 
-    try:
-        audit({
-            "tool_name": "file_editor",
-            "tool_input": {"path": "src/main.py", "content": "# TODO: fix this"},
-            "tool_output": None,
-        })
-    finally:
-        pending_dir.chmod(0o755)
+    monkeypatch.setattr(code_docs, "_write_doc", _boom)
+
+    audit({
+        "tool_name": "file_editor",
+        "tool_input": {"path": "src/main.py", "content": "# TODO: fix this"},
+        "tool_output": None,
+    })
 
     log = root / ".metodoloji/logs/hook-audit.log"
     assert log.exists()

@@ -3,6 +3,7 @@
 #
 #   0. Is the gate key installed?            (run_experiment.py --check-secret)
 #   1. Gate + hook engine selfcheck        (plugin copies, both)
+#   1b. hooks.json dispatch locator drift  (six hook copies == run-hook.sh roots)
 #   2. Manifesto + project-context wiring (for EVERY surface) + bridge audit
 #   2b. Are bridge instructions visible at runtime? (resolve_customization deep_merge)
 #   3. Approved experiment inventory              (records where the guard opened code writing)
@@ -11,11 +12,14 @@
 #   5b. Hard gate enforcement mode (soft/hard — custom/config.toml [hooks])
 #   5c. custom/ bridge TOMLs static quality audit (scripts/check-custom.sh)
 #   6. Development records format check  (run_experiment.py --validate)
+#   Coverage map (authoritative for docs/wiki — see docs/SELF-CHECK.md)
+#   docs/images/*.png are illustrative (svg_to_png.py), NOT self-check inputs.
 #
 # Usage:  sh scripts/check-plugin.sh   (from the plugin root or anywhere;
 #            target project root is cwd or $OPENHANDS_PROJECT_DIR)
 #            sh scripts/check-plugin.sh --negtest
-#            (negative-test only: break the BRIDGE marker → catch §2b MISS → restore)
+#            (negative tests: §6a .env inventory, §2b BRIDGE visibility,
+#             §1b dispatch locator drift — break → catch MISS → restore)
 # Output:    [OK] / [WARNING] / [ERROR] at the start of each line; overall status at the end.
 
 set -u
@@ -40,7 +44,7 @@ from pathlib import Path
 
 PLUGIN = Path(os.environ["PLUGIN_ROOT"])
 check_script = PLUGIN / "scripts" / "check-plugin.sh"
-total_stages = 4
+total_stages = 5
 
 # Stage 1/3: .env.example deleted → §6a.2 should catch a WARNING
 print(f"[1/{total_stages}] does §6a emit a WARNING when .env.example is deleted")
@@ -145,6 +149,30 @@ try:
 finally:
     atoml.write_text(aorig, encoding="utf-8")
 
+# Stage 5/5: hooks.json locator desynced in ONE hook → §1b should catch drift
+print(f"[5/{total_stages}] does §1b catch a desynced hooks.json dispatch locator")
+hj = PLUGIN / "hooks" / "hooks.json"
+hj_orig = hj.read_text(encoding="utf-8")
+if '"$PWD"' not in hj_orig.replace('\\"', '"'):
+    print("  [ERROR] test setup broken: hooks.json has no $PWD locator candidate")
+    sys.exit(1)
+try:
+    # Desync the FIRST hook command only → the six locator lists must diverge.
+    broken = hj_orig.replace('\\"$PWD\\"', '\\"$BOGUS_ROOT\\"', 1)
+    hj.write_text(broken, encoding="utf-8")
+    r = subprocess.run(
+        ["sh", str(check_script)],
+        capture_output=True, text=True, encoding="utf-8", timeout=60,
+        cwd=str(PLUGIN),
+    )
+    if "distinct locator lists" in r.stdout and r.returncode == 1:
+        print("  [OK] §1b drift caught, hooks.json restored, exit=1")
+    else:
+        print(f"  [ERROR] §1b drift expected, output: ...{r.stdout[-400:]!r}")
+        sys.exit(1)
+finally:
+    hj.write_text(hj_orig, encoding="utf-8")
+
 print(f"[OK] all {total_stages} negtest stages successful")
 sys.exit(0)
 PY
@@ -237,6 +265,85 @@ else
     PROBLEMS=$((PROBLEMS + 1))
 fi
 rm -f /tmp/meth-deploy.$$.log
+
+echo "== 1b) hooks.json dispatch locator drift (single source = run-hook.sh) =="
+# Every hook command embeds a plugin-root locator loop (runtime portability:
+# neither runtime injects a guaranteed plugin-root env var, so hooks.json cannot
+# reference run-hook.sh by a single fixed path). The candidate roots are owned
+# by run-hook.sh — the copies in hooks.json must stay in sync or hooks silently
+# stop firing (guard fail-open). This section mechanically catches hand-edits:
+#   (1) all hook commands share ONE identical locator list,
+#   (2) every locator candidate used in hooks.json is resolvable by run-hook.sh.
+"$PY" - <<'PY'
+import json, os, re, sys
+from pathlib import Path
+PLUGIN = Path(os.environ.get("PLUGIN_ROOT") or ".")
+
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
+LOC_RE = re.compile(r"for d in (.*?); do")
+
+def hook_commands(obj, out):
+    if isinstance(obj, dict):
+        if "command" in obj:
+            out.append(obj["command"])
+        for v in obj.values():
+            hook_commands(v, out)
+    elif isinstance(obj, list):
+        for v in obj:
+            hook_commands(v, out)
+
+manifest = PLUGIN / "hooks" / "hooks.json"
+runner = PLUGIN / "hooks" / "scripts" / "run-hook.sh"
+if not manifest.is_file() or not runner.is_file():
+    print("  MISS: hooks/hooks.json or hooks/scripts/run-hook.sh missing")
+    sys.exit(1)
+
+cmds = []
+hook_commands(json.loads(manifest.read_text(encoding="utf-8")), cmds)
+locs = []
+for c in cmds:
+    m = LOC_RE.search(c)
+    locs.append(m.group(1).strip() if m else "")
+locs = [l for l in locs if l]
+
+problems = []
+if len(locs) != len(cmds):
+    problems.append("not every hook command embeds the locator loop")
+elif len(set(locs)) != 1:
+    problems.append("hook commands drifted apart (%d distinct locator lists)" % len(set(locs)))
+else:
+    toks = []
+    for t in locs[0].split():
+        # Tokens look like "ROOT" or "ROOT"* (shell glob). Normalize: drop
+        # the shell quotes and a trailing glob star before comparing.
+        toks.append(t.replace('"', "").rstrip("*"))
+    text = runner.read_text(encoding="utf-8")
+    for t in toks:
+        # Path literals (incl. $HOME globs) must appear verbatim in
+        # run-hook.sh; bare env/cwd tokens must at least be referenced there.
+        if "/" in t or "." == t:
+            if t not in text:
+                problems.append("locator path %r absent from run-hook.sh (single source of truth)" % t)
+        elif t.startswith("$") and t not in text:
+            problems.append("locator env %s absent from run-hook.sh" % t)
+    print("  hook commands: %d, distinct locators: %d" % (len(cmds), len(set(locs))))
+    print("  locator candidates: %s" % " ".join(toks))
+for p in problems:
+    print("  MISS: %s" % p)
+print("  problems: %d" % len(problems))
+sys.exit(1 if problems else 0)
+PY
+if [ $? -eq 0 ]; then
+    echo "[OK]   hooks.json dispatch locators in sync with run-hook.sh (single source)"
+else
+    echo "[ERROR] hooks.json dispatch locator drift (see above) — sync hooks.json copies with run-hook.sh"
+    PROBLEMS=$((PROBLEMS + 1))
+fi
 
 echo "== 2) Manifesto wired to all surfaces + bridge (native→record)? =="
 "$PY" - <<'PY'

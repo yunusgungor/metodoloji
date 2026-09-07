@@ -189,6 +189,67 @@ experiment_refs:
     assert valid is True, reason
 
 
+def test_validate_story_metadata_dod_verify_on_next_line():
+    """DoD Verify may live on the indented sub-line of a checkbox item."""
+    from modules.guard import _validate_story_metadata
+    content = """## Story: S-001
+## Acceptance Criteria
+- [AC-001] Given X When Y Then Z
+  - Type: agent-verifiable
+  - Measured: true
+  - Verify: manual
+## Technical Tasks
+- [ ] do it AC: AC-001
+## Definition of Done
+- [ ] DoD-001: All ACs satisfied (AC: AC-001)
+  - Verify: pytest tests/
+  - Evidence: test output
+"""
+    valid, reason = _validate_story_metadata(content)
+    assert valid is True, reason
+
+
+def test_validate_story_metadata_dod_token_item_verify_on_next_line():
+    """Template-style token items (- [DoD-001] …) with sub-line Verify pass."""
+    from modules.guard import _validate_story_metadata
+    content = """## Story: S-001
+## Definition of Done
+- [DoD-001] All acceptance criteria met (AC: AC-001)
+  - Verify: pytest tests/
+- [DoD-002] Code review done and approved
+  - Verify: QR-001 record exists
+"""
+    valid, reason = _validate_story_metadata(content)
+    assert valid is True, reason
+
+
+def test_validate_story_metadata_dod_missing_verify():
+    """A DoD item with no inline or sub-line Verify field is flagged."""
+    from modules.guard import _validate_story_metadata
+    content = """## Story: S-001
+## Definition of Done
+- [ ] DoD-001: All ACs satisfied (AC: AC-001)
+  - Evidence: test output
+"""
+    valid, reason = _validate_story_metadata(content)
+    assert valid is False
+    assert "missing Verify field" in reason
+
+
+def test_validate_story_metadata_dod_token_item_missing_verify():
+    """Template-style token item without any Verify field is flagged."""
+    from modules.guard import _validate_story_metadata
+    content = """## Story: S-001
+## Definition of Done
+- [DoD-001] All acceptance criteria met (AC: AC-001)
+- [DoD-002] Code review done and approved
+  - Verify: QR-001 record exists
+"""
+    valid, reason = _validate_story_metadata(content)
+    assert valid is False
+    assert "missing Verify field" in reason
+
+
 def test_validate_story_metadata_hypothesis_skips_experiment():
     from modules.guard import _validate_story_metadata
     content = """## Acceptance Criteria
