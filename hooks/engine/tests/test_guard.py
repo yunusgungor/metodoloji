@@ -779,3 +779,161 @@ def test_guard_scope_inside_no_warning(tmp_path, monkeypatch):
     warns = res.get("methodology_warnings", [])
     assert not any("outside the active scope" in w for w in warns)
     monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
+
+
+# --- terminal story writes (content visibility) -----------------------------
+
+def _story_with_missing_fields():
+    return (
+        "## Story: S-001\n"
+        "## Acceptance Criteria\n"
+        "- [AC-001] Given X When Y Then Z\n"  # missing Type/Measured/Verify
+        "## Technical Tasks\n"
+        "- [ ] do it AC: AC-001\n"
+        "## Definition of Done\n"
+        "- [ ] DoD-001 Verify: manual\n"
+    )
+
+
+def test_story_heredoc_body_extracts_payload():
+    from modules.guard import _story_heredoc_body
+    cmd = (
+        "cat > docs/development/stories/S-002.md <<'EOF'\n"
+        "## Story: S-002\n"
+        "- **Status:** in-progress\n"
+        "EOF\n"
+    )
+    body = _story_heredoc_body(cmd, "docs/development/stories/S-002.md")
+    assert body == "## Story: S-002\n- **Status:** in-progress"
+
+
+def test_story_heredoc_body_marker_after_redirect():
+    from modules.guard import _story_heredoc_body
+    cmd = (
+        "cat <<'MD' > docs/development/stories/S-003.md\n"
+        "## Story: S-003\n"
+        "MD\n"
+    )
+    body = _story_heredoc_body(cmd, "docs/development/stories/S-003.md")
+    assert body == "## Story: S-003"
+
+
+def test_story_heredoc_body_other_target_returns_none():
+    from modules.guard import _story_heredoc_body
+    # Heredoc writes a DIFFERENT file; no story payload to validate.
+    cmd = "cat > tmp/notes.txt <<'EOF'\nhello\nEOF\n"
+    assert _story_heredoc_body(cmd, "docs/development/stories/S-002.md") is None
+    # No heredoc at all.
+    assert _story_heredoc_body("cp a.md b.md", "docs/x.md") is None
+
+
+def _story_path(tmp_path, key):
+    """Absolute path to a story inside tmp_path's docs tree."""
+    d = tmp_path / "docs/development/stories"
+    d.mkdir(parents=True, exist_ok=True)
+    return (d / f"{key}.md").as_posix()
+
+
+def test_guard_terminal_modify_existing_story_validates_content(tmp_path, monkeypatch):
+    """A terminal command touching an existing story validates its CURRENT
+    on-disk content — a shell-created story gets caught here even though it
+    slipped past the guard when first written."""
+    from modules.guard import guard
+    from modules import config
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "soft")
+    target = _story_path(tmp_path, "S-001")
+    Path(target).write_text(_story_with_missing_fields(), encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "terminal",
+                 "tool_input": {"command": f"echo x >> {target}"}})
+    assert res["decision"] == "allow"
+    assert any("missing Type field" in w
+               for w in res.get("methodology_warnings", []))
+
+
+def test_guard_terminal_modify_existing_story_hard_gate_denies(tmp_path, monkeypatch):
+    """quality_gate=hard: a terminal write to an invalid existing story denies."""
+    from modules.guard import guard
+    from modules import config
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
+    target = _story_path(tmp_path, "S-001")
+    Path(target).write_text(_story_with_missing_fields(), encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "terminal",
+                 "tool_input": {"command": f"echo x >> {target}"}})
+    assert res["decision"] == "deny"
+    assert "Story metadata validation failed" in res["reason"]
+
+
+def test_guard_terminal_heredoc_creation_denies_bad_experiment(tmp_path, monkeypatch):
+    """A story CREATED by a terminal heredoc is validated from its payload:
+    an experiment_refs pointing at a missing record denies (mode-independent)."""
+    from modules.guard import guard
+    from modules import config
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "soft")
+    target = _story_path(tmp_path, "S-002")
+    cmd = (
+        f"cat > {target} <<'EOF'\n"
+        "---\n"
+        "experiment_refs:\n"
+        "  - id: E-999\n"
+        "    status: APPROVED\n"
+        "---\n"
+        "## Story: S-002\n"
+        "EOF\n"
+    )
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "terminal", "tool_input": {"command": cmd}})
+    assert res["decision"] == "deny"
+    assert "Story experiment validation failed" in res["reason"]
+
+
+def test_guard_terminal_heredoc_creation_valid_payload_allows(tmp_path, monkeypatch):
+    """A heredoc-created story WITHOUT experiment_refs and with valid AC
+    metadata passes in soft mode without the bypass warning."""
+    from modules.guard import guard
+    from modules import config
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "soft")
+    target = _story_path(tmp_path, "S-004")
+    cmd = (
+        f"cat > {target} <<'EOF'\n"
+        "## Story: S-004\n"
+        "## Acceptance Criteria\n"
+        "- [AC-001] Given X When Y Then Z\n"
+        "  - Type: agent-verifiable\n"
+        "  - Measured: true\n"
+        "  - Verify: curl http://x\n"
+        "EOF\n"
+    )
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "terminal", "tool_input": {"command": cmd}})
+    assert res["decision"] == "allow"
+    assert not any("content is not visible" in w
+                   for w in res.get("methodology_warnings", []))
+
+
+def test_guard_terminal_opaque_creation_warns_bypass(tmp_path, monkeypatch):
+    """A terminal story creation whose payload is NOT visible (no heredoc)
+    allows but flags that content validation did not run here."""
+    from modules.guard import guard
+    from modules import config
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
+    src = _story_path(tmp_path, "_template_S")
+    dst = _story_path(tmp_path, "S-005")
+    Path(src).write_text("## Story: S-NEW\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    res = guard({"tool_name": "terminal",
+                 "tool_input": {"command": f"cp {src} {dst}"}})
+    assert res["decision"] == "allow"
+    assert any("content is not visible" in w
+               for w in res.get("methodology_warnings", []))

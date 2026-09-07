@@ -347,6 +347,20 @@ def test_verify_approved_without_evidence_forged(tmp_path, monkeypatch):
     assert gate.verify(str(rec)) == 1  # APPROVED without token -> forged
 
 
+def test_verify_cross_machine_hint(tmp_path, monkeypatch, capsys):
+    """A token that fails under THIS machine's key gets a cross-machine hint:
+    the HMAC key is machine-local, so an approval made on another machine is
+    provenance, not tampering — the operator needs the Re-Measured-By remedy."""
+    # Record approved under b"test-secret" (see _write_approved), then verified
+    # with a DIFFERENT key — exactly the second-machine situation.
+    monkeypatch.setenv("BMAD_GATE_KEY", "other-machine-key")
+    rec = _write_approved(tmp_path)
+    assert gate.verify(str(rec)) == 1
+    out = capsys.readouterr().out
+    assert "cross-machine" in out
+    assert "Re-Measured-By" in out
+
+
 def test_scope_matches():
     assert gate.scope_matches("src/**", "src/foo.py")
     assert gate.scope_matches("src/**", "src/engine/foo.py")

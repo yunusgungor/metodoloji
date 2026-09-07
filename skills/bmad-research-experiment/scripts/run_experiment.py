@@ -758,7 +758,22 @@ def verify(path: str) -> int:
                 return 2
             print(f"VERIFIED: {path} — APPROVED genuine (token {tok}). Code may proceed.")
             return 0
-        print(f"FORGED: token {tok} does not match the record's claim/measured/cmd.")
+        # Everything above parsed and matched EXCEPT the HMAC itself, so this
+        # is either tampering or — just as likely on a second machine — a
+        # record approved under another machine's key. The key is machine-local
+        # and never leaves its machine, so --verify here reports cross-machine
+        # provenance as FORGED by design. Distinguish the two for the operator:
+        # a re-measured record with a 'Re-Measured-By: E-XXX' marker is the
+        # sanctioned cross-machine remedy (check-plugin.sh §3), never a forged
+        # free pass — the re-measurement must itself verify under THIS key.
+        print(
+            f"FORGED: token {tok} does not match the record's claim/measured/cmd "
+            f"under THIS machine's gate key. If this record was APPROVED on "
+            f"another machine (the HMAC key is machine-local), that is "
+            f"cross-machine provenance, not tampering — re-measure it under this "
+            f"machine's key and add a 'Re-Measured-By: E-XXX' marker. "
+            f"If it was approved here, the record was tampered with after approval."
+        )
         return 1
     if "REJECTED" in decision:
         print(f"{path} — REJECTED (no code). Reason: {decision}")

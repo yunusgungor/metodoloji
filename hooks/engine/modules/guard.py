@@ -89,6 +89,40 @@ def _is_story_file(rel: str) -> bool:
     return bool(_STORY_BASENAME_RE.match(base))
 
 
+def _story_heredoc_body(command: str, target: str) -> str | None:
+    """Return the literal heredoc payload a terminal command writes to `target`.
+
+    Best-effort parse of the canonical shell story-creation pattern
+    (`cat <<'EOF' > docs/.../S-002.md` or `cat > docs/.../S-002.md <<'EOF'`).
+    Returns None when the command does not write a plain heredoc to the story
+    target — in that case the payload is unknowable at guard time.
+
+    Note: callers only reach this for commands without `$` (variable targets
+    are dropped before story detection), so no shell expansion is needed.
+    """
+    m = re.search(r"<<\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1", command)
+    if not m:
+        return None
+    marker = m.group(2)
+    want = os.path.basename(target.replace("\\", "/"))
+    matched = None
+    for rm in re.finditer(r">\s*([^\s;|&'\"]+)", command):
+        if os.path.basename(rm.group(1)) == want:
+            matched = rm
+            break
+    if matched is None:
+        return None
+    # Everything after the heredoc marker's line, up to the bare terminator
+    # line, is the literal payload. The tail of the opening line (which may
+    # carry the `> file` redirect) is not payload.
+    body: list[str] = []
+    for line in command[m.end():].splitlines()[1:]:
+        if line.strip() == marker:
+            break
+        body.append(line)
+    return "\n".join(body) if body else None
+
+
 def _frontmatter_block(content: str) -> str:
     """Return the YAML frontmatter body ('' when absent).
 
@@ -595,9 +629,34 @@ def guard(json_in: dict) -> dict:
                         if target_path.is_file():
                             story_content = target_path.read_text(encoding="utf-8", errors="replace")
                 elif tool_name == "terminal":
-                    # For terminal commands that create story files, skip AC check
-                    # (the file doesn't exist yet)
-                    pass
+                    # Shell writes cannot be inspected byte-for-byte, so guard
+                    # validates the strongest signal it has:
+                    #  * target already exists → the command modifies a story;
+                    #    validate its CURRENT on-disk content (a shell-created
+                    #    story may never have passed a content check, and this
+                    #    write is the last chance to catch that before more
+                    #    edits land on top of it).
+                    #  * target is new → validate the heredoc payload when the
+                    #    command writes one (cat <<EOF > S-002.md). When the
+                    #    payload is not visible, flag the write warn-only:
+                    #    AC/chain checks did not run here.
+                    target_path = pathlib.Path(target)
+                    if target_path.is_file():
+                        try:
+                            story_content = target_path.read_text(encoding="utf-8", errors="replace")
+                        except OSError:
+                            story_content = ""
+                    else:
+                        heredoc = _story_heredoc_body(command, target)
+                        if heredoc is not None:
+                            story_content = heredoc
+                        else:
+                            _soft_warnings.append(
+                                f"{rel}: story write via terminal — its content is "
+                                f"not visible before the write, so AC/chain "
+                                f"validation did not run here (the PostToolUse "
+                                f"audit enforces it after the fact)."
+                            )
 
                 if story_content:
                     # 1. Validate experiment_refs in frontmatter — ALWAYS deny:

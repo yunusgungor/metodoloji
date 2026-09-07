@@ -106,7 +106,11 @@ def extract_bash_targets(command: str) -> list[str]:
         if tok in _SHELL_OPS:
             continue
         if tok in (">", ">>"):
-            after = _seg_after(i)
+            # `>>` is split by _space_out_redirects into two `>` tokens; only
+            # the first carries the destination — the second is a remnant.
+            if i and tokens[i - 1] in (">", ">>"):
+                continue
+            after = [t for t in _seg_after(i) if t not in (">", ">>")]
             if after and not after[0].startswith("&"):
                 targets.append(after[0])
         elif tok == "tee":

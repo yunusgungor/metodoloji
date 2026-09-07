@@ -3,11 +3,14 @@
 # Discovers the plugin root reliably and routes to bootstrap.sh or hook-entry.sh.
 # Usage: sh run-hook.sh <bootstrap|guard|quality|deploy|audit|stop> [args...]
 #
-# The candidate roots below are the SINGLE SOURCE OF TRUTH for plugin-root
-# discovery. hooks/hooks.json embeds per-hook copies of this locator loop because
-# neither runtime injects a guaranteed plugin-root env var — when an install path
-# changes, update THIS list and the hooks.json copies together. scripts/check-plugin.sh
-# §1b mechanically verifies the hooks.json copies never drift from this list.
+# The candidate roots below are the authoritative plugin-root DISCOVERY list.
+# hooks/hooks.json cannot reference this file (neither runtime injects a
+# guaranteed plugin-root env var), so its hook commands embed a DISPATCH copy of
+# the loop. Those copies are GENERATED from the canonical dispatch list in
+# scripts/sync-hooks-json.py — edit THAT list (or this one) and run:
+#   python3 scripts/sync-hooks-json.py --write
+# scripts/check-plugin.sh §1b mechanically verifies hooks.json never drifts from
+# the generator and that every dispatch root is resolvable by this file.
 
 TARGET_HOOK="$1"
 [ -n "$1" ] && shift

@@ -56,8 +56,16 @@ def test_redirect_single_gt_target():
 
 
 def test_append_redirect_double_gt():
-    # BUG: `>>` yields a spurious ">" target plus the real one.
-    assert extract_bash_targets("cat f >> logs/app.log") == [">", "logs/app.log"]
+    # FIXED: `>>` used to yield a spurious ">" target plus the real one
+    # (a phantom ">" code target made every append look like a code write).
+    # The remnant `>` token from the `>>` split is now skipped.
+    assert extract_bash_targets("cat f >> logs/app.log") == ["logs/app.log"]
+
+
+def test_append_redirect_single_gt_unchanged():
+    # Single `>` keeps working; a split remnant never appears twice.
+    assert extract_bash_targets("echo x > logs/app.log") == ["logs/app.log"]
+    assert extract_bash_targets("echo a > x.txt && echo b > y.txt") == ["x.txt", "y.txt"]
 
 
 # --- tee --------------------------------------------------------------------

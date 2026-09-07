@@ -598,11 +598,13 @@ self-locate the plugin root:
 Each command is a locator loop over `$CLAUDE_PLUGIN_ROOT`, `$METODOLOJI_PLUGIN_ROOT`,
 the Claude marketplace cache and the OpenHands install dir; the first path containing
 `hooks/scripts/run-hook.sh` wins. The loop is duplicated per hook because neither
-runtime injects a guaranteed plugin-root env var into hook commands — the candidate
-roots are owned by `hooks/scripts/run-hook.sh` (single source of truth for plugin-root
-discovery) and the per-hook copies must stay in sync with it; `scripts/check-plugin.sh`
-§1b verifies that mechanically, so an install-path change can never silently desync the
-hook dispatcher.
+runtime injects a guaranteed plugin-root env var into hook commands, so the hook
+commands in `hooks/hooks.json` are **generated** from the canonical dispatch list in
+`scripts/sync-hooks-json.py` (the single editable place for install paths): change a
+path there — or in the authoritative discovery list in `hooks/scripts/run-hook.sh` —
+then run `python3 scripts/sync-hooks-json.py --write`. `scripts/check-plugin.sh` §1b
+verifies mechanically (byte-identical to the generator, roots resolvable by
+`run-hook.sh`), so an install-path change can never silently desync the hook dispatcher.
 
 ### 6.2. Guard (PreToolUse) — Fail-Closed
 
@@ -616,6 +618,7 @@ hook dispatcher.
 - Code target + outside free zone → looks for a **scope-matching VERIFIED** experiment record
 - No approved experiment → `DENY` (code writing is blocked), unless `code_guard = "soft"` (brownfield adoption in `custom/config.toml [hooks]`) → `allow` + `methodology_warnings`. Tighten back to `"hard"` once the first VERIFIED experiment scope exists.
 - Shell-variable targets (`$var`, `${var}`) in terminal commands are dropped — never treated as literal paths
+- **Terminal writes to a story file:** content is validated when the target already exists on disk (a shell-created story is caught the moment a later command touches it) or when the command carries a visible heredoc payload (`cat <<EOF > S-002.md`). A terminal story creation whose payload is not visible is allowed with a `methodology_warning` that AC/chain checks did not run at write time — the PostToolUse audit enforces them after the fact.
 - Secret reference in a terminal command or in written content → `DENY` (security violation; the content scan runs before the free-zone check so agent zones cannot bypass it)
 - Allow result may carry warn-only `methodology_warnings` (e.g. writes outside the active memlog scope)
 

@@ -3,7 +3,7 @@
 #
 #   0. Is the gate key installed?            (run_experiment.py --check-secret)
 #   1. Gate + hook engine selfcheck        (plugin copies, both)
-#   1b. hooks.json dispatch locator drift  (six hook copies == run-hook.sh roots)
+#   1b. hooks.json dispatch locator drift  (generated from sync-hooks-json.py; == run-hook.sh roots)
 #   2. Manifesto + project-context wiring (for EVERY surface) + bridge audit
 #   2b. Are bridge instructions visible at runtime? (resolve_customization deep_merge)
 #   3. Approved experiment inventory              (records where the guard opened code writing)
@@ -293,14 +293,17 @@ else
 fi
 rm -f /tmp/meth-deploy.$$.log
 
-echo "== 1b) hooks.json dispatch locator drift (single source = run-hook.sh) =="
+echo "== 1b) hooks.json dispatch locator drift (generated; roots = run-hook.sh) =="
 # Every hook command embeds a plugin-root locator loop (runtime portability:
 # neither runtime injects a guaranteed plugin-root env var, so hooks.json cannot
-# reference run-hook.sh by a single fixed path). The candidate roots are owned
-# by run-hook.sh — the copies in hooks.json must stay in sync or hooks silently
-# stop firing (guard fail-open). This section mechanically catches hand-edits:
+# reference run-hook.sh by a single fixed path). hooks.json commands are
+# GENERATED from the canonical locator in scripts/sync-hooks-json.py — the single
+# editable place for dispatch roots — and the roots stay in sync with run-hook.sh
+# or hooks silently stop firing (guard fail-open). This section mechanically
+# catches drift in both directions:
 #   (1) all hook commands share ONE identical locator list,
-#   (2) every locator candidate used in hooks.json is resolvable by run-hook.sh.
+#   (2) every locator candidate used in hooks.json is resolvable by run-hook.sh,
+#   (3) hooks.json is byte-identical to the canonical locator (sync-hooks-json.py).
 "$PY" - <<'PY'
 import json, os, re, sys
 from pathlib import Path
@@ -371,6 +374,18 @@ else
     echo "[ERROR] hooks.json dispatch locator drift (see above) — sync hooks.json copies with run-hook.sh"
     PROBLEMS=$((PROBLEMS + 1))
 fi
+# hooks.json commands are GENERATED from the canonical locator in
+# scripts/sync-hooks-json.py (the single editable place for dispatch roots).
+# Byte-exact sync is enforced here: a hand-edit of hooks.json or a locator
+# change without a `--write` fails the self-check.
+if "$PY" "$PLUGIN_ROOT/scripts/sync-hooks-json.py" --check "$PLUGIN_ROOT/hooks/hooks.json" >/tmp/meth-locator.$$.log 2>&1; then
+    echo "[OK]   hooks.json generated dispatch commands in sync (sync-hooks-json.py)"
+else
+    sed 's/^/       /' /tmp/meth-locator.$$.log
+    echo "[ERROR] hooks.json locator drifted from scripts/sync-hooks-json.py — run: python3 scripts/sync-hooks-json.py --write"
+    PROBLEMS=$((PROBLEMS + 1))
+fi
+rm -f /tmp/meth-locator.$$.log
 
 echo "== 2) Manifesto wired to all surfaces + bridge (native→record)? =="
 "$PY" - <<'PY'
