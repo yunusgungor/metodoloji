@@ -213,6 +213,68 @@ def test_kopru_qr_without_dod():
     assert any("DoD" in w for w in warnings)
 
 
+def test_kopru_qr_table_with_valid_dod_no_warning():
+    """A QR DoD Verification table with identifier + evidence rows is fine."""
+    content = (
+        "## DoD Verification Results\n\n"
+        "| DoD Item | Status | Evidence | Date |\n"
+        "|----------|--------|----------|------|\n"
+        "| DoD-001 | ✅ passed | curl output | 2026-08-20 |\n"
+        "| DoD-002 | ✅ passed | pytest output | 2026-08-20 |\n"
+    )
+    warnings = _check_kopru_consumption(
+        "file_editor",
+        {"path": "docs/quality/QR-001.md", "content": content},
+    )
+    assert warnings == []
+
+
+def test_kopru_qr_table_missing_evidence_warns():
+    """QR DoD table rows without a recorded status/evidence are flagged — the
+    same structural rule the guard applies to story DoD Verify fields."""
+    content = (
+        "## DoD Verification Results\n\n"
+        "| DoD Item | Status | Evidence | Date |\n"
+        "|----------|--------|----------|------|\n"
+        "| DoD-001 | — | — | — |\n"
+    )
+    warnings = _check_kopru_consumption(
+        "file_editor",
+        {"path": "docs/quality/QR-001.md", "content": content},
+    )
+    assert any("DoD" in w and "missing Verify field" in w for w in warnings)
+
+
+def test_kopru_qr_bullet_with_result_marker_no_warning():
+    """QR bullet-style items that record their result (→ ✓ PASS) are valid."""
+    content = "## DoD Verification\n\n- [DoD-001] DENY unapproved → ✓ PASS\n"
+    warnings = _check_kopru_consumption(
+        "file_editor",
+        {"path": "docs/quality/QR-001.md", "content": content},
+    )
+    assert warnings == []
+
+
+def test_kopru_qr_bullet_without_verification_warns():
+    """QR bullet-style items that record no result are flagged (guard parity)."""
+    content = "## DoD Verification\n\n- [DoD-001] All ACs verified\n"
+    warnings = _check_kopru_consumption(
+        "file_editor",
+        {"path": "docs/quality/QR-001.md", "content": content},
+    )
+    assert any("DoD" in w and "missing Verify field" in w for w in warnings)
+
+
+def test_kopru_qr_mentions_dod_but_no_items_warns():
+    """A QR that repeats the words DoD but has no bullet/table item warns."""
+    content = "## DoD Verification Results\n\n| DoD Item | Status | Evidence | Date |\n"
+    warnings = _check_kopru_consumption(
+        "file_editor",
+        {"path": "docs/quality/QR-001.md", "content": content},
+    )
+    assert any("has no DoD items" in w for w in warnings)
+
+
 def test_redacted_input_truncates_bodies_keeps_paths():
     big = "x" * 5000
     out = _redacted_input({"path": "src/main.py", "content": big,

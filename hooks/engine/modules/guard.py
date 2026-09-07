@@ -8,7 +8,9 @@ import re
 import sys
 
 from .config import GATE_DIR, _BMD_DIR, _KEY_ACCESS_IN_CONTENT, _DONE_RE
-from .utils import is_code_target, is_free, norm_path, normalize_hook_input, rel_to_root, repo_root, extract_story_key_from_content
+from .utils import (is_code_target, is_free, norm_path, normalize_hook_input,
+                    rel_to_root, repo_root, extract_story_key_from_content,
+                    dod_issues, _VERIFY_FIELD_RE)
 from .bash_targets import extract_bash_targets
 
 # Import gate script — deferred: sys.exit at module level kills the entire process
@@ -195,12 +197,12 @@ def _validate_story_experiment_refs(content: str, root: str = "") -> tuple[bool,
 
 _AC_ID_RE = re.compile(r"\[AC-(\d+)\]")
 _TASK_AC_RE = re.compile(r"AC:\s*(AC-\d+)")
-_DOD_ID_RE = re.compile(r"[\[\(]?DoD-(\d+)[\]\)]?")
 _HYPOTHESIS_RE = re.compile(r"\[HYPOTHESIS\]")
 _EXPERIMENT_FIELD_RE = re.compile(r"Experiment:\s*(E-\d+|—|-)")
 _MEASURED_FIELD_RE = re.compile(r"Measured:\s*(true|false)", re.IGNORECASE)
 _TYPE_FIELD_RE = re.compile(r"Type:\s*(agent-verifiable|user-evaluable|hybrid)", re.IGNORECASE)
-_VERIFY_FIELD_RE = re.compile(r"Verify:\s*(.+)")
+# _VERIFY_FIELD_RE and the DoD rules are shared with the audit's QR DoD check
+# (single source of truth in .utils).
 
 
 def _parse_ac_metadata(content: str) -> list[dict]:
@@ -311,36 +313,11 @@ def _validate_story_metadata(content: str) -> tuple[bool, str]:
                     issues.append(f"Task references non-existent {ref}: {task['task_text'][:60]}...")
 
     # 3. Validate DoD structure
+    # Shared with the audit's QR DoD check (.utils.dod_issues) so guard and
+    # audit enforce the identical DoD rules (identifier + Verify per item).
     dod_match = re.search(r"##\s+Definition\s+of\s+Done\s*\n(.*?)(?=\n##\s|\Z)", content, re.DOTALL | re.IGNORECASE)
     if dod_match:
-        dod_section = dod_match.group(1)
-        dod_lines = dod_section.splitlines()
-        # A DoD item is a checkbox bullet ("- [ ] DoD-001 …") or a token bullet
-        # ("- [DoD-001] …" — the record-template style). The Verify field may sit
-        # on the item line itself OR on the indented sub-lines that follow the
-        # item (template style: "- [DoD-001] All ACs met" then "  - Verify: pytest tests/").
-        for i, raw in enumerate(dod_lines):
-            line = raw.strip()
-            is_checkbox = line.startswith(("- [ ]", "- [x]", "- [X]"))
-            is_token = line.startswith("- ") and bool(_DOD_ID_RE.search(line))
-            if not (is_checkbox or is_token):
-                continue
-            if not _DOD_ID_RE.search(line):
-                issues.append(f"DoD item without identifier: {line[:60]}...")
-            if _VERIFY_FIELD_RE.search(line) or "Verify:" in line:
-                continue
-            # No inline Verify on the item line — scan the indented sub-lines
-            # that belong to this item (until the next non-indented line).
-            has_verify = False
-            j = i + 1
-            while j < len(dod_lines) and dod_lines[j][:1].isspace():
-                sub = dod_lines[j].strip()
-                if _VERIFY_FIELD_RE.search(sub) or "Verify:" in sub:
-                    has_verify = True
-                    break
-                j += 1
-            if not has_verify:
-                issues.append(f"DoD item missing Verify field: {line[:60]}...")
+        issues.extend(dod_issues(dod_match.group(1)))
 
     if issues:
         return False, "; ".join(issues[:5])  # Limit to 5 issues

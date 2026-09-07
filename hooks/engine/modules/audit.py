@@ -7,6 +7,7 @@ import re
 import time
 
 from .config import log_file
+from .utils import dod_issues, has_dod_content, scan_dod_items
 
 
 # Detection window: regexes run on the preview, never the whole body.
@@ -300,8 +301,12 @@ def _check_kopru_consumption(tool_name: str, tool_input: dict) -> list[str]:
     """Check if bridge outputs exist for recently modified files.
 
     Scoped to the modified file only (never a directory scan): a QR edit
-    without DoD items warns; the done-story→QR chain check lives in
-    check-plugin.sh (static audit), not on the per-write hot path.
+    without structurally sound DoD items warns; the done-story→QR chain check
+    lives in check-plugin.sh (static audit), not on the per-write hot path.
+    QR DoD content is validated with the SAME rules and parser the guard
+    applies to a story's Definition of Done (.utils.dod_issues) — identifier
+    on every item plus a recorded verification — so the two layers can never
+    disagree about what "valid DoD" means.
     """
     warnings = []
 
@@ -310,14 +315,27 @@ def _check_kopru_consumption(tool_name: str, tool_input: dict) -> list[str]:
         if not path:
             return warnings
 
-        # Check: QR-NNN.md modified → should have DoD items
+        # Check: QR-NNN.md modified → should carry DoD verification items
         if re.search(r"/QR-\d+\.md$", path, re.IGNORECASE):
             content = str(tool_input.get("content", ""))
-            if content and "DoD Item" not in content and "DoD-" not in content:
+            if not content:
+                return warnings
+            if not has_dod_content(content):
                 warnings.append(
                     f"Bridge inconsistency: {path} does not contain DoD items. "
                     f"The QR record may be missing or incorrectly created."
                 )
+                return warnings
+            # DoD content is referenced but no bullet/table item parsed → the
+            # QR only repeats the words, it does not record the verification.
+            if not scan_dod_items(content, qr=True):
+                warnings.append(
+                    f"Bridge inconsistency: {path} mentions DoD but has no DoD items "
+                    f"(expected '- DoD-NNN …' bullets or a '| DoD-NNN | … |' table)."
+                )
+            # Structural defects — the guard's DoD rules applied to QR content.
+            for issue in dod_issues(content, qr=True):
+                warnings.append(f"Bridge inconsistency: {path} — {issue}")
 
     return warnings
 

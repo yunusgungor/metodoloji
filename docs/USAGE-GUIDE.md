@@ -640,7 +640,7 @@ hook dispatcher.
 **Behavior:**
 - Appends every call to `.metodoloji/logs/hook-audit.log` as one JSON line, stamped with the active session `intent` and memlog `progress`
 - File/command **bodies are redacted** to a 300-char preview (`content`, `code`, `source`… keys) — paths, commands and flags stay whole so stop/guard keep working; full bodies never land in the log
-- Produces methodology compliance warnings on story files (non-blocking) + QR-file DoD warnings (the done-story→QR directory scan lives in `check-plugin.sh`, not on the per-write hot path)
+- Produces methodology compliance warnings on story files (non-blocking) + QR-file DoD warnings (the done-story→QR directory scan lives in `check-plugin.sh`, not on the per-write hot path). QR DoD content is validated with the **same parser and rules** the guard applies to a story's `Definition of Done` (`.utils.dod_issues`): every DoD item needs a `DoD-NNN` identifier and a recorded verification — a `Verify:` field for story definitions; for QR records a `Verify:`/`Evidence:` line or a result marker (e.g. `→ ✓ PASS`) on a `- DoD-NNN …` bullet, or a non-empty status/evidence cell in a `| DoD Item | Status | Evidence | Date |` table row
 - Detects notable events and auto-generates code docs (see §7); related-docs context loading runs on terminal calls only (file writes already trigger doc generation)
 - Log write failures are fail-open (stderr note, never a crash)
 

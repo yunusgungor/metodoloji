@@ -349,3 +349,107 @@ def _story_key_from_intent(intent: str) -> str:
     if key.endswith(".md"):
         key = key[: -len(".md")]  # rstrip strips chars, not the suffix
     return key.strip()
+
+
+# --- Definition-of-Done validation (shared: guard story + audit QR checks) ---
+# Single source of truth for "what is a valid DoD item", so the guard's story
+# DoD validation and the audit's QR DoD warning can never disagree about the
+# rules: every DoD item needs a DoD-NNN identifier AND a recorded verification
+# (a Verify: field for story definitions; a Verify:/Evidence/result marker for
+# QR records, which report the verification outcome).
+
+_DOD_ID_RE = re.compile(r"[\[\(]?DoD-(\d+)[\]\)]?")
+_VERIFY_FIELD_RE = re.compile(r"Verify:\s*(.+)")
+# QR result markers: status symbols, an arrowed verdict, or an Evidence field.
+_QR_RESULT_RE = re.compile(
+    r"[✓✅❌⚠️]|->\s*(?:PASS|FAIL|pass|fail|passed|failed|pending|blocked)|Evidence:\s*\S")
+# Presence signals for "does this text carry DoD content at all".
+_DOD_SIGNAL_RE = re.compile(
+    r"DoD\s*Item|DoD-\s*\d+|Definition\s+of\s+Done|##\s+[^\n]*\bDoD\b",
+    re.IGNORECASE)
+_DOD_EMPTY_CELL = {"", "—", "-"}
+
+
+def scan_dod_items(text: str, *, qr: bool = False) -> list[dict]:
+    """Scan text for DoD items and their structural facts.
+
+    Bullet items (checkbox "- [ ] DoD-001 …" or token "- [DoD-001] …" — the
+    record-template style) are recognised together with their indented
+    continuation lines, where a ``Verify:`` field (and, in QR mode, an
+    ``Evidence:`` line or result marker) may live. In QR mode, markdown-table
+    rows ("| DoD-001 | … |") are recognised as items too.
+
+    Returns a list of dicts with keys: kind ("bullet" | "row"), first (the
+    item's first line), has_identifier, has_verification.
+    """
+    lines = text.splitlines()
+    items: list[dict] = []
+    i = 0
+    n = len(lines)
+    while i < n:
+        line = lines[i].strip()
+
+        # QR DoD verification tables: | DoD-001 | ✅ passed | evidence | date |
+        if qr and line.startswith("|") and _DOD_ID_RE.search(line):
+            cells = [c.strip() for c in line.strip("|").split("|")]
+            items.append({
+                "kind": "row",
+                "first": line,
+                "has_identifier": bool(cells and _DOD_ID_RE.search(cells[0])),
+                # A recorded result = any non-empty status/evidence cell.
+                "has_verification": any(
+                    c and c not in _DOD_EMPTY_CELL for c in cells[1:]),
+            })
+            i += 1
+            continue
+
+        is_checkbox = line.startswith(("- [ ]", "- [x]", "- [X]"))
+        is_token = line.startswith("- ") and bool(_DOD_ID_RE.search(line))
+        if not (is_checkbox or is_token):
+            i += 1
+            continue
+
+        # Item block: the bullet plus its indented sub-lines (where Verify: /
+        # Evidence: fields are written, template style).
+        block = [line]
+        j = i + 1
+        while j < n and lines[j][:1].isspace():
+            block.append(lines[j].strip())
+            j += 1
+        block_text = "\n".join(block)
+        has_verify = bool(_VERIFY_FIELD_RE.search(block_text)) or "Verify:" in block_text
+        has_result = _QR_RESULT_RE.search(block_text) if qr else None
+        items.append({
+            "kind": "bullet",
+            "first": line,
+            "has_identifier": bool(_DOD_ID_RE.search(line)),
+            "has_verification": bool(has_verify or has_result),
+        })
+        i = j
+    return items
+
+
+def dod_issues(text: str, *, qr: bool = False) -> list[str]:
+    """Structural DoD issues in *text* — identical rules for guard and audit.
+
+    Story mode (qr=False): bullet items only; each item needs a DoD-NNN
+    identifier and a Verify: field (inline or on an indented sub-line).
+    QR mode (qr=True): bullet items and DoD table rows; each item needs an
+    identifier and a recorded verification (Verify:, Evidence:, or a result
+    marker such as "✓ PASS").
+
+    Returns guard-style messages so both layers report the same defects.
+    """
+    issues: list[str] = []
+    for item in scan_dod_items(text, qr=qr):
+        first = item["first"]
+        if not item["has_identifier"]:
+            issues.append(f"DoD item without identifier: {first[:60]}...")
+        if not item["has_verification"]:
+            issues.append(f"DoD item missing Verify field: {first[:60]}...")
+    return issues
+
+
+def has_dod_content(text: str) -> bool:
+    """True when *text* carries any DoD signal (section, table, or item)."""
+    return bool(_DOD_SIGNAL_RE.search(text))

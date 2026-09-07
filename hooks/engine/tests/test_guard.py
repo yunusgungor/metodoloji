@@ -223,6 +223,19 @@ def test_validate_story_metadata_dod_token_item_verify_on_next_line():
     assert valid is True, reason
 
 
+def test_validate_story_metadata_dod_ignores_table_rows():
+    """Story-mode DoD validation does not treat QR-style markdown tables as
+    DoD items (that format belongs to QR records; audit checks it instead)."""
+    from modules.guard import _validate_story_metadata
+    content = """## Story: S-001
+## Definition of Done
+- [ ] DoD-001 Verify: manual
+| DoD-002 | ✅ passed | curl output | 2026-08-20 |
+"""
+    valid, reason = _validate_story_metadata(content)
+    assert valid is True, reason
+
+
 def test_validate_story_metadata_dod_missing_verify():
     """A DoD item with no inline or sub-line Verify field is flagged."""
     from modules.guard import _validate_story_metadata
