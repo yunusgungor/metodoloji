@@ -48,5 +48,5 @@ design_artifacts = "{project-root}/design-artifacts"
 [hooks]
 quality_gate = "soft"   # "soft" (default) | "hard"
 deploy_guard = "soft"   # "soft" (default) | "hard"
-code_guard = "hard"     # "hard" (default) | "soft" (brownfield adoption)
-stop_guard = "hard"     # "hard" (default) | "soft" (brownfield adoption)
+code_guard = "soft"     # brownfield-tertemiz 2026-09-07: tighten to "hard" after first VERIFIED experiment
+stop_guard = "soft"     # brownfield-tertemiz 2026-09-07: tighten to "hard" after first VERIFIED experiment
