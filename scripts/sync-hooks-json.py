@@ -84,35 +84,43 @@ def _walk_command_nodes(obj):
             yield from _walk_command_nodes(v)
 
 
-def _expected(node: dict) -> tuple[str, str] | None:
-    """Return (hook, canonical command) for a command node, or None when the
-    node isn't a run-hook.sh dispatch command. A dispatch-shaped command whose
-    hook name is unknown (hand-renamed) also reads as non-canonical — callers
-    surface it as drift/missing instead of crashing."""
+def _expected(node: dict) -> tuple[str, str | None] | None:
+    """Classify a hook command node.
+
+    Returns None for a node that is not a run-hook.sh dispatch command, else
+    (hook, canonical). canonical is None when the command is dispatch-shaped
+    but names an UNKNOWN hook (hand-renamed) — callers report it explicitly
+    instead of guessing or crashing."""
     m = _HOOK_RE.search(node["command"])
     if not m:
         return None
     hook = m.group(1)
-    try:
-        return hook, hook_command(hook)
-    except ValueError:
-        return None
+    if hook not in _HOOKS:
+        return hook, None
+    return hook, hook_command(hook)
 
 
 def regenerate(manifest: Path) -> None:
     data = json.loads(manifest.read_text(encoding="utf-8"))
     seen = set()
+    unknown = set()
     for node in _walk_command_nodes(data):
         got = _expected(node)
         if got is None:
             print(f"  skip non-dispatch command: {node['command'][:60]!r}")
             continue
         hook, canonical = got
+        if canonical is None:
+            unknown.add(hook)
+            continue
         node["command"] = canonical
         seen.add(hook)
-    missing = set(_HOOKS) - seen
+    missing = sorted(set(_HOOKS) - seen)
     if missing:
-        print(f"  ERROR: dispatch commands for {sorted(missing)} not found in hooks.json")
+        print(f"  ERROR: dispatch commands for {missing} not found in hooks.json")
+    if unknown:
+        print(f"  ERROR: unknown dispatch hook name(s) {sorted(unknown)} in hooks.json")
+    if missing or unknown:
         sys.exit(1)
     manifest.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     print(f"[OK] hooks.json regenerated from canonical locator: {manifest}")
@@ -122,12 +130,16 @@ def check(manifest: Path) -> int:
     data = json.loads(manifest.read_text(encoding="utf-8"))
     problems = 0
     seen = set()
+    unknown = set()
     drifted = []
     for node in _walk_command_nodes(data):
         got = _expected(node)
         if got is None:
             continue
         hook, canonical = got
+        if canonical is None:
+            unknown.add(hook)
+            continue
         seen.add(hook)
         if node["command"] != canonical:
             drifted.append(hook)
@@ -135,10 +147,13 @@ def check(manifest: Path) -> int:
         problems += 1
         print(f"  MISS: hook command(s) {sorted(drifted)} drifted from the canonical locator")
         print("        run: python3 scripts/sync-hooks-json.py --write")
-    missing = set(_HOOKS) - seen
+    missing = sorted(set(_HOOKS) - seen)
     if missing:
         problems += 1
-        print(f"  MISS: dispatch commands for {sorted(missing)} missing from hooks.json")
+        print(f"  MISS: dispatch commands for {missing} missing from hooks.json")
+    if unknown:
+        problems += 1
+        print(f"  MISS: unknown dispatch hook name(s) {sorted(unknown)} in hooks.json")
     if not problems:
         print(f"[OK] hooks.json dispatch commands byte-identical to canonical locator ({len(seen)} hooks)")
     return 1 if problems else 0

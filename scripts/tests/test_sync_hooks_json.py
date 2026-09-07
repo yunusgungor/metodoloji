@@ -58,6 +58,11 @@ def _write_manifest(path: Path, commands: dict) -> dict:
     if "deploy" in commands:
         pre.append({"matcher": "Bash|terminal",
                     "hooks": _hook_entry(commands, "deploy", {"timeout": 10})})
+    # Unknown dispatch-shaped hooks (e.g. a hand-renamed "garud") still get a
+    # node so check/regenerate see them.
+    for extra in sorted(set(commands) - set(HOOKS)):
+        pre.append({"matcher": "Bash|terminal",
+                    "hooks": _hook_entry(commands, extra, {"timeout": 10})})
     data = {
         "hooks": {
             "SessionStart": [{"hooks": _hook_entry(commands, "bootstrap",
@@ -133,10 +138,24 @@ def test_check_catches_missing_dispatch_hook(tmp_path, capsys):
 
 def test_check_catches_renamed_hook_without_crashing(tmp_path, capsys):
     cmds = _canonical()
-    cmds["garud"] = cmds.pop("guard")  # dispatch-shaped but unknown name
+    # Real rename: the command's dispatch target changes too.
+    cmds["garud"] = cmds.pop("guard").replace('run-hook.sh" guard ', 'run-hook.sh" garud ')
     _write_manifest(tmp_path / "hooks.json", cmds)
     assert mod.check(tmp_path / "hooks.json") == 1  # graceful, no traceback
-    assert "guard" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "garud" in out  # the unknown name is named, not silently skipped
+    assert "guard" in out  # and the missing original is reported
+
+
+def test_regenerate_refuses_unknown_hook_without_writing(tmp_path, capsys):
+    cmds = _canonical()
+    cmds["garud"] = cmds.pop("guard").replace('run-hook.sh" guard ', 'run-hook.sh" garud ')
+    path = tmp_path / "hooks.json"
+    _write_manifest(path, cmds)
+    original = path.read_text(encoding="utf-8")
+    with pytest.raises(SystemExit):
+        mod.regenerate(path)
+    assert path.read_text(encoding="utf-8") == original  # nothing written
 
 
 def test_check_reports_multiple_drifted_commands(tmp_path, capsys):

@@ -89,6 +89,15 @@ def _is_story_file(rel: str) -> bool:
     return bool(_STORY_BASENAME_RE.match(base))
 
 
+def _unchecked_story_write_warning(rel: str) -> str:
+    """Warn-only notice when a terminal story write bypasses content checks."""
+    return (
+        f"{rel}: story write via terminal — its content is not visible to the "
+        f"guard before the write, so AC/chain validation did not run here "
+        f"(the PostToolUse audit enforces it after the fact)."
+    )
+
+
 def _story_heredoc_body(command: str, target: str) -> str | None:
     """Return the literal heredoc payload a terminal command writes to `target`.
 
@@ -645,18 +654,16 @@ def guard(json_in: dict) -> dict:
                         try:
                             story_content = target_path.read_text(encoding="utf-8", errors="replace")
                         except OSError:
+                            # Unreadable (e.g. permissions) — content unknowable,
+                            # same warn-only treatment as an opaque creation.
                             story_content = ""
+                            _soft_warnings.append(_unchecked_story_write_warning(rel))
                     else:
                         heredoc = _story_heredoc_body(command, target)
                         if heredoc is not None:
                             story_content = heredoc
                         else:
-                            _soft_warnings.append(
-                                f"{rel}: story write via terminal — its content is "
-                                f"not visible before the write, so AC/chain "
-                                f"validation did not run here (the PostToolUse "
-                                f"audit enforces it after the fact)."
-                            )
+                            _soft_warnings.append(_unchecked_story_write_warning(rel))
 
                 if story_content:
                     # 1. Validate experiment_refs in frontmatter — ALWAYS deny:
