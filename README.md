@@ -40,7 +40,7 @@ The same `hooks/hooks.json` manifest is auto-discovered by both runtimes. OpenHa
 
 **Stop (fail-closed)** — the session cannot close with unfinished stories or unapproved changes.
 
-**PostToolUse audit** — every write, edit, and bash call is logged to `.metodoloji/logs/hook-audit.log` asynchronously.
+**PostToolUse audit** — every write, edit, and bash call is logged to `.metodoloji/logs/hook-audit.log` synchronously.
 
 ### Record chain stages
 

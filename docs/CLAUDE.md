@@ -23,7 +23,7 @@ plugin root and dispatch to the same `hooks/engine/` core.
 | PreToolUse guard | Write\|Edit\|MultiEdit\|file_editor\|terminal | fail-closed | 10s |
 | PreToolUse quality | Bash\|terminal | config-gated: soft (default) / hard | 10s |
 | PreToolUse deploy | Bash\|terminal | config-gated: soft (default) / hard | 10s |
-| PostToolUse audit | Write\|Edit\|MultiEdit\|Bash\|file_editor\|terminal | fail-open (async) | 5s |
+| PostToolUse audit | Write\|Edit\|MultiEdit\|Bash\|file_editor\|terminal | fail-open (sync) | 5s |
 | Stop | — | fail-closed | 15s |
 
 ### Gate strictness (soft/hard)
