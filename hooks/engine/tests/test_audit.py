@@ -74,6 +74,17 @@ def test_event_todo_detected():
     assert all(e["trigger"] == "todo_detected" for e in pending)
 
 
+def test_event_todo_substring_no_match():
+    # "todo" inside a longer word (e.g. "metodoloji") must not trigger.
+    events = _detect_notable_events(
+        "file_editor",
+        {"path": "docs/bmad/BRIDGE.md", "content": "# metodoloji Bridge\nMode C formatindaki kopyalar"},
+        None,
+    )
+    pending = [e for e in events if e["type"] == "pending"]
+    assert pending == []
+
+
 def test_event_future_plan_detected():
     events = _detect_notable_events(
         "terminal", {"command": "build"}, "next step is to implement caching"

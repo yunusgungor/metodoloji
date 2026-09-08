@@ -117,8 +117,9 @@ def _detect_notable_events(tool_name: str, tool_input: dict, tool_output: dict) 
     if tool_name == "file_editor":
         path = tool_input.get("path", "")
         content = str(tool_input.get("content", ""))[:_DETECT_WINDOW]
-        # Detect TODO/FIXME/HACK comments
-        todo_matches = re.findall(r"(?:TODO|FIXME|HACK|XXX|OPTIMIZE)[:\s]*(.+)", content, re.IGNORECASE)
+        # Detect TODO/FIXME/HACK comments. \b guards against substring
+        # matches inside longer words (e.g. "todo" in "metodoloji").
+        todo_matches = re.findall(r"\b(?:TODO|FIXME|HACK|XXX|OPTIMIZE)\b[:\s]*(.+)", content, re.IGNORECASE)
         for todo in todo_matches[:3]:  # Max 3 per file
             events.append({
                 "type": "pending",
