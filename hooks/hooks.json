@@ -50,8 +50,7 @@
           {
             "type": "command",
             "command": "sh -c 'for d in \"$CLAUDE_PLUGIN_ROOT\" \"$METODOLOJI_PLUGIN_ROOT\" \".\" \"$PWD\" \"/workspace\" \"/workspace/metodoloji\" \"$HOME/.claude/plugins/cache/yunusgungor/metodoloji/\"* \"$HOME/.openhands/plugins/installed/metodoloji\"; do [ -f \"$d/hooks/scripts/run-hook.sh\" ] && exec sh \"$d/hooks/scripts/run-hook.sh\" audit \"$1\"; done; exit 0'",
-            "timeout": 5,
-            "async": true
+            "timeout": 5
           }
         ]
       }

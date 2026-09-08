@@ -589,7 +589,7 @@ self-locate the plugin root:
       { "matcher": "Bash|terminal", "hooks": [{ "command": "sh .../hook-entry.sh ... quality", "timeout": 10 }] },
       { "matcher": "Bash|terminal", "hooks": [{ "command": "sh .../hook-entry.sh ... deploy", "timeout": 10 }] }
     ],
-    "PostToolUse": [{ "matcher": "Write|Edit|MultiEdit|Bash|file_editor|terminal", "hooks": [{ "command": "sh .../hook-entry.sh ... audit", "timeout": 5, "async": true }] }],
+    "PostToolUse": [{ "matcher": "Write|Edit|MultiEdit|Bash|file_editor|terminal", "hooks": [{ "command": "sh .../hook-entry.sh ... audit", "timeout": 5 }] }],
     "Stop": [{ "hooks": [{ "type": "command", "command": "sh .../hook-entry.sh ... stop", "timeout": 15 }] }]
   }
 }
@@ -636,7 +636,7 @@ verifies mechanically (byte-identical to the generator, roots resolvable by
 | Media/assets | `.png`, `.jpg`, `.svg`, fonts, archives | ❌ No (free) |
 | Meta files | `.gitignore`, `README`, `LICENSE`, `.editorconfig`, `.npmrc` | ❌ No (free) |
 
-### 6.3. Audit (PostToolUse) — Fail-Open (async)
+### 6.3. Audit (PostToolUse) — Fail-Open (sync)
 
 **Scope:** `Write|Edit|MultiEdit|Bash|file_editor|terminal`
 
@@ -646,6 +646,15 @@ verifies mechanically (byte-identical to the generator, roots resolvable by
 - Produces methodology compliance warnings on story files (non-blocking) + QR-file DoD warnings (the done-story→QR directory scan lives in `check-plugin.sh`, not on the per-write hot path). QR DoD content is validated with the **same parser and rules** the guard applies to a story's `Definition of Done` (`.utils.dod_issues`): every DoD item needs a `DoD-NNN` identifier and a recorded verification — a `Verify:` field for story definitions; for QR records a `Verify:`/`Evidence:` line or a result marker (e.g. `→ ✓ PASS`) on a `- DoD-NNN …` bullet, or a non-empty status/evidence cell in a `| DoD Item | Status | Evidence | Date |` table row
 - Detects notable events and auto-generates code docs (see §7); related-docs context loading runs on terminal calls only (file writes already trigger doc generation)
 - Log write failures are fail-open (stderr note, never a crash)
+- Runs **synchronously** (no `"async": true` in `hooks/hooks.json`): audit mode is
+  fail-open and short-timeout (5s), so sync execution causes no functional loss.
+  Sync execution reduces the `InputValidationError: Bash was called with input
+  that could not be parsed as JSON` symptom caused by tool-input JSON doubling
+  when async PostToolUse hooks race. Note: this only mitigates the symptom —
+  the usual root cause is the plugin being registered twice in Claude Code
+  ("2 async PostToolUse hooks completed" in the transcript). Also clean up
+  duplicate/stale installations (plugin manifest + manual `settings.json` entry,
+  stale marketplace cache) and update Claude Code.
 
 **Audit record structure:**
 ```json
@@ -711,7 +720,7 @@ The Stop output uses the loop-safe envelope: top-level `decision: "block"` + `re
 hook-entry.sh guard    → guard mode (fail-closed)
 hook-entry.sh quality  → quality mode (config-gated soft/hard)
 hook-entry.sh deploy   → deploy mode (config-gated soft/hard)
-hook-entry.sh audit    → audit mode (fail-open, async)
+hook-entry.sh audit    → audit mode (fail-open, sync)
 hook-entry.sh stop     → stop mode (fail-closed)
 ```
 
