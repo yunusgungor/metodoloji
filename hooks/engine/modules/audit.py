@@ -22,6 +22,14 @@ def _detect_notable_events(tool_name: str, tool_input: dict, tool_output: dict) 
     events = []
     output_str = str(tool_output)[:_DETECT_WINDOW] if tool_output else ""
 
+    # ponytail: iz okununca doc üretilmez — log/code-docs çıktısı yoksa
+    # "pending" eşleşmesiyle kendini besler. Ceiling: ad-içerir eşleşme.
+    _trail = " ".join([str(tool_input.get("path", "")),
+                       str(tool_input.get("file_path", "")),
+                       str(tool_input.get("command", "")), output_str])
+    if any(t in _trail for t in ("code-docs", "hook-audit", ".metodoloji")):
+        return []
+
     # 0. Code structure → pattern doc (class hierarchies, design-indicative comments)
     if tool_name == "file_editor":
         path = tool_input.get("path", "")

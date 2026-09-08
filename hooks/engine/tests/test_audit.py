@@ -85,6 +85,36 @@ def test_event_todo_substring_no_match():
     assert pending == []
 
 
+def test_event_trail_path_no_events():
+    # Audit izi hedefi (log/code-docs) okununca doc üretilmez (self-feed).
+    events = _detect_notable_events(
+        "file_editor",
+        {"path": "docs/code-docs/pending/X-001-pending.md",
+         "content": "# TODO: fix this"},
+        None,
+    )
+    assert events == []
+
+
+def test_event_trail_command_no_events():
+    events = _detect_notable_events(
+        "terminal",
+        {"command": "cat .metodoloji/logs/hook-audit.log"},
+        "next step is to implement caching",
+    )
+    assert events == []
+
+
+def test_event_trail_output_no_events():
+    # Terminal çıktısı iz içeriyorsa "pending" eşleşmesi doc üretmez.
+    events = _detect_notable_events(
+        "terminal",
+        {"command": "cat some.log"},
+        "pending items listed under docs/code-docs/pending",
+    )
+    assert events == []
+
+
 def test_event_future_plan_detected():
     events = _detect_notable_events(
         "terminal", {"command": "build"}, "next step is to implement caching"
