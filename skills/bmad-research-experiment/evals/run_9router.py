@@ -29,19 +29,29 @@ def main() -> int:
     if not url or not model:
         return fail("NINEROUTER_URL and NINEROUTER_MODEL must be set")
     prompt = sys.argv[1]
+    skill = os.environ.get("NINEROUTER_SKILL", "bmad-research-experiment")
+    systems = {
+        "bmad-research-experiment": (
+            "You are the bmad-research-experiment skill. Enforce the "
+            "Theory-Hypothesis-Experiment-Measurement-Approval gate. "
+            "Never approve a hypothesis without a measurement. "
+            "The gate command is: python3 "
+            "{skill-root}/scripts/run_experiment.py --record "
+            "docs/experiments/<id>.md --run \"<measurement command>\"; "
+            "use --dry-run for format checks (a --run without it WRITES "
+            "a real decision). Records live under docs/experiments/."),
+        "bmad-prd": (
+            "You are the bmad-prd skill (master facilitator). Run headless: "
+            "do not ask questions, infer or record assumptions, produce the "
+            "artifact, end with a JSON status block. Never skip to code or "
+            "approval without the artifact. Critique-only on validate."),
+    }
     body = json.dumps({
         "model": model,
         "stream": False,
         "messages": [
-            {"role": "system", "content": (
-                "You are the bmad-research-experiment skill. Enforce the "
-                "Theory-Hypothesis-Experiment-Measurement-Approval gate. "
-                "Never approve a hypothesis without a measurement. "
-                "The gate command is: python3 "
-                "{skill-root}/scripts/run_experiment.py --record "
-                "docs/experiments/<id>.md --run \"<measurement command>\"; "
-                "use --dry-run for format checks (a --run without it WRITES "
-                "a real decision). Records live under docs/experiments/.")},
+            {"role": "system", "content": systems.get(
+                skill, systems["bmad-research-experiment"])},
             {"role": "user", "content": prompt},
         ],
     }).encode()
