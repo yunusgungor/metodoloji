@@ -54,7 +54,7 @@ These map directly onto the script CLIs below; anything not listed there (case s
 
 2. If `--headless` was passed, set `{headless_mode}=true`, skip every confirmation below, pick the safest defaults, and proceed.
 
-3. Resume check: glob the output dir for an in-progress run folder. If one exists and matches this skill, read its decision log once to rebuild state, then continue. Capture decisions and direction changes into the run's decision log as they land.
+3. Resume check: glob the output dir for an in-progress run folder. If one exists and matches this skill, read its decision log once to rebuild state, then continue. Capture decisions and direction changes into the run's decision log as they land, and mirror the current round/state as a blackboard key: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key eval.<skill-name> --value "<round/state, one line>" --type state --project-root {project-root}`.
 
 4. Locate the skill and verify `<skill-path>/SKILL.md` exists. Halt with a clear error if it does not.
 

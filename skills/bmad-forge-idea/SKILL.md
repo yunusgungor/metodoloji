@@ -53,7 +53,7 @@ Tell the user they can say **"attack this"**, **"defend this"**, or **"switch ro
 
 ### Set up the session
 
-Derive a kebab-case `{slug}` for the idea and bind the session workspace `{workspace} = {workflow.forge_output_path}/{workflow.run_folder_pattern}` (the pattern fills with `{slug}`). Tell the user the path — the forged deliverable and the report land there.
+Derive a kebab-case `{slug}` for the idea and bind the session workspace `{workspace} = {workflow.forge_output_path}/{workflow.run_folder_pattern}` (the pattern fills with `{slug}`). Tell the user the path — the forged deliverable and the report land there. Focus the session on the project blackboard: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key forge.<idea-slug> --value "<goal, one line>" --type state --hot --project-root {project-root}`.
 
 ## The forge
 
@@ -111,6 +111,6 @@ The session can end in three valid states:
 - **Killed** — the idea does not hold up. Say so plainly and record why. Finding that out early is a valid outcome.
 - **Clearer** — the user understands the idea better, but there is no hardened idea to hand off. No `forged-idea.md` is needed.
 
-Always render `{workspace}/forge-report.html` as a self-contained HTML file the user can open, with inline CSS and an inline-SVG seal or stamp. Summarize the outcome, the locked decisions, what was rejected and why, and the weak points that survived scrutiny, in the user's meaning. Credit the personas and parties that pressure-tested the idea by name, icon, and voice. Render a prominent wax-seal-style or stamped outcome mark, matched to the result: `HARDENED`, an `Idea Death Certificate` stamped `KILLED` with the cause of death, or `CLARIFIED`. Tell the user the path.
+Always render `{workspace}/forge-report.html` as a self-contained HTML file the user can open, with inline CSS and an inline-SVG seal or stamp. Summarize the outcome, the locked decisions, what was rejected and why, and the weak points that survived scrutiny, in the user's meaning. Credit the personas and parties that pressure-tested the idea by name, icon, and voice. Render a prominent wax-seal-style or stamped outcome mark, matched to the result: `HARDENED`, an `Idea Death Certificate` stamped `KILLED` with the cause of death, or `CLARIFIED`. Tell the user the path. Clear the blackboard focus: `python3 {metodoloji-root}/bmad/scripts/blackboard.py hot --clear --project-root {project-root}`.
 
 If `{workflow.on_complete}` is non-empty, run all instructions in order.

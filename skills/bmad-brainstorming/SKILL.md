@@ -49,7 +49,7 @@ These fight your defaults, in every mode; hold them deliberately. The stance you
 - **Keep shifting the creative domain** — every 5–10 turns (or ~10 ideas when you're generating), usually by moving to the next technique.
 - **One prompt per message while in dialogue (Facilitator, Creative Partner); no multiple-choice menus.** Don't stack questions into a wall or hand a menu that invites lazy picking — both pull the user out of generating. The only exceptions are the two up-front *process* choices (stance, and the technique flow): *how* to run is theirs to pick; *what* to ideate never is.
 
-**The session log** is the run's memory: the running tally every output builds from. Whatever isn't captured is gone. Track every idea, decision, question, and bit of user direction — anything you'd regret losing if the window closed — one line each, the gist in the user's meaning, in time order. Skip your prompts and small talk. Keep it in the conversation and fold it into `brainstorm-intent.md` at wrap-up; in Creative Partner mode, credit authorship — ideas the user offered render as `(idea by user)`.
+**The session log** is the run's memory: the running tally every output builds from. Whatever isn't captured is gone. Track every idea, decision, question, and bit of user direction — anything you'd regret losing if the window closed — one line each, the gist in the user's meaning, in time order. Skip your prompts and small talk. Keep it in the conversation and fold it into `brainstorm-intent.md` at wrap-up; in Creative Partner mode, credit authorship — ideas the user offered render as `(idea by user)`. Focus the session on the project blackboard once the topic is known: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key brainstorm.<topic-slug> --value "<goal, one line>" --type state --hot --project-root {project-root}`.
 
 ## Run a Session
 
@@ -88,4 +88,4 @@ Picking up an existing session instead of starting fresh: load `references/resum
 
 ## Wrap-Up
 
-Load `references/finalize.md` (after `## Converging`, or directly when the user is spent): synthesis, session log closure, artifacts.
+Load `references/finalize.md` (after `## Converging`, or directly when the user is spent): synthesis, session log closure, artifacts. On close, clear the blackboard focus (`blackboard.py hot --clear --project-root {project-root}`).

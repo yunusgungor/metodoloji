@@ -43,7 +43,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
 ## Modes
 
-**Create.** Bind `{doc_workspace}` to `{workflow.ux_output_path}/{workflow.run_folder_pattern}/`. Create `.working/` and `imports/`; create `DESIGN.md` (frontmatter only) and `EXPERIENCE.md` (frontmatter only). Run Discovery → Finalize.
+**Create.** Bind `{doc_workspace}` to `{workflow.ux_output_path}/{workflow.run_folder_pattern}/`. Create `.working/` and `imports/`; create `DESIGN.md` (frontmatter only) and `EXPERIENCE.md` (frontmatter only). Put the run on the blackboard: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key ux.<product-slug> --value "<one-line state>" --type state --hot --project-root {project-root}`. Run Discovery → Finalize.
 
 **Update.** Read spines + sources. Surface conflicts with prior decisions. Run Finalize.
 
@@ -88,4 +88,4 @@ Outcomes, in order:
 - **Key-screen mocks rendered.** Key-screens tool → `.working/` for surfaces where layout drives behavior or anchors visual language.
 - **Mock coverage confirmed.** Walk every IA surface; classify *mocked* vs *spine-only*. Ask: *"These will be built from spine tables alone — any need a visual reference?"* Render more if named; log spine-only choices.
 - **Layout extracted, artifacts promoted.** Distill subagent re-reads each `.working/` and `imports/` artifact; lifts visual decisions into DESIGN.md and behavioral decisions into EXPERIENCE.md. Promote `.working/` keepers to `mockups/` (HTML) or `wireframes/` (Excalidraw); imports stay. Inline relative links at relevant spine sections; state spines-win-on-conflict once.
-- **Polished, handed off, closed.** Apply `{workflow.doc_standards}` in order. Execute `{workflow.external_handoffs}`; surface URLs. Set both files' `status: final`, `updated: {date}`. Share paths. Common next: `bmad-architecture`, `bmad-create-epics-and-stories`, `bmad-dev-story`. Run `{workflow.on_complete}`.
+- **Polished, handed off, closed.** Apply `{workflow.doc_standards}` in order. Execute `{workflow.external_handoffs}`; surface URLs. Set both files' `status: final`, `updated: {date}`. Clear the blackboard focus: `python3 {metodoloji-root}/bmad/scripts/blackboard.py hot --clear --project-root {project-root}`. Share paths. Common next: `bmad-architecture`, `bmad-create-epics-and-stories`, `bmad-dev-story`. Run `{workflow.on_complete}`.

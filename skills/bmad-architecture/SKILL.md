@@ -35,6 +35,8 @@ The input itself tells you what kind of job this is — read it rather than quiz
 
 The spine draft is the run's working memory: every decision, constraint, version, assumption, and open question lands in it as it settles — for a decision, capture what it binds and the divergence it prevents as an `AD-n` (stable ID, `Binds`/`Prevents`/`Rule`, `[ADOPTED]` when the user or existing reality already settled it); a decision that lives only in a diagram still gets its `AD`. Open questions and `[ASSUMPTION]` tags stay visible in the draft until triaged at Finalize. Resume a prior run by reloading its spine draft.
 
+Bind the run to the project blackboard at activation: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key architecture.<project-slug> --value "<altitude>: <one-line state>" --type state --hot --project-root {project-root}` — hooks surface the hot key on session start and stop; re-write the same key at milestones so the value never goes stale.
+
 ## Resolution rules
 
 - Bare paths and `{skill-root}` (e.g. `references/headless.md`) resolve from this skill's installed directory.
@@ -69,7 +71,7 @@ Walk the sequence; reviewer fixes land before polish.
 4. **Triage.** Open questions and `[ASSUMPTION]` tags: blockers (unsafe for what's next) resolved one at a time; the rest deferred with a revisit condition recorded in the spine's Deferred section.
 5. **Renderings & polish.** The spine is the build deliverable; with it in place, produce any *additional* human-facing artifact the user needs, scoped to the purpose and audience drawn out up front. The up-front question already flagged whether one's needed; if it wasn't, still offer one here, seeding concrete options: an interactive HTML+SVG deck to walk a team through the architecture and drive discussion, a fuller HTML/md solution design, a C4 set, or a view of how the work splits across teams/epics. Build only what they pick, right-sized to that purpose; apply `{workflow.doc_standards}` polish to that prose only, never to the spine.
 6. **External handoffs.** Run `{workflow.external_handoffs}`; surface returned URLs/IDs. Offer to invoke the `bmad-spec` skill to adopt the spine as a companion, keeping `AD` IDs stable so downstream can cite them.
-7. **Close.** Set the spine's own frontmatter `status: final`, `updated: {date}`. Share paths. Next, **lead with `bmad-spec`** — recommend adopting/refreshing the spine as a spec companion (always the top recommendation when a spec was an input, and a useful next step even when it wasn't), then `bmad-create-epics-and-stories` or — epic altitude — `bmad-create-story`; or invoke `bmad-help` to route.
+7. **Close.** Set the spine's own frontmatter `status: final`, `updated: {date}`. Clear the blackboard focus (`blackboard.py hot --clear --project-root {project-root}`). Share paths. Next, **lead with `bmad-spec`** — recommend adopting/refreshing the spine as a spec companion (always the top recommendation when a spec was an input, and a useful next step even when it wasn't), then `bmad-create-epics-and-stories` or — epic altitude — `bmad-create-story`; or invoke `bmad-help` to route.
 8. Run `{workflow.on_complete}`.
 
 ## Update

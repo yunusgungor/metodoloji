@@ -254,6 +254,26 @@ def _session_start_offset(root: str) -> int:
     return offset
 
 
+def _board_dirty_notice(root: str, reason: str) -> str:
+    """Append the board's hot-key state to a deny reason (fail-open, gated).
+
+    The notice tells the model which working context is still hot before the
+    session closes — a nudge to wrap it up, never a block on its own.
+    """
+    try:
+        from .config import blackboard_enabled
+        if not blackboard_enabled():
+            return reason
+        from . import blackboard as bb
+        ctx = bb.compact_context(root)
+        if ctx.get("hot"):
+            return (reason + f" Blackboard hot key '{ctx['hot']}' is still active — "
+                    "clear it (blackboard.py hot --clear) or finalize its artifact.")
+    except Exception:
+        pass
+    return reason
+
+
 def stop(json_in: dict) -> dict:
     """Stop hook: block stop if unapproved code changes or incomplete stories exist."""
     from .utils import repo_root
@@ -274,6 +294,7 @@ def stop(json_in: dict) -> dict:
     #    start never blocks (brownfield leftover).
     should_block, reason = _check_story_status(root)
     if should_block and not _story_status_is_stale(root):
+        reason = _board_dirty_notice(root, reason)
         _record_stop_deny(root, reason)
         return {"decision": "deny", "reason": reason}
 
@@ -288,6 +309,7 @@ def stop(json_in: dict) -> dict:
         if not approved:
             reason = (f"Unapproved code changes detected: {rel}. "
                       f"Complete experiment record before stopping.")
+            reason = _board_dirty_notice(root, reason)
             _record_stop_deny(root, reason)
             return {"decision": "deny", "reason": reason}
 

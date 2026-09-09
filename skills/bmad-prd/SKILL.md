@@ -28,7 +28,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
 ## Intent Modes
 
-**Create.** Bind `{doc_workspace}` to `{workflow.prd_output_path}/{workflow.run_folder_pattern}/`. Write `prd.md` with YAML frontmatter (title, status, created, updated — initial `status: draft`). Tell the user the path. Run `## Discovery`, then `## Finalize`.
+**Create.** Bind `{doc_workspace}` to `{workflow.prd_output_path}/{workflow.run_folder_pattern}/`. Write `prd.md` with YAML frontmatter (title, status, created, updated — initial `status: draft`). Tell the user the path. Put the run on the blackboard: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key prd.<product-slug> --value "<one-line state>" --type state --hot --project-root {project-root}` (the hot key is what hooks surface on session start and stop). Run `## Discovery`, then `## Finalize`.
 
 **Update.** Reconcile the PRD with a change signal. Source-extract against PRD, addendum, and original inputs (extract, don't ingest). Surface conflicts with prior decisions before applying. Then `## Finalize`.
 
@@ -89,5 +89,5 @@ Tell the user the sequence in one sentence, then walk it. Polish goes last so it
 4. **Triage open items.** All Open Questions, `[ASSUMPTION]` tags, `[NOTE FOR PM]` callouts. Phase-blockers (would make the PRD unsafe for UX/architecture/epics) surfaced one at a time and resolved; non-blockers deferred with owner + revisit condition recorded in the PRD's Open Questions. If phase-blocker count is high, flag it.
 5. **Polish.** Apply `{workflow.doc_standards}` to `prd.md` and `addendum.md` in declared order (structural passes before prose — prose should not polish soon-to-be-cut text). Parallelize across documents, sequential within.
 6. **External handoffs.** Execute `{workflow.external_handoffs}`; surface returned URLs/IDs. Skip and flag unavailable tools.
-7. **Close.** Set `prd.md` frontmatter `status: final` and `updated` to `{date}` so future invocations distinguish this PRD from in-progress drafts. Share artifact paths. Common next: `bmad-ux`, `bmad-architecture`, `bmad-create-epics-and-stories`; invoke `bmad-help` for authoritative routing.
+7. **Close.** Set `prd.md` frontmatter `status: final` and `updated` to `{date}` so future invocations distinguish this PRD from in-progress drafts. Clear the blackboard focus: `python3 {metodoloji-root}/bmad/scripts/blackboard.py hot --clear --project-root {project-root}`. Share artifact paths. Common next: `bmad-ux`, `bmad-architecture`, `bmad-create-epics-and-stories`; invoke `bmad-help` for authoritative routing.
 8. Run `{workflow.on_complete}` if non-empty.

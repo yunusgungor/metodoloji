@@ -99,6 +99,32 @@ _GATE_DEFAULTS = {
     "stop_guard": "hard",
 }
 
+def blackboard_enabled() -> bool:
+    """[hooks] blackboard = on|off (default on). Read live per-call.
+
+    off → every engine blackboard integration becomes a no-op; the CLI keeps
+    working (fail-open) because skills own their writes.
+    """
+    try:
+        text = _HOOKS_CFG.read_text(encoding="utf-8")
+    except OSError:
+        return True
+    in_hooks = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("[hooks]"):
+            in_hooks = True
+            continue
+        if in_hooks and stripped.startswith("[") and not stripped.startswith("[hooks]"):
+            break
+        if in_hooks and "=" in stripped:
+            key, _, val = stripped.partition("=")
+            key = key.strip()
+            val = val.split("#", 1)[0].strip().strip('"').strip("'")
+            if key == "blackboard":
+                return val != "off"
+    return True
+
 def hook_gate_mode(gate_key: str) -> str:
     """Public per-call accessor for one [hooks] gate mode: 'soft' | 'hard'.
 

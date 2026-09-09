@@ -118,8 +118,26 @@ def session_start(json_in: dict) -> dict:
         record_session_start(root)
     except Exception:
         pass
-    return {"decision": "allow", "additionalContext":
-            "METODOLOJI session started. Record chain: E → IR → SP → S → QR → PR."}
+    ctx = "METODOLOJI session started. Record chain: E → IR → SP → S → QR → PR."
+    try:
+        from .config import blackboard_enabled
+        if blackboard_enabled():
+            from . import blackboard as bb
+            bb.record_watcher(root, "session_start")
+            board_ctx = bb.compact_context(root)
+            if board_ctx.get("hot") or board_ctx.get("tags") or board_ctx.get("contributions"):
+                parts = []
+                if board_ctx.get("hot"):
+                    parts.append(f"hot: {board_ctx['hot']}")
+                if board_ctx.get("tags"):
+                    parts.append("tags: " + ", ".join(board_ctx["tags"]))
+                if board_ctx.get("contributions"):
+                    last = board_ctx["contributions"][-1]
+                    parts.append(f"last: {last['who']} — {last['what']}")
+                ctx += " Blackboard: " + "; ".join(parts) + "."
+    except Exception:
+        pass
+    return {"decision": "allow", "additionalContext": ctx}
 
 
 def audit(json_in: dict) -> dict:
@@ -167,7 +185,34 @@ def audit(json_in: dict) -> dict:
         import sys
         print(f"audit log write failed: {exc}", file=sys.stderr)
 
+    try:
+        from .config import blackboard_enabled
+        if blackboard_enabled():
+            from . import blackboard as bb
+            target = tool_input.get("path") or tool_input.get("file_path") or tool_name
+            bb._mutate(root, lambda board: _stamp_tool_event(board, tool_name, target))
+    except Exception:
+        pass
+
     result = {"decision": "allow"}
     if warnings:
         result["methodology_warnings"] = warnings
     return result
+
+
+def _stamp_tool_event(board: dict, tool_name: str, target: str) -> tuple[dict, None]:
+    """Fold a bounded tool event into the board during the audit's mutation.
+
+    Direct snapshot fold (no event-log append): the audit log itself is the
+    durable record; the board copy is a bounded convenience for context reads.
+    """
+    from . import blackboard as bbmod
+    key = f"last_tool.{tool_name}"
+    board["keys"][key] = {"value": str(target)[:bbmod.MAX_TEXT_LEN],
+                          "type": "tool", "updated": time.time()}
+    while len(board["keys"]) > bbmod.MAX_KEYS:
+        oldest = min(board["keys"], key=lambda k: board["keys"][k].get("updated", 0.0))
+        board["keys"].pop(oldest)
+    if board.get("hot") and board["hot"] not in board["keys"]:
+        board["hot"] = None
+    return board, None

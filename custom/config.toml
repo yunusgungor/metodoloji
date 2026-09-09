@@ -50,3 +50,4 @@ quality_gate = "soft"   # "soft" (default) | "hard"
 deploy_guard = "soft"   # "soft" (default) | "hard"
 code_guard = "soft"     # brownfield-tertemiz 2026-09-07: tighten to "hard" after first VERIFIED experiment
 stop_guard = "soft"     # brownfield-tertemiz 2026-09-07: tighten to "hard" after first VERIFIED experiment
+blackboard = "on"       # dynamic working context (docs/BLACKBOARD.md); "off" disables engine integration
