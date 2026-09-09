@@ -85,7 +85,7 @@ Clarify with the researcher the **theory/framework** behind this question:
 - Why is this question being asked? What model, framework, or prior evidence motivates it?
 - A vague "I'm curious" is not a theory — write down the reasoning that predicts an outcome.
 - A good next experiment: (a) maps to a PDF claim or an existing surface's gap, (b) is falsifiable (a broken implementation scores below the threshold), (c) fits in one coherent commit.
-- Output: a short theory statement recorded in the experiment log.
+- Output: a short theory statement recorded in the experiment log. Mirror the run onto the session intent bridge so hooks attribute tool traffic to this experiment: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key purpose --value "experiment <experiment-id>" --type state --project-root {project-root}`.
 
 ### Stage 2 — Hypothesis
 
@@ -191,7 +191,7 @@ python3 {skill-root}/scripts/run_experiment.py --verify --record {project-root}/
 ### Stage 6 — Result (Record & Delivery)
 
 - Write/update `docs/experiments/<experiment-id>.md` per `experiment-log.md` (the manifesto's mandatory format).
-- Record: theory, hypothesis + threshold, measurement metrics, design, raw results, decision + rationale, next step.
+- Record: theory, hypothesis + threshold, measurement metrics, design, raw results, decision + rationale, next step. Mirror completion onto the intent bridge: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key status --value complete --type state --project-root {project-root}` (stop skips story checks once progress is `complete`).
 - **Next step is derived from the decision:** APPROVED → proceed to delivery (below); REJECTED → "Return to Theory; open a new experiment for a new hypothesis."
 - Summarize honestly to the user: what was measured, what the gate decided, and what happens next.
 
