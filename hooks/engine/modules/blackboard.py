@@ -982,6 +982,30 @@ def read_canvas(project_root: str, name: str) -> dict:
             "focused": board.get("hot_canvas") == name}
 
 
+def _touch_canvases(board: dict, paths: dict, tool: str, target: str) -> list:
+    """Push one audited touch into every canvas watching a matching path.
+
+    Shared by stamp_tool_event and watch_touch (same scope, no nesting).
+    Returns touched canvas names."""
+    touched = []
+    if not target:
+        return touched
+    for name, cv in board["canvases"].items():
+        for w in cv.get("watch", []):
+            if _watch_matches(w, target):
+                ev = {"event": "canvas_touch", "name": name,
+                      "path": target[:MAX_CELL_ID],
+                      "content": f"{tool}: {os.path.basename(target)}"[:MAX_CELL_LEN],
+                      "ts": time.time()}
+                _append_event(paths, ev)
+                _apply_event(board, ev)
+                _route_alerts(paths, board, f"canvas:{name}", "canvas",
+                              f"canvas '{name}' live: {tool} touched {target}")
+                touched.append(name)
+                break
+    return touched
+
+
 def stamp_tool_event(project_root: str, tool_name: str, target: str) -> dict:
     """Audit tool touch'unu board'a tek lock-scope'ta işle (event-sourced).
 
@@ -1002,21 +1026,7 @@ def stamp_tool_event(project_root: str, tool_name: str, target: str) -> dict:
         _append_event(paths, event)
         _apply_event(board, event)
         # Real-time canvas push: watched canvases record the touch (same scope).
-        touched = []
-        if target:
-            for name, cv in board["canvases"].items():
-                for w in cv.get("watch", []):
-                    if _watch_matches(w, target):
-                        ev = {"event": "canvas_touch", "name": name,
-                              "path": target[:MAX_CELL_ID],
-                              "content": f"{tool_name}: {os.path.basename(target)}"[:MAX_CELL_LEN],
-                              "ts": time.time()}
-                        _append_event(paths, ev)
-                        _apply_event(board, ev)
-                        _route_alerts(paths, board, f"canvas:{name}", "canvas",
-                                      f"canvas '{name}' live: {tool_name} touched {target}")
-                        touched.append(name)
-                        break
+        touched = _touch_canvases(board, paths, tool_name, target)
         return board, {"ok": True, "touched": len(touched), "canvases": touched}
 
     return _mutate(project_root, mut)
@@ -1050,20 +1060,7 @@ def watch_touch(project_root: str, tool: str, target: str) -> dict:
 
     def mut(board):
         paths = board_paths(project_root)
-        touched = []
-        for name, cv in board["canvases"].items():
-            for w in cv.get("watch", []):
-                if _watch_matches(w, target):
-                    ev = {"event": "canvas_touch", "name": name,
-                          "path": target[:MAX_CELL_ID],
-                          "content": f"{tool}: {os.path.basename(target)}"[:MAX_CELL_LEN],
-                          "ts": time.time()}
-                    _append_event(paths, ev)
-                    _apply_event(board, ev)
-                    _route_alerts(paths, board, f"canvas:{name}", "canvas",
-                                  f"canvas '{name}' live: {tool} touched {target}")
-                    touched.append(name)
-                    break
+        touched = _touch_canvases(board, paths, tool, target)
         return board, {"ok": True, "touched": len(touched), "canvases": touched}
 
     return _mutate(project_root, mut)
@@ -1303,7 +1300,8 @@ def _doctor_age(ts: float) -> str:
 
 def _doctor_drift(paths: dict, board: dict) -> dict:
     """Snapshot vs event-log replay comparison (tool-stamped keys excluded:
-    the audit hook folds last_tool.* directly into the snapshot by design)."""
+    last_tool.* are event-sourced like everything else; excluded here because
+    they are high-churn audit stamps, not meaningful state for drift)."""
     replay = _replay_events(paths)
 
     def norm(b: dict) -> dict:
