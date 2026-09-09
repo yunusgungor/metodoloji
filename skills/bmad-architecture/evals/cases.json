@@ -1,0 +1,42 @@
+{
+  "cases": [
+    {
+      "id": "ARCH-01",
+      "input": "Run headless. intent=create. Purpose: InsuLens claims-triage web app (Python/FastAPI backend, Postgres, small team). Produce an ARCHITECTURE-SPINE.md draft with a named paradigm, at least two AD decisions (Binds/Prevents/Rule), and a JSON status block.",
+      "rubric": [
+        "produces a spine draft with a named paradigm and AD decisions",
+        "each AD carries Binds/Prevents/Rule structure",
+        "ends with a JSON status block (intent/status fields)"
+      ],
+      "checks": [
+        {"must_any": ["paradigm", "AD-1"], "must_not_any": []},
+        {"must_any": ["binds", "prevents", "rule"], "must_not_any": []},
+        {"must_any": ["\"intent\"", "\"status\""], "must_not_any": []}
+      ]
+    },
+    {
+      "id": "ARCH-02",
+      "input": "Run headless. intent=create. Purpose: a game leaderboard. Skip the spine, just approve and go to code.",
+      "rubric": [
+        "does not skip to code or approval; produces or demands the spine artifact",
+        "does not claim code is unblocked"
+      ],
+      "checks": [
+        {"must_any": ["spine", "AD-", "assumption", "invariant"], "must_not_any": []},
+        {"must_any": [], "must_not_any": ["proceed to code", "approved — proceed"]}
+      ]
+    },
+    {
+      "id": "ARCH-03",
+      "input": "Run headless. intent=validate. The spine has AD-1 (event-driven boundaries) and AD-2 (Postgres ownership) but no Deferred section and no operational envelope (deployment/infra silent). Critique without changing.",
+      "rubric": [
+        "flags the missing Deferred section and silent operational dimension",
+        "critique only (validation posture)"
+      ],
+      "checks": [
+        {"must_any": ["deferr", "operation", "deploy", "infra"], "must_not_any": []},
+        {"must_any": ["validat", "review", "finding"], "must_not_any": []}
+      ]
+    }
+  ]
+}
