@@ -87,6 +87,18 @@ matching channel (deduplicated per channel+kind+text). Engine hooks consume
 their channels deliver-once; `consume --channel C` does the same by hand;
 `notify` posts a manual alert.
 
+**Hand-off handshake.** Skill-to-skill signals ride the same alert plumbing:
+`handoff --to <skill> --from-key <run-key> --note "..."` routes an alert into
+the reserved `handoff.<skill>` channel (kind `handoff`). The signal waits
+until the downstream skill consumes it — that consumption *is* the
+handshake. Until then, session_start announces `hand-off waiting: <skill>
+(n)` (announce-only, never consumes; `bmad-help` is hidden from the
+announcement — it routes, it does not produce). Chain example: a PRD run
+closes with `handoff --to bmad-ux`; the UX run opens, reads
+`handoffs --skill bmad-ux`, picks up the named artifact first, consumes
+`handoff.bmad-ux`, and closes with `handoff --to bmad-architecture` — the
+prd → ux → architecture relay.
+
 ## Engine integration points (the octopus arms)
 
 - **session_start** — stamps `watchers.session_start`, consumes the `session`
@@ -114,6 +126,7 @@ no-op; the CLI still works (fail-open).
     write   --key K --value V [--type T] [--hot]
     list-add    --key K --item X
     list-remove --key K (--item X | --index N)
+    list-clear  --key K            (empty the list)
     canvas create|set|remove|move|resize|clear|focus|watch  (see --help)
     canvas-read --name N
     link      --a A --b B [--relation R]
@@ -124,6 +137,8 @@ no-op; the CLI still works (fail-open).
     alerts   [--channel C]        (read-only peek)
     consume  --channel C          (take and clear)
     notify   --channel C --kind K --text X
+    handoff  --to SKILL --from-key K [--note X]
+    handoffs [--skill S]          (peek waiting signals)
     tag/untag --tag T
     contribute --who W --what X
     hot --key K | --clear
@@ -136,8 +151,23 @@ result and exit 0.
 ## Skill contract
 
 Producing skills (PRD, UX, brief, architecture, brainstorming, forge,
-eval-runner) focus their run at activation with `write --hot` and clear focus
-at close with `hot --clear`. Skills that maintain a live picture may create a
-canvas, keep cells current, and register `watch` paths so the engine feeds
-touches automatically. That is the entire contract — no lifecycle status, no
-log schema, no resume machinery beyond the artifacts themselves.
+eval-runner) run on three planes:
+
+- **Focus (required)** — `write --hot` one state key at activation,
+  `hot --clear` at close, milestone re-writes in between.
+- **Run list (required where threads appear)** — unresolved threads ride
+  `<run-key>.pending` (or `.open` / `.branches` / `.failing` / `.parked` by
+  domain); resolved items come off, consciously-parked items stay as
+  hand-off signal.
+- **Chain handshake (producing skills that hand off downstream)** — at
+  close, `handoff --to <downstream>` with a one-line note naming what the
+  next run should pick up first; at activation, check
+  `handoffs --skill <self>` and consume the channel only after binding the
+  run, so an unrouted signal keeps waiting.
+- **Canvas (where a live picture helps)** — surface maps (ux), decision maps
+  (architecture), idea boards (brainstorming), round arcs (eval-runner);
+  `watch` paths feed touches automatically; leave the canvas standing when
+  downstream skills read it, clear focus at close.
+
+That is the entire contract — no lifecycle status, no log schema, no resume
+machinery beyond the artifacts themselves.

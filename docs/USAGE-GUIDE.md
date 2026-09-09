@@ -781,6 +781,13 @@ is a rebuildable cache; alert consumption is evented too); bounded (nothing
 grows unbounded); fail-open (a missing or corrupt board never blocks work);
 one `hot` key and one `hot_canvas` at a time.
 
+**Hand-off handshake.** Skills signal each other through reserved
+`handoff.<skill>` channels: an upstream run closes with `handoff --to
+bmad-ux --from-key prd.acme --note "..."`; the signal waits (announced by
+session_start as `hand-off waiting`, consumed only by the addressed skill)
+until the downstream run reads it and consumes the channel — the prd → ux →
+architecture relay rides this chain.
+
 ### 7.2. CLI (`bmad/scripts/blackboard.py`)
 
 ```bash
@@ -793,6 +800,7 @@ python3 bmad/scripts/blackboard.py write --key prd.acme --value "PRD v1: finaliz
 # Ordered work items (the list plane):
 python3 bmad/scripts/blackboard.py list-add --key prd.acme.pending --item "confirm NFR-2"
 python3 bmad/scripts/blackboard.py list-remove --key prd.acme.pending --item "confirm NFR-2"
+python3 bmad/scripts/blackboard.py list-clear --key prd.acme.pending   # empty the list at close
 
 # A live canvas mirroring the docs tree (real-time feed via watch):
 python3 bmad/scripts/blackboard.py canvas create --name doc-map --grid 8x8 --focus
@@ -810,6 +818,12 @@ python3 bmad/scripts/blackboard.py subscribe --watcher session --pattern "prd.*"
 python3 bmad/scripts/blackboard.py alerts            # peek
 python3 bmad/scripts/blackboard.py consume --channel stop
 python3 bmad/scripts/blackboard.py notify --channel stop --kind risk --text "NFR unconfirmed"
+
+# The skill chain handshake (prd → ux → architecture relay):
+python3 bmad/scripts/blackboard.py handoff --to bmad-ux --from-key prd.acme --note "PRD final — start with NFR-3"
+python3 bmad/scripts/blackboard.py handoffs                 # {skill: waiting count}
+python3 bmad/scripts/blackboard.py handoffs --skill bmad-ux # the addressed run peeks
+python3 bmad/scripts/blackboard.py consume --channel handoff.bmad-ux  # completes the shake
 
 # Tags, contributions, statistics:
 python3 bmad/scripts/blackboard.py tag --tag crm
@@ -842,11 +856,27 @@ write/read; the CLI keeps working for skills.
 ### 7.4. Skill contract
 
 Producing skills (PRD, UX, brief, architecture, brainstorming, forge,
-eval-runner) focus their run at activation with `write --hot` and clear focus
-at close with `hot --clear`. Skills maintaining a live picture may create a
-canvas, keep cells current, and register `watch` paths so the engine feeds
-touches automatically. That is the entire contract — no lifecycle status, no
-log schema, no resume machinery beyond the artifacts themselves.
+eval-runner) run on three planes:
+
+- **Focus (required).** At activation, `write --hot` one state key for the
+  run; at close, `hot --clear`. Re-write the key at milestones so the value
+  never goes stale.
+- **Run list (required where threads appear).** Unresolved threads — open
+  questions, pending mocks, failing cases, unresolved branches — go on the
+  run list (`list-add --key <run-key>.pending --item "..."`) as they appear
+  and come off (`list-remove`/`list-clear`) when resolved or consciously
+  parked. A closed list at close is the shape of a finished run; items left
+  open are hand-off signal for the next skill.
+- **Canvas (where a live picture helps).** Skills that maintain a spatial or
+  evolving picture raise a canvas (`ux` → surface map, `architecture` →
+  decision map, `brainstorming` → idea board, `eval-runner` → round arc),
+  keep cells current, and may register `watch` paths so the engine feeds
+  touches automatically. Focused canvases surface at session start and stop;
+  clear focus (`canvas focus --clear`) at close and leave the canvas standing
+  when downstream skills should read it.
+
+That is the entire contract — no lifecycle status, no log schema, no resume
+machinery beyond the artifacts themselves.
 
 ---
 

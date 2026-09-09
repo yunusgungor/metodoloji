@@ -9,6 +9,7 @@ Usage:
     python3 blackboard.py write   --key K --value V [--type T] [--hot]
     python3 blackboard.py list-add    --key K --item X   (append)
     python3 blackboard.py list-remove --key K (--item X | --index N)
+    python3 blackboard.py list-clear  --key K            (empty the list)
     python3 blackboard.py canvas-create  --name N [--grid WxH] [--focus]
     python3 blackboard.py canvas-set     --name N --cell C --content X [--kind K] [--x N --y N]
     python3 blackboard.py canvas-remove  --name N --cell C
@@ -26,6 +27,8 @@ Usage:
     python3 blackboard.py alerts   [--channel C]        (read-only peek)
     python3 blackboard.py consume  --channel C          (take and clear)
     python3 blackboard.py notify   --channel C --kind K --text X
+    python3 blackboard.py handoff  --to SKILL --from-key K [--note X]
+    python3 blackboard.py handoffs [--skill S]          (peek waiting signals)
     python3 blackboard.py tag/untag --tag T
     python3 blackboard.py contribute --who W --what X
     python3 blackboard.py hot --key K | --clear
@@ -90,6 +93,22 @@ def cmd_alerts(args) -> int:
     return 0
 
 
+def cmd_handoff(args) -> int:
+    ack = bb.post_handoff(_root(args), args.to, args.from_key, note=args.note or "")
+    _emit(ack)
+    return 0 if ack.get("ok") else 1
+
+
+def cmd_handoffs(args) -> int:
+    root = _root(args)
+    if args.skill:
+        pending = bb.pending_handoffs(root, args.skill)
+        _emit({"ok": True, "skill": args.skill, "handoffs": pending})
+    else:
+        _emit({"ok": True, "waiting": bb.pending_handoff_channels(root)})
+    return 0
+
+
 def cmd_consume(args) -> int:
     _emit({"ok": True, "channel": args.channel,
            "alerts": bb.consume_alerts(_root(args), args.channel)})
@@ -118,6 +137,12 @@ def cmd_list_add(args) -> int:
 
 def cmd_list_remove(args) -> int:
     ack = bb.list_remove(_root(args), args.key, item=args.item, index=args.index)
+    _emit(ack)
+    return 0 if ack.get("ok") else 1
+
+
+def cmd_list_clear(args) -> int:
+    ack = bb.list_clear(_root(args), args.key)
     _emit(ack)
     return 0 if ack.get("ok") else 1
 
@@ -247,6 +272,23 @@ def main() -> int:
     lr.add_argument("--index", type=int, default=None)
     common(lr)
     lr.set_defaults(fn=cmd_list_remove)
+
+    lc = sub.add_parser("list-clear", help="Remove every item from a list key")
+    lc.add_argument("--key", required=True)
+    common(lc)
+    lc.set_defaults(fn=cmd_list_clear)
+
+    ho = sub.add_parser("handoff", help="Post a hand-off signal to a downstream skill")
+    ho.add_argument("--to", required=True, help="downstream skill name (e.g. bmad-ux)")
+    ho.add_argument("--from-key", required=True, help="the run key handing off (e.g. prd.acme)")
+    ho.add_argument("--note", default="", help="one-line note carried with the signal")
+    common(ho)
+    ho.set_defaults(fn=cmd_handoff)
+
+    hos = sub.add_parser("handoffs", help="Peek pending hand-off signals")
+    hos.add_argument("--skill", default=None, help="filter: signals waiting for this skill")
+    common(hos)
+    hos.set_defaults(fn=cmd_handoffs)
 
     cv = sub.add_parser("canvas", help="Dynamic canvas surface")
     csub = cv.add_subparsers(dest="action", required=True)

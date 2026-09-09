@@ -434,6 +434,43 @@ def test_list_empty_key_or_item_rejected(root):
     assert bb.list_add(root, "k", " ")["ok"] is False
 
 
+def test_list_clear_empties_and_keeps_key(root):
+    for it in ("a", "b", "c"):
+        bb.list_add(root, "L", it)
+    ack = bb.list_clear(root, "L")
+    assert ack == {"ok": True, "key": "L", "cleared": 3}
+    board = bb.read_board(root)
+    assert board["keys"]["L"]["value"] == []
+    assert board["keys"]["L"]["type"] == "list"
+
+
+def test_list_clear_reusable_after(root):
+    bb.list_add(root, "L", "a")
+    bb.list_clear(root, "L")
+    assert bb.list_add(root, "L", "b")["count"] == 1
+
+
+def test_list_clear_missing_or_text_key_ok(root):
+    assert bb.list_clear(root, "absent")["cleared"] == 0
+    bb.write_key(root, "t", "text")
+    assert bb.list_clear(root, "t")["cleared"] == 0  # text key untouched
+
+
+def test_list_clear_survives_rebuild(root):
+    bb.list_add(root, "L", "a")
+    bb.list_clear(root, "L")
+    os.remove(bb.board_paths(root)["snapshot"])
+    assert bb.read_board(root)["keys"]["L"]["value"] == []
+
+
+def test_cli_list_clear(tmp_path):
+    _run_cli(str(tmp_path), "list-add", "--key", "t", "--item", "x")
+    r = _run_cli(str(tmp_path), "list-clear", "--key", "t")
+    assert json.loads(r.stdout)["cleared"] == 1
+    r = _run_cli(str(tmp_path), "read", "--key", "t")
+    assert json.loads(r.stdout)["value"] == []
+
+
 def test_write_over_list_key_replaces_with_text(root):
     bb.list_add(root, "k", "a")
     bb.write_key(root, "k", "text now")
@@ -920,6 +957,112 @@ def test_unicode_in_lists_and_canvas_cells(root):
     board = bb.read_board(root)
     assert board["keys"]["L"]["value"] == ["Türkçe ✓ 中文"]
     assert bb.read_canvas(root, "harita")["cells"]["hücre-1"]["content"] == "AMAÇ: ✓"
+
+
+def test_v1_snapshot_upgrade_keeps_data(root):
+    """A v1 snapshot (no graph sections) loads cleanly and gains defaults."""
+
+
+# ==============================================================================
+# v2.1 — hand-off chain handshake (prd → ux → architecture)
+# ==============================================================================
+def test_handoff_routes_to_skill_channel(root):
+    ack = bb.post_handoff(root, "bmad-ux", "prd.acme",
+                          note="PRD final — see prd.md")
+    assert ack["ok"] is True
+    pending = bb.pending_handoffs(root, "bmad-ux")
+    assert len(pending) == 1
+    assert pending[0]["kind"] == "handoff"
+    assert pending[0]["text"].startswith("prd.acme:")
+    assert "PRD final" in pending[0]["text"]
+
+
+def test_handoff_channels_isolated_per_skill(root):
+    bb.post_handoff(root, "bmad-ux", "prd.acme", "n1")
+    bb.post_handoff(root, "bmad-architecture", "ux.acme", "n2")
+    assert bb.pending_handoffs(root, "bmad-architecture")[0]["text"].startswith("ux.acme")
+    assert bb.pending_handoffs(root, "bmad-ux")[0]["text"].startswith("prd.acme")
+    assert bb.pending_handoffs(root, "bmad-dev-story") == []
+
+
+def test_handoff_waiting_counts_and_consume_once(root):
+    bb.post_handoff(root, "bmad-ux", "prd.acme", "n1")
+    bb.post_handoff(root, "bmad-ux", "prd.acme", "n2")
+    bb.post_handoff(root, "bmad-architecture", "ux.acme", "n3")
+    waiting = bb.pending_handoff_channels(root)
+    assert waiting == {"bmad-ux": 2, "bmad-architecture": 1}
+    take = bb.consume_alerts(root, "handoff.bmad-ux")
+    assert len(take) == 2
+    assert bb.pending_handoff_channels(root) == {"bmad-architecture": 1}
+
+
+def test_handoff_requires_to_and_from_key(root):
+    assert bb.post_handoff(root, "", "k", "n")["ok"] is False
+    assert bb.post_handoff(root, "bmad-ux", " ", "n")["ok"] is False
+
+
+def test_handoff_survives_rebuild_and_does_not_resurrect(root):
+    bb.post_handoff(root, "bmad-ux", "prd.acme", "n1")
+    os.remove(bb.board_paths(root)["snapshot"])
+    assert len(bb.pending_handoffs(root, "bmad-ux")) == 1  # rebuild keeps it
+    bb.consume_alerts(root, "handoff.bmad-ux")
+    os.remove(bb.board_paths(root)["snapshot"])
+    assert bb.pending_handoffs(root, "bmad-ux") == []  # consumption evented
+
+
+def test_chain_prd_to_arch_full_handshake(root):
+    """The full prd→ux→arch relay on one board."""
+    # prd run closes → signals ux
+    bb.post_handoff(root, "bmad-ux", "prd.acme", "PRD final")
+    # ux run opens, sees the signal, consumes it (shake 1)
+    assert bb.pending_handoff_channels(root) == {"bmad-ux": 1}
+    bb.consume_alerts(root, "handoff.bmad-ux")
+    assert bb.pending_handoff_channels(root) == {}
+    # ux run closes → signals architecture
+    bb.post_handoff(root, "bmad-architecture", "ux.acme", "UX final")
+    # arch run opens, sees it, consumes (shake 2)
+    assert bb.pending_handoffs(root, "bmad-architecture")[0]["text"].startswith("ux.acme")
+    bb.consume_alerts(root, "handoff.bmad-architecture")
+    assert bb.pending_handoff_channels(root) == {}
+
+
+def test_session_start_announces_waiting_handoffs_without_consuming(tmp_path, monkeypatch):
+    audit_mod, _, _ = _engine(monkeypatch, str(tmp_path))
+    bb.post_handoff(str(tmp_path), "bmad-ux", "prd.acme", "PRD final")
+    out = audit_mod.session_start({"cwd": str(tmp_path)})
+    ctx = out["additionalContext"]
+    assert "hand-off waiting: bmad-ux (1)" in ctx
+    # announce-only: the signal still waits for the skill itself
+    assert len(bb.pending_handoffs(str(tmp_path), "bmad-ux")) == 1
+
+
+def test_session_start_hides_bmad_help_handoffs(tmp_path, monkeypatch):
+    audit_mod, _, _ = _engine(monkeypatch, str(tmp_path))
+    bb.post_handoff(str(tmp_path), "bmad-help", "anything", "n")
+    out = audit_mod.session_start({"cwd": str(tmp_path)})
+    assert "hand-off waiting" not in out["additionalContext"]
+
+
+def test_cli_handoff_roundtrip(tmp_path):
+    r = _run_cli(str(tmp_path), "handoff", "--to", "bmad-ux",
+                 "--from-key", "prd.acme", "--note", "PRD final")
+    assert json.loads(r.stdout)["ok"] is True
+    r = _run_cli(str(tmp_path), "handoffs")
+    assert json.loads(r.stdout)["waiting"] == {"bmad-ux": 1}
+    r = _run_cli(str(tmp_path), "handoffs", "--skill", "bmad-ux")
+    assert "prd.acme" in r.stdout
+    r = _run_cli(str(tmp_path), "consume", "--channel", "handoff.bmad-ux")
+    assert len(json.loads(r.stdout)["alerts"]) == 1
+    r = _run_cli(str(tmp_path), "handoffs")
+    assert json.loads(r.stdout)["waiting"] == {}
+
+
+def test_cli_handoff_requires_to_and_from_key(tmp_path):
+    r = _run_cli(str(tmp_path), "handoff", "--to", "", "--from-key", "k")
+    assert r.returncode == 1 and json.loads(r.stdout)["ok"] is False
+    r = _run_cli(str(tmp_path), "handoff", "--to", "bmad-ux")  # missing --from-key
+    assert r.returncode != 0  # argparse usage error (rc=2)
+    assert not r.stdout.strip()  # no partial output
 
 
 def test_v1_snapshot_upgrade_keeps_data(root):

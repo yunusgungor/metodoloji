@@ -150,6 +150,15 @@ def session_start(json_in: dict) -> dict:
                 msgs = "; ".join(f"[{a['kind']}] {a['text']}" for a in delivered[-3:])
                 parts.append(f"alerts: {msgs}" +
                              (f" (+{len(delivered) - 3} more)" if len(delivered) > 3 else ""))
+            try:
+                waiting = bb.pending_handoff_channels(root)
+            except Exception:
+                waiting = {}
+            if waiting:
+                waiting.pop("bmad-help", None)  # help skill has its own routing
+                if waiting:
+                    w = ", ".join(f"{s} ({n})" for s, n in sorted(waiting.items()))
+                    parts.append(f"hand-off waiting: {w}")
             if parts:
                 ctx += " Blackboard: " + "; ".join(parts) + "."
     except Exception:

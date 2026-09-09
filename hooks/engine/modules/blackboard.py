@@ -376,6 +376,12 @@ def _apply_event(board: dict, ev: dict) -> None:
                 if item in entry["value"]:
                     entry["value"].remove(item)
             entry["updated"] = ev.get("ts", 0.0)
+    elif kind == "list_clear":
+        key = str(ev.get("key", ""))[:200]
+        entry = board["keys"].get(key)
+        if entry and isinstance(entry.get("value"), list):
+            entry["value"] = []
+            entry["updated"] = ev.get("ts", 0.0)
     elif kind == "link":
         a, b = str(ev.get("a", ""))[:200], str(ev.get("b", ""))[:200]
         rel = str(ev.get("relation", "related"))[:50]
@@ -676,6 +682,23 @@ def list_add(project_root: str, key: str, item: str) -> dict:
                       f"{len(board['keys'].get(event['key'], {}).get('value', []))})")
         return board, {"ok": True, "key": event["key"],
                        "count": len(board["keys"].get(event["key"], {}).get("value", []))}
+
+    return _mutate(project_root, mut)
+
+
+def list_clear(project_root: str, key: str) -> dict:
+    """Remove every item from a list key (keeps the key, now an empty list).
+    One-command close-out for run lists (pending/branches/failures)."""
+    if not key or not str(key).strip():
+        return {"ok": False, "error": "empty key"}
+    event = {"event": "list_clear", "key": key.strip()[:200], "ts": time.time()}
+
+    def mut(board):
+        entry = board["keys"].get(event["key"])
+        had = len(entry["value"]) if entry and isinstance(entry.get("value"), list) else 0
+        _append_event(board_paths(project_root), event)
+        _apply_event(board, event)
+        return board, {"ok": True, "key": event["key"], "cleared": had}
 
     return _mutate(project_root, mut)
 
@@ -1046,6 +1069,41 @@ def consume_alerts(project_root: str, channel: str) -> list:
         return _mutate(project_root, mut)
     except Exception:
         return []
+
+
+# --- hand-off signals (the skill chain handshake) ------------------------------------
+def post_handoff(project_root: str, to_skill: str, from_key: str, note: str = "") -> dict:
+    """Upstream→downstream hand-off signal: route an alert into the
+    `handoff.<to_skill>` channel (kind `handoff`, text `<from_key>: <note>`).
+    The signal waits there until the downstream skill consumes it — that
+    consumption completes the handshake."""
+    to_skill = str(to_skill).strip()[:40]
+    if not to_skill:
+        return {"ok": False, "error": "empty --to"}
+    from_key = str(from_key).strip()[:200]
+    if not from_key:
+        return {"ok": False, "error": "empty --from-key"}
+    return post_alert(project_root, f"handoff.{to_skill}", "handoff",
+                      f"{from_key}: {str(note).strip()}")
+
+
+def pending_handoffs(project_root: str, skill: str) -> list:
+    """Un-consumed hand-off signals waiting for `skill` (read-only peek)."""
+    skill = str(skill).strip()[:40]
+    return [a for a in read_board(project_root)["alerts"]
+            if a.get("channel") == f"handoff.{skill}" and a.get("kind") == "handoff"]
+
+
+def pending_handoff_channels(project_root: str) -> dict:
+    """Skills with waiting hand-off signals: {skill: count} (engine peek —
+    session_start announces, never consumes; the skill completes the shake)."""
+    counts = {}
+    for a in read_board(project_root)["alerts"]:
+        ch = a.get("channel", "")
+        if ch.startswith("handoff.") and a.get("kind") == "handoff":
+            s = ch[len("handoff."):]
+            counts[s] = counts.get(s, 0) + 1
+    return counts
 
 
 def post_alert(project_root: str, channel: str, kind: str, text: str) -> dict:
