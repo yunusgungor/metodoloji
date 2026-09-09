@@ -69,6 +69,10 @@ Execute each entry in `{workflow.activation_steps_append}` in order.
 
 Activation is complete. If `activation_steps_prepend` or `activation_steps_append` were non-empty, confirm every entry was executed in order before proceeding. Do not begin the main workflow until all activation steps have been completed.
 
+### Chain Handshake
+
+Before loading the first step file, check the chain for signals addressed to you: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoffs --skill bmad-create-story --project-root {project-root}` — the canonical sender is a `bmad-create-epics-and-stories` run (a spec, PRD, or UX run may also hand off directly). Read the named artifact first — when it is the epics file, that means the epic and story the signal names — alongside the epics/PRD/architecture inputs the step files select. Then complete the handshake: `python3 {metodoloji-root}/bmad/scripts/blackboard.py consume --channel handoff.bmad-create-story --project-root {project-root}` (consume only after `{implementation_artifacts}` is resolved and the story target located — an unconsumed signal keeps the hand-off waiting, which is correct when the user routes elsewhere).
+
 ## Paths
 
 - `sprint_status` = `{implementation_artifacts}/sprint-status.yaml`
@@ -409,6 +413,9 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
     <action>Update last_updated field to current date</action>
     <action>Save file, preserving ALL comments and structure including STATUS DEFINITIONS</action>
   </check>
+
+  <!-- Chain hand-off: signal dev-story that this story is ready -->
+  <action>Bind the story on the blackboard and signal the developer run: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key story.{{story_key}} --value "context ready — story file final" --type state --project-root {project-root}`, then `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-dev-story --from-key story.{{story_key}} --note "story ready-for-dev — file: {{story_file}}" --project-root {project-root}` (the signal waits in `handoff.bmad-dev-story` until a dev run consumes it — that consumption completes the handshake)</action>
 
   <action>Report completion</action>
   <output>**🎯 ULTIMATE BMad Method STORY CONTEXT CREATED, {user_name}!**

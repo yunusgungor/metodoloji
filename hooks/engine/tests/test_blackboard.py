@@ -920,6 +920,59 @@ def test_stop_deny_reports_canvas_and_stop_alerts(tmp_path, monkeypatch):
     assert bb.pending_alerts(str(tmp_path), "stop") == []
 
 
+def _seed_block_story(tmp_path):
+    """Seed an in-progress story that makes stop deny (hard gate)."""
+    sprint = tmp_path / "bmad-output" / "implementation-artifacts"
+    sprint.mkdir(parents=True, exist_ok=True)
+    (sprint / "sprint-status.yaml").write_text(
+        "stories:\n  1-1-alpha: in-progress\n", encoding="utf-8")
+
+
+def test_stop_deny_carries_proactive_handoff_warning(tmp_path, monkeypatch):
+    """A run closing with unclaimed handoffs is warned at stop — announce-only."""
+    audit_mod, stop_mod, config_mod = _engine(monkeypatch, str(tmp_path))
+    monkeypatch.setattr(config_mod, "hook_gate_mode", lambda key: "hard")
+    _seed_block_story(tmp_path)
+    bb.post_handoff(str(tmp_path), "bmad-ux", "prd.acme", "PRD final")
+    out = stop_mod.stop({"cwd": str(tmp_path), "hook_event_name": "Stop"})
+    assert out["decision"] == "deny"
+    assert "PROACTIVE — hand-off waiting: bmad-ux (1)" in out["reason"]
+    assert "do not close the loop empty-handed" in out["reason"]
+    assert "chain-health" in out["reason"]
+    # announce-only: the signal still waits for its addressed skill
+    assert len(bb.pending_handoffs(str(tmp_path), "bmad-ux")) == 1
+
+
+def test_stop_allow_when_handoffs_all_claimed(tmp_path, monkeypatch):
+    audit_mod, stop_mod, config_mod = _engine(monkeypatch, str(tmp_path))
+    monkeypatch.setattr(config_mod, "hook_gate_mode", lambda key: "hard")
+    out = stop_mod.stop({"cwd": str(tmp_path), "hook_event_name": "Stop"})
+    assert out["decision"] == "allow"
+    bb.post_handoff(str(tmp_path), "bmad-ux", "prd.acme", "PRD final")
+    bb.consume_alerts(str(tmp_path), "handoff.bmad-ux")  # shake completed
+    out2 = stop_mod.stop({"cwd": str(tmp_path), "hook_event_name": "Stop"})
+    assert "PROACTIVE" not in out2.get("reason", "")
+
+
+def test_stop_handoff_warning_excludes_bmad_help(tmp_path, monkeypatch):
+    audit_mod, stop_mod, config_mod = _engine(monkeypatch, str(tmp_path))
+    monkeypatch.setattr(config_mod, "hook_gate_mode", lambda key: "hard")
+    _seed_block_story(tmp_path)
+    bb.post_handoff(str(tmp_path), "bmad-help", "anything", "n")
+    out = stop_mod.stop({"cwd": str(tmp_path), "hook_event_name": "Stop"})
+    assert "PROACTIVE" not in out["reason"]  # help-only waiting never warns
+
+
+def test_stop_handoff_warning_does_not_block_alone(tmp_path, monkeypatch):
+    """The warning is a nudge, never a block: allow stays allow with it."""
+    audit_mod, stop_mod, config_mod = _engine(monkeypatch, str(tmp_path))
+    monkeypatch.setattr(config_mod, "hook_gate_mode", lambda key: "hard")
+    bb.post_handoff(str(tmp_path), "bmad-ux", "prd.acme", "PRD final")
+    out = stop_mod.stop({"cwd": str(tmp_path), "hook_event_name": "Stop"})
+    assert out["decision"] == "allow"  # nothing else to deny on
+    assert out.get("reason") is None
+
+
 def test_stop_allow_no_canvas_notice(tmp_path, monkeypatch):
     audit_mod, stop_mod, _ = _engine(monkeypatch, str(tmp_path))
     bb.canvas_create(str(tmp_path), "quiet")  # exists but not focused
@@ -957,10 +1010,6 @@ def test_unicode_in_lists_and_canvas_cells(root):
     board = bb.read_board(root)
     assert board["keys"]["L"]["value"] == ["Türkçe ✓ 中文"]
     assert bb.read_canvas(root, "harita")["cells"]["hücre-1"]["content"] == "AMAÇ: ✓"
-
-
-def test_v1_snapshot_upgrade_keeps_data(root):
-    """A v1 snapshot (no graph sections) loads cleanly and gains defaults."""
 
 
 # ==============================================================================
@@ -1043,6 +1092,35 @@ def test_session_start_hides_bmad_help_handoffs(tmp_path, monkeypatch):
     assert "hand-off waiting" not in out["additionalContext"]
 
 
+def test_session_start_proactive_warning_when_waiting(tmp_path, monkeypatch):
+    """total_waiting > 0 → the injection carries an actionable warning."""
+    audit_mod, _, _ = _engine(monkeypatch, str(tmp_path))
+    bb.post_handoff(str(tmp_path), "bmad-ux", "prd.acme", "PRD final")
+    bb.post_handoff(str(tmp_path), "bmad-architecture", "ux.acme", "UX final")
+    ctx = audit_mod.session_start({"cwd": str(tmp_path)})["additionalContext"]
+    assert "PROACTIVE — hand-off waiting" in ctx
+    assert "2 unclaimed signal(s)" in ctx
+    assert "nobody picked up the baton" in ctx
+    assert "chain-health" in ctx          # diagnose path
+    assert "handoffs --skill" in ctx       # claim path
+
+
+def test_session_start_no_proactive_warning_when_clear(tmp_path, monkeypatch):
+    audit_mod, _, _ = _engine(monkeypatch, str(tmp_path))
+    bb.post_handoff(str(tmp_path), "bmad-ux", "prd.acme", "PRD final")
+    bb.consume_alerts(str(tmp_path), "handoff.bmad-ux")  # handshake completed
+    ctx = audit_mod.session_start({"cwd": str(tmp_path)})["additionalContext"]
+    assert "PROACTIVE" not in ctx
+    assert "hand-off waiting" not in ctx
+
+
+def test_session_start_proactive_warning_counts_exclude_bmad_help(tmp_path, monkeypatch):
+    audit_mod, _, _ = _engine(monkeypatch, str(tmp_path))
+    bb.post_handoff(str(tmp_path), "bmad-help", "anything", "n")
+    ctx = audit_mod.session_start({"cwd": str(tmp_path)})["additionalContext"]
+    assert "PROACTIVE" not in ctx  # help-only waiting never warns
+
+
 def test_cli_handoff_roundtrip(tmp_path):
     r = _run_cli(str(tmp_path), "handoff", "--to", "bmad-ux",
                  "--from-key", "prd.acme", "--note", "PRD final")
@@ -1063,6 +1141,184 @@ def test_cli_handoff_requires_to_and_from_key(tmp_path):
     r = _run_cli(str(tmp_path), "handoff", "--to", "bmad-ux")  # missing --from-key
     assert r.returncode != 0  # argparse usage error (rc=2)
     assert not r.stdout.strip()  # no partial output
+
+
+def test_chain_health_idle_when_no_signals(root):
+    h = bb.chain_health(root)
+    assert h["ok"] is True
+    assert len(h["chain"]) == 6  # 7 skills -> 6 hops
+    assert all(hop["waiting"] == 0 and hop["consumed"] == 0 and hop["status"] == "idle"
+               for hop in h["chain"])
+    assert h["extra"] == [] and h["total_waiting"] == 0
+
+
+def test_chain_health_counts_waiting_and_consumed_per_hop(root):
+    bb.post_handoff(root, "bmad-ux", "prd.acme", "n1")
+    bb.consume_alerts(root, "handoff.bmad-ux")          # prd->ux consumed
+    bb.post_handoff(root, "bmad-ux", "prd.acme", "n2")
+    bb.consume_alerts(root, "handoff.bmad-ux")
+    bb.post_handoff(root, "bmad-ux", "prd.new", "n3")   # still waiting
+    bb.post_handoff(root, "bmad-architecture", "ux.acme", "n4")  # ux->arch waiting
+    h = bb.chain_health(root)
+    hops = {(hop["from"], hop["to"]): hop for hop in h["chain"]}
+    assert hops[("bmad-prd", "bmad-ux")]["consumed"] == 2
+    assert hops[("bmad-prd", "bmad-ux")]["waiting"] == 1
+    assert hops[("bmad-prd", "bmad-ux")]["status"] == "waiting"
+    assert hops[("bmad-ux", "bmad-architecture")]["waiting"] == 1
+    assert hops[("bmad-architecture", "bmad-spec")]["status"] == "idle"
+    assert h["total_waiting"] == 2
+
+
+def test_chain_health_clear_status_all_consumed(root):
+    bb.post_handoff(root, "bmad-ux", "prd.acme", "n1")
+    bb.consume_alerts(root, "handoff.bmad-ux")
+    h = bb.chain_health(root)
+    assert h["chain"][0]["status"] == "clear"
+    assert h["chain"][0]["waiting"] == 0 and h["chain"][0]["consumed"] == 1
+    assert h["total_waiting"] == 0
+
+
+def test_chain_health_surfaces_unknown_receivers_as_extra(root):
+    bb.post_handoff(root, "some-future-skill", "ux.acme", "n1")
+    h = bb.chain_health(root)
+    assert h["chain"][0]["waiting"] == 0  # ux->arch hop untouched
+    assert len(h["extra"]) == 1
+    assert h["extra"][0] == {"from": "bmad-ux", "to": "some-future-skill",
+                             "waiting": 1, "consumed": 0, "status": "waiting"}
+    assert h["total_waiting"] == 1
+
+
+def test_chain_health_consumption_is_not_double_counted(root):
+    bb.post_handoff(root, "bmad-ux", "prd.acme", "n1")
+    bb.consume_alerts(root, "handoff.bmad-ux")
+    bb.consume_alerts(root, "handoff.bmad-ux")  # second consume of empty channel
+    h = bb.chain_health(root)
+    assert h["chain"][0]["consumed"] == 1  # not 2
+
+
+def test_cli_chain_health(tmp_path):
+    r = _run_cli(str(tmp_path), "chain-health")
+    h = json.loads(r.stdout)
+    assert h["ok"] is True and len(h["chain"]) == 6
+    _run_cli(str(tmp_path), "handoff", "--to", "bmad-ux",
+             "--from-key", "prd.acme", "--note", "n")
+    r = _run_cli(str(tmp_path), "chain-health")
+    h = json.loads(r.stdout)
+    assert h["chain"][0]["waiting"] == 1 and h["total_waiting"] == 1
+
+
+# ==============================================================================
+# v2.2 — doctor (one-glance diagnostic)
+# ==============================================================================
+def test_doctor_healthy_on_empty_board(root):
+    d = bb.doctor(root)
+    assert d["ok"] is True and d["verdict"] == "HEALTHY"
+    assert d["warnings"] == []
+    c = d["checks"]
+    assert c["gate"]["on"] is True or c["gate"]["known"] is False
+    assert c["snapshot"]["exists"] is False
+    assert c["events"]["exists"] is False
+    assert c["drift"]["in_sync"] is True
+    assert c["chain"]["total_waiting"] == 0
+
+
+def test_doctor_healthy_on_lived_in_board(root):
+    bb.write_key(root, "prd.acme", "v", hot=True)
+    bb.canvas_create(root, "m", grid="8x8", focus=True)
+    bb.canvas_set(root, "m", "A1", "x")
+    bb.list_add(root, "prd.acme.pending", "t")
+    bb.link(root, "prd.acme", "arch.acme")
+    bb.post_handoff(root, "bmad-ux", "prd.acme", "n")
+    bb.consume_alerts(root, "handoff.bmad-ux")  # complete the shake
+    d = bb.doctor(root)
+    assert d["verdict"] == "HEALTHY"
+    assert d["checks"]["focus"]["hot"] == "prd.acme"
+    assert d["checks"]["focus"]["hot_canvas"] == "m"
+    assert d["checks"]["drift"]["in_sync"] is True
+
+
+def test_doctor_warns_on_cap_pressure(root):
+    for i in range(bb.MAX_KEYS):
+        bb.write_key(root, f"k{i:03d}", "x")
+    d = bb.doctor(root)
+    assert d["verdict"] == "NEEDS ATTENTION"
+    assert any("keys 128/128" in w for w in d["warnings"])
+
+
+def test_doctor_warns_on_tmp_residue(root):
+    bb.write_key(root, "k", "v")
+    open(bb.board_paths(root)["snapshot"] + ".1.2.tmp", "w").write("junk")
+    open(bb.board_paths(root)["events"] + ".3.4.tmp", "w").write("junk")
+    d = bb.doctor(root)
+    assert d["verdict"] == "NEEDS ATTENTION"
+    assert any("2 leftover .tmp" in w for w in d["warnings"])
+
+
+def test_doctor_warns_on_unclaimed_handoffs(root):
+    bb.post_handoff(root, "bmad-ux", "prd.acme", "n")
+    d = bb.doctor(root)
+    assert d["verdict"] == "NEEDS ATTENTION"
+    assert any("unclaimed hand-off" in w and "PROACTIVE" in w
+               for w in d["warnings"])
+
+
+def test_doctor_detects_snapshot_drift(root):
+    bb.write_key(root, "k", "v")
+    # tamper with the snapshot behind the event log's back
+    paths = bb.board_paths(root)
+    with open(paths["snapshot"], encoding="utf-8") as f:
+        data = json.load(f)
+    data["keys"]["ghost"] = {"value": "x", "type": "note", "updated": 1.0}
+    with open(paths["snapshot"], "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    d = bb.doctor(root)
+    assert d["checks"]["drift"]["in_sync"] is False
+    assert d["verdict"] == "NEEDS ATTENTION"
+    assert any("drift" in w and "rebuild" in w for w in d["warnings"])
+
+
+def test_doctor_ignores_tool_stamped_keys_in_drift(root):
+    """last_tool.* keys are folded into the snapshot without events by design —
+    they must not read as drift."""
+    bb.write_key(root, "k", "v")
+    paths = bb.board_paths(root)
+    with open(paths["snapshot"], encoding="utf-8") as f:
+        data = json.load(f)
+    data["keys"]["last_tool.file_editor"] = {
+        "value": "docs/a.md", "type": "tool", "updated": 1.0}
+    with open(paths["snapshot"], "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    d = bb.doctor(root)
+    assert d["checks"]["drift"]["in_sync"] is True
+
+
+def test_doctor_counts_garbage_event_lines(root):
+    bb.write_key(root, "k", "v")
+    with open(bb.board_paths(root)["events"], "a", encoding="utf-8") as f:
+        f.write("GARBAGE\n")
+    d = bb.doctor(root)
+    assert d["checks"]["events"]["garbage"] == 1
+    assert d["checks"]["events"]["status"] == "warn"
+    assert d["verdict"] == "NEEDS ATTENTION"
+
+
+def test_doctor_reports_watch_paths(root):
+    bb.canvas_create(root, "m")
+    bb.canvas_watch(root, "m", "docs/")
+    d = bb.doctor(root)
+    w = d["checks"]["watch"]["paths"]
+    assert w == [{"canvas": "m", "path": "docs/", "exists": os.path.exists("docs/")}]
+
+
+def test_cli_doctor_panel_and_json(tmp_path):
+    _run_cli(str(tmp_path), "write", "--key", "k", "--value", "v", "--hot")
+    r = _run_cli(str(tmp_path), "doctor")
+    assert "blackboard doctor" in r.stdout
+    assert "verdict: HEALTHY" in r.stdout
+    assert "focus     hot: k" in r.stdout
+    r = _run_cli(str(tmp_path), "doctor", "--json")
+    j = json.loads(r.stdout)
+    assert j["ok"] is True and j["checks"]["snapshot"]["version"] == 2
 
 
 def test_v1_snapshot_upgrade_keeps_data(root):

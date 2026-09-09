@@ -1106,6 +1106,252 @@ def pending_handoff_channels(project_root: str) -> dict:
     return counts
 
 
+# --- chain health (hand-off diagnostics) ----------------------------------------------
+# The canonical delivery relay: each hop is one skill handing off to the next.
+CHAIN = ["bmad-prd", "bmad-ux", "bmad-architecture", "bmad-spec",
+         "bmad-create-epics-and-stories", "bmad-create-story", "bmad-dev-story"]
+
+# Run-key namespace prefix → the skill that owns the hand-off (sender attribution).
+_KEY_PREFIX_TO_SKILL = [
+    ("prd.", "bmad-prd"),
+    ("ux.", "bmad-ux"),
+    ("architecture.", "bmad-architecture"),
+    ("spec.", "bmad-spec"),
+    ("epics.", "bmad-create-epics-and-stories"),
+    ("story.", "bmad-create-story"),
+]
+
+
+def _signal_sender(text: str) -> str | None:
+    """Attribute a hand-off signal to a sender skill via its from-key prefix
+    (signal text is '<from-key>: <note>')."""
+    key = text.split(":", 1)[0].strip()
+    for prefix, skill in _KEY_PREFIX_TO_SKILL:
+        if key.startswith(prefix):
+            return skill
+    return None
+
+
+def chain_health(project_root: str) -> dict:
+    """Per-hop hand-off diagnostics for the delivery relay: how many signals
+    are waiting (downstream has not picked up) and how many were consumed
+    (handshake completed) on every hop, sender-attributed from the event
+    log. Unknown receivers/senders surface as 'extra' — the protocol is
+    extensible, the diagnostic follows."""
+    waiting: dict = {}   # (sender, receiver) -> count
+    consumed: dict = {}  # (sender, receiver) -> count
+    open_signals: dict = {}  # receiver -> [(sender, text)]
+    paths = board_paths(project_root)
+    try:
+        with open(paths["events"], encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    ev = json.loads(line)
+                except ValueError:
+                    continue
+                kind = ev.get("event")
+                if kind == "alert" and ev.get("kind") == "handoff":
+                    channel = str(ev.get("channel", ""))
+                    if not channel.startswith("handoff."):
+                        continue
+                    receiver = channel[len("handoff."):]
+                    sender = _signal_sender(str(ev.get("text", "")))
+                    open_signals.setdefault(receiver, []).append(sender)
+                elif kind == "consume":
+                    channel = str(ev.get("channel", ""))
+                    if not channel.startswith("handoff."):
+                        continue
+                    receiver = channel[len("handoff."):]
+                    for sender in open_signals.pop(receiver, []):
+                        key = (sender, receiver)
+                        consumed[key] = consumed.get(key, 0) + 1
+    except OSError:
+        pass
+    for receiver, senders in open_signals.items():
+        for sender in senders:
+            key = (sender, receiver)
+            waiting[key] = waiting.get(key, 0) + 1
+
+    def hop_rows(sender_skill: str, receiver_skill: str) -> dict:
+        w = sum(v for (s, r), v in waiting.items() if s == sender_skill and r == receiver_skill)
+        c = sum(v for (s, r), v in consumed.items() if s == sender_skill and r == receiver_skill)
+        if w:
+            status = "waiting"
+        elif w + c:
+            status = "clear"
+        else:
+            status = "idle"
+        return {"from": sender_skill, "to": receiver_skill,
+                "waiting": w, "consumed": c, "status": status}
+
+    chain = [hop_rows(a, b) for a, b in zip(CHAIN, CHAIN[1:])]
+    seen = {(h["from"], h["to"]) for h in chain}
+    extra = []
+    for (s, r) in sorted(set(list(waiting) + list(consumed))):
+        if (s, r) in seen:
+            continue
+        w, c = waiting.get((s, r), 0), consumed.get((s, r), 0)
+        extra.append({"from": s, "to": r, "waiting": w, "consumed": c,
+                      "status": "waiting" if w else "clear"})
+    total_waiting = sum(v for (s, r), v in waiting.items()
+                        if (s, r) not in seen) + \
+        sum(h["waiting"] for h in chain)
+    return {"ok": True, "chain": chain, "extra": extra,
+            "total_waiting": total_waiting}
+
+
+# --- doctor (one-glance diagnostic) ---------------------------------------------------
+_DOCTOR_CAP_WARN_PCT = 90  # warn when a plane is this close to its cap
+
+
+def _doctor_age(ts: float) -> str:
+    """Human age of a timestamp ('2s', '5m', '3h', '6d')."""
+    age = int(max(0, time.time() - (ts or 0)))
+    if age < 60:
+        return f"{age}s"
+    if age < 3600:
+        return f"{age // 60}m"
+    if age < 86400:
+        return f"{age // 3600}h"
+    return f"{age // 86400}d"
+
+
+def _doctor_drift(paths: dict, board: dict) -> dict:
+    """Snapshot vs event-log replay comparison (tool-stamped keys excluded:
+    the audit hook folds last_tool.* directly into the snapshot by design)."""
+    replay = _replay_events(paths)
+
+    def norm(b: dict) -> dict:
+        keys = {k: v for k, v in b["keys"].items() if v.get("type") != "tool"}
+        return {"keys": keys, "tags": b["tags"], "canvases": b["canvases"],
+                "links": b["links"], "subscriptions": b["subscriptions"],
+                "alerts": b["alerts"], "hot": b["hot"],
+                "hot_canvas": b["hot_canvas"]}
+
+    in_sync = norm(replay) == norm(board)
+    return {"in_sync": in_sync, "status": "ok" if in_sync else "warn"}
+
+
+def doctor(project_root: str) -> dict:
+    """One-glance diagnostic for the whole board: gate, snapshot, event log,
+    state counts, cap usage, focus, chain health, integrity (snapshot/event
+    drift, tmp residue) and watch paths. Verdict is HEALTHY iff no warnings."""
+    paths = board_paths(project_root)
+    warnings = []
+    board = read_board(project_root)
+
+    # gate
+    gate_known, gate_on = True, True
+    try:
+        from .config import blackboard_enabled
+        gate_on = bool(blackboard_enabled())
+    except Exception:
+        gate_known = False
+
+    # event log
+    lines = garbage = 0
+    try:
+        with open(paths["events"], encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                lines += 1
+                try:
+                    json.loads(line)
+                except ValueError:
+                    garbage += 1
+        events_exist = lines > 0
+    except OSError:
+        events_exist = False
+    if garbage:
+        warnings.append(f"event log carries {garbage} unparseable line(s) "
+                        "(tolerated, but investigate the writer)")
+
+    # caps
+    cells_per_canvas = {name: len(cv.get("cells", {}))
+                        for name, cv in board["canvases"].items()}
+    caps = {
+        "keys": (len(board["keys"]), MAX_KEYS),
+        "tags": (len(board["tags"]), MAX_TAGS),
+        "contributions": (len(board["contributions"]), MAX_CONTRIBUTIONS),
+        "canvases": (len(board["canvases"]), MAX_CANVASES),
+        "cells": (sum(cells_per_canvas.values()), MAX_CELLS * MAX_CANVASES),
+        "links": (len(board["links"]), MAX_LINKS),
+        "subscriptions": (len(board["subscriptions"]), MAX_SUBSCRIPTIONS),
+        "alerts": (len(board["alerts"]), MAX_ALERTS),
+    }
+    cap_warnings = []
+    for name, (used, cap) in caps.items():
+        if used * 100 >= _DOCTOR_CAP_WARN_PCT * cap:
+            cap_warnings.append(f"{name} {used}/{cap} (≥{_DOCTOR_CAP_WARN_PCT}% — "
+                                "oldest will expire soon)")
+    warnings.extend(cap_warnings)
+
+    # integrity: snapshot presence + drift
+    snapshot_exists = os.path.exists(paths["snapshot"])
+    drift = _doctor_drift(paths, board)
+    if not drift["in_sync"]:
+        warnings.append("snapshot drifts from the event log — delete "
+                        "blackboard.json to force a rebuild")
+
+    # tmp residue (crash leftovers, snapshot dir + event-log dir)
+    tmp_files = []
+    try:
+        for d in (paths["dir"], os.path.dirname(paths["events"])):
+            if os.path.isdir(d):
+                tmp_files.extend(os.path.join(d, f) for f in os.listdir(d)
+                                 if f.endswith(".tmp"))
+    except OSError:
+        pass
+    if tmp_files:
+        warnings.append(f"{len(tmp_files)} leftover .tmp file(s) under "
+                        f"{paths['dir']} — safe to delete")
+
+    # chain
+    chain = chain_health(project_root)
+    if chain["total_waiting"] > 0:
+        waiting_hops = [f"{h['from']}→{h['to']}" for h in chain["chain"] if h["waiting"]]
+        waiting_hops += [f"{h['from']}→{h['to']}" for h in chain["extra"] if h["waiting"]]
+        warnings.append(f"{chain['total_waiting']} unclaimed hand-off signal(s) "
+                        f"({', '.join(waiting_hops)}) — PROACTIVE, see chain-health")
+
+    # watch paths (informational: missing prefixes may be created later)
+    watch = [{"canvas": name, "path": w, "exists": os.path.exists(w)}
+             for name, cv in board["canvases"].items()
+             for w in cv.get("watch", [])]
+
+    checks = {
+        "gate": {"known": gate_known, "on": gate_on,
+                 "status": "ok" if gate_known else "info"},
+        "snapshot": {"exists": snapshot_exists,
+                     "version": board.get("version"),
+                     "age": _doctor_age(board.get("updated", 0.0)),
+                     "status": "ok"},
+        "events": {"exists": events_exist, "lines": lines, "garbage": garbage,
+                   "status": "ok" if not garbage else "warn"},
+        "caps": {"usage": {k: {"used": u, "cap": c}
+                           for k, (u, c) in caps.items()},
+                 "status": "ok" if not cap_warnings else "warn"},
+        "focus": {"hot": board.get("hot"), "hot_canvas": board.get("hot_canvas"),
+                  "status": "ok"},
+        "drift": drift,
+        "residue": {"tmp_files": tmp_files,
+                    "status": "ok" if not tmp_files else "warn"},
+        "chain": {"total_waiting": chain["total_waiting"],
+                  "waiting_hops": [h for h in chain["chain"] if h["waiting"]]
+                                  + [h for h in chain["extra"] if h["waiting"]],
+                  "status": "ok" if chain["total_waiting"] == 0 else "warn"},
+        "watch": {"paths": watch, "status": "info" if watch else "ok"},
+    }
+    return {"ok": True, "root": paths["root"],
+            "verdict": "HEALTHY" if not warnings else "NEEDS ATTENTION",
+            "checks": checks, "warnings": warnings}
+
+
 def post_alert(project_root: str, channel: str, kind: str, text: str) -> dict:
     """Manual alert injection (skills can notify the session/stop channels)."""
     event = {"event": "alert", "channel": str(channel).strip()[:40] or "session",

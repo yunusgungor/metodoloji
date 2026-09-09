@@ -28,6 +28,8 @@ Run `{workflow.activation_steps_append}`.
 
 Activation is complete. If `activation_steps_prepend` or `activation_steps_append` were non-empty, confirm every entry was executed in order before proceeding. Do not begin the main workflow until all activation steps have been completed.
 
+**Chain handshake.** Before `## The Operation`, check the chain for signals addressed to you: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoffs --skill bmad-spec --project-root {project-root}` — an upstream run (architecture is the canonical sender) leaves a note naming what its artifact binds. Treat the named artifact as operation input first, then complete the handshake: `python3 {metodoloji-root}/bmad/scripts/blackboard.py consume --channel handoff.bmad-spec --project-root {project-root}` (consume only after `{slug}` is resolved and the spec folder bound — an unconsumed signal keeps the hand-off waiting, which is correct when the user routes elsewhere).
+
 ## Workspace
 
 The spec is **always a folder** named `{workflow.spec_output_path}/{workflow.run_folder_pattern}`, resolving by default to `{output_folder}/specs/spec-{slug}/`.
@@ -125,6 +127,8 @@ When the user points the skill at an existing spec folder (or its SPEC.md) with 
 **Interactive** — share the spec folder path conversationally. Name the capability count, the companions produced, and the verdict in one or two sentences. If `assumptions[]` or `open_questions[]` are non-empty, list them (short — one line each) and invite the user to walk through them. Make clear that addressing them can update the source input (if it was a file), the spec, or both — whichever combination the user prefers. Do not dump JSON or present a wall of output.
 
 **Headless** — return JSON per `assets/headless-schemas.md`.
+
+**Chain hand-off.** Bind the run on the blackboard and signal the canonical next consumer: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key spec.<slug> --value "<one-line state>" --type state --project-root {project-root}`, then `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-create-epics-and-stories --from-key spec.<slug> --note "SPEC.md final — <N> capabilities, companions: <names>" --project-root {project-root}` (the signal waits in `handoff.bmad-create-epics-and-stories` until an epics run consumes it — that consumption completes the handshake).
 
 Run `{workflow.on_complete}` if set.
 

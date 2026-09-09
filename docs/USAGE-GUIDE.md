@@ -783,10 +783,11 @@ one `hot` key and one `hot_canvas` at a time.
 
 **Hand-off handshake.** Skills signal each other through reserved
 `handoff.<skill>` channels: an upstream run closes with `handoff --to
-bmad-ux --from-key prd.acme --note "..."`; the signal waits (announced by
-session_start as `hand-off waiting`, consumed only by the addressed skill)
-until the downstream run reads it and consumes the channel — the prd → ux →
-architecture relay rides this chain.
+bmad-ux --from-key prd.acme --note "..."`; the signal waits (every session
+start carries a proactive warning while it is unclaimed, consumed only by
+the addressed skill) until the downstream run reads it and consumes the
+channel — the delivery relay rides this chain: prd → ux → architecture →
+spec → create-epics-and-stories → create-story → dev-story.
 
 ### 7.2. CLI (`bmad/scripts/blackboard.py`)
 
@@ -819,11 +820,13 @@ python3 bmad/scripts/blackboard.py alerts            # peek
 python3 bmad/scripts/blackboard.py consume --channel stop
 python3 bmad/scripts/blackboard.py notify --channel stop --kind risk --text "NFR unconfirmed"
 
-# The skill chain handshake (prd → ux → architecture relay):
+# The skill chain handshake (prd → ux → architecture → spec → epics → story → dev relay):
 python3 bmad/scripts/blackboard.py handoff --to bmad-ux --from-key prd.acme --note "PRD final — start with NFR-3"
 python3 bmad/scripts/blackboard.py handoffs                 # {skill: waiting count}
 python3 bmad/scripts/blackboard.py handoffs --skill bmad-ux # the addressed run peeks
 python3 bmad/scripts/blackboard.py consume --channel handoff.bmad-ux  # completes the shake
+python3 bmad/scripts/blackboard.py chain-health         # per-hop waiting/consumed diagnostics
+python3 bmad/scripts/blackboard.py doctor               # one-glance whole-board diagnostic
 
 # Tags, contributions, statistics:
 python3 bmad/scripts/blackboard.py tag --tag crm
@@ -874,6 +877,11 @@ eval-runner) run on three planes:
   touches automatically. Focused canvases surface at session start and stop;
   clear focus (`canvas focus --clear`) at close and leave the canvas standing
   when downstream skills should read it.
+
+- **Close-out check (all producing skills)** — after clearing focus and
+  lists but before posting the run's own hand-off, run
+  `blackboard.py doctor --json` and surface `NEEDS ATTENTION` warnings to
+  the user before exiting.
 
 That is the entire contract — no lifecycle status, no log schema, no resume
 machinery beyond the artifacts themselves.

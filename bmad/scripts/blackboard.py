@@ -29,6 +29,8 @@ Usage:
     python3 blackboard.py notify   --channel C --kind K --text X
     python3 blackboard.py handoff  --to SKILL --from-key K [--note X]
     python3 blackboard.py handoffs [--skill S]          (peek waiting signals)
+    python3 blackboard.py chain-health                  (per-hop waiting/consumed)
+    python3 blackboard.py doctor [--json]               (one-glance diagnostic)
     python3 blackboard.py tag/untag --tag T
     python3 blackboard.py contribute --who W --what X
     python3 blackboard.py hot --key K | --clear
@@ -106,6 +108,59 @@ def cmd_handoffs(args) -> int:
         _emit({"ok": True, "skill": args.skill, "handoffs": pending})
     else:
         _emit({"ok": True, "waiting": bb.pending_handoff_channels(root)})
+    return 0
+
+
+def cmd_chain_health(args) -> int:
+    _emit(bb.chain_health(_root(args)))
+    return 0
+
+
+def _panel(d: dict) -> str:
+    """Human one-glance panel from the doctor report."""
+    c = d["checks"]
+    lines = [f"blackboard doctor — {d['root']}",
+             f"verdict: {d['verdict']}"
+             + (f" ({len(d['warnings'])} warning(s))" if d["warnings"] else ""), ""]
+    g = c["gate"]
+    lines.append(f"gate      {'on' if g['on'] else 'OFF'}"
+                 + ("" if g["known"] else " (config unreadable — assuming on)"))
+    s = c["snapshot"]
+    lines.append(f"snapshot  v{s.get('version')}, {s.get('age')} old")
+    e = c["events"]
+    lines.append(f"events    {e['lines']} line(s)"
+                 + (f", {e['garbage']} GARBAGE" if e["garbage"] else ""))
+    u = c["caps"]["usage"]
+    lines.append("state     " + " | ".join(
+        f"{k} {v['used']}/{v['cap']}" for k, v in u.items()))
+    f_ = c["focus"]
+    lines.append(f"focus     hot: {f_['hot'] or '(none)'}"
+                 f" | canvas: {f_['hot_canvas'] or '(none)'}")
+    lines.append(f"drift     {'in sync' if c['drift']['in_sync'] else 'DRIFTED'}")
+    r = c["residue"]
+    lines.append(f"residue   {len(r['tmp_files'])} .tmp")
+    ch = c["chain"]
+    hops = ", ".join(f"{h['from']}\u2192{h['to']}" for h in ch["waiting_hops"]) or "none"
+    lines.append(f"chain     {ch['total_waiting']} waiting ({hops})")
+    w = c["watch"]["paths"]
+    if w:
+        lines.append("watch     " + "; ".join(
+            f"{x['canvas']}: {x['path']}" + ("" if x["exists"] else " (missing)")
+            for x in w))
+    if d["warnings"]:
+        lines.append("")
+        lines.append("warnings:")
+        for i, warn in enumerate(d["warnings"], 1):
+            lines.append(f"  {i}. {warn}")
+    return "\n".join(lines)
+
+
+def cmd_doctor(args) -> int:
+    report = bb.doctor(_root(args))
+    if args.json:
+        _emit(report)
+    else:
+        print(_panel(report))
     return 0
 
 
@@ -289,6 +344,15 @@ def main() -> int:
     hos.add_argument("--skill", default=None, help="filter: signals waiting for this skill")
     common(hos)
     hos.set_defaults(fn=cmd_handoffs)
+
+    ch = sub.add_parser("chain-health", help="Per-hop hand-off diagnostics for the delivery relay")
+    common(ch)
+    ch.set_defaults(fn=cmd_chain_health)
+
+    dr = sub.add_parser("doctor", help="One-glance diagnostic of the whole board")
+    dr.add_argument("--json", action="store_true", help="Emit the raw JSON report")
+    common(dr)
+    dr.set_defaults(fn=cmd_doctor)
 
     cv = sub.add_parser("canvas", help="Dynamic canvas surface")
     csub = cv.add_subparsers(dest="action", required=True)

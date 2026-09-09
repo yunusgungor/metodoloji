@@ -132,6 +132,8 @@ HALT — wait for user input before proceeding.
 
 When C is selected, the workflow is complete and the epics.md is ready for development.
 
+**Chain hand-off.** Signal the canonical next consumer before exiting: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key epics.<project-slug> --value "epics final — <N> epics, <M> stories" --type state --project-root {project-root}`, then `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-create-story --from-key epics.<project-slug> --note "epics.md final — start with Epic 1 Story 1" --project-root {project-root}` (the signal waits in `handoff.bmad-create-story` until a story run consumes it — that consumption completes the handshake).
+
 Epics and Stories complete. Invoke the `bmad-help` skill.
 
 Upon Completion of task output: offer to answer any questions about the Epics and Stories.

@@ -91,13 +91,23 @@ their channels deliver-once; `consume --channel C` does the same by hand;
 `handoff --to <skill> --from-key <run-key> --note "..."` routes an alert into
 the reserved `handoff.<skill>` channel (kind `handoff`). The signal waits
 until the downstream skill consumes it — that consumption *is* the
-handshake. Until then, session_start announces `hand-off waiting: <skill>
-(n)` (announce-only, never consumes; `bmad-help` is hidden from the
-announcement — it routes, it does not produce). Chain example: a PRD run
+handshake. Until then, session_start carries a proactive warning
+(`PROACTIVE — hand-off waiting: <skill> (n): N unclaimed signal(s) from
+completed upstream runs; a run finished its work but nobody picked up the
+baton ...`) naming the diagnose path (`chain-health`) and the claim path
+(`handoffs --skill <self>`, then consume its handoff channel).
+Announce-only, never consumes; `bmad-help` is hidden from the warning —
+it routes, it does not produce). The stop hook carries the same warning
+into deny reasons (`... do not close the loop empty-handed ...`) when a
+run tries to close with unclaimed hand-offs on the board. Chain example: a PRD run
 closes with `handoff --to bmad-ux`; the UX run opens, reads
 `handoffs --skill bmad-ux`, picks up the named artifact first, consumes
 `handoff.bmad-ux`, and closes with `handoff --to bmad-architecture` — the
-prd → ux → architecture relay.
+delivery relay in full: prd → ux → architecture → spec →
+create-epics-and-stories → create-story → dev-story (each sender is
+optional — a signal not sent just leaves that hop silent, never broken;
+dev-story terminates the chain: it consumes and builds, it does not signal
+onward).
 
 ## Engine integration points (the octopus arms)
 
@@ -109,8 +119,44 @@ prd → ux → architecture relay.
   `last_tool.<tool>` key (never the content body), then pushes the touch into
   every watching canvas (`watch_touch`) — the real-time plane.
 - **stop** — deny reasons carry hot-key + focused-canvas notices and pending
-  `stop`-channel alerts, consumed deliver-once.
+  `stop`-channel alerts, consumed deliver-once; unclaimed hand-offs surface
+  as the same proactive warning (announce-only — a nudge, never a block on
+  its own; the addressed skill still completes the handshake).
 - Engine writes are all guarded by the `[hooks] blackboard` switch.
+
+## Chain health (`chain-health`)
+
+Per-hop diagnostics for the delivery relay, sender-attributed from the event
+log (signal text is `<from-key>: <note>`, so a run-key namespace prefix —
+`prd.`, `ux.`, `architecture.`, `spec.`, `epics.`, `story.` — names the
+sender):
+
+    python3 bmad/scripts/blackboard.py chain-health
+
+Each of the 6 hops reports `waiting` (posted, downstream has not consumed —
+the handshake is open), `consumed` (handshake completed) and a `status`:
+`idle` (no signal ever sent), `clear` (all sent signals consumed), `waiting`
+(at least one open). Signals addressed to skills outside the chain surface
+in `extra` — the protocol is extensible, the diagnostic follows.
+`total_waiting` is the one number to watch: a non-zero value means a run
+finished its work but its hand-off was never picked up.
+
+## Doctor (`doctor`)
+
+One-glance diagnostic of the whole board:
+
+    python3 bmad/scripts/blackboard.py doctor            # human panel
+    python3 bmad/scripts/blackboard.py doctor --json     # raw report
+
+Checks: config gate (on/off), snapshot version + age, event-log line and
+garbage counts, per-plane cap usage (warns at ≥90% — oldest will expire
+soon), focus (hot key / hot canvas), snapshot↔event-log drift (`last_tool.*`
+tool-stamped keys are excluded — the audit hook folds them in by design),
+leftover `.tmp` files (crash residue, safe to delete), chain health
+(`total_waiting` with the waiting hops named), and canvas watch paths
+(existence noted). Verdict: `HEALTHY` iff no warnings, else `NEEDS
+ATTENTION` with a numbered list and remediation hints (rebuild on drift,
+delete tmp, claim hand-offs via chain-health).
 
 ## Config
 
@@ -164,6 +210,12 @@ eval-runner) run on three planes:
   next run should pick up first; at activation, check
   `handoffs --skill <self>` and consume the channel only after binding the
   run, so an unrouted signal keeps waiting.
+- **Close-out check (all producing skills)** — after clearing focus and
+  lists but before posting the run's own hand-off, run
+  `doctor --json` and surface `NEEDS ATTENTION` warnings to the user
+  (headless: into the status output) — residual hot keys, expiring planes,
+  tmp residue, or *earlier* runs' unclaimed signals get named before the
+  session ends instead of silently rotting on the board.
 - **Canvas (where a live picture helps)** — surface maps (ux), decision maps
   (architecture), idea boards (brainstorming), round arcs (eval-runner);
   `watch` paths feed touches automatically; leave the canvas standing when

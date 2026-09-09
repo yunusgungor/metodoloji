@@ -278,6 +278,19 @@ def _board_dirty_notice(root: str, reason: str) -> str:
         if alerts:
             msgs = "; ".join(a["text"] for a in alerts[-3:])
             bits.append(f"{len(alerts)} pending alert(s): {msgs}.")
+        try:
+            waiting = bb.pending_handoff_channels(root)
+        except Exception:
+            waiting = {}
+        waiting.pop("bmad-help", None)  # help skill has its own routing
+        if waiting:
+            w = ", ".join(f"{s} ({n})" for s, n in sorted(waiting.items()))
+            total = sum(waiting.values())
+            bits.append(f"PROACTIVE — hand-off waiting: {w}: {total} unclaimed "
+                        "signal(s) left by completed upstream runs; do not close "
+                        "the loop empty-handed (diagnose: blackboard.py "
+                        "chain-health; claim: handoffs --skill <downstream>, "
+                        "then consume its handoff channel).")  # announce-only
         if bits:
             bb.consume_alerts(root, "stop")  # deliver-once
             return reason + " " + " ".join(bits)

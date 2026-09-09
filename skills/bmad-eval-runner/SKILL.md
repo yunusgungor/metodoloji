@@ -99,7 +99,7 @@ When a run fails or comes back weak and the user wants the skill improved from t
 
 Every run writes a dated run folder under the output dir, and those artifacts are permanent. Each case folder holds its prompt, transcript, the `cwd/` with any files the skill wrote, `timing.json`, and `grading.json` when quality mode ran. Never delete, overwrite, or rotate a run folder; disk usage is the user's call. The run's decision log records the decisions and deltas so a resumed or audited run reads back cleanly.
 
-Tell the user where the run folder is when you finish.
+Tell the user where the run folder is when you finish. Close-out check before exiting: `python3 {metodoloji-root}/bmad/scripts/blackboard.py doctor --json --project-root {project-root}` — on `NEEDS ATTENTION`, surface the warnings to the user, naming any unclaimed hand-off signals from earlier runs explicitly; clear the run's own board mirror (`eval.<skill-name>` key, `.failing` list) so it never reads as residue.
 
 ## Outcomes
 

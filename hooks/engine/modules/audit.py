@@ -158,7 +158,13 @@ def session_start(json_in: dict) -> dict:
                 waiting.pop("bmad-help", None)  # help skill has its own routing
                 if waiting:
                     w = ", ".join(f"{s} ({n})" for s, n in sorted(waiting.items()))
-                    parts.append(f"hand-off waiting: {w}")
+                    total = sum(waiting.values())
+                    parts.append(
+                        f"PROACTIVE — hand-off waiting: {w}: {total} unclaimed "
+                        "signal(s) from completed upstream runs; a run finished "
+                        "its work but nobody picked up the baton (diagnose: "
+                        "blackboard.py chain-health; claim: handoffs --skill "
+                        "<this skill>, then consume its handoff channel)")
             if parts:
                 ctx += " Blackboard: " + "; ".join(parts) + "."
     except Exception:

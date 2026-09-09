@@ -89,6 +89,10 @@ Execute each entry in `{workflow.activation_steps_append}` in order.
 
 Activation is complete. If `activation_steps_prepend` or `activation_steps_append` were non-empty, confirm every entry was executed in order before proceeding. Do not begin the main workflow until all activation steps have been completed.
 
+### Chain Handshake
+
+Before `## Execution`, check the chain for signals addressed to you: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoffs --skill bmad-create-epics-and-stories --project-root {project-root}` — the canonical sender is a `bmad-spec` run (a PRD or UX run may also hand off directly). Read the named contract first — when it is a spec, that means `SPEC.md` plus every file in its `companions:` frontmatter — alongside the PRD and architecture inputs step-01 validates. Then complete the handshake: `python3 {metodoloji-root}/bmad/scripts/blackboard.py consume --channel handoff.bmad-create-epics-and-stories --project-root {project-root}` (consume only after `{planning_artifacts}` is resolved and the inputs located — an unconsumed signal keeps the hand-off waiting, which is correct when the user routes elsewhere).
+
 ## Execution
 
 Read fully and follow: `./steps/step-01-validate-prerequisites.md` to begin the workflow.

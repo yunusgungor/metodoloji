@@ -67,6 +67,10 @@ Execute each entry in `{workflow.activation_steps_append}` in order.
 
 Activation is complete. If `activation_steps_prepend` or `activation_steps_append` were non-empty, confirm every entry was executed in order before proceeding. Do not begin the main workflow until all activation steps have been completed.
 
+### Chain Handshake
+
+Before `## Execution`, check the chain for signals addressed to you: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoffs --skill bmad-dev-story --project-root {project-root}` — the canonical sender is a `bmad-create-story` run (the epics or spec workflow may also hand off directly). Read the named story first — the signal's note names the story key or file to pull from the sprint queue — then complete the handshake: `python3 {metodoloji-root}/bmad/scripts/blackboard.py consume --channel handoff.bmad-dev-story --project-root {project-root}` (consume only after the story file is located and `sprint_status` read — an unconsumed signal keeps the hand-off waiting, which is correct when the user picks a different story).
+
 ## Paths
 
 - `story_file` = `` (explicit story path; auto-discovered if empty)
