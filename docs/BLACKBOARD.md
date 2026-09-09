@@ -1,8 +1,10 @@
-# Blackboard — Dynamic Working Context
+# Blackboard — Dynamic Working Context Network
 
-The blackboard is the replacement for the removed code-docs and memlog systems:
-a single event-sourced working context per project, read by hooks and written
-by both hooks and skills.
+The blackboard is the project's connective tissue — a network, not a notebook.
+Every producer (skills) and consumer (hooks, CLI) pins into it: text keys,
+ordered lists, live canvases, graph links, subscriptions and routed alerts.
+One event-sourced store per project, read by hooks and written by both hooks
+and skills.
 
 ## Why
 
@@ -10,33 +12,93 @@ code-docs auto-generated garbage docs (zero recall, constant token burn).
 memlog carried intent but had a blind engine fallback, a drifted copy, and a
 self-contradicting lifecycle. The blackboard keeps what worked (durable
 cross-session context, hook-visible state) and drops what failed (auto doc
-generation, deep recursive scans, split-brain storage).
+generation, deep recursive scans, split-brain storage). On top of that it adds
+what the removed systems never had: structure (lists), live surfaces
+(canvases), and a graph (links + alert routing) so context flows between
+producers and consumers instead of sitting in one flat file.
 
 ## Core invariants
 
 1. **One file.** All state lives in `<project-root>/.metodoloji/blackboard.json`.
 2. **Event-sourced.** Every mutation is appended to
    `.metodoloji/logs/blackboard-events.log` as one JSON line. The snapshot is a
-   cache — deleting it is always safe (rebuilt from the event log).
+   cache — deleting it is always safe (rebuilt from the event log). Consumption
+   (`consume`) is evented too, so delivered alerts never resurrect.
 3. **Atomic + locked.** Reads and writes take an exclusive `fcntl`/`msvcrt`
-   lock (`blackboard.json.lock`). A crashed writer can never truncate state.
-4. **Bounded.** Keys, tags, contributions, and events have caps (default:
-   128 keys, 32 tags, 64 contributions, 10k events). Oldest items expire.
+   lock (`blackboard.json.lock`), serialized per-process by a thread mutex.
+   A crashed writer can never truncate state. Mutations never nest: a mutator
+   must not call another `_mutate` (deadlock).
+4. **Bounded.** Everything has caps; oldest items expire first:
+   128 keys, 32 tags, 64 contributions, 10k events, 100 items per list,
+   8 canvases, 256 cells per canvas (32 auto cells), 4 watch paths per canvas,
+   128 links, 16 subscriptions, 32 alerts.
 5. **Fail-open.** Every consumer (hooks, CLI) degrades to silence when the
    board is missing, corrupt, or locked. The blackboard never blocks work.
-6. **Hotkey wins.** Only one key can be `hot` at a time. Write events on a hot
-   key emit a `dirty` notice so every reader knows the context may have moved.
+6. **Focus is single.** One `hot` key and one `hot_canvas` at a time; a
+   dangling focus (expired target) is never surfaced.
 7. **Bounded-context contract.** `read --context` emits a compact JSON summary
-   (hot key, tags, watchers, contributions) designed to be injected by hooks,
-   not dumped wholesale.
+   designed to be injected by hooks — never a whole-board dump.
+8. **No auto content generation** — except the explicit real-time feed: a
+   canvas that *declares* `watch` paths receives audited tool touches as
+   `auto` cells. Nothing else is ever written without a writer.
 
-## On the board
+## The five content planes
 
-- `hot` — the key currently in focus (e.g. `prd.acme-crm`), at most one.
-- `keys` — namespaced values: `prd.acme-crm`, `ux.acme-crm`, `story.S-003`...
-- `tags` — project-level labels for lightweight retrieval.
-- `contributions` — who did what, most recent first (bounded).
-- `watchers` — which hooks subscribe (populated by the engine).
+### 1. Text keys (`write`)
+Namespaced single values: `prd.acme-crm`, `ux.acme-crm`, `story.S-003`.
+Type tag free-form (`note|decision|state|...`). One key may be `hot`.
+
+### 2. Lists (`list-add`, `list-remove`)
+Ordered items under one key (append-only, bounded to 100). Remove by exact
+item text or index (0-based, oldest first). The hot key may be a list —
+context injection then previews `list[N]`.
+
+### 3. Canvases — dynamic surfaces (`canvas *`)
+A canvas is a named set of cells, optionally grid-shaped (`--grid WxH`), that
+any project actor mutates in real time:
+
+- `canvas create --name map --grid 8x8 [--focus]` — grid or free-form.
+- `canvas set/remove/move/resize/clear` — cell ops (content ≤ 500 chars,
+  free-form `kind` such as `note|decision|risk|auto`, optional `x/y`
+  coordinates on grid canvases).
+- `canvas focus` — one canvas is the board's `hot_canvas` (surfaced by the
+  engine at session start and stop).
+- `canvas watch --path docs/` — **real-time feed**: every audited tool touch
+  under the path lands as an `auto` cell (`watch_touch` in the PostToolUse
+  hook), so a canvas can mirror the project's living filesystem. Un-watch
+  with `--remove`.
+
+Grid coordinates are advisory layout hints; free canvases (`grid = null`)
+carry cells keyed by id only. Producers update cells mid-run; consumers read
+the whole surface with `canvas-read` or just the focused summary in context.
+
+### 4. Graph links (`link`, `unlink`, `neighbors`)
+Directed edges between any two nodes (key names, canvas names) with a
+relation (`informs`, `blocks`, `related`...). `neighbors` gives the one-hop
+neighborhood in both directions, optionally filtered by relation. Links are
+the static half of the wiring; subscriptions are the dynamic half.
+
+### 5. Subscriptions & alerts (`subscribe`, `alerts`, `consume`, `notify`)
+A subscription binds a watcher to a glob pattern (`prd.*`, `canvas:*`) and a
+channel (`session` → injected at session start, `stop` → surfaced at stop, or
+any custom channel). Matching mutations — key writes, list changes, canvas
+mutations, live touches, link events — are routed as alerts into every
+matching channel (deduplicated per channel+kind+text). Engine hooks consume
+their channels deliver-once; `consume --channel C` does the same by hand;
+`notify` posts a manual alert.
+
+## Engine integration points (the octopus arms)
+
+- **session_start** — stamps `watchers.session_start`, consumes the `session`
+  channel (deliver-once) and injects: hot key with preview, live focused
+  canvas (cells/auto counts), tags, last contribution, hot-key neighbors, and
+  up to 3 routed alerts.
+- **audit** (PostToolUse) — mirrors the last tool target into a bounded
+  `last_tool.<tool>` key (never the content body), then pushes the touch into
+  every watching canvas (`watch_touch`) — the real-time plane.
+- **stop** — deny reasons carry hot-key + focused-canvas notices and pending
+  `stop`-channel alerts, consumed deliver-once.
+- Engine writes are all guarded by the `[hooks] blackboard` switch.
 
 ## Config
 
@@ -48,21 +110,34 @@ no-op; the CLI still works (fail-open).
 
 `bmad/scripts/blackboard.py`:
 
-    read   [--key K] [--context] [--project-root R]
-    write  --key K --value V [--type T] [--hot] [--project-root R]
-    tag    --tag T | --clear-tag T [--project-root R]
-    contribute --who W --what X [--project-root R]
-    hot    --key K | --clear [--project-root R]
-    stats  [--project-root R]
+    read    [--key K] [--context] [--project-root R]
+    write   --key K --value V [--type T] [--hot]
+    list-add    --key K --item X
+    list-remove --key K (--item X | --index N)
+    canvas create|set|remove|move|resize|clear|focus|watch  (see --help)
+    canvas-read --name N
+    link      --a A --b B [--relation R]
+    unlink    --a A --b B [--relation R]
+    neighbors --node N [--relation R]
+    subscribe   --watcher W --pattern P [--channel C]
+    unsubscribe --watcher W --pattern P
+    alerts   [--channel C]        (read-only peek)
+    consume  --channel C          (take and clear)
+    notify   --channel C --kind K --text X
+    tag/untag --tag T
+    contribute --who W --what X
+    hot --key K | --clear
+    stats
 
-Writes print a one-line JSON ack `{"ok": true, ...}`; `read --context` prints
-compact JSON. The command is idempotent, atomic, and never exits non-zero for
-missing state (exit 0, empty result).
+All commands accept `--project-root R` (default: cwd). Writes print a one-line
+JSON ack `{"ok": true, ...}`. Fail-open: missing/corrupt state yields an empty
+result and exit 0.
 
-## Engine integration points
+## Skill contract
 
-- **session_start** — injects the compact context into `additionalContext`
-  and stamps `watchers.session_start`.
-- **audit** (PostToolUse) — appends a bounded `tool` event per audited call.
-- **stop** — deny reasons carry `dirty` hot-key notices.
-- Engine writes are all guarded by the `[hooks] blackboard` switch.
+Producing skills (PRD, UX, brief, architecture, brainstorming, forge,
+eval-runner) focus their run at activation with `write --hot` and clear focus
+at close with `hot --clear`. Skills that maintain a live picture may create a
+canvas, keep cells current, and register `watch` paths so the engine feeds
+touches automatically. That is the entire contract — no lifecycle status, no
+log schema, no resume machinery beyond the artifacts themselves.

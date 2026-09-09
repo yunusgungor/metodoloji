@@ -124,16 +124,33 @@ def session_start(json_in: dict) -> dict:
         if blackboard_enabled():
             from . import blackboard as bb
             bb.record_watcher(root, "session_start")
+            # Proactive alert delivery: take this session's routed alerts now.
+            delivered = bb.consume_alerts(root, "session")
             board_ctx = bb.compact_context(root)
-            if board_ctx.get("hot") or board_ctx.get("tags") or board_ctx.get("contributions"):
-                parts = []
-                if board_ctx.get("hot"):
-                    parts.append(f"hot: {board_ctx['hot']}")
-                if board_ctx.get("tags"):
-                    parts.append("tags: " + ", ".join(board_ctx["tags"]))
-                if board_ctx.get("contributions"):
-                    last = board_ctx["contributions"][-1]
-                    parts.append(f"last: {last['who']} — {last['what']}")
+            parts = []
+            if board_ctx.get("hot"):
+                hm = board_ctx.get("hot_meta") or {}
+                preview = hm.get("preview")
+                parts.append(f"hot: {board_ctx['hot']}"
+                             + (f" = {preview}" if preview else ""))
+            if board_ctx.get("hot_canvas"):
+                hc = board_ctx["hot_canvas"]
+                parts.append(f"canvas '{hc['name']}' live ({hc['cells']} cells"
+                             + (f", {hc['auto']} auto" if hc.get("auto") else "")
+                             + (f", latest: {hc['latest']}" if hc.get("latest") else "")
+                             + ")")
+            if board_ctx.get("tags"):
+                parts.append("tags: " + ", ".join(board_ctx["tags"]))
+            if board_ctx.get("contributions"):
+                last = board_ctx["contributions"][-1]
+                parts.append(f"last: {last['who']} — {last['what']}")
+            if board_ctx.get("neighbors"):
+                parts.append("neighbors: " + ", ".join(board_ctx["neighbors"]))
+            if delivered:
+                msgs = "; ".join(f"[{a['kind']}] {a['text']}" for a in delivered[-3:])
+                parts.append(f"alerts: {msgs}" +
+                             (f" (+{len(delivered) - 3} more)" if len(delivered) > 3 else ""))
+            if parts:
                 ctx += " Blackboard: " + "; ".join(parts) + "."
     except Exception:
         pass
@@ -191,6 +208,8 @@ def audit(json_in: dict) -> dict:
             from . import blackboard as bb
             target = tool_input.get("path") or tool_input.get("file_path") or tool_name
             bb._mutate(root, lambda board: _stamp_tool_event(board, tool_name, target))
+            # Real-time canvas push: watched canvases record the touch.
+            bb.watch_touch(root, tool_name, str(target))
     except Exception:
         pass
 

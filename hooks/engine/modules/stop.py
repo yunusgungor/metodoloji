@@ -266,9 +266,21 @@ def _board_dirty_notice(root: str, reason: str) -> str:
             return reason
         from . import blackboard as bb
         ctx = bb.compact_context(root)
+        bits = []
         if ctx.get("hot"):
-            return (reason + f" Blackboard hot key '{ctx['hot']}' is still active — "
-                    "clear it (blackboard.py hot --clear) or finalize its artifact.")
+            bits.append(f"Blackboard hot key '{ctx['hot']}' is still active — "
+                        "clear it (blackboard.py hot --clear) or finalize its artifact.")
+        if ctx.get("hot_canvas"):
+            hc = ctx["hot_canvas"]
+            bits.append(f"Canvas '{hc['name']}' is still focused ({hc['cells']} cells) — "
+                        "finalize or clear focus (blackboard.py canvas focus --clear).")
+        alerts = bb.pending_alerts(root, "stop")
+        if alerts:
+            msgs = "; ".join(a["text"] for a in alerts[-3:])
+            bits.append(f"{len(alerts)} pending alert(s): {msgs}.")
+        if bits:
+            bb.consume_alerts(root, "stop")  # deliver-once
+            return reason + " " + " ".join(bits)
     except Exception:
         pass
     return reason

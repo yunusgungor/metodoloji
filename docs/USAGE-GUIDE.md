@@ -765,17 +765,21 @@ for context injection and skills write to focus the session. Full design:
 
 ### 7.1. Concepts
 
-| Piece | Meaning |
+| Plane | Meaning |
 |-------|---------|
-| `hot` | The one key currently in focus (e.g. `prd.acme-crm`) — surfaced at session start and on stop |
-| `keys` | Namespaced values (`prd.x`, `ux.y`, `story.S-003`, `eval.skill`) — bounded to 128, oldest expire |
-| `tags` | Project-level labels for lightweight retrieval |
-| `contributions` | Who did what, most recent first (bounded to 64) |
-| `watchers` | Which hook surfaces consume the board (stamped by the engine) |
+| `hot` / `hot_canvas` | The one key and one canvas currently in focus — surfaced at session start and on stop |
+| `keys` | Namespaced text values (`prd.x`, `ux.y`, `story.S-003`) — bounded to 128, oldest expire |
+| lists | Ordered items under one key (`list-add`/`list-remove`) — 100 items max, oldest expire |
+| canvases | Dynamic surfaces (grid or free) whose cells any actor mutates in real time; a canvas may `watch` filesystem paths so audited tool touches land as auto cells |
+| `links` | Directed graph edges between nodes (keys/canvases) with relations |
+| subscriptions | Glob patterns (`prd.*`, `canvas:*`) bound to channels; matching mutations route alerts |
+| alerts | Bounded, channel-addressed notifications — `session` channel injected at session start, `stop` channel surfaced at stop |
+| `tags` / `contributions` / `watchers` | Project labels, who-did-what log, and which hook surfaces consume the board |
 
 Invariants: atomic writes under an exclusive lock; event-sourced (the snapshot
-is a rebuildable cache); bounded (nothing grows unbounded); fail-open (a
-missing or corrupt board never blocks work); one `hot` key at a time.
+is a rebuildable cache; alert consumption is evented too); bounded (nothing
+grows unbounded); fail-open (a missing or corrupt board never blocks work);
+one `hot` key and one `hot_canvas` at a time.
 
 ### 7.2. CLI (`bmad/scripts/blackboard.py`)
 
@@ -785,6 +789,27 @@ python3 bmad/scripts/blackboard.py write --key prd.acme --value "PRD v1: discove
 
 # Milestone update (same key, value refreshed):
 python3 bmad/scripts/blackboard.py write --key prd.acme --value "PRD v1: finalize" --type state
+
+# Ordered work items (the list plane):
+python3 bmad/scripts/blackboard.py list-add --key prd.acme.pending --item "confirm NFR-2"
+python3 bmad/scripts/blackboard.py list-remove --key prd.acme.pending --item "confirm NFR-2"
+
+# A live canvas mirroring the docs tree (real-time feed via watch):
+python3 bmad/scripts/blackboard.py canvas create --name doc-map --grid 8x8 --focus
+python3 bmad/scripts/blackboard.py canvas set --name doc-map --cell A1 --content "nav hub" --kind decision
+python3 bmad/scripts/blackboard.py canvas watch --name doc-map --path docs/
+python3 bmad/scripts/blackboard.py canvas-read --name doc-map
+python3 bmad/scripts/blackboard.py canvas focus --clear
+
+# Graph wiring and one-hop neighborhood:
+python3 bmad/scripts/blackboard.py link --a prd.acme --b arch.acme --relation informs
+python3 bmad/scripts/blackboard.py neighbors --node prd.acme
+
+# Proactive routing: alert me when PRD keys move:
+python3 bmad/scripts/blackboard.py subscribe --watcher session --pattern "prd.*" --channel session
+python3 bmad/scripts/blackboard.py alerts            # peek
+python3 bmad/scripts/blackboard.py consume --channel stop
+python3 bmad/scripts/blackboard.py notify --channel stop --kind risk --text "NFR unconfirmed"
 
 # Tags, contributions, statistics:
 python3 bmad/scripts/blackboard.py tag --tag crm
@@ -800,12 +825,15 @@ python3 bmad/scripts/blackboard.py hot --clear
 
 ### 7.3. Engine integration
 
-- **SessionStart** — injects the compact context (hot key, tags, last
-  contribution) into `additionalContext`; stamps the `session_start` watcher.
+- **SessionStart** — injects the compact context (hot key with preview, live
+  focused canvas, tags, last contribution, neighbors) into `additionalContext`
+  and delivers pending `session`-channel alerts; stamps the `session_start`
+  watcher.
 - **PostToolUse audit** — mirrors the last tool target into a bounded
-  `last_tool.<tool>` key (never the content body).
-- **Stop** — deny reasons carry a hot-key notice ("still active — clear it or
-  finalize its artifact") so a focused run is wrapped up, not forgotten.
+  `last_tool.<tool>` key (never the content body) and pushes the touch into
+  every canvas watching that path — the real-time plane.
+- **Stop** — deny reasons carry hot-key + focused-canvas notices and pending
+  `stop`-channel alerts (deliver-once).
 
 All engine integration is gated by `custom/config.toml [hooks] blackboard =
 "on" | "off"` (default `on`, read live per call). `off` disables every engine
@@ -815,8 +843,10 @@ write/read; the CLI keeps working for skills.
 
 Producing skills (PRD, UX, brief, architecture, brainstorming, forge,
 eval-runner) focus their run at activation with `write --hot` and clear focus
-at close with `hot --clear`. That is the entire contract — no lifecycle
-status, no log schema, no resume machinery beyond the artifacts themselves.
+at close with `hot --clear`. Skills maintaining a live picture may create a
+canvas, keep cells current, and register `watch` paths so the engine feeds
+touches automatically. That is the entire contract — no lifecycle status, no
+log schema, no resume machinery beyond the artifacts themselves.
 
 ---
 
@@ -1484,7 +1514,7 @@ git pull
 | **Mode C** | Design mode |
 | **Mode D** | Contextual research mode |
 | **SkillOpt** | RL-on-text training used to tune SKILL.md documents (§14) |
-| **Blackboard** | Event-sourced working context (`.metodoloji/blackboard.json`) — hot key, tags, contributions; see §7 |
+| **Blackboard** | Event-sourced working-context network (`.metodoloji/blackboard.json`) — keys, lists, canvases, links, subscriptions, alerts; see §7 |
 
 ---
 
