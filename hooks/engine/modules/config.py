@@ -176,7 +176,7 @@ EXEC_CONFIG_NAME = re.compile(
 )
 
 # Free zones — project-relative prefixes that never need experiment approval.
-# NOTE: hooks/, scripts/, skills/ and bmad_benchmarks/ are deliberately NOT here.
+# NOTE: hooks/, scripts/ and skills/ are deliberately NOT here.
 # Those are plugin source trees and stay protected by the experiment gate in any
 # ordinary project; see PLUGIN_FREE_PREFIXES for the self-modification exemption.
 FREE_PREFIXES = (
@@ -187,7 +187,7 @@ FREE_PREFIXES = (
 # Plugin source trees that are free ONLY when the plugin root resolves to the
 # methodology root (i.e. this repository running as its own project). Resolved
 # per-call in utils.is_free(); under test it is monkeypatched via config._METHODOLOGY_ROOT.
-PLUGIN_FREE_PREFIXES = ("hooks/", "scripts/", "skills/", "bmad_benchmarks/", "custom/")
+PLUGIN_FREE_PREFIXES = ("hooks/", "scripts/", "skills/", "custom/")
 
 INFRA_FILES = {"scripts/check-methodology.sh", "skills/bmad-research-experiment/scripts/run_experiment.py"}
 

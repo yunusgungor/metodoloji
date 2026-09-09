@@ -102,7 +102,6 @@ python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment
 | -------------------------------------------- | ---------------------------------------------------- |
 | [**Usage Guide**](docs/USAGE-GUIDE.md)       | Records, gates, security model, troubleshooting, FAQ |
 | [Claude Code guide](docs/CLAUDE.md)          | Claude-specific setup and behaviour                  |
-| [Training lessons](docs/TRAINING-LESSONS.md) | Lessons learned from running the methodology         |
 | [Self-check coverage](docs/SELF-CHECK.md)    | What `check-plugin.sh` verifies (§0–§6b) and the `docs/images` role |
 
 

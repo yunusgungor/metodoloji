@@ -39,7 +39,7 @@ def test_plugin_trees_not_in_plain_free_prefixes():
     # Plugin source trees must NOT be unconditionally free: in ordinary projects
     # they stay behind the experiment gate. utils.is_free() releases them only
     # when the project root IS the methodology root (self-modification).
-    for tree in ("hooks/", "scripts/", "skills/", "bmad_benchmarks/"):
+    for tree in ("hooks/", "scripts/", "skills/"):
         assert tree not in FREE_PREFIXES, f"{tree} must be a conditional plugin-free prefix"
         assert tree in PLUGIN_FREE_PREFIXES
 

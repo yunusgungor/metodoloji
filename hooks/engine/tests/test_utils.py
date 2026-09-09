@@ -65,7 +65,7 @@ def test_is_free_not_free():
 
 
 def test_plugin_trees_protected_in_ordinary_project(monkeypatch, tmp_path):
-    """hooks/, scripts/, skills/, bmad_benchmarks/ are plugin source trees.
+    """hooks/, scripts/, skills/ are plugin source trees.
     When the project root is NOT the methodology root, they are NOT free —
     the experiment gate applies."""
     from modules import config, utils
@@ -74,7 +74,6 @@ def test_plugin_trees_protected_in_ordinary_project(monkeypatch, tmp_path):
     assert not is_free("scripts/tool.py")
     assert not is_free("hooks/engine/main.py")
     assert not is_free("skills/bmad-dev-story/SKILL.md")
-    assert not is_free("bmad_benchmarks/envs/x/adapter.py")
 
 
 def test_plugin_trees_free_when_project_is_methodology_root(monkeypatch, tmp_path):
@@ -86,7 +85,6 @@ def test_plugin_trees_free_when_project_is_methodology_root(monkeypatch, tmp_pat
     assert is_free("scripts/tool.py")
     assert is_free("hooks/engine/main.py")
     assert is_free("skills/bmad-dev-story/SKILL.md")
-    assert is_free("bmad_benchmarks/envs/x/adapter.py")
     assert is_free("custom/bmad-dev-story.toml")
 
 

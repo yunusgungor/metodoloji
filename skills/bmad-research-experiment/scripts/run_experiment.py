@@ -204,7 +204,7 @@ DECISION_RE = re.compile(r"^(APPROVED|REJECTED|REVISED|DEFERRED)")
 # A draft record leaves its Decision/Gate Evidence/Next Step as a placeholder
 # (gate hasn't written yet). Two placeholder forms exist in the codebase: the
 # template's '<gate writes: ...>' angle bracket and the em-dash '— (gate writes)'
-# used by the record writers (bridge_real_usage.py treats both as undecided).
+# used by the record writers (both count as undecided).
 # A placeholder must NOT count as a decision — otherwise a draft copy would be
 # rejected as "already decided" or flagged FORGED.
 def _is_placeholder(value: str) -> bool:

@@ -23,10 +23,9 @@
 11. [Free Zones and Restricted Areas](#11-free-zones-and-restricted-areas)
 12. [Security (Gate Key and HMAC)](#12-security)
 13. [Audit and Health Check](#13-audit-and-health-check)
-14. [SkillOpt Training and Self-Evolution](#14-skillopt-training-and-self-evolution)
-15. [Troubleshooting](#15-troubleshooting)
-16. [Frequently Asked Questions](#16-frequently-asked-questions)
-17. [Glossary](#17-glossary)
+14. [Troubleshooting](#14-troubleshooting)
+15. [Frequently Asked Questions](#15-frequently-asked-questions)
+16. [Glossary](#16-glossary)
 
 ---
 
@@ -47,7 +46,7 @@ Core components:
 | `bmad/` | Module data (bmm, cis, gds, wds, tea, core, bmb, bmad-loop, `_config`) + `bmad/scripts/` (canonical `resolve_customization.py`, `resolve_config.py`) |
 | `templates/` | IR/SP/QR/PR/S/E + README/tech-debt record templates |
 | `commands/` | `/metodoloji:init`, `/metodoloji:gate-setup`, `/metodoloji:verify`, `/metodoloji:audit` |
-| `bmad_benchmarks/`, `configs/`, `scripts/train_bmad.py` | SkillOpt training/skill-tuning infrastructure (see §14) |
+| `scripts/bench/` | Benchmark probes (guard block-rate, scorer agreement, coverage) |
 
 ### Core Principle
 
@@ -1168,8 +1167,8 @@ The following paths are automatically released by the guard:
 | `explore_*` | Exploration files |
 | Infrastructure files | `scripts/check-methodology.sh`, `skills/bmad-research-experiment/scripts/run_experiment.py` |
 
-**Conditional self-modification zone:** `hooks/`, `scripts/`, `skills/`,
-`bmad_benchmarks/` and `custom/` (plugin source trees) are released **only when
+**Conditional self-modification zone:** `hooks/`, `scripts/`, `skills/`
+and `custom/` (plugin source trees) are released **only when
 the guarded project root IS the methodology plugin's own repository** (the
 plugin working on itself). In any ordinary target project those trees stay
 **protected** — editing plugin source there requires an approved experiment,
@@ -1339,36 +1338,9 @@ grep 'methodology_warnings' .metodoloji/logs/hook-audit.log
 
 ---
 
-## 14. SkillOpt Training and Self-Evolution
+## 14. Troubleshooting
 
-The repo ships training infrastructure for tuning skill documents with
-[SkillOpt](https://github.com/microsoft/SkillOpt) (RL on text skills — no weight
-changes). See `SKILLOPT.md` for the full reference.
-
-- **16 benchmarks** under `bmad_benchmarks/envs/` (code-review, create-story,
-  architecture, prd, test-design, custom-IR/SP/story/QR/PR, meta-mod/chain/guard/root/path,
-  research-experiment); configs in `configs/<benchmark>/default.yaml`
-- **Train / evaluate:**
-  ```bash
-  python scripts/train_bmad.py --benchmark bmad-code-review
-  python scripts/eval_bmad.py --benchmark bmad-code-review
-  ```
-  Best skill lands at `outputs/<benchmark>/best_skill.md` — replace the matching
-  `SKILL.md` with it.
-- **skillopt-sleep (nightly self-evolution):** bridges real usage (experiments,
-  audit events) into training data, then runs the cycle:
-  ```bash
-  sh scripts/skillopt-sleep.sh dry-run | run | status | adopt | schedule | unschedule
-  ```
-  Requires a trained baseline (`gate_no_regression`); config at
-  `~/.skillopt-sleep/config.json`.
-- **Credentials:** `cp .env.example .env` and source it (`.env` is gitignored; §6a audits this)
-
----
-
-## 15. Troubleshooting
-
-### 15.1. "No approved experiment record" Error
+### 14.1. "No approved experiment record" Error
 
 **Cause:** The file you are trying to write is outside the scope of any VERIFIED experiment record.
 
@@ -1388,7 +1360,7 @@ python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment
 # 4. Continue writing code
 ```
 
-### 15.2. "Gate key not configured" Error
+### 14.2. "Gate key not configured" Error
 
 **Cause:** The `~/.bmad/gate-key` file does not exist.
 
@@ -1397,7 +1369,7 @@ python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment
 python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py --init-secret
 ```
 
-### 15.3. "Hook engine could not run" Error
+### 14.3. "Hook engine could not run" Error
 
 **Cause:** Python not found or engine files missing. Guard/stop fail **closed**.
 
@@ -1414,7 +1386,7 @@ ls hooks/engine/modules/
 python3 -c "import sys; sys.path.insert(0, 'hooks/engine'); import main; print('OK')"
 ```
 
-### 15.4. "BRIDGE merge problem" Warning
+### 14.4. "BRIDGE merge problem" Warning
 
 **Cause:** The BRIDGE step in the custom TOML did not merge via deep_merge (or the
 skill has no root `customize.toml` for the team override to merge into).
@@ -1429,7 +1401,7 @@ python3 hooks/engine/resolve_customization.py \
 # The output should contain "BRIDGE"
 ```
 
-### 15.5. "Story experiment validation failed" Error
+### 14.5. "Story experiment validation failed" Error
 
 **Cause:** `experiment_refs` in the story file is invalid, the experiment record does
 not exist, or is not verified / has status `PENDING`/`REJECTED`.
@@ -1439,7 +1411,7 @@ not exist, or is not verified / has status `PENDING`/`REJECTED`.
 2. Is the experiment `APPROVED` and `VERIFIED`?
 3. Validate with `run_experiment.py --verify`
 
-### 15.6. "ADVISORY-BLOCK" on Verify
+### 14.6. "ADVISORY-BLOCK" on Verify
 
 **Cause:** The token is genuine but the record confesses a small sample (Wilson lower
 bound below the threshold), `n unknown`, or a metric `MISMATCH`. The approval does **not**
@@ -1448,7 +1420,7 @@ unlock code.
 **Solution:** Fix the experiment (larger sample, measurable denominator, matching metric)
 in a **new** record and re-run the gate.
 
-### 15.7. Stop Hook Is Not Closing the Session
+### 14.7. Stop Hook Is Not Closing the Session
 
 **Cause:** There is an incomplete story or an unapproved code change — or a
 duplicate Stop registration ("Ran 2 stop hooks" in the transcript means two
@@ -1475,7 +1447,7 @@ previous sessions don't count.
 
 ---
 
-## 16. Frequently Asked Questions
+## 15. Frequently Asked Questions
 
 ### Q: What do the `quality_gate` / `deploy_guard` / `code_guard` / `stop_guard` soft/hard modes do?
 
@@ -1528,7 +1500,7 @@ git pull
 
 ---
 
-## 17. Glossary
+## 16. Glossary
 
 | Term | Definition |
 |------|------------|
@@ -1551,7 +1523,6 @@ git pull
 | **Mode B** | Qualitative research mode |
 | **Mode C** | Design mode |
 | **Mode D** | Contextual research mode |
-| **SkillOpt** | RL-on-text training used to tune SKILL.md documents (§14) |
 | **Blackboard** | Event-sourced working-context network (`.metodoloji/blackboard.json`) — keys, lists, canvases, links, subscriptions, alerts; see §7 |
 
 ---

@@ -48,8 +48,8 @@ else
     echo "   ✗ Guard hook has an issue: $RESULT"
 fi
 
-# 6. Health snapshot — write machine-readable JSON for the optimization loop
-#    (bridge_real_usage.py, skillopt-sleep). Kept small and append-free:
+# 6. Health snapshot — write machine-readable JSON for external tooling.
+#    Kept small and append-free:
 #    this is a snapshot, overwritten each run.
 HEALTH_DIR=".metodoloji/logs"
 mkdir -p "$HEALTH_DIR"

@@ -104,7 +104,7 @@ def _project_is_methodology_root() -> bool:
     root (the engine lives inside the install dir), so the meaningful signal is
     the project root: CLAUDE_PROJECT_DIR / OPENHANDS_PROJECT_DIR / cwd. When it
     resolves to the methodology root, the plugin source trees (hooks/,
-    scripts/, skills/, bmad_benchmarks/, custom/) are released as a
+    scripts/, skills/, custom/) are released as a
     self-modification free zone — the methodology working on itself. In any
     ordinary project those trees stay behind the experiment gate.
     """

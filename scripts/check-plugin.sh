@@ -46,34 +46,12 @@ from pathlib import Path
 
 PLUGIN = Path(os.environ["PLUGIN_ROOT"])
 check_script = PLUGIN / "scripts" / "check-plugin.sh"
-total_stages = 6
+total_stages = 5
 
-# Stage 1/3: .env.example deleted → §6a.2 should catch a WARNING
-print(f"[1/{total_stages}] does §6a emit a WARNING when .env.example is deleted")
-env_example = PLUGIN / ".env.example"
+# Stage 1/5: .env line removed from .gitignore → §6a.2 should catch an ERROR
+print(f"[1/{total_stages}] does §6a emit an ERROR when .env is removed from .gitignore")
 gitignore = PLUGIN / ".gitignore"
-orig_example = env_example.read_text(encoding="utf-8") if env_example.exists() else None
 orig_gitignore = gitignore.read_text(encoding="utf-8")
-if orig_example is None:
-    print("  [ERROR] test setup broken: .env.example already missing")
-    sys.exit(1)
-try:
-    env_example.unlink()
-    r = subprocess.run(
-        ["sh", str(check_script)],
-        capture_output=True, text=True, encoding="utf-8", timeout=60,
-        cwd=str(PLUGIN),
-    )
-    if ".env.example not found" in r.stdout and r.returncode == 1:
-        print("  [OK] §6a.2 WARNING caught, exit=1")
-    else:
-        print(f"  [ERROR] §6a.2 WARNING expected, output: ...{r.stdout[-400:]!r}")
-        sys.exit(1)
-finally:
-    env_example.write_text(orig_example, encoding="utf-8")
-
-# Stage 2/3: .env line removed from .gitignore → §6a.3 should catch an ERROR
-print(f"[2/{total_stages}] does §6a emit an ERROR when .env is removed from .gitignore")
 broken = "\n".join(l for l in orig_gitignore.splitlines() if l.strip() != ".env")
 try:
     gitignore.write_text(broken, encoding="utf-8")
@@ -90,8 +68,8 @@ try:
 finally:
     gitignore.write_text(orig_gitignore, encoding="utf-8")
 
-# Stage 3/3: BRIDGE removed from custom/bmad-dev-story.toml → §2b should catch a MISS
-print(f"[3/{total_stages}] does §2b emit a MISS when BRIDGE is removed from custom/bmad-dev-story.toml")
+# Stage 2/5: BRIDGE removed from custom/bmad-dev-story.toml → §2b should catch a MISS
+print(f"[2/{total_stages}] does §2b emit a MISS when BRIDGE is removed from custom/bmad-dev-story.toml")
 toml = PLUGIN / "custom" / "bmad-dev-story.toml"
 resolver = PLUGIN / "hooks" / "engine" / "resolve_customization.py"
 skill = PLUGIN / "skills" / "bmad-dev-story"
@@ -121,8 +99,8 @@ try:
 finally:
     toml.write_text(orig, encoding="utf-8")
 
-# Stage 4/4: BRIDGE removed from an agent-principles surface → §2b should catch a MISS
-print(f"[4/{total_stages}] does §2b emit a MISS when BRIDGE is removed from custom/bmad-agent-dev.toml (agent.principles)")
+# Stage 3/5: BRIDGE removed from an agent-principles surface → §2b should catch a MISS
+print(f"[3/{total_stages}] does §2b emit a MISS when BRIDGE is removed from custom/bmad-agent-dev.toml (agent.principles)")
 atoml = PLUGIN / "custom" / "bmad-agent-dev.toml"
 askill = PLUGIN / "skills" / "bmad-agent-dev"
 aorig = atoml.read_text(encoding="utf-8")
@@ -151,8 +129,8 @@ try:
 finally:
     atoml.write_text(aorig, encoding="utf-8")
 
-# Stage 5/5: hooks.json locator desynced in ONE hook → §1b should catch drift
-print(f"[5/{total_stages}] does §1b catch a desynced hooks.json dispatch locator")
+# Stage 4/5: hooks.json locator desynced in ONE hook → §1b should catch drift
+print(f"[4/{total_stages}] does §1b catch a desynced hooks.json dispatch locator")
 hj = PLUGIN / "hooks" / "hooks.json"
 hj_orig = hj.read_text(encoding="utf-8")
 if '"$PWD"' not in hj_orig.replace('\\"', '"'):
@@ -175,8 +153,8 @@ try:
 finally:
     hj.write_text(hj_orig, encoding="utf-8")
 
-# Stage 6/6: docs template copy desynced from templates/ → §6c should catch DRIFT
-print(f"[6/{total_stages}] does §6c catch template copy drift")
+# Stage 5/5: docs template copy desynced from templates/ → §6c should catch DRIFT
+print(f"[5/{total_stages}] does §6c catch template copy drift")
 tmpl = PLUGIN / "templates" / "_template_IR.md"
 cp = PLUGIN / "docs" / "development" / "_template_IR.md"
 if not tmpl.is_file() or not cp.is_file():
@@ -951,21 +929,14 @@ PROBLEMS=$((PROBLEMS + DEVPROBLEMS))
 
 echo "== 6a) .env inventory: any hard-coded API key leakage? =="
 ENVPROBLEMS=0
-# 6a.1) Is .env present in the repo? (should not be — only .env.example)
+# 6a.1) Is .env present in the repo? (LLM credentials must never be committed)
 if [ -f "$PROJECT_ROOT/.env" ]; then
     echo "[ERROR]  .env found at repo root — don't rely on .gitignore, .env must not be committed"
     ENVPROBLEMS=$((ENVPROBLEMS + 1))
 else
     echo "[OK]    .env not present (protected via .gitignore)"
 fi
-# 6a.2) Does .env.example exist? (template for new developers)
-if [ -f "$PROJECT_ROOT/.env.example" ]; then
-    echo "[OK]    .env.example present"
-else
-    echo "[WARNING] .env.example not found — developer onboarding documentation missing"
-    ENVPROBLEMS=$((ENVPROBLEMS + 1))
-fi
-# 6a.3) Is .env in .gitignore?
+# 6a.2) Is .env in .gitignore?
 if grep -qx '.env' "$PROJECT_ROOT/.gitignore" 2>/dev/null; then
     echo "[OK]    .gitignore → .env present"
 else
