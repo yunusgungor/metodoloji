@@ -100,10 +100,22 @@ os.environ['CLAUDE_PROJECT_DIR'] = '$PYWS'
 ctx = 'METODOLOJI active (plugin: $SYNCED). Record chain: E → IR → SP → S → QR → PR. Before writing code you need a scope-matching VERIFIED experiment approval; gate key: $KEY.$INTENT_CTX$SCOPE_CTX Record templates: /metodoloji:init'
 
 try:
-    from modules.stop import record_session_start
-    record_session_start('$PYWS')
+    # Reuse the engine's session_start (compact_context + consume session
+    # channel + handoff warning); it stamps the marker itself. No dup logic here.
+    from modules.audit import session_start as engine_session_start
+    res = engine_session_start({'cwd': '$PYWS'})
+    extra = (res or {}).get('additionalContext', '')
+    marker = ' Blackboard: '
+    if marker in extra:
+        ctx += marker + extra.split(marker, 1)[1]
+    elif extra and extra not in ctx:
+        ctx += ' ' + extra
 except Exception:
-    pass
+    try:
+        from modules.stop import record_session_start
+        record_session_start('$PYWS')
+    except Exception:
+        pass
 
 print(json.dumps({'additionalContext': ctx}))
 " 2>/dev/null || printf '%s\n' "{\"additionalContext\":\"METODOLOJI active (plugin: $SYNCED). Record chain: E → IR → SP → S → QR → PR. Before writing code you need a scope-matching VERIFIED experiment approval; gate key: $KEY.$INTENT_CTX$SCOPE_CTX Record templates: /metodoloji:init\"}"
