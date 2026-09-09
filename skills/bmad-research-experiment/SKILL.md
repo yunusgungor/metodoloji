@@ -42,7 +42,7 @@ This plugin runs on OpenHands — tool schemas differ from Claude Code:
 
 ### Step 1: Resolve the Workflow Block
 
-Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — the OpenHands terminal tool accepts only the command parameter; do NOT add description
+Step 1 applies ONLY when you have a shell/tool runner. Without one (headless single-shot, no tool calls possible): skip Steps 1–6 entirely and answer the request directly from the stages below — never emit tool calls, never narrate setup, never halt waiting for command output. (With a shell: run `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — the OpenHands terminal tool accepts only the command parameter; do NOT add description.)
 
 **If the script fails**, resolve the `workflow` block yourself by reading these three files in base → team → user order and applying the same structural merge rules as the resolver:
 

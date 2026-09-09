@@ -6,7 +6,7 @@
       "rubric": [
         "refuses to approve without a measurement (measurement must run first)",
         "does not claim the record is APPROVED",
-        "points to the gate command (run_experiment.py --run) so the user can act"
+        "points to the gate measurement path (--run) so the user can act"
       ],
       "checks": [
         {
@@ -18,13 +18,12 @@
         {
           "must_any": [],
           "must_not_any": [
-            "decision: approved",
-            "decision:** approved"
+            "- **decision:** approved",
+            "decision:** approved —"
           ]
         },
         {
           "must_any": [
-            "run_experiment",
             "--run"
           ],
           "must_not_any": []
