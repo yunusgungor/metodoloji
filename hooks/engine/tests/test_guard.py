@@ -312,33 +312,6 @@ def test_find_done_stories_without_qr_excludes_templates():
         td.cleanup()
 
 
-def test_intent_scope_warnings_outside_scope():
-    from modules.guard import _intent_scope_warnings
-    w = _intent_scope_warnings("src/auth", ["src/auth/login.py", "docs/README.md"], "/proj")
-    assert any("docs/README.md" in x for x in w)
-    assert not any("src/auth/login.py" in x for x in w)
-
-
-def test_intent_scope_warnings_no_scope():
-    from modules.guard import _intent_scope_warnings
-    assert _intent_scope_warnings("", ["docs/x.md"], "/proj") == []
-    assert _intent_scope_warnings("S-003", ["docs/other.md"], "/proj") == []
-
-
-def test_guard_intent_scope_never_denies(tmp_path, monkeypatch):
-    from modules.guard import guard
-    # Scope outside → allow + warning, not deny.
-    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
-    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.setenv("METODOLOJI_INTENT", "scope: src/auth")
-    res = guard({"tool_name": "file_editor",
-                 "tool_input": {"path": "docs/x.md", "content": "hi"}})
-    assert res["decision"] == "allow"
-    assert any("outside the active scope" in w
-               for w in res.get("methodology_warnings", []))
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
-
-
 def test_guard_soft_gate_warns_not_denies(tmp_path, monkeypatch):
     """With quality_gate=soft, story metadata gaps are warn-only, not deny."""
     from modules.guard import guard
@@ -359,7 +332,6 @@ def test_guard_soft_gate_warns_not_denies(tmp_path, monkeypatch):
     (stories / "S-001.md").write_text(content, encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "file_editor",
                  "tool_input": {"path": "docs/development/stories/S-001.md",
                                 "content": content}})
@@ -389,7 +361,6 @@ def test_guard_hard_gate_denies_metadata(tmp_path, monkeypatch):
     (stories / "S-001.md").write_text(content, encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "file_editor",
                  "tool_input": {"path": "docs/development/stories/S-001.md",
                                 "content": content}})
@@ -422,7 +393,6 @@ def test_guard_soft_gate_still_denies_missing_experiment(tmp_path, monkeypatch):
     (stories / "S-001.md").write_text(content, encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "file_editor",
                  "tool_input": {"path": "docs/development/stories/S-001.md",
                                 "content": content}})
@@ -430,37 +400,6 @@ def test_guard_soft_gate_still_denies_missing_experiment(tmp_path, monkeypatch):
     # of the soft gate.
     assert res["decision"] == "deny"
     assert "Story experiment validation failed" in res["reason"]
-
-
-def test_guard_soft_gate_combines_scope_and_metadata_warnings(tmp_path, monkeypatch):
-    """soft gate + out-of-scope write → warnings from both, still allow."""
-    from modules.guard import guard
-    from modules import config
-    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "soft")
-    stories = tmp_path / "docs/development/stories"
-    stories.mkdir(parents=True)
-    content = (
-        "## Story: S-001\n"
-        "## Acceptance Criteria\n"
-        "- [AC-001] Given X When Y Then Z\n"
-        "## Technical Tasks\n"
-        "- [ ] do it AC: AC-001\n"
-        "## Definition of Done\n"
-        "- [ ] DoD-001 Verify: manual\n"
-    )
-    (stories / "S-001.md").write_text(content, encoding="utf-8")
-    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
-    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.setenv("METODOLOJI_SCOPE", "src/auth")
-    res = guard({"tool_name": "file_editor",
-                 "tool_input": {"path": "docs/development/stories/S-001.md",
-                                "content": content}})
-    assert res["decision"] == "allow"
-    warns = res.get("methodology_warnings", [])
-    # Both the metadata warning and the out-of-scope warning present.
-    assert any("missing Type field" in w for w in warns)
-    assert any("outside the active scope" in w for w in warns)
-    monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
 
 
 def test_guard_mixed_gate_config_story_edit_not_blocked_by_deploy_guard(
@@ -489,7 +428,6 @@ def test_guard_mixed_gate_config_story_edit_not_blocked_by_deploy_guard(
     (stories / "S-001.md").write_text(content, encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "file_editor",
                  "tool_input": {"path": "docs/development/stories/S-001.md",
                                 "content": content}})
@@ -523,7 +461,6 @@ def test_guard_mixed_gate_config_hard_quality_still_denies(tmp_path, monkeypatch
     (stories / "S-001.md").write_text(content, encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "file_editor",
                  "tool_input": {"path": "docs/development/stories/S-001.md",
                                 "content": content}})
@@ -634,7 +571,6 @@ def test_guard_notes_story_filename_not_story(tmp_path, monkeypatch):
     from modules.guard import guard
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "file_editor",
                  "tool_input": {"path": "docs/notes-S-001.md",
                                 "content": "hello"}})
@@ -695,7 +631,6 @@ def test_guard_secret_context_still_denies(tmp_path, monkeypatch):
     from modules.guard import guard
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "file_editor",
                  "tool_input": {"path": "scratch/notes.md",
                                 "content": "x = load_secret('k')"}})
@@ -707,7 +642,6 @@ def test_guard_secret_prose_no_longer_denies(tmp_path, monkeypatch):
     from modules.guard import guard
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "file_editor",
                  "tool_input": {"path": "scratch/notes.md",
                                 "content": "the secret_env carries over"}})
@@ -742,7 +676,6 @@ def test_guard_code_guard_soft_warns_not_denies(tmp_path, monkeypatch):
                         lambda key: "soft" if key == "code_guard" else "hard")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "file_editor",
                  "tool_input": {"path": "src/main.py", "content": "print(1)"}})
     assert res["decision"] == "allow"
@@ -757,7 +690,6 @@ def test_guard_code_guard_hard_still_denies(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "file_editor",
                  "tool_input": {"path": "src/main.py", "content": "print(1)"}})
     assert res["decision"] == "deny"
@@ -771,14 +703,12 @@ def test_guard_scope_inside_no_warning(tmp_path, monkeypatch):
     (tmp_path / "src/auth").mkdir(parents=True)
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.setenv("METODOLOJI_SCOPE", "src/auth")
     res = guard({"tool_name": "file_editor",
                  "tool_input": {"path": "src/auth/login.py", "content": "x"}})
     # Free-zone? src/ is not free → needs approval → deny (no experiment record).
     # The scope check itself must not add a scope warning when inside scope.
     warns = res.get("methodology_warnings", [])
     assert not any("outside the active scope" in w for w in warns)
-    monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
 
 
 # --- terminal story writes (content visibility) -----------------------------
@@ -845,7 +775,6 @@ def test_guard_terminal_modify_existing_story_validates_content(tmp_path, monkey
     Path(target).write_text(_story_with_missing_fields(), encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "terminal",
                  "tool_input": {"command": f"echo x >> {target}"}})
     assert res["decision"] == "allow"
@@ -862,7 +791,6 @@ def test_guard_terminal_modify_existing_story_hard_gate_denies(tmp_path, monkeyp
     Path(target).write_text(_story_with_missing_fields(), encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "terminal",
                  "tool_input": {"command": f"echo x >> {target}"}})
     assert res["decision"] == "deny"
@@ -888,7 +816,6 @@ def test_guard_terminal_heredoc_creation_denies_bad_experiment(tmp_path, monkeyp
     )
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "terminal", "tool_input": {"command": cmd}})
     assert res["decision"] == "deny"
     assert "Story experiment validation failed" in res["reason"]
@@ -913,7 +840,6 @@ def test_guard_terminal_heredoc_creation_valid_payload_allows(tmp_path, monkeypa
     )
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "terminal", "tool_input": {"command": cmd}})
     assert res["decision"] == "allow"
     assert not any("content is not visible" in w
@@ -931,7 +857,6 @@ def test_guard_terminal_opaque_creation_warns_bypass(tmp_path, monkeypatch):
     Path(src).write_text("## Story: S-NEW\n", encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = guard({"tool_name": "terminal",
                  "tool_input": {"command": f"cp {src} {dst}"}})
     assert res["decision"] == "allow"
@@ -950,7 +875,6 @@ def test_guard_terminal_existing_story_unreadable_warns(tmp_path, monkeypatch):
     Path(target).write_text("## Story: S-001\n", encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
 
     class _Unreadable:
         """pathlib.Path stand-in: exists but its content cannot be read."""

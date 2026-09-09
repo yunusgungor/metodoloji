@@ -107,7 +107,7 @@ def test_main_pass_on_first_eval(tmp_path):
     skill = _write_skill(tmp_path)
     rc = ai.main(["--skill", str(skill), "--eval", "echo 0.95",
                   "--improve", "echo x", "--rounds", "3",
-                  "--pass-threshold", "0.9", "--memlog", str(tmp_path / "t.md")])
+                  "--pass-threshold", "0.9", "--trail", str(tmp_path / "t.md")])
     assert rc == 0
 
 
@@ -115,7 +115,7 @@ def test_main_rounds_exhausted(tmp_path):
     skill = _write_skill(tmp_path)
     rc = ai.main(["--skill", str(skill), "--eval", "echo 0.5",
                   "--improve", "echo x", "--rounds", "2",
-                  "--pass-threshold", "0.9", "--memlog", str(tmp_path / "t.md")])
+                  "--pass-threshold", "0.9", "--trail", str(tmp_path / "t.md")])
     assert rc == 1  # threshold never met
 
 
@@ -126,17 +126,17 @@ def test_main_revert_on_regression(tmp_path):
     improve_cmd = "python3 -c \"print('BROKEN skill')\""
     rc = ai.main(["--skill", str(skill), "--eval", eval_cmd,
                   "--improve", improve_cmd, "--rounds", "1",
-                  "--pass-threshold", "0.95", "--memlog", str(tmp_path / "t.md")])
+                  "--pass-threshold", "0.95", "--trail", str(tmp_path / "t.md")])
     assert rc == 1  # regression reverted, no pass
     assert skill.read_text(encoding="utf-8") == "CLEAN"  # reverted
 
 
-def test_main_memlog_trail_written(tmp_path):
+def test_main_trail_written(tmp_path):
     skill = _write_skill(tmp_path)
     trail = tmp_path / "t.md"
     ai.main(["--skill", str(skill), "--eval", "echo 0.5",
              "--improve", "echo x", "--rounds", "1",
-             "--pass-threshold", "0.9", "--memlog", str(trail)])
+             "--pass-threshold", "0.9", "--trail", str(trail)])
     text = trail.read_text(encoding="utf-8")
     assert "auto-iterate start" in text
     assert "(event)" in text and "(decision)" in text

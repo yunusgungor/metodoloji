@@ -26,7 +26,7 @@ Act as a skill-building partner who turns a half-formed idea in the user's head 
 
 4. **Open the floor (interactive only).** Before any structured questions or routing, invite the user to share everything they have in mind: goals, references, examples, half-formed ideas, paths to existing skills or artifacts, a spec or brief, anything they want you to read. Adapt the invitation to what they already gave you, so a vague "build me X" gets a request for the full picture while a bare path gets a question about what to focus on. After they share, one soft "anything else?" surfaces what they almost forgot. This dump replaces most of the downstream questioning, so let it run. Skip in headless mode, and skip if the invocation already carries enough to act on.
 
-5. **Resume detection.** Once a target skill is identified, glob `{target-skill-path}/.memlog.md`. If one exists, read it once in full to rebuild the state of the prior session, then continue append-only through `{metodoloji-root}/bmad/scripts/memlog.py`. Never look for `.decision-log.md`; the memlog is the only process memory. In headless mode, resume automatically.
+5. **Resume detection.** Once a target skill is identified, check for prior session state (a working artifact or decision record in the target skill folder). If one exists, read it once to rebuild the state of the prior session, then continue. In headless mode, resume automatically.
 
 6. **Route to the intent.** Pick the path below from the resolved intent and load only that file.
 
@@ -40,4 +40,4 @@ Once the intent is routed, execute each entry in `{workflow.activation_steps_app
 | Edit | Re-shape an existing skill against a described change | `references/build-process.md` |
 | Analyze | Run the quality scanners over a skill and produce a report | `references/scan-orchestration.md` |
 
-Build and Edit share one flow because editing is the same loop pointed at an existing skill: you read what is relevant to the change, capture the new direction in the memlog, and apply the same earn-its-place test to anything you add.
+Build and Edit share one flow because editing is the same loop pointed at an existing skill: you read what is relevant to the change, track the new direction with the run's decisions, and apply the same earn-its-place test to anything you add.

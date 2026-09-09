@@ -28,7 +28,7 @@ A memory or autonomous bootloader SKILL.md is supposed to be small, around four 
 
 ## The sanctum dimensions
 
-The sanctum is the built agent's runtime memory, the place it reloads on every waking to become itself again, living at `{metodoloji-root}/bmad/memory/{skillName}/`. This is a different thing from the builder's process log, the memlog, which is the builder's own trace written to `.memlog.md` beside the agent's SKILL.md while authoring. The two never blur. When this file or any file you write says memory of the sanctum, it means the agent's runtime memory and never the builder's log.
+The sanctum is the built agent's runtime memory, the place it reloads on every waking to become itself again, living at `{metodoloji-root}/bmad/memory/{skillName}/`. This is a different thing from the builder's process log, the decision record the builder keeps while authoring. The two never blur. When this file or any file you write says memory of the sanctum, it means the agent's runtime memory and never the builder's log.
 
 The sanctum is held to these dimensions:
 

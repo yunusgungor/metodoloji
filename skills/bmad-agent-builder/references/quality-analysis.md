@@ -46,7 +46,7 @@ It prints one JSON object on stdout, the pinned pre-pass shape:
 }
 ```
 
-Hold that object. `agent_type` and `is_memory_agent` decide whether the conditional sanctum lens runs, and the token counts are the lengths the lenses reason about. Lengths come from tokens here, never line counts. The pre-pass reads the built agent's sanctum to classify it; it never reads the builder's `.memlog.md`, and neither do you.
+Hold that object. `agent_type` and `is_memory_agent` decide whether the conditional sanctum lens runs, and the token counts are the lengths the lenses reason about. Lengths come from tokens here, never line counts. The pre-pass reads the built agent's sanctum to classify it; it never reads the builder's process log, and neither do you.
 
 ## Dispatch the lenses in parallel
 
@@ -93,7 +93,7 @@ The agent blocks are optional portrait-and-context blocks, built from the pre-pa
 - `agent_profile` — `name`, `title`, `icon`, `agent_type` (straight from the pre-pass), one-line `mission`. Drawn from the agent's `[agent]` metadata.
 - `capabilities` — `{ name, kind, note }` per capability, where `kind` is the form (prompt, script, multi-file, external skill) and `note` is one line on what it does.
 - `detailed_analysis` — keyed by lens name, each value that lens's one-line `verdict`.
-- `sanctum` — only for memory and autonomous agents: `{ present: true, location, files, note }` where `location` is `{metodoloji-root}/bmad/memory/{skillName}/` and `note` states that the sanctum is the built agent's runtime memory, distinct from the builder's `.memlog.md`. Omit the block (or set `present: false`) for a stateless agent.
+- `sanctum` — only for memory and autonomous agents: `{ present: true, location, files, note }` where `location` is `{metodoloji-root}/bmad/memory/{skillName}/` and `note` states that the sanctum is the built agent's runtime memory, distinct from the builder's process log. Omit the block (or set `present: false`) for a stateless agent.
 - `experience` — `journeys` as `{ name, steps }` for the main paths a user takes through the agent, and `headless` as one line on the agent's headless story.
 
 `findings.json` is one object (schema_version 2):
@@ -148,14 +148,6 @@ python3 scripts/render_report.py {run-folder}/findings.json --shell assets/repor
 
 If the script refuses, fix `findings.json` and re-run; never hand-edit the HTML. Open the HTML report for the user — it is the deliverable of Analyze; do not replace it with a chat summary of the findings. The shell fails loud: a malformed island shows a visible banner, never a blank page, and an empty findings array renders an explicit no-findings panel, so a clean agent still produces a real report.
 
-## Record the run
-
-Append one memlog event carrying the grade (init the memlog first if `{target-agent-path}/.memlog.md` does not exist):
-
-```bash
-python3 {metodoloji-root}/bmad/scripts/memlog.py append --path {target-agent-path}/.memlog.md --type event --text "analyze: grade <grade>, <c> critical / <h> high / <m> medium / <l> low, report .analysis/<timestamp>/agent-analysis-report.html"
-```
-
 ## Present
 
 **IF `{headless_mode}=true`:** emit
@@ -169,7 +161,6 @@ python3 {metodoloji-root}/bmad/scripts/memlog.py append --path {target-agent-pat
   "grade": "excellent | good | fair | poor",
   "html_report": "{target-agent-path}/.analysis/<timestamp>/agent-analysis-report.html",
   "md_report": "{target-agent-path}/.analysis/<timestamp>/agent-analysis-report.md",
-  "memlog": "{target-agent-path}/.memlog.md",
   "counts": { "critical": 0, "high": 0, "medium": 0, "low": 0 }
 }
 ```

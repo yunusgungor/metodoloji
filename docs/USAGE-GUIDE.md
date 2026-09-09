@@ -16,17 +16,16 @@
 4. [Initial Configuration](#4-initial-configuration)
 5. [Record Chain (E → IR → SP → S → QR → PR)](#5-record-chain)
 6. [Hook Engine and Mechanical Gates](#6-hook-engine-and-mechanical-gates)
-7. [Intent Bridge and Memlog](#7-intent-bridge-and-memlog)
-8. [Skill Bridge and TOML Customization](#8-skill-bridge-and-toml-customization)
-9. [Commands](#9-commands)
-10. [Templates](#10-templates)
-11. [Free Zones and Restricted Areas](#11-free-zones-and-restricted-areas)
-12. [Security (Gate Key and HMAC)](#12-security)
-13. [Audit and Health Check](#13-audit-and-health-check)
-14. [SkillOpt Training and Self-Evolution](#14-skillopt-training-and-self-evolution)
-15. [Troubleshooting](#15-troubleshooting)
-16. [Frequently Asked Questions](#16-frequently-asked-questions)
-17. [Glossary](#17-glossary)
+7. [Skill Bridge and TOML Customization](#7-skill-bridge-and-toml-customization)
+8. [Commands](#8-commands)
+9. [Templates](#9-templates)
+10. [Free Zones and Restricted Areas](#10-free-zones-and-restricted-areas)
+11. [Security (Gate Key and HMAC)](#11-security)
+12. [Audit and Health Check](#12-audit-and-health-check)
+13. [SkillOpt Training and Self-Evolution](#13-skillopt-training-and-self-evolution)
+14. [Troubleshooting](#14-troubleshooting)
+15. [Frequently Asked Questions](#15-frequently-asked-questions)
+16. [Glossary](#16-glossary)
 
 ---
 
@@ -44,10 +43,10 @@ Core components:
 | `custom/` | 119 customization TOMLs (33 active with BRIDGE: `activation_steps_append`/`principles` → links native outputs to methodology records) + `config.toml` (soft/hard gates) |
 | `hooks/` | `hooks.json` (unified, auto-discovered by both runtimes) + `engine/` (Python) + `scripts/` (`bootstrap.sh`, `hook-entry.sh`) |
 | `hooks/engine/` | Python engine: `main.py` (entry), `resolve_customization.py` (thin re-export), `modules/` (guard, audit, stop, utils, config, archive, bash_targets) |
-| `bmad/` | Module data (bmm, cis, gds, wds, tea, core, bmb, bmad-loop, `_config`) + `bmad/scripts/` (canonical `resolve_customization.py`, `resolve_config.py`, `memlog.py`) |
+| `bmad/` | Module data (bmm, cis, gds, wds, tea, core, bmb, bmad-loop, `_config`) + `bmad/scripts/` (canonical `resolve_customization.py`, `resolve_config.py`) |
 | `templates/` | IR/SP/QR/PR/S/E + README/tech-debt record templates |
 | `commands/` | `/metodoloji:init`, `/metodoloji:gate-setup`, `/metodoloji:verify`, `/metodoloji:audit` |
-| `bmad_benchmarks/`, `configs/`, `scripts/train_bmad.py` | SkillOpt training/skill-tuning infrastructure (see §14) |
+| `bmad_benchmarks/`, `configs/`, `scripts/train_bmad.py` | SkillOpt training/skill-tuning infrastructure (see §13) |
 
 ### Core Principle
 
@@ -87,7 +86,7 @@ metodoloji/
 │   │   └── modules/
 │   │       ├── __init__.py      # Module exports
 │   │       ├── config.py        # Constants (paths, thresholds, code classification, strictness)
-│   │       ├── utils.py         # normalize_hook_input, norm_path, is_free, is_code_target, intent bridge
+│   │       ├── utils.py         # normalize_hook_input, norm_path, is_free, is_code_target
 │   │       ├── archive.py       # Archive processing (tar/zip — bomb protection)
 │   │       ├── bash_targets.py  # Bash command target detection
 │   │       ├── guard.py         # PreToolUse guard + quality + deploy logic
@@ -98,7 +97,7 @@ metodoloji/
 │       └── hook-entry.sh        # Single dispatch point → Python engine
 ├── skills/                      # 123 BMAD skill directories
 ├── custom/                      # 119 TOMLs (33 BRIDGE active) + config.toml
-├── bmad/                        # Module data + scripts (resolve_customization, memlog)
+├── bmad/                        # Module data + scripts (resolve_customization)
 ├── templates/                   # Record templates
 ├── commands/                    # Slash-command definitions (.md)
 ├── scripts/                     # check-plugin.sh, check-custom.sh, record creators, bench
@@ -130,7 +129,6 @@ flowchart TD
     subgraph SessionStartFlow["SessionStart Event"]
         BS --> K1["Create gate-key (if missing)"]
         BS --> K2["Ensure directories (.metodoloji, experiments)"]
-        BS --> K3["Intent Bridge: Load .memlog.md"]
     end
 
     subgraph HookExecution["Hook Engine (hooks/engine/main.py)"]
@@ -243,8 +241,7 @@ The plugin loads automatically. The `SessionStart` hook (`bootstrap.sh`, fail-op
 
 1. Creates `~/.bmad/gate-key` if it does not exist (0600 where supported)
 2. Creates missing directories (`docs/experiments/`, `.metodoloji/logs/`)
-3. Reads the active `.memlog.md` and exports `METODOLOJI_INTENT` / `METODOLOJI_SCOPE`
-4. Injects context: record chain reminder + gate key status + intent/scope
+3. Injects context: record chain reminder + gate key status
 
 #### Step 2: Set Up the Record Skeleton
 
@@ -617,7 +614,7 @@ verifies mechanically (byte-identical to the generator, roots resolvable by
 - Shell-variable targets (`$var`, `${var}`) in terminal commands are dropped — never treated as literal paths
 - **Terminal writes to a story file:** content is validated when the target already exists on disk (a shell-created story is caught the moment a later command touches it) or when the command carries a visible heredoc payload (`cat <<EOF > S-002.md`). A terminal story creation whose payload is not visible is allowed with a `methodology_warning` that AC/chain checks did not run at write time — the PostToolUse audit enforces them after the fact.
 - Secret reference in a terminal command or in written content → `DENY` (security violation; the content scan runs before the free-zone check so agent zones cannot bypass it)
-- Allow result may carry warn-only `methodology_warnings` (e.g. writes outside the active memlog scope)
+- Allow result may carry warn-only `methodology_warnings`
 
 **Code target classification:**
 
@@ -638,7 +635,7 @@ verifies mechanically (byte-identical to the generator, roots resolvable by
 **Scope:** `Write|Edit|MultiEdit|Bash|file_editor|terminal`
 
 **Behavior:**
-- Appends every call to `.metodoloji/logs/hook-audit.log` as one JSON line, stamped with the active session `intent` and memlog `progress`
+- Appends every call to `.metodoloji/logs/hook-audit.log` as one JSON line
 - File/command **bodies are redacted** to a 300-char preview (`content`, `code`, `source`… keys) — paths, commands and flags stay whole so stop/guard keep working; full bodies never land in the log
 - Produces methodology compliance warnings on story files (non-blocking) + QR-file DoD warnings (the done-story→QR directory scan lives in `check-plugin.sh`, not on the per-write hot path). QR DoD content is validated with the **same parser and rules** the guard applies to a story's `Definition of Done` (`.utils.dod_issues`): every DoD item needs a `DoD-NNN` identifier and a recorded verification — a `Verify:` field for story definitions; for QR records a `Verify:`/`Evidence:` line or a result marker (e.g. `→ ✓ PASS`) on a `- DoD-NNN …` bullet, or a non-empty status/evidence cell in a `| DoD Item | Status | Evidence | Date |` table row
 - Log write failures are fail-open (stderr note, never a crash)
@@ -701,7 +698,7 @@ Stories: 1-2-user-auth. Create QR with: python3 scripts/create-qr-record.py ...
 
 **Behavior:**
 0. Loop breaker first: `stop_hook_active=true` (Claude re-fire after a deny) → `allow`. Otherwise one deny per session is recorded (`stop_deny` in the audit log); the next fire allows. `stop_guard = "soft"` → always `allow`.
-1. In-progress story exists? → `DENY` (intent-aware: if the session intent names a specific story, e.g. "finish S-003", only that story blocks; a memlog `status: complete` disables the story check entirely; a sprint-status file older than this session's start marker is treated as a stale brownfield leftover and ignored unless the intent names that story)
+1. In-progress story exists? → `DENY` (a sprint-status file older than this session's start marker is treated as a stale brownfield leftover and ignored)
 2. Unapproved code change exists? → `DENY` — session-touched files only (PostToolUse records in `.metodoloji/logs/hook-audit.log` after the newest `session_start` marker). Pre-existing files never block. Shell-variable targets (`$var`) are dropped, never treated as literal paths.
 3. Clean → `allow`
 
@@ -758,33 +755,9 @@ raw tool name.
 
 ---
 
-## 7. Intent Bridge and Memlog
+## 7. Skill Bridge and TOML Customization
 
-Skills write a working-memory log (`.memlog.md`) via `bmad/scripts/memlog.py`
-(`init` / `append` / `set`; atomic writes; append-only body). The intent bridge
-carries that context into every hook:
-
-- **SessionStart:** `bootstrap.sh` finds the newest `.memlog.md` under
-  `bmad-output/` → `.metodoloji/` → `docs/` → project root, reads `purpose` and
-  `scope` frontmatter, and exports `METODOLOJI_INTENT` / `METODOLOJI_SCOPE`
-- **Every hook:** falls back to reading the active memlog itself when the env
-  cannot cross the process boundary (`utils._active_intent` / `_active_scope`)
-- **Guard:** writes outside the active scope produce a **warn-only** message
-  ("Write to X is outside the active scope 'Y'. If this is a different task,
-  update the memlog purpose.") — the experiment approval logic stays authoritative
-- **Audit:** each log record is stamped with `intent` and `progress`
-- **Stop:** intent names a story → only that story blocks; memlog `status: complete`
-  → the story check is skipped
-
-Memlog vocabulary is host-skill-defined (entries are tagged `(idea)`, `(decision)`,
-`(event)` etc.). Status is set with
-`python3 bmad/scripts/memlog.py set --workspace <dir> --key status --value <complete|active|in-progress>`.
-
----
-
-## 8. Skill Bridge and TOML Customization
-
-### 9.1. Three-Layer TOML Merge (per skill)
+### 7.1. Three-Layer TOML Merge (per skill)
 
 Each skill is customized at three layers (highest priority to lowest):
 
@@ -815,7 +788,7 @@ flowchart TD
 **No removal mechanism:** overrides cannot delete base items — fork the skill or
 override the item by its `code`/`id` with a no-op description.
 
-### 9.2. Central Config Merge (resolve_config.py)
+### 7.2. Central Config Merge (resolve_config.py)
 
 Config resolves through **eight layers** — the four plugin layers (last wins
 among themselves), then four **project-root layers** that override everything
@@ -865,7 +838,7 @@ shape the legacy per-module config.yaml had. `--module core` returns just
 the core section. Artifact paths in the plugin layers point outputs at
 `{project-root}` (`bmad-output/`, `docs/`), never inside the plugin.
 
-### 9.3. Bridge TOML Structure
+### 7.3. Bridge TOML Structure
 
 Each bridge TOML contains a BRIDGE instruction in `activation_steps_append`
 (workflow) or `principles` (agent). BRIDGE is active in 33 skills:
@@ -894,7 +867,7 @@ activation_steps_append = [
 record exists (`ls -la`) right after creating it. This is the automatic control
 layer that prevents the BRIDGE from being skipped (audit §2c checks it).
 
-### 9.4. Bridge Resolution
+### 7.4. Bridge Resolution
 
 ```bash
 # Full customization output
@@ -912,7 +885,7 @@ python3 hooks/engine/resolve_customization.py -s skills/bmad-dev-story \
 > implementation lives at `bmad/scripts/resolve_customization.py` (stdlib only,
 > Python 3.11+; `uv run` also works).
 
-### 9.5. Manifesto Wiring
+### 7.5. Manifesto Wiring
 
 Every methodology surface (skill) must reference these documents:
 - `research-methodology.md` — Research manifesto (all surfaces)
@@ -924,11 +897,11 @@ Bridge document: `docs/bmad/dev-skill-to-methodology-bridge.md` (§-numbered —
 
 ---
 
-## 9. Commands
+## 8. Commands
 
 > **Note:** these command names were previously `/metodoloji:kapi-kur`, `/metodoloji:dogrula`, `/metodoloji:denetim` (Turkish).
 
-### 10.1. `/metodoloji:init`
+### 8.1. `/metodoloji:init`
 
 **Purpose:** Install the record skeleton into the target project.
 
@@ -938,7 +911,7 @@ Bridge document: `docs/bmad/dev-skill-to-methodology-bridge.md` (§-numbered —
 - Installs manifesto copies under `docs/bmad/`
 - Warns about the gate key if missing
 
-### 10.2. `/metodoloji:gate-setup`
+### 8.2. `/metodoloji:gate-setup`
 
 **Purpose:** Generate the gate key (gate-key init).
 
@@ -952,12 +925,12 @@ Bridge document: `docs/bmad/dev-skill-to-methodology-bridge.md` (§-numbered —
 python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py --init-secret
 ```
 
-### 10.3. `/metodoloji:verify`
+### 8.3. `/metodoloji:verify`
 
 **Purpose:** Verify an experiment record. Uses `--verify` semantics (see §5.1 exit-code table):
 `VERIFIED` / `FORGED` / `REJECTED` / `ADVISORY-BLOCK`.
 
-### 10.4. `/metodoloji:audit`
+### 8.4. `/metodoloji:audit`
 
 **Purpose:** Methodology health check.
 
@@ -968,7 +941,7 @@ python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment
 4. Hook configuration
 5. Result report (PASS/FAIL)
 
-### 10.5. check-plugin.sh
+### 8.5. check-plugin.sh
 
 ```bash
 # Full audit
@@ -986,9 +959,9 @@ and `scripts/check-techdebt.sh` (tech-debt drift/ID/P0/orphan audit — invoked 
 
 ---
 
-## 10. Templates
+## 9. Templates
 
-### 11.1. Template List
+### 9.1. Template List
 
 | Template | Target | Usage |
 |----------|--------|-------|
@@ -1005,7 +978,7 @@ and `scripts/check-techdebt.sh` (tech-debt drift/ID/P0/orphan audit — invoked 
 > gate-written fields must not be hand-written, `--measured` removed, benches must
 > live outside free zones.
 
-### 11.2. Template Usage
+### 9.2. Template Usage
 
 ```bash
 # New record from the experiment template
@@ -1021,7 +994,7 @@ python3 scripts/create-qr-record.py --story path/to/story.md
 
 ---
 
-## 11. Free Zones and Restricted Areas
+## 10. Free Zones and Restricted Areas
 
 ```mermaid
 flowchart TD
@@ -1044,7 +1017,7 @@ flowchart TD
     class DENY_SEC,DENY_GUARD deny;
 ```
 
-### 11.1. Free Zones (No Approval Required)
+### 10.1. Free Zones (No Approval Required)
 
 The following paths are automatically released by the guard:
 
@@ -1069,7 +1042,7 @@ plugin working on itself). In any ordinary target project those trees stay
 **protected** — editing plugin source there requires an approved experiment,
 like any other code.
 
-### 11.2. Protected Areas (Approval Required)
+### 10.2. Protected Areas (Approval Required)
 
 All source code files and executable configuration files:
 
@@ -1081,7 +1054,7 @@ All source code files and executable configuration files:
 > Note: the gate also refuses to **run** measurement scripts from free zones —
 > benches belong in protected directories (e.g. `scripts/bench/`).
 
-### 11.3. Secret Scanning Beyond Free Zones
+### 10.3. Secret Scanning Beyond Free Zones
 
 Even in files under `scratch/`, `tmp/`, `temp/`, content patterns such as
 `.bmad` directories, `gate-key`, `bmad_gate_key` and `gate_token` issue a
@@ -1092,9 +1065,9 @@ so ordinary prose mentioning them stays allowed.
 
 ---
 
-## 12. Security
+## 11. Security
 
-### 12.1. Gate Key
+### 11.1. Gate Key
 
 - **Location:** `~/.bmad/gate-key` (OUTSIDE the repository)
 - **Permissions:** 0600 (owner only; silently skipped on Windows)
@@ -1102,7 +1075,7 @@ so ordinary prose mentioning them stays allowed.
 - **Purpose:** HMAC-SHA256 validation — guarantees experiment records are not forged
 - **Lifetime:** Machine-local; each developer generates their own key
 
-### 12.2. Secret Protection
+### 11.2. Secret Protection
 
 The guard engine detects and blocks the following patterns:
 
@@ -1113,7 +1086,7 @@ The guard engine detects and blocks the following patterns:
 | Content containing `.bmad` / `gate-key` / `bmad_gate_key` / `gate_token` (any path, including agent zones) | DENY |
 | Content with `load_secret` / `secret_file` / `secret_env` in access context (call/assign/bracket) | DENY |
 
-### 12.3. HMAC Token Structure
+### 11.3. HMAC Token Structure
 
 ```mermaid
 flowchart LR
@@ -1145,9 +1118,9 @@ Every experiment approval is signed with an HMAC token:
 
 ---
 
-## 13. Audit and Health Check
+## 12. Audit and Health Check
 
-### 13.1. Automatic Audit (check-plugin.sh)
+### 12.1. Automatic Audit (check-plugin.sh)
 
 ```bash
 sh scripts/check-plugin.sh
@@ -1171,7 +1144,7 @@ sh scripts/check-plugin.sh
 | §6a | `.env` inventory (`.env` absent, `.env.example` present, `.gitignore` covers `.env`) | fix files |
 | §6b | Tech-debt inventory integrity | `scripts/check-techdebt.sh` |
 
-### 13.2. Negative Tests
+### 12.2. Negative Tests
 
 ```bash
 sh scripts/check-plugin.sh --negtest   # 4 stages
@@ -1184,7 +1157,7 @@ sh scripts/check-custom.sh --negtest   # §3 hard-gate + §7 bridge drift
 3. Removes the BRIDGE line from `custom/bmad-dev-story.toml` → §2b must emit a MISS (caught → restore)
 4. Removes the BRIDGE from `custom/bmad-agent-dev.toml` (`agent.principles`) → §2b must emit a MISS (caught → restore)
 
-### 13.3. BRIDGE Distribution
+### 12.3. BRIDGE Distribution
 
 **Producer BRIDGE (17 skills) — create/update records:**
 - `bmad-dev-story`, `bmad-quick-dev`, `bmad-dev-auto`, `bmad-agent-dev`
@@ -1201,7 +1174,7 @@ sh scripts/check-custom.sh --negtest   # §3 hard-gate + §7 bridge drift
 
 *(3 of the 33 are agent-principles surfaces: `bmad-agent-dev`, `gds-agent-game-dev`, `gds-agent-game-solo-dev` — their BRIDGE lives in `[agent].principles`.)*
 
-### 13.4. Manual Verification
+### 12.4. Manual Verification
 
 ```bash
 # Verify a single experiment
@@ -1215,7 +1188,7 @@ for f in docs/experiments/E-*.md; do
 done
 ```
 
-### 13.5. Reviewing the Audit Log
+### 12.5. Reviewing the Audit Log
 
 ```bash
 # All audit records
@@ -1233,7 +1206,7 @@ grep 'methodology_warnings' .metodoloji/logs/hook-audit.log
 
 ---
 
-## 14. SkillOpt Training and Self-Evolution
+## 13. SkillOpt Training and Self-Evolution
 
 The repo ships training infrastructure for tuning skill documents with
 [SkillOpt](https://github.com/microsoft/SkillOpt) (RL on text skills — no weight
@@ -1260,9 +1233,9 @@ changes). See `SKILLOPT.md` for the full reference.
 
 ---
 
-## 15. Troubleshooting
+## 14. Troubleshooting
 
-### 15.1. "No approved experiment record" Error
+### 14.1. "No approved experiment record" Error
 
 **Cause:** The file you are trying to write is outside the scope of any VERIFIED experiment record.
 
@@ -1282,7 +1255,7 @@ python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment
 # 4. Continue writing code
 ```
 
-### 15.2. "Gate key not configured" Error
+### 14.2. "Gate key not configured" Error
 
 **Cause:** The `~/.bmad/gate-key` file does not exist.
 
@@ -1291,7 +1264,7 @@ python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment
 python3 {metodoloji-root}/skills/bmad-research-experiment/scripts/run_experiment.py --init-secret
 ```
 
-### 15.3. "Hook engine could not run" Error
+### 14.3. "Hook engine could not run" Error
 
 **Cause:** Python not found or engine files missing. Guard/stop fail **closed**.
 
@@ -1308,7 +1281,7 @@ ls hooks/engine/modules/
 python3 -c "import sys; sys.path.insert(0, 'hooks/engine'); import main; print('OK')"
 ```
 
-### 15.4. "BRIDGE merge problem" Warning
+### 14.4. "BRIDGE merge problem" Warning
 
 **Cause:** The BRIDGE step in the custom TOML did not merge via deep_merge (or the
 skill has no root `customize.toml` for the team override to merge into).
@@ -1323,7 +1296,7 @@ python3 hooks/engine/resolve_customization.py \
 # The output should contain "BRIDGE"
 ```
 
-### 15.5. "Story experiment validation failed" Error
+### 14.5. "Story experiment validation failed" Error
 
 **Cause:** `experiment_refs` in the story file is invalid, the experiment record does
 not exist, or is not verified / has status `PENDING`/`REJECTED`.
@@ -1333,7 +1306,7 @@ not exist, or is not verified / has status `PENDING`/`REJECTED`.
 2. Is the experiment `APPROVED` and `VERIFIED`?
 3. Validate with `run_experiment.py --verify`
 
-### 15.6. "ADVISORY-BLOCK" on Verify
+### 14.6. "ADVISORY-BLOCK" on Verify
 
 **Cause:** The token is genuine but the record confesses a small sample (Wilson lower
 bound below the threshold), `n unknown`, or a metric `MISMATCH`. The approval does **not**
@@ -1342,7 +1315,7 @@ unlock code.
 **Solution:** Fix the experiment (larger sample, measurable denominator, matching metric)
 in a **new** record and re-run the gate.
 
-### 15.7. Stop Hook Is Not Closing the Session
+### 14.7. Stop Hook Is Not Closing the Session
 
 **Cause:** There is an incomplete story or an unapproved code change — or a
 duplicate Stop registration ("Ran 2 stop hooks" in the transcript means two
@@ -1362,11 +1335,6 @@ cat bmad-output/implementation-artifacts/sprint-status.yaml
 # for writes), then tighten back to "hard" after the first VERIFIED scope.
 ```
 
-If the session's work is finished, set the memlog status:
-```bash
-python3 bmad/scripts/memlog.py set --workspace . --key status --value complete
-```
-
 The Stop hook can only push back once per session (deny budget = 1, then
 `stop_hook_active` re-fires allow) — it can delay a close, never wedge it.
 Sprint-status files older than the session start never block; touches from
@@ -1374,7 +1342,7 @@ previous sessions don't count.
 
 ---
 
-## 16. Frequently Asked Questions
+## 15. Frequently Asked Questions
 
 ### Q: What do the `quality_gate` / `deploy_guard` / `code_guard` / `stop_guard` soft/hard modes do?
 
@@ -1412,12 +1380,6 @@ target file falls within the scope of any VERIFIED experiment.
 **A:** No. The single-file `bmad-hooks.py` has been removed. All references point to
 the modular engine (`hooks/engine/main.py` + `modules/`).
 
-### Q: Is `memlog.py` still part of the hook engine?
-
-**A:** No. `memlog.py` moved to `bmad/scripts/memlog.py` (and one copy inside the
-`bmad-eval-runner` skill). The engine consumes memlog frontmatter through the intent
-bridge (`utils._active_intent`/`_active_scope`); the engine no longer re-exports it.
-
 ### Q: How do I update the plugin?
 
 ```bash
@@ -1433,7 +1395,7 @@ git pull
 
 ---
 
-## 17. Glossary
+## 16. Glossary
 
 | Term | Definition |
 |------|------------|
@@ -1451,14 +1413,12 @@ git pull
 | **Fail-Open** | Allow by default if the engine cannot run |
 | **Free Zone** | Directories/files outside guard audit (scratch/, docs/, .git/…) |
 | **Code Target** | Files protected by the guard (whitelist classification) |
-| **Memlog** | Append-only working-memory log (`.memlog.md`) written via `bmad/scripts/memlog.py` |
-| **Intent Bridge** | Session intent/scope carried from the active memlog into every hook (env + fallback) |
 | **Methodology Chain** | The E → IR → SP → S → QR → PR link structure — each link is mechanically enforced |
 | **Mode A** | Quantitative/empirical experiment mode (the only path to code production) |
 | **Mode B** | Qualitative research mode |
 | **Mode C** | Design mode |
 | **Mode D** | Contextual research mode |
-| **SkillOpt** | RL-on-text training used to tune SKILL.md documents (§15) |
+| **SkillOpt** | RL-on-text training used to tune SKILL.md documents (§13) |
 
 ---
 

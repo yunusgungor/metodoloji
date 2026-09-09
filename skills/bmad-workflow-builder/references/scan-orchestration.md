@@ -106,12 +106,6 @@ The shell fails loud: a malformed island shows the parse-error banner, an unfill
 
 ## Record the run
 
-Append one memlog event carrying the grade (init the memlog first if `{target-skill-path}/.memlog.md` does not exist):
-
-```bash
-python3 {metodoloji-root}/bmad/scripts/memlog.py append --path {target-skill-path}/.memlog.md --type event --text "analyze: grade <grade>, <c> critical / <h> high / <m> medium / <l> low, report .analysis/<timestamp>/skill-analysis-report.html"
-```
-
 ## Present
 
 **IF `{headless_mode}=true`:** emit
@@ -124,7 +118,6 @@ python3 {metodoloji-root}/bmad/scripts/memlog.py append --path {target-skill-pat
   "grade": "excellent | good | fair | poor",
   "html_report": "{target-skill-path}/.analysis/<timestamp>/skill-analysis-report.html",
   "md_report": "{target-skill-path}/.analysis/<timestamp>/skill-analysis-report.md",
-  "memlog": "{target-skill-path}/.memlog.md",
   "counts": { "critical": 0, "high": 0, "medium": 0, "low": 0 }
 }
 ```

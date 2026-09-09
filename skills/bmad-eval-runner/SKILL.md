@@ -54,7 +54,7 @@ These map directly onto the script CLIs below; anything not listed there (case s
 
 2. If `--headless` was passed, set `{headless_mode}=true`, skip every confirmation below, pick the safest defaults, and proceed.
 
-3. Resume check: glob the output dir for an in-progress run's `.memlog.md`. If one exists and matches this skill, read it once to rebuild state, then continue append-only. Capture decisions and direction changes into the run's memlog through `scripts/memlog.py` as they land.
+3. Resume check: glob the output dir for an in-progress run folder. If one exists and matches this skill, read its decision log once to rebuild state, then continue. Capture decisions and direction changes into the run's decision log as they land.
 
 4. Locate the skill and verify `<skill-path>/SKILL.md` exists. Halt with a clear error if it does not.
 
@@ -97,7 +97,7 @@ When a run fails or comes back weak and the user wants the skill improved from t
 
 ## Artifacts
 
-Every run writes a dated run folder under the output dir, and those artifacts are permanent. Each case folder holds its prompt, transcript, the `cwd/` with any files the skill wrote, `timing.json`, and `grading.json` when quality mode ran. Never delete, overwrite, or rotate a run folder; disk usage is the user's call. The run's `.memlog.md` records the decisions and deltas so a resumed or audited run reads back cleanly.
+Every run writes a dated run folder under the output dir, and those artifacts are permanent. Each case folder holds its prompt, transcript, the `cwd/` with any files the skill wrote, `timing.json`, and `grading.json` when quality mode ran. Never delete, overwrite, or rotate a run folder; disk usage is the user's call. The run's decision log records the decisions and deltas so a resumed or audited run reads back cleanly.
 
 Tell the user where the run folder is when you finish.
 

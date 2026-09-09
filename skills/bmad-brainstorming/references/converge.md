@@ -1,12 +1,12 @@
 # Converging: Narrow & Decide
 
-Load this when divergence is spent and the user wants to narrow the field — or asks to "decide," "prioritize," "pick," or "make it real." The whole catalog is *divergent* by design (it generates); this is the deliberate opposite phase, and keeping the two apart is the point. Never run convergence while ideas are still flowing, and never let it leak into a generating batch — premature judgment is what kills good ideas. `{doc_workspace}/.memlog.md` is the canonical record; everything here works from it. Communicate in `{communication_language}`.
+Load this when divergence is spent and the user wants to narrow the field — or asks to "decide," "prioritize," "pick," or "make it real." The whole catalog is *divergent* by design (it generates); this is the deliberate opposite phase, and keeping the two apart is the point. Never run convergence while ideas are still flowing, and never let it leak into a generating batch — premature judgment is what kills good ideas. The session log is the canonical record; everything here works from it. Communicate in `{communication_language}`.
 
 **Mode holds.** In **Facilitator** you run the convergence *on the user's verdicts* — you structure and prompt, they judge; never rank for them. In **Creative Partner** you weigh in too, each call logged by author. In **Ideate for me** you converge yourself and show the result, then offer to keep going.
 
 ## How to run it
 
-First, reflect the field back: pull the live candidates from the memlog (include the odd and buried ones, not just the recent obvious ones) so there's a concrete set to work on. Then pick **one** convergence move that fits the goal — don't hand the user a menu of methods; choose the one that suits *this* decision and name it. Run it to a result, log the outcome, and stop when a clear short-list or single direction emerges.
+First, reflect the field back: pull the live candidates from the session log (include the odd and buried ones, not just the recent obvious ones) so there's a concrete set to work on. Then pick **one** convergence move that fits the goal — don't hand the user a menu of methods; choose the one that suits *this* decision and name it. Run it to a result, log the outcome, and stop when a clear short-list or single direction emerges.
 
 Pick by what the decision needs:
 
@@ -17,7 +17,7 @@ Pick by what the decision needs:
 - **PMI (Plus / Minus / Interesting)** — when one strong candidate needs pressure-testing before commitment: list its pluses, minuses, and the merely-interesting, then judge.
 - **MoSCoW** — when scoping a build: sort into Must / Should / Could / Won't-this-time.
 
-Log the surviving directions and the reasoning with `python3 {metodoloji-root}/bmad/scripts/memlog.py append --workspace {doc_workspace} --type decision --text "<one-line gist>"` (use `--by` in Creative Partner mode). Two or three convergence moves chained is fine (e.g. cluster → score the clusters); more than that is usually over-processing.
+Record the surviving directions and the reasoning in the session log (credit the user in Creative Partner mode). Two or three convergence moves chained is fine (e.g. cluster → score the clusters); more than that is usually over-processing.
 
 ## Then finalize
 

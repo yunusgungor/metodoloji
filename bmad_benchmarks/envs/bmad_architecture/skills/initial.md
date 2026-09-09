@@ -30,13 +30,13 @@ List decisions intentionally NOT made here, with revisit conditions.
 ## Process
 
 1. **Elicit** (Coaching path default): Open-ended questions to pull decisions from user
-2. **Draft**: Build spine from decisions, minimal seed. Seed the memlog with the session intent: `python3 {metodoloji-root}/bmad/scripts/memlog.py init --workspace {doc_workspace} --field scope="…" --field purpose="…" --field altitude="…"` — `purpose`/`scope` are read by the hook engine (intent bridge) to track what this session is working on.
+2. **Draft**: Build spine from decisions, minimal seed.
 3. **Review**: Lint check + rubric walker + parallel reviewer subagents
-4. **Finalize**: Distill from memlog, set status: final
+4. **Finalize**: Distill from the working draft, set status: final
 
 ## Rules
 
-- Record decisions, not rationale (rationale lives in memlog)
+- Record decisions, not rationale (rationale lives in the conversation)
 - Carry shape in diagrams (mermaid), not prose
 - Verify named technology's current version on web before binding
 - Inherit parent spine invariants as read-only constraints

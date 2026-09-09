@@ -29,9 +29,9 @@ Free-form structured payload in the first message; provide what applies:
 
 ## Run
 
-1. Bind `{doc_workspace}` and create the memlog with `python3 {metodoloji-root}/bmad/scripts/memlog.py init --workspace {doc_workspace} --field purpose="<topic>" --field topic="<topic>" [--field goal="<goal>"]`. It remains the canonical source every artifact derives from. `purpose` is the intent-bridge field the hook engine reads.
-2. Run the divergent session per **The inversion**, capturing each idea with `python3 {metodoloji-root}/bmad/scripts/memlog.py append --workspace {doc_workspace} --type idea --text "<idea>"` as it lands, and marking each technique switch with `python3 {metodoloji-root}/bmad/scripts/memlog.py append --workspace {doc_workspace} --type technique --text "started <name>"`.
-3. Synthesize: surface the conclusions, connections, and the few directions that matter; record them with `python3 {metodoloji-root}/bmad/scripts/memlog.py append --workspace {doc_workspace} --type insight --text "<insights>"`, then run `python3 {metodoloji-root}/bmad/scripts/memlog.py set --workspace {doc_workspace} --key status --value complete`.
+1. Bind `{doc_workspace}` and open the session log. It remains the canonical source every artifact derives from.
+2. Run the divergent session per **The inversion**, capturing each idea in the session log as it lands, and marking each technique switch.
+3. Synthesize: surface the conclusions, connections, and the few directions that matter; record them in the session log and close it in `brainstorm-intent.md` with `status: final`.
 4. Produce the requested artifacts from the log — `brainstorm.html` (the imaginative, self-contained, no-template report) and/or the succinct `brainstorm-intent.md` — the same artifacts `references/finalize.md` describes, delegating each to a subagent that reads the log as its sole source. (Headless produces the `artifacts` payload directly; it does not ask, unlike the interactive opt-in.)
 5. Execute each entry in `{workflow.external_handoffs}` (capture returned URLs/IDs into the JSON `external_handoffs` array; skip and flag unavailable tools — local files always exist). Then run `{workflow.on_complete}` if non-empty.
 
@@ -45,7 +45,7 @@ End with a JSON status block. Use `complete` when the artifacts stand on their o
 {
   "status": "complete",
   "intent": "brainstorm",
-  "memlog": "{doc_workspace}/.memlog.md",
+  "intent_doc": "{doc_workspace}/brainstorm-intent.md",
   "html": "{doc_workspace}/brainstorm.html",
   "intent_doc": "{doc_workspace}/brainstorm-intent.md",
   "assumptions": [],

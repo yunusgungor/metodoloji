@@ -20,9 +20,9 @@ When stages earn their place, name them descriptively and route by intent. The s
 
 The intent routing table is what makes the split worth its cost, because the model reads the user's intent and jumps straight to the stage that serves it rather than walking a fixed sequence. Stage order is a routing decision SKILL.md makes per run rather than something baked into the file names.
 
-## Carved Files and the Memlog
+## Carved Files and Shared State
 
-Carved files reach the memlog by its resolved path rather than assuming in-context state, because compaction can drop SKILL.md before the carved file runs.
+Carved files reach shared state by its resolved path rather than assuming in-context state, because compaction can drop SKILL.md before the carved file runs.
 
 ## Module Metadata Reference
 

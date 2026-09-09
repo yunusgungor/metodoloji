@@ -18,7 +18,7 @@ Lead by questioning, not lecturing. Ask one question at a time, press on weak po
 
 ## Conventions
 
-- Scripts live in two places — run each from the exact path written, never assume co-location: the shared core scripts (`memlog.py`, `resolve_customization.py`, `resolve_config.py`) are installed by BMad core at `{metodoloji-root}/bmad/scripts/` and are never bundled here; this skill's own `resolve_personas.py` is at `{skill-root}/scripts/`.
+- Scripts live in two places — run each from the exact path written, never assume co-location: the shared core scripts (`resolve_customization.py`, `resolve_config.py`) are installed by BMad core at `{metodoloji-root}/bmad/scripts/` and are never bundled here; this skill's own `resolve_personas.py` is at `{skill-root}/scripts/`.
 - `{workflow.<name>}` resolves to fields in the merged `customize.toml` `[workflow]` table.
 
 ## On Activation
@@ -27,7 +27,7 @@ Lead by questioning, not lecturing. Ask one question at a time, press on weak po
 2. Run each `{workflow.activation_steps_prepend}` entry; treat each `{workflow.persistent_facts}` entry as foundational context (`file:` entries load their contents, `skill:` names a skill to consult, others are facts verbatim).
 3. Resolve config by running: `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module core`; resolve `{user_name}`, `{communication_language}`, `{output_folder}`. Missing → neutral defaults; never block. Greet `{user_name}` in `{communication_language}` and stay in it.
 4. Note whether a BMad persona is already active in this conversation — the user loaded one (e.g. the analyst, the storyteller) and invoked the forge from within it. If so, that persona leads the session, in voice, throughout.
-5. Resume: glob `{workflow.forge_output_path}/**/.memlog.md` (recursive, so it still finds sessions when `run_folder_pattern` is overridden to nest paths) and read only each match's frontmatter to find any whose `status` is not `complete`. Offer to resume one — then read its full memlog once to rebuild state and continue append-only — or to start fresh.
+5. Resume: glob `{workflow.forge_output_path}/**/forged-idea.md` (recursive, so it still finds sessions when `run_folder_pattern` is overridden to nest paths). Offer to resume one — read it once to rebuild state — or to start fresh.
 6. Run each `{workflow.activation_steps_append}` entry.
 
 ## Open the session
@@ -53,10 +53,7 @@ Tell the user they can say **"attack this"**, **"defend this"**, or **"switch ro
 
 ### Set up the session
 
-Derive a kebab-case `{slug}` for the idea and bind the session workspace `{workspace} = {workflow.forge_output_path}/{workflow.run_folder_pattern}` (the pattern fills with `{slug}`). Create the memlog once the goal is known:
-`python3 {metodoloji-root}/bmad/scripts/memlog.py init --workspace {workspace} --field purpose="<idea>" --field idea="<idea>" --field goal="<goal>"` — `purpose` is the intent-bridge field the hook engine reads.
-
-Tell the user the path; state is on disk now, so the session survives interruption. If init fails, don't abort — run the forge in-conversation and tell the user state won't persist this session.
+Derive a kebab-case `{slug}` for the idea and bind the session workspace `{workspace} = {workflow.forge_output_path}/{workflow.run_folder_pattern}` (the pattern fills with `{slug}`). Tell the user the path — the forged deliverable and the report land there.
 
 ## The forge
 
@@ -76,7 +73,7 @@ When the user brings up an idea unprompted — "I have an idea", "I was thinking
 
 4. **Stay focused.** One question at a time, in dependency order. Do not shotgun five questions. When a branch resolves, pause before moving on.
 
-5. **Capture as you go.** Every decision, assumption, crack, kill, and lock lands in the memlog as a bullet, exactly as in the forge loop.
+5. **Track decisions as you go.** Keep a running tally of every decision, assumption, crack, kill, and lock — the raw material `forged-idea.md` distills from.
 
 Include your current best answer or hypothesis when it helps the user respond. A concrete proposal is easier to accept, reject, or revise than an open-ended prompt. Find discoverable answers yourself instead of asking.
 
@@ -88,9 +85,7 @@ When a branch resolves, pause before moving on. Give the user a chance to raise 
 
 Do not use agreement or praise to make the interaction smoother; they lower pressure and lead to shallower thinking. Agreement is allowed only when it helps the user think better. Praise is noise. Continued engagement and ego-stroking are not objectives. In attack mode, never agree with the idea until the user ends the mode. For each answer, either challenge the weak point or build on the strong point, whichever helps the user think better.
 
-Capture as you go — each decision, assumption, crack, kill, and locked idea, one bullet in the user's meaning:
-`python3 {metodoloji-root}/bmad/scripts/memlog.py append --workspace {workspace} --type <decision|assumption|crack|kill|direction|lock|note> --text "<gist>"`
-A `lock` is an idea the user hardens — settled, not to be reopened; locks are what `forged-idea.md` is distilled from. Don't read the memlog back except on resume. If the user raises a different branch, capture it and stay put — the loop and the stray insight both survive.
+A `lock` is an idea the user hardens — settled, not to be reopened; locks are what `forged-idea.md` is distilled from. If the user raises a different branch, note it and stay put — the loop and the stray insight both survive.
 
 ## The personas
 
@@ -112,11 +107,10 @@ Voice the personas yourself by default. Spawn separate agents only when a branch
 
 The session can end in three valid states:
 
-- **Hardened** — the idea is stronger and specific enough to use. Distill the memlog into `{workspace}/forged-idea.md`. Keep it extremely short: only the decisions, rejected options, and reasons that matter downstream, in the user's meaning. Do not write a prose summary, template, or conversation recap. If it reads like a document, it is too long. Note that it can feed `bmad-spec`, `bmad-prd`, or `bmad-prfaq`.
+- **Hardened** — the idea is stronger and specific enough to use. Write `{workspace}/forged-idea.md` from the session's decision tally. Keep it extremely short: only the decisions, rejected options, and reasons that matter downstream, in the user's meaning. Do not write a prose summary, template, or conversation recap. If it reads like a document, it is too long. Note that it can feed `bmad-spec`, `bmad-prd`, or `bmad-prfaq`.
 - **Killed** — the idea does not hold up. Say so plainly and record why. Finding that out early is a valid outcome.
-- **Clearer** — the user understands the idea better, but there is no hardened idea to hand off. Leave the memlog as the record; no `forged-idea.md` is needed.
+- **Clearer** — the user understands the idea better, but there is no hardened idea to hand off. No `forged-idea.md` is needed.
 
 Always render `{workspace}/forge-report.html` as a self-contained HTML file the user can open, with inline CSS and an inline-SVG seal or stamp. Summarize the outcome, the locked decisions, what was rejected and why, and the weak points that survived scrutiny, in the user's meaning. Credit the personas and parties that pressure-tested the idea by name, icon, and voice. Render a prominent wax-seal-style or stamped outcome mark, matched to the result: `HARDENED`, an `Idea Death Certificate` stamped `KILLED` with the cause of death, or `CLARIFIED`. Tell the user the path.
 
-Flip the status at the end: `python3 {metodoloji-root}/bmad/scripts/memlog.py set --workspace {workspace} --key status --value complete`.
 If `{workflow.on_complete}` is non-empty, run all instructions in order.

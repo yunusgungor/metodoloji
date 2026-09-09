@@ -46,7 +46,7 @@ Default: write the entire workflow as named sections in SKILL.md (`## Discovery`
 - **Gotchas stay in SKILL.md.** A rule whose trigger the model cannot recognize — a soft-delete column that poisons queries, a health endpoint that lies, three names for one ID — never carves to a reference however branch-specific it is, because the model cannot load a file for a situation it does not know it is in. When a user corrects a running skill, the cheapest durable fix is appending that correction as a gotcha line.
 
 ## Headless mode
-When a skill supports headless invocation, the memlog absorbs every assumption made without the user: intent inference, proposed names, customization defaults, conflict resolutions, lint-fix calls, anything the user would have weighed in on interactively. Append these as typed `assumption` and `decision` entries through `{metodoloji-root}/bmad/scripts/memlog.py` as they happen. The JSON return is the smallest set of paths the caller needs (typically `skill` plus the memlog path, plus the report path for analysis flows); the memlog carries the reasoning. `status` is `complete` or `blocked`; on `blocked`, include a one-line `reason` and still return the memlog path so the caller can read the detail. Without this discipline, headless silently buries its calls and the audit trail breaks on the next session.
+When a skill supports headless invocation, its working state absorbs every assumption made without the user: intent inference, proposed names, customization defaults, conflict resolutions, lint-fix calls, anything the user would have weighed in on interactively. Record these as they happen in the working state the skill chose. The JSON return is the smallest set of paths the caller needs (typically `skill`, plus the report path for analysis flows); the working state carries the reasoning. `status` is `complete` or `blocked`; on `blocked`, include a one-line `reason` and still return the working-state path so the caller can read the detail. Without this discipline, headless silently buries its calls and the audit trail breaks on the next session.
 
 ## Subagent constraints
 - Subagents CANNOT spawn other subagents. Chain through the parent.
@@ -83,7 +83,7 @@ Institutional names for patterns the LLM won't generate by default:
 - **Three-mode architecture**: Guided, Yolo, Headless. Not every skill needs all three, but considering it during design prevents lock-in.
 - **Graceful degradation**: Subagent-dependent features fall back to sequential when subagents are unavailable.
 - **Plan-validate-execute**: For batch or destructive operations, produce an intermediate plan artifact, validate it against the source of truth with a script whose errors name the fix ("field 'signature_date' not found — available: …"), and only then execute. The validation script is the load-bearing piece, because it lets the model self-correct before anything irreversible runs.
-- **Working state across turns**: a multi-turn skill that builds something holds state as a memlog (the decision trail), a structured working artifact (the work-in-progress that transforms into the output), both, or neither. The choice and the full treatment live in `references/working-state-patterns.md`.
+- **Working state across turns**: a multi-turn skill that builds something holds state in a structured working artifact (the work-in-progress that transforms into the output) or inline rationale in it. The choice and the full treatment live in `references/working-state-patterns.md`.
 
 ## Writing
 - One term per concept; pick it and stick to it.
@@ -102,5 +102,5 @@ Institutional names for patterns the LLM won't generate by default:
 - **Boolean toggles in customize.toml** → Author didn't decide what the skill does; the surface becomes a permutation forest. Fix: pick a default and let users fork if they want the other shape.
 - **Hardcoded path in SKILL.md while customize.toml declares the scalar** → Override silently does nothing. Fix: SKILL.md must read `{workflow.<name>}`.
 - **Identity, communication style, or principles in `[workflow]`** → The workflow wants to be an agent. Fix: point the author at agent-builder and remove it from the workflow surface.
-- **Multi-turn producing skill with no working-state strategy** → state lives only in the conversation and dies on compaction or revisit. Fix: choose a memlog or a structured working artifact (`references/working-state-patterns.md`).
-- **Working-state strategy buried under ceremony** → a memlog-discipline enumeration or a meta `## Workspace` section pays the pattern's cost without its value. Fix: thread it through the intents at the points that matter; `bmad-product-brief` is the model.
+- **Multi-turn producing skill with no working-state strategy** → state lives only in the conversation and dies on compaction or revisit. Fix: choose a structured working artifact (`references/working-state-patterns.md`).
+- **Working-state strategy buried under ceremony** → a state-discipline enumeration or a meta `## Workspace` section pays the pattern's cost without its value. Fix: thread it through the intents at the points that matter; `bmad-product-brief` is the model.

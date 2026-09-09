@@ -12,12 +12,13 @@ rest. Every surviving line should beat its own absence.
 Pick the archetype that matches what you are building and keep only its parts:
 
 - One-shot action. The skill does a single thing and returns. Keep the role
-  paragraph and a short outcome statement. Drop multi-stage routing, memlog, and
+  paragraph and a short outcome statement. Drop multi-stage routing, working state, and
   resume. Most skills are this; resist adding more.
 
-- Producer of a durable artifact (brief, PRD, report, deck). Keep memlog as the
-  process memory, a finalize beat that distills the memlog into the artifact, and
-  the output-path handling. This is the archetype that earns memlog.
+- Producer of a durable artifact (brief, PRD, report, deck). Keep a structured
+  working artifact as the process memory, a finalize beat that distills the run
+  into the artifact, and the output-path handling. This is the archetype that
+  earns working state.
 
 - Multi-intent router. The skill handles a few related jobs behind one entry.
   Keep an intent table that routes to references, and name the stages with
@@ -46,7 +47,7 @@ Write it once; do not restate it lower down.}
 1. Resolve config by running `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root} --module core` (merges plugin defaults with `{project-root}` overrides; project values win). Use sensible defaults for anything missing rather than requiring configuration.
 
 <!-- Keep step 2 only for artifact-producing skills that carry process memory. -->
-2. Resume check. Look for an existing `.memlog.md` in the run folder. If one is found, read it once to rebuild state and continue append-only; otherwise initialize a new memlog with `python3 {metodoloji-root}/bmad/scripts/memlog.py init --path <run-folder>/.memlog.md`.
+2. Resume check. Look for existing working state in the run folder. If one is found, read it once to rebuild state and continue; otherwise initialize it per the skill's working-state strategy.
 
 <!-- Keep step 3 only if the author accepted customize.toml. -->
 3. Resolve the `workflow` block: run `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — the OpenHands terminal tool accepts only the command parameter; do NOT add description. If the script fails, merge these three files yourself in base → team → user order — `{skill-root}/customize.toml`, `{metodoloji-root}/custom/{skill-name}.toml`, `{metodoloji-root}/custom/{skill-name}.user.toml` — where scalars override, tables deep-merge, arrays of tables keyed by `code`/`id` replace matching entries and append new ones, and all other arrays append. Reference resolved values as `{workflow.<name>}` everywhere below; never hardcode a path beside a declared scalar.

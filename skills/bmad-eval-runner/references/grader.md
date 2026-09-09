@@ -51,9 +51,9 @@ The grader receives:
       "evidence": "artifacts/insulens/brief.md, 487 words"
     },
     {
-      "text": "the memlog references having ingested the memo as source material",
+      "text": "the run log references having ingested the memo as source material",
       "passed": false,
-      "evidence": ".memlog.md exists but contains only the init entry; no mention of memo.md"
+      "evidence": "the run log exists but is a stub; no mention of memo.md"
     }
   ],
   "summary": { "passed": 1, "failed": 1, "total": 2, "pass_rate": 0.5 },
@@ -65,7 +65,7 @@ The grader receives:
       }
     ],
     "uncovered": [
-      "The brief invented a competitor not present in the input or the memlog; no assertion would have caught this."
+      "The brief invented a competitor not present in the input or the run log; no assertion would have caught this."
     ],
     "overall": "Assertions check structure but not content fidelity in two places."
   }

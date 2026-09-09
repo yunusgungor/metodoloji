@@ -3,7 +3,7 @@
 
 Turns the self-improvement.md 4-beat loop into a runnable harness. The loop's
 MECHANICS are enforced in code: round bound, one change per round, revert on
-regression, and a full typed memlog trail. The CONTENT of each proposed fix is
+regression, and a full typed trail file. The CONTENT of each proposed fix is
 delegated to an external "improver" command (an LLM invocation) because writing
 a skill fix is a language act, not a mechanical one — the harness guarantees the
 discipline around it.
@@ -13,7 +13,7 @@ The evaluator is a command that, given a skill path, prints a JSON score:
 
 Usage:
   python3 auto_iterate.py --skill SKILL.md --eval CMD --improve CMD \\
-      --rounds 5 --pass-threshold 0.9 --memlog PATH
+      --rounds 5 --pass-threshold 0.9 --trail PATH
 
   --eval CMD      shell command; {skill} is substituted with the skill path
   --improve CMD   shell command; {skill} is substituted, receives the finding
@@ -21,7 +21,7 @@ Usage:
                   a path printed on stdout). The harness applies it.
   --rounds N      hard stop (default 5)
   --pass-threshold F  stop early when score >= F (default 0.9)
-  --memlog PATH   where to write the typed trail (default: run dir)
+  --trail PATH    where to write the typed trail (default: run dir)
 
 Exit: 0 when the pass condition was met, 1 when rounds ran out without passing,
 2 on usage error.
@@ -40,11 +40,11 @@ from datetime import datetime
 from pathlib import Path
 
 
-def _log(memlog: Path, entry_type: str, text: str) -> None:
-    """Append a typed line to the memlog trail (append-only, plain markdown)."""
-    memlog.parent.mkdir(parents=True, exist_ok=True)
+def _log(trail: Path, entry_type: str, text: str) -> None:
+    """Append a typed line to the trail (append-only, plain markdown)."""
+    trail.parent.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y-%m-%dT%H:%M")
-    with open(memlog, "a", encoding="utf-8") as fh:
+    with open(trail, "a", encoding="utf-8") as fh:
         fh.write(f"- ({entry_type}) {text}  ({stamp})\n")
 
 
@@ -101,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--improve", required=True, help="shell cmd; {skill} substituted; reads finding on stdin, writes new skill to stdout")
     p.add_argument("--rounds", type=int, default=5)
     p.add_argument("--pass-threshold", type=float, default=0.9)
-    p.add_argument("--memlog", type=Path, default=None)
+    p.add_argument("--trail", type=Path, default=None)
     p.add_argument("--finding", default="improve the skill",
                    help="finding passed to the improver each round")
     args = p.parse_args(argv)
@@ -109,9 +109,9 @@ def main(argv: list[str] | None = None) -> int:
     if not args.skill.is_file():
         print(f"skill not found: {args.skill}", file=sys.stderr)
         return 2
-    memlog = args.memlog or Path(f".auto-iterate-{args.skill.stem}.memlog.md")
+    trail = args.trail or Path(f".auto-iterate-{args.skill.stem}.trail.md")
 
-    _log(memlog, "event", f"auto-iterate start: skill={args.skill}, rounds={args.rounds}, threshold={args.pass_threshold}")
+    _log(trail, "event", f"auto-iterate start: skill={args.skill}, rounds={args.rounds}, threshold={args.pass_threshold}")
 
     best_score = -1.0
     best_content = args.skill.read_text(encoding="utf-8")
@@ -119,9 +119,9 @@ def main(argv: list[str] | None = None) -> int:
         # Beat 1: eval the CURRENT skill.
         rc, out = _run(args.eval, str(args.skill))
         score = _parse_score(out) if rc == 0 else 0.0
-        _log(memlog, "event", f"round {rnd}: eval score={score} (rc={rc})")
+        _log(trail, "event", f"round {rnd}: eval score={score} (rc={rc})")
         if score >= args.pass_threshold:
-            _log(memlog, "decision", f"round {rnd}: PASS (score {score} >= {args.pass_threshold}) — stop")
+            _log(trail, "decision", f"round {rnd}: PASS (score {score} >= {args.pass_threshold}) — stop")
             print(f"PASS at round {rnd} (score {score})")
             return 0
         if score > best_score:
@@ -129,27 +129,27 @@ def main(argv: list[str] | None = None) -> int:
             best_content = args.skill.read_text(encoding="utf-8")
 
         # Beat 2: propose + apply ONE change.
-        _log(memlog, "decision", f"round {rnd}: propose fix — {args.finding}")
+        _log(trail, "decision", f"round {rnd}: propose fix — {args.finding}")
         ok, detail = _apply_improvement(args.skill, args.improve)
         if not ok:
-            _log(memlog, "note", f"round {rnd}: improver failed ({detail}) — revert")
+            _log(trail, "note", f"round {rnd}: improver failed ({detail}) — revert")
             args.skill.write_text(best_content, encoding="utf-8")
             continue
 
         # Beat 3: re-eval; revert if regression.
         rc2, out2 = _run(args.eval, str(args.skill))
         new_score = _parse_score(out2) if rc2 == 0 else 0.0
-        _log(memlog, "event", f"round {rnd}: re-eval score={new_score} (was {score})")
+        _log(trail, "event", f"round {rnd}: re-eval score={new_score} (was {score})")
         if new_score < score:
-            _log(memlog, "note", f"round {rnd}: regression ({new_score} < {score}) — revert")
+            _log(trail, "note", f"round {rnd}: regression ({new_score} < {score}) — revert")
             args.skill.write_text(best_content, encoding="utf-8")
             continue
         # Improved: keep, continue to next round.
         best_score = new_score
         best_content = args.skill.read_text(encoding="utf-8")
-        _log(memlog, "direction", f"round {rnd}: kept improvement (score {new_score})")
+        _log(trail, "direction", f"round {rnd}: kept improvement (score {new_score})")
 
-    _log(memlog, "direction",
+    _log(trail, "direction",
          f"auto-iterate end: rounds exhausted, best score {best_score}, "
          f"threshold {args.pass_threshold} NOT met")
     print(f"ROUNDS EXHAUSTED (best {best_score})")

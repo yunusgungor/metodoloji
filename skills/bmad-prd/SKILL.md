@@ -12,7 +12,7 @@ You are a master facilitator and coach helping the user create, edit, or validat
 - Bare paths resolve from skill root; `{skill-root}` is this skill's install dir; `{project-root}` is the project working dir.
 - `{workflow.<name>}` resolves to fields in `customize.toml`'s `[workflow]` table (overrides win per BMad merge rules).
 - `{doc_workspace}` is the bound run folder.
-- **File roles.** `.memlog.md` is the run's canonical memory and audit trail — every decision, change, and override (including headless overrides) lands as one append-only line as the conversation unfolds. All writes go through the shared script, never by hand: `python3 {metodoloji-root}/bmad/scripts/memlog.py append --workspace {doc_workspace} --type <decision|change|override|assumption|event> --text "<one-line gist, reason included>"` (atomic; read it back only to resume or audit). The PRD is distilled toward it; whatever isn't logged is lost on resume. `addendum.md` preserves user-contributed depth that belongs in a downstream document (architecture, solution design, UX spec) or earned a place but does not fit the PRD itself — rejected-alternative rationale, options-considered matrices, mechanism/transport decisions, technical-how, in-depth personas, sizing data. Capture to the addendum *during* the conversation when the user volunteers such content — do not wait for finalize. Audit and override information never goes in the addendum.
+- **File roles.** `prd.md` is the run's canonical artifact — decisions and changes land in it as the conversation unfolds. `addendum.md` preserves user-contributed depth that belongs in a downstream document (architecture, solution design, UX spec) or earned a place but does not fit the PRD itself — rejected-alternative rationale, options-considered matrices, mechanism/transport decisions, technical-how, in-depth personas, sizing data. Capture to the addendum *during* the conversation when the user volunteers such content — do not wait for finalize. Audit and override information never goes in the addendum.
 
 ## On Activation
 
@@ -28,9 +28,9 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
 ## Intent Modes
 
-**Create.** Bind `{doc_workspace}` to `{workflow.prd_output_path}/{workflow.run_folder_pattern}/`. Write `prd.md` with YAML frontmatter (title, status, created, updated — initial `status: draft`), and seed the memlog with `python3 {metodoloji-root}/bmad/scripts/memlog.py init --workspace {doc_workspace} --field purpose="<PRD/product name>" --field topic="<PRD/product name>"` so subsequent decisions land in a known file. `purpose` is the intent-bridge field the hook engine reads. Tell the user the path. Run `## Discovery`, then `## Finalize`.
+**Create.** Bind `{doc_workspace}` to `{workflow.prd_output_path}/{workflow.run_folder_pattern}/`. Write `prd.md` with YAML frontmatter (title, status, created, updated — initial `status: draft`). Tell the user the path. Run `## Discovery`, then `## Finalize`.
 
-**Update.** Reconcile the PRD with a change signal. Source-extract against PRD, addendum, `.memlog.md`, and original inputs (extract, don't ingest). If `.memlog.md` is missing, init it with `python3 {metodoloji-root}/bmad/scripts/memlog.py init --workspace {doc_workspace}`, then spawn a one-time bootstrap subagent to reverse-engineer a thin log from the PRD (one `python3 {metodoloji-root}/bmad/scripts/memlog.py append --workspace {doc_workspace} --type decision --text "<recovered decision>"` per recovered decision) before continuing. Surface conflicts with prior decisions before applying. Then `## Finalize`.
+**Update.** Reconcile the PRD with a change signal. Source-extract against PRD, addendum, and original inputs (extract, don't ingest). Surface conflicts with prior decisions before applying. Then `## Finalize`.
 
 **Validate** (or *analyze*). Critique without changing. Load `references/validate.md`.
 
@@ -83,11 +83,11 @@ Under Validate intent, the parent additionally runs the synthesis pipeline in `r
 
 Tell the user the sequence in one sentence, then walk it. Polish goes last so it does not redo work after reviewer fixes.
 
-1. **Memlog audit.** Walk `.memlog.md` with the user; each entry captured in PRD, in addendum, or set aside.
+1. **Input reconciliation setup.** Confirm the capture targets are agreed: each open decision lands in the PRD, in the addendum, or is set aside.
 2. **Input reconciliation.** Subagent per user-supplied input against `prd.md` + `addendum.md`. Each writes its extract to `{doc_workspace}/reconcile-{slug}.md` and returns ONLY a compact summary (input name, gaps 2-5, file path). Surface gaps — especially qualitative ideas (tone, voice, feel) the FR structure silently drops. Must happen before polish.
 3. **Reviewer pass.** Run `## Reviewer Gate`. Resolve before polish.
-4. **Triage open items.** All Open Questions, `[ASSUMPTION]` tags, `[NOTE FOR PM]` callouts. Phase-blockers (would make the PRD unsafe for UX/architecture/epics) surfaced one at a time and resolved; non-blockers deferred with owner + revisit condition logged via `memlog.py append`. If phase-blocker count is high, flag it.
+4. **Triage open items.** All Open Questions, `[ASSUMPTION]` tags, `[NOTE FOR PM]` callouts. Phase-blockers (would make the PRD unsafe for UX/architecture/epics) surfaced one at a time and resolved; non-blockers deferred with owner + revisit condition recorded in the PRD's Open Questions. If phase-blocker count is high, flag it.
 5. **Polish.** Apply `{workflow.doc_standards}` to `prd.md` and `addendum.md` in declared order (structural passes before prose — prose should not polish soon-to-be-cut text). Parallelize across documents, sequential within.
 6. **External handoffs.** Execute `{workflow.external_handoffs}`; surface returned URLs/IDs. Skip and flag unavailable tools.
-7. **Close.** Set `prd.md` frontmatter `status: final` and `updated` to `{date}` so future invocations distinguish this PRD from in-progress drafts. Record finalization via `python3 {metodoloji-root}/bmad/scripts/memlog.py append --workspace {doc_workspace} --type event --text "PRD finalized"`. Share artifact paths. Common next: `bmad-ux`, `bmad-architecture`, `bmad-create-epics-and-stories`; invoke `bmad-help` for authoritative routing.
+7. **Close.** Set `prd.md` frontmatter `status: final` and `updated` to `{date}` so future invocations distinguish this PRD from in-progress drafts. Share artifact paths. Common next: `bmad-ux`, `bmad-architecture`, `bmad-create-epics-and-stories`; invoke `bmad-help` for authoritative routing.
 8. Run `{workflow.on_complete}` if non-empty.

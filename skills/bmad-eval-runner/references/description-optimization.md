@@ -50,7 +50,7 @@ Apply the new description, re-measure train and test, and record both scores plu
 
 After the rounds finish, pick the description with the best test score, not the best train score. Train measures how well the improver fixed the failures it could see; test measures whether that fix generalizes to queries it never saw, which is the only thing that matters in production. When two rounds tie on test, prefer the one with the better train score as the tiebreaker, and failing that the shorter, sharper description.
 
-Report the winning description, its test score, and the round-by-round trail (each description, its train score, its test score) so the choice is auditable and a human can override it. Log the trail to the run's memlog through `scripts/memlog.py` as the loop runs, one `event` entry per round capturing the description tried and the train and test scores, so a resumed or audited run reads the progression cleanly.
+Report the winning description, its test score, and the round-by-round trail (each description, its train score, its test score) so the choice is auditable and a human can override it. Log the trail to the run's decision log as the loop runs, one entry per round capturing the description tried and the train and test scores, so a resumed or audited run reads the progression cleanly.
 
 ## Why each guard is here
 

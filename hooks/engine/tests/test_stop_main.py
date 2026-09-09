@@ -62,64 +62,6 @@ def test_story_status_metodoloji_fallback(tmp_path, monkeypatch):
     assert blocked is True
 
 
-# --- intent-aware story status ---------------------------------------------
-
-def test_story_status_intent_target_in_progress_blocks():
-    import tempfile
-    from pathlib import Path
-    with tempfile.TemporaryDirectory() as td:
-        root = Path(td)
-        cand = root / "bmad-output/implementation-artifacts"
-        cand.mkdir(parents=True)
-        (cand / "sprint-status.yaml").write_text(
-            "stories:\n  1-2-login: in-progress\n  3-4-export: done\n",
-            encoding="utf-8")
-        blocked, reason = _check_story_status(str(root), intent="finish 1-2-login")
-        assert blocked is True
-        assert "1-2-login" in reason
-
-
-def test_story_status_intent_target_done_allows():
-    import tempfile
-    from pathlib import Path
-    with tempfile.TemporaryDirectory() as td:
-        root = Path(td)
-        cand = root / "bmad-output/implementation-artifacts"
-        cand.mkdir(parents=True)
-        (cand / "sprint-status.yaml").write_text(
-            "stories:\n  1-2-login: in-progress\n  3-4-export: done\n",
-            encoding="utf-8")
-        blocked, _ = _check_story_status(str(root), intent="finish 3-4-export")
-        assert blocked is False
-
-
-def test_story_status_intent_unrelated_story_allows():
-    import tempfile
-    from pathlib import Path
-    with tempfile.TemporaryDirectory() as td:
-        root = Path(td)
-        cand = root / "bmad-output/implementation-artifacts"
-        cand.mkdir(parents=True)
-        (cand / "sprint-status.yaml").write_text(
-            "stories:\n  1-2-login: in-progress\n", encoding="utf-8")
-        blocked, _ = _check_story_status(str(root), intent="finish 9-9-other")
-        assert blocked is False
-
-
-def test_story_status_no_intent_blocks_all():
-    import tempfile
-    from pathlib import Path
-    with tempfile.TemporaryDirectory() as td:
-        root = Path(td)
-        cand = root / "bmad-output/implementation-artifacts"
-        cand.mkdir(parents=True)
-        (cand / "sprint-status.yaml").write_text(
-            "stories:\n  1-2-login: in-progress\n", encoding="utf-8")
-        blocked, reason = _check_story_status(str(root), intent="")
-        assert blocked is True
-        assert "1-2-login" in reason
-
-
 # --- stop() -----------------------------------------------------------------
 
 def test_stop_allows_clean_tree(tmp_path, monkeypatch):
@@ -275,7 +217,6 @@ def test_stop_stale_sprint_status_ignored(tmp_path, monkeypatch):
     os.utime(cand / "sprint-status.yaml", (old, old))
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     _seed_session_start(tmp_path)  # marker newer than the stale status
     res = stop({})
     assert res["decision"] == "allow"
@@ -304,7 +245,6 @@ def test_stop_stale_sprint_status_blocks_without_marker(tmp_path, monkeypatch):
         "stories:\n  1-2-login: in-progress\n", encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
     res = stop({})
     assert res["decision"] == "deny"
 

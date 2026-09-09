@@ -8,7 +8,7 @@ Load `references/agent-quality-principles.md` first, and through it the canon at
 
 The leanness bar applies to internal capability prompts, never to persona — the carve-out in the principles file is load-bearing, and flagging voice as waste is the one failure this lens exists to prevent. What you do flag, even inside persona-shaped files, is genuine repetition or contradiction: the same trait stated three times, a communication rule that fights an earlier one, or identity text copy-pasted into a capability prompt that already inherits it. That is waste because it adds no character, not because it carries voice.
 
-For a stateless agent the capability prompts live inline in SKILL.md and in `references/`. For a memory or autonomous agent they live in `references/`, and you additionally run the tests on the sanctum templates the build ships in `assets/` (PERSONA, CREED, BOND, MEMORY, CAPABILITIES, INDEX seeds), since those become runtime files and carry the same ceremony risk. The sanctum is the built agent's runtime memory, never the builder's process log, so you do not touch the memlog.
+For a stateless agent the capability prompts live inline in SKILL.md and in `references/`. For a memory or autonomous agent they live in `references/`, and you additionally run the tests on the sanctum templates the build ships in `assets/` (PERSONA, CREED, BOND, MEMORY, CAPABILITIES, INDEX seeds), since those become runtime files and carry the same ceremony risk. The sanctum is the built agent's runtime memory, never the builder's process log, so you do not touch the log.
 
 Stay in this lane. Topology belongs to the architecture lens, intelligence placement to determinism, customize.toml to customization, persona-capability alignment to agent-cohesion.
 

@@ -9,20 +9,13 @@ from .guard import find_approved
 from .utils import is_code_target, is_free, rel_to_root
 
 
-def _check_story_status(root: str, intent: str = "") -> tuple[bool, str]:
+def _check_story_status(root: str) -> tuple[bool, str]:
     """Check if a story is in-progress but incomplete.
 
-    When `intent` names a story (e.g. "S-003'ü bitir" → S-003), only that
-    story is checked — other stale in-progress stories don't block. Without
-    intent, every in-progress story blocks (legacy behavior).
+    Every in-progress story blocks (legacy behavior).
 
     Returns (should_block, reason).
     """
-    target_key = ""
-    if intent:
-        from .utils import _story_key_from_intent
-        target_key = _story_key_from_intent(intent)
-
     # Look for sprint-status.yaml. Canonical path is bmad-output/ (config.toml);
     # _bmad-output kept only as a legacy fallback for pre-migration projects.
     for candidate in [
@@ -35,14 +28,7 @@ def _check_story_status(root: str, intent: str = "") -> tuple[bool, str]:
                 content = candidate.read_text(encoding="utf-8", errors="replace")
                 # Check for in-progress stories
                 in_progress = re.findall(r"^\s+(\d+-\d+-[a-z][a-z0-9-]+):\s+in-progress", content, re.MULTILINE)
-                if target_key:
-                    # Intent names a specific story: only block if it's in-progress.
-                    if any(target_key == k for k in in_progress):
-                        return True, (
-                            f"Story {target_key} is in-progress but stop requested. "
-                            f"Complete it before stopping."
-                        )
-                elif in_progress:
+                if in_progress:
                     return True, (
                         f"Story in-progress but stop requested: {', '.join(in_progress)}. "
                         f"Complete the story before stopping."
@@ -98,16 +84,12 @@ def _latest_session_start(root: str) -> float:
     return newest
 
 
-def _story_status_is_stale(root: str, intent: str) -> bool:
+def _story_status_is_stale(root: str) -> bool:
     """True when the sprint-status file predates this session's start.
 
     A leftover in-progress story from a previous session must not wedge a new
-    one; the intent-named story still blocks (explicit user focus wins).
-    No session marker (old bootstrap) → not stale, legacy blocking behavior.
+    one. No session marker (old bootstrap) → not stale, legacy blocking.
     """
-    from .utils import _story_key_from_intent
-    if intent and _story_key_from_intent(intent):
-        return False
     session_start = _latest_session_start(root)
     if not session_start:
         return False
@@ -287,18 +269,11 @@ def stop(json_in: dict) -> dict:
     if _stop_denies_so_far(root) >= _MAX_STOP_DENIES_PER_SESSION:
         return {"decision": "allow"}
 
-    # 1. Check for incomplete stories (intent-aware: if the session intent
-    #    names a specific story, only that story blocks stop). A memlog whose
-    #    status is 'complete' means the session's work is done — no story check.
-    #    A stale sprint-status older than the session start never blocks
-    #    (brownfield leftover), unless the intent names that story.
-    from .utils import _active_intent, _active_progress
-    intent = _active_intent(root)
-    progress = _active_progress(root)
-    if progress and progress.lower() in ("complete", "done", "completed"):
-        intent = ""  # work finished — don't block on in-progress stories
-    should_block, reason = _check_story_status(root, intent=intent)
-    if should_block and not _story_status_is_stale(root, intent):
+    # 1. Check for incomplete stories (legacy behavior: every in-progress
+    #    story blocks stop). A stale sprint-status older than the session
+    #    start never blocks (brownfield leftover).
+    should_block, reason = _check_story_status(root)
+    if should_block and not _story_status_is_stale(root):
         _record_stop_deny(root, reason)
         return {"decision": "deny", "reason": reason}
 

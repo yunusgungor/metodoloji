@@ -16,7 +16,7 @@ Detection rests on the sanctum, the built agent's runtime memory at
 waking is a memory agent; one that also carries live wake behavior (a PULSE
 file or a pulse/autonomous wake reference with named-task routing) is
 autonomous; one with no sanctum at all is stateless. This is the BUILT agent's
-memory, never the builder's process log (.memlog.md), and the two are kept
+memory, never the builder's process log, and the two are kept
 apart here.
 
 Lengths come from tokens, never line counts. The count uses count_tokens.py
@@ -141,7 +141,7 @@ def has_sanctum(root: Path, skill_text: str) -> bool:
     path, the Sacred-Truth / waking bootloader language, a wake or init-sanctum
     scaffolder, or the sanctum template assets (PERSONA / CREED / BOND / MEMORY
     / INDEX / CAPABILITIES). This is the built agent's memory, distinct from the
-    builder's .memlog.md, which is never a sanctum signal.
+    builder's process log, which is never a sanctum signal.
     """
     if re.search(r"bmad/memory/", skill_text):
         return True

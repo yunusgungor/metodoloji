@@ -4,7 +4,7 @@ This is one loop, not a sequence of phases. It carries Build and Edit, because a
 
 Load `references/prompt-quality-canon.md` before anything else and hold it as the governing standard for every line you draft — this file deliberately does not restate it, so a section below that names a canon test expects you to already carry it.
 
-Load `references/skill-quality-principles.md` alongside it for the BMad-specific knowledge the scanners verify against, and `references/standard-fields.md` for frontmatter and naming conventions. Load `references/producing-workflow-patterns.md` when the skill produces an artifact, runs across turns, or serves more than one intent (persona, intent modes, graceful degradation). Load `references/working-state-patterns.md` when the skill holds state across turns — it builds something revisable, or an existing skill already carries a `.memlog.md` or a structured working artifact. Load `references/complex-workflow-patterns.md` only when the skill is large enough to carve work out to `references/` (carve-out conventions, multi-stage routing, module metadata).
+Load `references/skill-quality-principles.md` alongside it for the BMad-specific knowledge the scanners verify against, and `references/standard-fields.md` for frontmatter and naming conventions. Load `references/producing-workflow-patterns.md` when the skill produces an artifact, runs across turns, or serves more than one intent (persona, intent modes, graceful degradation). Load `references/working-state-patterns.md` when the skill holds state across turns — it builds something revisable, or an existing skill already carries a structured working artifact. Load `references/complex-workflow-patterns.md` only when the skill is large enough to carve work out to `references/` (carve-out conventions, multi-stage routing, module metadata).
 
 ## Open by understanding why the user came
 
@@ -24,11 +24,11 @@ Do not reduce this to a few multiple-choice questions and jump to building. The 
 
 ## Propose what the idea implies
 
-Hardening cuts the idea down; this builds it out. Before drafting, offer what the user did not ask for but the outcome implies: the patterns in `references/skill-quality-principles.md` whose conditions this skill meets, the sibling intent the artifact obviously wants (update or validate beside create), the input it should accept that nobody mentioned. A line each with why it fits; the user picks, and the declines land in the memlog so a later session does not re-propose them. A builder that only executes the stated idea ships the user's first draft of it.
+Hardening cuts the idea down; this builds it out. Before drafting, offer what the user did not ask for but the outcome implies: the patterns in `references/skill-quality-principles.md` whose conditions this skill meets, the sibling intent the artifact obviously wants (update or validate beside create), the input it should accept that nobody mentioned. A line each with why it fits; the user picks, and the declines are recorded so a later session does not re-propose them. A builder that only executes the stated idea ships the user's first draft of it.
 
-## Capture continuously into the memlog
+## Track decisions continuously
 
-As decisions and directions land, write them to `{target-skill-path}/.memlog.md` through `{metodoloji-root}/bmad/scripts/memlog.py` (`init` once when the target is named, then `append --type <decision|direction|assumption|gap|note|event>` as things happen). For a new skill, propose a kebab-case name when the user did not give one; renaming later is a logged decision, not a redo. The memlog is the canonical process memory, the source for resume, and the trail you audit at handoff so the user can confirm their thinking was handled the way they meant. Capture as you go, not in a batch at the end, because the value is in catching the reasoning while it is still fresh.
+As decisions and directions land, record them with the run's working state (see `references/working-state-patterns.md` for the strategy this build uses). For a new skill, propose a kebab-case name when the user did not give one; renaming later is a recorded decision, not a redo. The decision trail is the process memory, the source for resume, and the audit you walk at handoff so the user can confirm their thinking was handled the way they meant. Capture as you go, not in a batch at the end, because the value is in catching the reasoning while it is still fresh.
 
 ## Write the minimal outcome-driven version first
 
@@ -54,27 +54,26 @@ This is the builder's differentiator, so keep it active the whole way through ra
 
 ## Decide customization with the explicit ask
 
-`references/customize-toml-guide.md` owns this decision. Load it at this beat and follow it: ask its question once (interactive only, defaults no, headless defaults no), log the decision in the memlog, and emit what the guide says an accepted or declined answer emits.
+`references/customize-toml-guide.md` owns this decision. Load it at this beat and follow it: ask its question once (interactive only, defaults no, headless defaults no), record the decision, and emit what the guide says an accepted or declined answer emits.
 
 ## Wire the universal shape, strip ceremony, and ship
 
-Wire in the shape every producing skill shares: a working-state strategy chosen for this skill (memlog, a structured working artifact, both, or neither — see `references/working-state-patterns.md`), a distillation at finalize for skills whose output feeds downstream consumers, projections produced on demand rather than maintained, polish gated on the user's temperament, and a reviewer gate for skills that produce something substantive. Then strip the ceremony. Confirm the skill passes its own leanness scanner before you hand it off, because the builder has no standing to teach leanness while shipping bloat.
+Wire in the shape every producing skill shares: a working-state strategy chosen for this skill (a structured working artifact, inline rationale, or neither — see `references/working-state-patterns.md`), a distillation at finalize for skills whose output feeds downstream consumers, projections produced on demand rather than maintained, polish gated on the user's temperament, and a reviewer gate for skills that produce something substantive. Then strip the ceremony. Confirm the skill passes its own leanness scanner before you hand it off, because the builder has no standing to teach leanness while shipping bloat.
 
-Two org gates apply before ship. Check SKILL.md against the token tiers in `references/skill-quality-principles.md` (Length guidance): warn the user between `{workflow.skill_md_token_desired}` and `{workflow.skill_md_token_budget}`, and if it is over `{workflow.skill_md_token_budget}`, lift sections to `references/` until it is back under. And verify the skill satisfies every directive in `{workflow.build_standards}`; treat each as a required criterion, not a suggestion, and resolve any miss before handoff. When the skill is lean, within budget, conformant, runs on real input, and the user has signed off on the memlog audit, ship it.
+Two org gates apply before ship. Check SKILL.md against the token tiers in `references/skill-quality-principles.md` (Length guidance): warn the user between `{workflow.skill_md_token_desired}` and `{workflow.skill_md_token_budget}`, and if it is over `{workflow.skill_md_token_budget}`, lift sections to `references/` until it is back under. And verify the skill satisfies every directive in `{workflow.build_standards}`; treat each as a required criterion, not a suggestion, and resolve any miss before handoff. When the skill is lean, within budget, conformant, runs on real input, and the user has signed off on the decision audit, ship it.
 
 ## Handoff
 
-Interactive: before handing off, run the lint gate over the built skill — `python3 scripts/quick_validate.py {target-skill-path}`, `python3 scripts/scan-path-standards.py {target-skill-path}`, and `python3 scripts/scan-scripts.py {target-skill-path}` — fix high or critical findings and re-run until clear (after three failed fix attempts, stop and surface it), and run unit tests if the built skill carries scripts. Then show what was built and the lint results, and **offer to run the full validation — the Analyze lenses in `references/scan-orchestration.md` — over the new skill** as the default next step, proactively rather than waiting to be asked. If the user accepts, run the Analyze flow and **open the resulting HTML report for them when it finishes** — that flow produces and opens the report, so do not stop at summarizing findings in chat. Then walk the memlog audit at `{target-skill-path}/.memlog.md` so they confirm their reasoning was handled the way they intended. Once the skill is delivered and the user has been told it is ready, run `{workflow.on_complete}` if non-empty (a string scalar is one instruction, an array is a sequence run in order).
+Interactive: before handing off, run the lint gate over the built skill — `python3 scripts/quick_validate.py {target-skill-path}`, `python3 scripts/scan-path-standards.py {target-skill-path}`, and `python3 scripts/scan-scripts.py {target-skill-path}` — fix high or critical findings and re-run until clear (after three failed fix attempts, stop and surface it), and run unit tests if the built skill carries scripts. Then show what was built and the lint results, and **offer to run the full validation — the Analyze lenses in `references/scan-orchestration.md` — over the new skill** as the default next step, proactively rather than waiting to be asked. If the user accepts, run the Analyze flow and **open the resulting HTML report for them when it finishes** — that flow produces and opens the report, so do not stop at summarizing findings in chat. Then walk the decision audit so they confirm their reasoning was handled the way they intended. Once the skill is delivered and the user has been told it is ready, run `{workflow.on_complete}` if non-empty (a string scalar is one instruction, an array is a sequence run in order).
 
-Headless (`{headless_mode}=true`): call `set-complete` on the memlog and emit JSON only.
+Headless (`{headless_mode}=true`): emit JSON only.
 
 ```json
 {
   "status": "complete",
   "intent": "build",
-  "skill": "{target-skill-path}",
-  "memlog": "{target-skill-path}/.memlog.md"
+  "skill": "{target-skill-path}"
 }
 ```
 
-Use `"intent": "edit"` for an existing skill. If the run is blocked by ambiguous intent that could not be inferred or by lint failures that would not clear, replace `"complete"` with `"blocked"` and add `"reason": "<one-line cause>"`. The memlog carries the detail.
+Use `"intent": "edit"` for an existing skill. If the run is blocked by ambiguous intent that could not be inferred or by lint failures that would not clear, replace `"complete"` with `"blocked"` and add `"reason": "<one-line cause>"`.

@@ -10,7 +10,7 @@ Whether a skill gets a customize.toml is a decision made once during the build, 
 
 > Should this support end-user customization such as activation hooks, swappable templates, or output paths? If no, it ships fixed and anyone who needs changes forks it.
 
-Default no. Most skills do not need a customization surface, and a surface nobody uses is friction the reader has to skip past. Headless runs also default to NO and emit customize.toml only when the invocation explicitly requests customization. Whatever is decided, log it in the memlog as a decision.
+Default no. Most skills do not need a customization surface, and a surface nobody uses is friction the reader has to skip past. Headless runs also default to NO and emit customize.toml only when the invocation explicitly requests customization. Whatever is decided, record it as a decision in the build's working state.
 
 When the answer is no, emit no customize.toml, add no resolver step to activation, and use hardcoded paths throughout the skill. When the answer is yes, bake the universal defaults and offer the skill-specific points whose stages exist.
 

@@ -6,11 +6,11 @@ Memory is on when the active party's `memory_enabled` is true — the default ro
 
 ## Where it lives
 
-One memlog per party: `{workflow.memory_dir}/{active}/.memlog.md`, where `{active}` is the key `resolve_party.py` already returned — the group id (e.g. `code-review-crew`), or `installed` for the default room. The folder is named after the party.
+One memory file per party: `{workflow.memory_dir}/{active}/memory.md`, where `{active}` is the key `resolve_party.py` already returned — the group id (e.g. `code-review-crew`), or `installed` for the default room. The folder is named after the party. Plain markdown, one memory per line, newest last.
 
 ## Read it on entry — distill, don't dump
 
-The log is append-only and grows every session, so don't pull the raw file into the party. Hand a reader subagent the memlog path (`{workflow.memory_dir}/{active}/.memlog.md`) and have it return a compact brief — a few hundred tokens of *where things stand now*, ready to play in character.
+The log is append-only and grows every session, so don't pull the raw file into the party. Hand a reader subagent the memory path (`{workflow.memory_dir}/{active}/memory.md`) and have it return a compact brief — a few hundred tokens of *where things stand now*, ready to play in character.
 
 Then let the brief shape the room from the first beat, **in character**: behavioral state resumes (a cold pair opens cold, an alliance opens warm), threads pick up, callbacks land when they fit — organically, not recited on sight. Never break the fourth wall: the room *remembers*; it never announces it loaded anything, and forces nothing that doesn't fit.
 
@@ -29,23 +29,22 @@ The test for every entry: *would this color a future session, or make a callback
 
 ## New faces
 
-When a character shows up who isn't in the party's roster — cast from an open-cast scene, or one the user adds on the fly — name them in the entry that captures the moment ("<name> turned up and …") so a recurring face can return next session. At wrap-up these are the faces the room offers to keep, saved into the party's roster through `references/create-party.md` (which writes via `bmad-customize`). Until saved they live only in the memlog, and the room re-conjures them from there.
+When a character shows up who isn't in the party's roster — cast from an open-cast scene, or one the user adds on the fly — name them in the entry that captures the moment ("<name> turned up and …") so a recurring face can return next session. At wrap-up these are the faces the room offers to keep, saved into the party's roster through `references/create-party.md` (which writes via `bmad-customize`). Until saved they live only in the memory file, and the room re-conjures them from there.
 
 ## Write it
 
+Append one succinct line per memory, directly to the file (create it on first write):
+
 ```
-python3 {metodoloji-root}/bmad/scripts/memlog.py append \
-  --workspace {workflow.memory_dir}/{active} \
-  --type <dynamic|moment|callback|outcome> \
-  --text "<one succinct line, in the room's own read of it>"
+<type>: <one succinct line, in the room's own read of it>
 ```
 
-Add `--by <persona-code>` when a memory belongs to one character. Choose `init` vs `append` from the existence fact you already hold: the entry-read (and, on a mid-session room switch, that room's read) told you whether the memlog exists — `init --workspace {workflow.memory_dir}/{active}` once before the first append when it doesn't, plain `append` when it does. (`init` errors if the file already exists, so don't call it blind.)
+`<type>` is one of `dynamic`, `moment`, `callback`, `outcome`; prefix `by <persona-code>` when a memory belongs to one character. Writes are plain appends — a shell redirect to the file or any equivalent mechanism; no shared script involved.
 
-If `memlog.py` is unavailable or a write errors, skip it silently and never stall the party on a failed write.
+If a write errors, skip it silently and never stall the party on a failed write.
 
 ## Forget
 
-The memlog is append-only by design — no surgical delete. To wipe a party's memory, delete its folder (`{workflow.memory_dir}/{active}/`). To correct a wrong memory, append a new entry that supersedes it; the room reads the latest state.
+The file is append-only by design — no surgical delete. To wipe a party's memory, delete its folder (`{workflow.memory_dir}/{active}/`). To correct a wrong memory, append a new entry that supersedes it; the room reads the latest state.
 
 Keep entries sparse. The distilled read keeps the *room* lean no matter how big the log gets, but the on-disk file still grows append-only.

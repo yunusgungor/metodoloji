@@ -8,7 +8,7 @@ The benchmark is a guardrail, never the judge. The human stays the judge. A gree
 
 The loop is opt-in. It never starts on its own, because applying changes to a skill in a loop is a stronger action than reporting findings, and the user decides when that is warranted.
 
-Calibrate the aggressiveness to the stakes. A throwaway skill the user is still shaping can take a longer loop and a looser bar, because a wrong iteration costs little and is easy to throw away. A skill that other skills already depend on, or one that is shipped and in use, takes a short loop, a strict pass bar, and a close human read of every applied change, because a regression there propagates. Agree the round bound and the pass condition with the user before the first round, and write both into the memlog so the run is auditable against the terms it was given.
+Calibrate the aggressiveness to the stakes. A throwaway skill the user is still shaping can take a longer loop and a looser bar, because a wrong iteration costs little and is easy to throw away. A skill that other skills already depend on, or one that is shipped and in use, takes a short loop, a strict pass bar, and a close human read of every applied change, because a regression there propagates. Agree the round bound and the pass condition with the user before the first round, and write both into the run's decision log so the run is auditable against the terms it was given.
 
 ## The loop
 
@@ -24,9 +24,9 @@ Each round runs four beats:
 
 Stop when the pass condition is met or the round bound is reached, whichever comes first. The bound is a hard stop: hitting it without passing ends the loop and reports the best state reached, it does not earn extra rounds.
 
-## The full trail goes in memlog
+## The full trail goes in the decision log
 
-Every round writes to the run's memlog through `scripts/memlog.py`, so the whole reasoning chain is on disk and nothing the loop decided is hidden in a model's head. Per round, log:
+Every round writes to the run's decision log (a plain markdown file in the run folder), so the whole reasoning chain is on disk and nothing the loop decided is hidden in a model's head. Per round, log:
 
 - a `decision` entry naming the fix proposed and the finding it answers,
 - an `event` entry recording the re-eval delta (which modes ran, the before-and-after score, what regressed if anything),
@@ -50,6 +50,6 @@ When a proposed fix reaches for ALL-CAPS ALWAYS or NEVER or a stack of MUSTs, tr
 | one change per round | a round whose delta cannot be attributed to a specific fix |
 | revert on regression | building the next round on a change that made things worse |
 | round bound | a loop that runs away instead of handing back to a human |
-| full memlog trail | reasoning that lives only in the model and cannot be audited |
+| full decision-log trail | reasoning that lives only in the model and cannot be audited |
 | benchmark as guardrail, human as judge | treating a green run as proof the change is correct |
 | generalize to intent | a hardcoded patch that passes the case and leaves the class broken |

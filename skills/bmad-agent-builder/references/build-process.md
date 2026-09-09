@@ -21,11 +21,11 @@ Type emerges here from natural questions, not a menu. Ask whether the agent need
 
 ## Propose the agent the vision implies
 
-The dump tells you what the user pictured; offer what they did not. Before drafting, propose the capabilities the mission implies but nobody named, the persona angle that would make this agent a specific character rather than a generic assistant, and push where the vision is thin — one agent or two, a recurring need or a one-off ask, a memory that would actually accrue or dead weight. A line each with why it fits; the user picks, and the declines land in the memlog so a later session does not re-propose them. An agent built only from the stated list ships the user's first draft of it.
+The dump tells you what the user pictured; offer what they did not. Before drafting, propose the capabilities the mission implies but nobody named, the persona angle that would make this agent a specific character rather than a generic assistant, and push where the vision is thin — one agent or two, a recurring need or a one-off ask, a memory that would actually accrue or dead weight. A line each with why it fits; the user picks, and the declines are recorded so a later session does not re-propose them. An agent built only from the stated list ships the user's first draft of it.
 
-## Capture into the memlog throughout
+## Capture decisions throughout
 
-As decisions and directions land, write them to `{target-agent-path}/.memlog.md` through `{metodoloji-root}/bmad/scripts/memlog.py`: `init --path {target-agent-path}/.memlog.md` once when the target is named, then `append --path {target-agent-path}/.memlog.md --type <decision|direction|assumption|gap|note|event> --text "..."` as things happen. For a new agent, propose a kebab-case name when the user did not give one; renaming later is a logged decision, not a redo. This `.memlog.md` is the builder's process trace beside the built agent's SKILL.md, never the agent's sanctum — a memlog entry records a build decision, sanctum content is the agent's living runtime state, and neither ever holds the other's material. Capture as you go so the reasoning is caught while fresh, because the memlog is the resume source and the trail you walk with the user at handoff.
+As decisions and directions land, record them in the builder's process log for this build (a decision record beside the built agent's SKILL.md). For a new agent, propose a kebab-case name when the user did not give one; renaming later is a logged decision, not a redo. The process log is never the agent's sanctum — a log entry records a build decision, sanctum content is the agent's living runtime state, and neither ever holds the other's material. Capture as you go so the reasoning is caught while fresh, because the log is the resume source and the trail you walk with the user at handoff.
 
 ## Write the minimal outcome-driven version first
 
@@ -57,7 +57,7 @@ Eval cases live at `{target-agent-path}/evals/cases.json`. `{agent.evals_require
 
 ## Decide customization with the explicit ask
 
-Ask once, interactive only, and default to no: "Should this agent expose override hooks such as activation steps or persistent facts so teams can customize it without forking?" Log the answer to the memlog either way. `references/agent-quality-principles.md` owns the surface contract — the always-present `[agent]` metadata block every agent emits, the archetype defaults, and the forbidden mechanisms. The one build-time judgment beyond it: offer the opt-in to a memory or autonomous agent only on a concrete pre-sanctum-load need such as an org-mandated compliance preload, since the sanctum is already their customization surface.
+Ask once, interactive only, and default to no: "Should this agent expose override hooks such as activation steps or persistent facts so teams can customize it without forking?" Record the answer either way. `references/agent-quality-principles.md` owns the surface contract — the always-present `[agent]` metadata block every agent emits, the archetype defaults, and the forbidden mechanisms. The one build-time judgment beyond it: offer the opt-in to a memory or autonomous agent only on a concrete pre-sanctum-load need such as an org-mandated compliance preload, since the sanctum is already their customization surface.
 
 When the opt-in is yes, retain the override block, append any swappable scalars following the `*_template` / `*_output_path` / `on_<event>` conventions, and add the resolver activation step to SKILL.md so it reads scalars as `{agent.<name>}`. When it is no, emit metadata only and SKILL.md uses hardcoded paths.
 
@@ -109,9 +109,9 @@ The Pulse Mode in the runtime row is the built autonomous agent waking on its ow
 
 ## Handoff
 
-Interactive: present what was built (location, structure, first-run behavior, and the capabilities registered by code and name), show the lint results, and walk the user through the memlog at `{target-agent-path}/.memlog.md` so they confirm their reasoning was handled as they meant. For memory agents, explain the First Breath experience in plain words, note that PERSONA, CREED, and BOND ship seeded while MEMORY starts empty, and explain that `python3 scripts/init-sanctum.py <project-root> <skill-path>` runs before the first conversation. For autonomous agents, also explain PULSE behavior and scheduling. Offer Analyze over the new agent as the natural next step. Once the agent is delivered and the user has been told it is ready, run `{agent.on_complete}` if non-empty (a string scalar is one instruction, an array is a sequence run in order).
+Interactive: present what was built (location, structure, first-run behavior, and the capabilities registered by code and name), show the lint results, and walk the user through the decision log so they confirm their reasoning was handled as they meant. For memory agents, explain the First Breath experience in plain words, note that PERSONA, CREED, and BOND ship seeded while MEMORY starts empty, and explain that `python3 scripts/init-sanctum.py <project-root> <skill-path>` runs before the first conversation. For autonomous agents, also explain PULSE behavior and scheduling. Offer Analyze over the new agent as the natural next step. Once the agent is delivered and the user has been told it is ready, run `{agent.on_complete}` if non-empty (a string scalar is one instruction, an array is a sequence run in order).
 
-Headless (`{headless_mode}=true`): call `set-complete` on the memlog and emit JSON only.
+Headless (`{headless_mode}=true`): emit JSON only.
 
 ```json
 {
@@ -119,8 +119,7 @@ Headless (`{headless_mode}=true`): call `set-complete` on the memlog and emit JS
   "intent": "create",
   "agent": "{target-agent-path}",
   "agent_type": "stateless|memory|autonomous",
-  "memlog": "{target-agent-path}/.memlog.md"
 }
 ```
 
-If the run is blocked by ambiguous intent that could not be inferred or by lint failures that would not clear, replace `"complete"` with `"blocked"` and add `"reason": "<one-line cause>"`. The memlog carries the detail.
+If the run is blocked by ambiguous intent that could not be inferred or by lint failures that would not clear, replace `"complete"` with `"blocked"` and add `"reason": "<one-line cause>"`. The decision log carries the detail.

@@ -132,7 +132,7 @@ def audit(json_in: dict) -> dict:
 
     # Project root anchored like guard/quality/deploy (cwd may differ under
     # OpenHands; repo_root resolves via OPENHANDS_PROJECT_DIR).
-    from .utils import repo_root, _active_intent, _active_progress
+    from .utils import repo_root
     root = repo_root(json_in)
 
     # Build audit record. File content is NEVER logged whole: large or
@@ -142,11 +142,6 @@ def audit(json_in: dict) -> dict:
         "tool": tool_name,
         "input": _redacted_input(tool_input),
         "output_summary": str(tool_output)[:500] if tool_output else None,
-        # Intent bridge: stamp each record with the active session intent so
-        # the log answers "who did what, under which intent".
-        "intent": _active_intent(root),
-        # Progress signal: the memlog status (set via memlog.py set --key status).
-        "progress": _active_progress(root),
     }
 
     # Methodology validation (non-blocking, just warnings)
