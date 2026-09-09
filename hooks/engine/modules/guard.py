@@ -754,7 +754,7 @@ def guard(json_in: dict) -> dict:
             return {"decision": "deny", "reason": msg}
 
     # --- Intent-scope check (warn-only) ---
-    # Blackboard'daki scope key'i varsa (ör. blackboard.py set --key scope
+    # Blackboard'daki scope key'i varsa (ör. blackboard.py write --key scope
     # --value src/auth), scope dışı bir yazma warn-only uyarı üretir —
     # deny değil. Experiment-approval deny mantığı her zaman önceliklidir.
     from .utils import _active_scope
@@ -790,7 +790,7 @@ def _intent_scope_warnings(scope: str, targets: list, root: str = "") -> list[st
             warnings.append(
                 f"Write to {rel} is outside the active scope '{scope}'. "
                 f"If this is a different task, update the blackboard scope "
-                f"(blackboard.py set --key scope --value <new-scope>)."
+                f"(blackboard.py write --key scope --value <new-scope>)."
             )
     return warnings
 

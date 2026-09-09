@@ -201,6 +201,16 @@ eval-runner) run on three planes:
 
 - **Focus (required)** — `write --hot` one state key at activation,
   `hot --clear` at close, milestone re-writes in between.
+- **Intent bridge (required)** — mirror the session intent onto the global
+  bridge keys so every hook process sees the run's focus: `write --key
+  purpose --value "<one-line subject>"` at activation (plus `topic` / `goal`
+  / `idea` in the skill's own vocabulary where the pre-memlog-removal text
+  used those variants), `write --key scope --value "<path scope>"` when the
+  work is path-scoped (guard warns on out-of-scope writes; bootstrap exports
+  it as `METODOLOJI_SCOPE`), and `write --key status --value complete` at
+  close (stop skips story checks and `bmad-help` routes to next steps once
+  progress is `complete`). Last writer wins — concurrent runs overwrite each
+  other, which is the correct semantic for "what is the session about now".
 - **Run list (required where threads appear)** — unresolved threads ride
   `<run-key>.pending` (or `.open` / `.branches` / `.failing` / `.parked` by
   domain); resolved items come off, consciously-parked items stay as
@@ -221,5 +231,6 @@ eval-runner) run on three planes:
   `watch` paths feed touches automatically; leave the canvas standing when
   downstream skills read it, clear focus at close.
 
-That is the entire contract — no lifecycle status, no log schema, no resume
-machinery beyond the artifacts themselves.
+That is the entire contract — no lifecycle status beyond the `status` bridge
+key, no log schema, no resume machinery beyond the artifacts themselves
+plus the run lists that back them.

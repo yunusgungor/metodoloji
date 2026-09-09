@@ -219,11 +219,12 @@ def rel_to_root(root: str, p: str, cwd: str | None = None) -> str:
 
 # --- Intent bridge (blackboard-backed) ---------------------------------------
 # Memlog kaynaklı intent/scope/progress kabiliyetleri — artık blackboard'dan
-# okunuyor. Öncelik sırası memlog bridge ile aynı:
-#   1. METODOLOJI_INTENT / METODOLOJI_SCOPE env (bootstrap'in export ettiği değer,
-#      session içindeki tüm hook prosesleri paylaşır).
-#   2. Blackboard'da saklanan purpose / scope / status key'leri.
-# Blackboard devre dışıysa veya okunamazsa '' döner (fail-open).
+# okunuyor. Öncelik sırası: board canlıdır (skill'ler session içinde yazar),
+# env sadece bootstrap snapshot'ıdır:
+#   1. Blackboard'da saklanan purpose / scope / status key'leri (canlı).
+#   2. METODOLOJI_INTENT / METODOLOJI_SCOPE env (bootstrap'in SessionStart'ta
+#      export ettiği snapshot — board boşken fallback).
+# Blackboard devre dışıysa veya okunamazsa env'e düşülür, o da yoksa '' (fail-open).
 
 def _active_blackboard_meta(root: str) -> dict:
     """Blackboard'daki purpose/scope/status key'lerini çek ({} if none/disabled).
@@ -253,29 +254,29 @@ def _active_blackboard_meta(root: str) -> dict:
 def _active_intent(root: str, env_override: bool = True) -> str:
     """Session için aktif intent (amaç) döndür.
 
-    Öncelik:
-      1. METODOLOJI_INTENT env (bootstrap.sh tarafından SessionStart'ta set
-         edilir) — aynı session içindeki tüm hook prosesleri aynı intent'i görür.
-      2. Blackboard'daki purpose, topic, goal veya idea key'i (skill'in
-         kullandığı vocabulary'e göre intent'e ulaşır).
+    Öncelik (board canlı, env snapshot):
+      1. Blackboard'daki purpose, topic, goal veya idea key'i (skill'in
+         session içinde yazdığı canlı değer — bootstrap sonrası güncellemeler
+         buradan görülür).
+      2. METODOLOJI_INTENT env (bootstrap.sh snapshot'ı — board boşken fallback).
     Intent kayıtlı değilse '' döner.
     """
-    if env_override:
-        env_intent = os.environ.get("METODOLOJI_INTENT", "").strip()
-        if env_intent:
-            return env_intent
     meta = _active_blackboard_meta(root)
     for key in ("purpose", "topic", "goal", "idea"):
         val = meta.get(key, "")
         if val:
             return val
+    if env_override:
+        env_intent = os.environ.get("METODOLOJI_INTENT", "").strip()
+        if env_intent:
+            return env_intent
     return ""
 
 
 def _active_progress(root: str) -> str:
     """Blackboard'daki session progress status'unu döndür.
 
-    Skill'ler `blackboard.py set --key status --value complete` ile yazar
+    Skill'ler `blackboard.py write --key status --value complete` ile yazar
     (veya active / in-progress). Kayıtlı değilse '' döner.
     """
     return _active_blackboard_meta(root).get("status", "")
@@ -288,11 +289,14 @@ def _active_scope(root: str, env_override: bool = True) -> str:
     `purpose: auth flow` ile `scope: src/auth` birlikte taşıyabilir.
     Guard, scope dışı yazmaları warn-only olarak işaretlemek için bunu kullanır.
 
-    Öncelik:
-      1. METODOLOJI_SCOPE env (bootstrap.sh tarafından set edilir).
-      2. METODOLOJI_INTENT env içinde `scope:` tag'i (eski bootstrap versiyonları).
-      3. Blackboard'daki scope key'i.
+    Öncelik (board canlı, env snapshot):
+      1. Blackboard'daki scope key'i (skill'in session içinde yazdığı canlı değer).
+      2. METODOLOJI_SCOPE env (bootstrap.sh snapshot'ı — board boşken fallback).
+      3. METODOLOJI_INTENT env içinde `scope:` tag'i (eski bootstrap versiyonları).
     """
+    board_scope = _active_blackboard_meta(root).get("scope", "")
+    if board_scope:
+        return board_scope
     if env_override:
         env_scope = os.environ.get("METODOLOJI_SCOPE", "").strip()
         if env_scope:
@@ -302,7 +306,7 @@ def _active_scope(root: str, env_override: bool = True) -> str:
             m = re.search(r"(?:scope|kapsam)\s*[:=]\s*([\w\-./]+(?:/[\w\-./]+)*)", env_intent)
             if m:
                 return m.group(1).strip()
-    return _active_blackboard_meta(root).get("scope", "")
+    return ""
 
 
 _STORY_KEY_IN_INTENT = re.compile(

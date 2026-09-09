@@ -319,6 +319,17 @@ def _apply_event(board: dict, ev: dict) -> None:
             if ev.get("hot"):
                 board["hot"] = key
             _cap_keys(board)
+    elif kind == "tool":
+        # Audit tool-touch stamp (event-sourced): replay folds last_tool.*
+        # back after a snapshot rebuild — no drift, unlike the old
+        # snapshot-only fold.
+        tool = str(ev.get("tool", ""))[:100]
+        if tool:
+            board["keys"][f"last_tool.{tool}"] = {
+                "value": str(ev.get("target", "")), "type": "tool",
+                "updated": ev.get("ts", 0.0),
+            }
+            _cap_keys(board)
     elif kind == "hot":
         if ev.get("key"):
             board["hot"] = str(ev["key"])[:200]
@@ -537,12 +548,25 @@ def _cap_canvases(board: dict) -> None:
         board["canvases"].pop(oldest)
 
 
+# Bridge keys that must survive key-cap eviction: they carry the session
+# intent/scope/status the hook engine and bmad-help route on. A busy board
+# must never evict the very keys the methodology is steering from.
+_BRIDGE_KEYS = frozenset({"purpose", "scope", "status", "topic", "goal", "idea"})
+
+
 def _cap_keys(board: dict) -> None:
     while len(board["keys"]) > MAX_KEYS:
-        oldest = min(board["keys"], key=lambda k: board["keys"][k].get("updated", 0.0))
+        protected = set(_BRIDGE_KEYS)
+        if board.get("hot"):
+            protected.add(board["hot"])
+        oldest = min(
+            (k for k in board["keys"] if k not in protected),
+            key=lambda k: board["keys"][k].get("updated", 0.0),
+            default=None,
+        )
+        if oldest is None:
+            return  # everything left is protected — never evict the bridge/focus
         board["keys"].pop(oldest)
-        if board["hot"] == oldest:
-            board["hot"] = None
 
 
 def _clear_hot_if_dangling(board: dict) -> None:
@@ -958,6 +982,64 @@ def read_canvas(project_root: str, name: str) -> dict:
             "focused": board.get("hot_canvas") == name}
 
 
+def stamp_tool_event(project_root: str, tool_name: str, target: str) -> dict:
+    """Audit tool touch'unu board'a tek lock-scope'ta işle (event-sourced).
+
+    Audit hook'u bunu çağırır (PostToolUse): `last_tool.<tool>` key'ini bir
+    `tool` event'i olarak append eder + izleyen canvas'lara `canvas_touch`
+    push'unu aynı lock-scope'ta yapar. Tek `_mutate` olduğu için araya başka
+    writer giremez; event-sourced olduğu için snapshot rebuild'de
+    `last_tool.*` kaybolmaz. Never nest inside another _mutate scope.
+    """
+    tool_name = str(tool_name or "")[:100]
+    target = str(target or "")[:MAX_TEXT_LEN]
+    if not tool_name:
+        return {"ok": True, "touched": 0}
+    event = {"event": "tool", "tool": tool_name, "target": target, "ts": time.time()}
+
+    def mut(board):
+        paths = board_paths(project_root)
+        _append_event(paths, event)
+        _apply_event(board, event)
+        # Real-time canvas push: watched canvases record the touch (same scope).
+        touched = []
+        if target:
+            for name, cv in board["canvases"].items():
+                for w in cv.get("watch", []):
+                    if _watch_matches(w, target):
+                        ev = {"event": "canvas_touch", "name": name,
+                              "path": target[:MAX_CELL_ID],
+                              "content": f"{tool_name}: {os.path.basename(target)}"[:MAX_CELL_LEN],
+                              "ts": time.time()}
+                        _append_event(paths, ev)
+                        _apply_event(board, ev)
+                        _route_alerts(paths, board, f"canvas:{name}", "canvas",
+                                      f"canvas '{name}' live: {tool_name} touched {target}")
+                        touched.append(name)
+                        break
+        return board, {"ok": True, "touched": len(touched), "canvases": touched}
+
+    return _mutate(project_root, mut)
+
+
+def _watch_matches(watch_path: str, target: str) -> bool:
+    """Watch prefix eşleşmesini normalize et (rel/abs, backslash, ./ farkına
+    bakmaz). Ham string `startswith` ses çıkarıyordu — rel path skill'in
+    watch'a yazdığı absoluğa, ya da tersine hiç eşleşmeyebiliyordu."""
+    import re as _re
+    w = _re.sub(r"(?i)^[a-z]:", "", str(watch_path or "").replace("\\", "/"))
+    t = _re.sub(r"(?i)^[a-z]:", "", str(target or "").replace("\\", "/"))
+    w = _re.sub(r"/{2,}", "/", w).rstrip("/")
+    t = _re.sub(r"/{2,}", "/", t).rstrip("/")
+    while t.startswith("./"):
+        t = t[2:]
+    while w.startswith("./"):
+        w = w[2:]
+    if not w or not t:
+        return False
+    return t == w or t.startswith(w + "/") or w.startswith(t + "/")
+
+
 def watch_touch(project_root: str, tool: str, target: str) -> dict:
     """Real-time push: an audited tool touched `target` — land it into every
     canvas that watches a matching path prefix and alert the session channel.
@@ -971,7 +1053,7 @@ def watch_touch(project_root: str, tool: str, target: str) -> dict:
         touched = []
         for name, cv in board["canvases"].items():
             for w in cv.get("watch", []):
-                if target.startswith(w):
+                if _watch_matches(w, target):
                     ev = {"event": "canvas_touch", "name": name,
                           "path": target[:MAX_CELL_ID],
                           "content": f"{tool}: {os.path.basename(target)}"[:MAX_CELL_LEN],
@@ -1455,10 +1537,20 @@ def compact_context(project_root: str) -> dict:
                           "auto": autos, "grid": cv.get("grid"),
                           "watch": cv.get("watch", []), "latest": latest}
     nb = [n["node"] for n in neighbors(project_root, hot_key)] if hot_key else []
+    # Intent bridge summary: the same keys bootstrap exports as env. Included so
+    # a session-start inject (or read --context consumer) sees the live intent/
+    # scope/status even when bootstrap's env snapshot predates a mid-session
+    # skill write (see utils._active_* board-first ordering).
+    bridge = {}
+    for k in ("purpose", "scope", "status", "topic", "goal", "idea"):
+        entry = board["keys"].get(k)
+        if entry and isinstance(entry, dict) and str(entry.get("value", "")).strip():
+            bridge[k] = str(entry.get("value"))[:120]
     return {
         "hot": hot_key,
         "hot_meta": hot_value,
         "hot_canvas": canvas_summary,
+        "intent": bridge,
         "tags": list(board["tags"]),
         "watchers": sorted(board["watchers"].keys()),
         "contributions": board["contributions"][-5:],

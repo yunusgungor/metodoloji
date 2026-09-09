@@ -561,6 +561,7 @@ Before `## Execution`, check the chain for signals addressed to you: `python3 {m
       - Run `code-review` workflow for peer review
       - Optional: If Test Architect module installed, run `/bmad:tea:automate` to expand guardrail tests
     </action>
+    <action>Post a chain signal so the code-review run opens knowing the story landed: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-code-review --from-key story.{story_key} --note "Dev complete — story {story_key} in review, QR created; run the review and fold findings into docs/development/QR." --project-root {project-root}` (waits in `handoff.bmad-code-review` until a code-review run consumes it).</action>
 
     <output>💡 **Tip:** For best results, run `code-review` using a **different** LLM than the one that implemented this story.</output>
     <check if="{sprint_status} file exists">

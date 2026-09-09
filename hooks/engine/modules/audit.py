@@ -187,11 +187,17 @@ def audit(json_in: dict) -> dict:
 
     # Build audit record. File content is NEVER logged whole: large or
     # sensitive bodies stay out of the trail (preview + length only).
+    # Intent bridge (blackboard-backed): stamp each record with the active
+    # session intent + progress so the log answers "who did what, under
+    # which intent". Fail-open — helpers return '' when the board is empty.
+    from .utils import _active_intent, _active_progress
     record = {
         "timestamp": time.time(),
         "tool": tool_name,
         "input": _redacted_input(tool_input),
         "output_summary": str(tool_output)[:500] if tool_output else None,
+        "intent": _active_intent(root),
+        "progress": _active_progress(root),
     }
 
     # Methodology validation (non-blocking, just warnings)
@@ -222,9 +228,7 @@ def audit(json_in: dict) -> dict:
         if blackboard_enabled():
             from . import blackboard as bb
             target = tool_input.get("path") or tool_input.get("file_path") or tool_name
-            bb._mutate(root, lambda board: _stamp_tool_event(board, tool_name, target))
-            # Real-time canvas push: watched canvases record the touch.
-            bb.watch_touch(root, tool_name, str(target))
+            bb.stamp_tool_event(root, tool_name, str(target))
     except Exception:
         pass
 
@@ -232,21 +236,3 @@ def audit(json_in: dict) -> dict:
     if warnings:
         result["methodology_warnings"] = warnings
     return result
-
-
-def _stamp_tool_event(board: dict, tool_name: str, target: str) -> tuple[dict, None]:
-    """Fold a bounded tool event into the board during the audit's mutation.
-
-    Direct snapshot fold (no event-log append): the audit log itself is the
-    durable record; the board copy is a bounded convenience for context reads.
-    """
-    from . import blackboard as bbmod
-    key = f"last_tool.{tool_name}"
-    board["keys"][key] = {"value": str(target)[:bbmod.MAX_TEXT_LEN],
-                          "type": "tool", "updated": time.time()}
-    while len(board["keys"]) > bbmod.MAX_KEYS:
-        oldest = min(board["keys"], key=lambda k: board["keys"][k].get("updated", 0.0))
-        board["keys"].pop(oldest)
-    if board.get("hot") and board["hot"] not in board["keys"]:
-        board["hot"] = None
-    return board, None

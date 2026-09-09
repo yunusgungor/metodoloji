@@ -363,6 +363,32 @@ def test_audit_stamp_gated_off(tmp_path, monkeypatch):
     assert "last_tool.file_editor" not in board["keys"]
 
 
+def test_stamp_tool_event_survives_snapshot_rebuild(tmp_path, monkeypatch):
+    # Event-sourced: last_tool.* replay'den geri gelir, snapshot silinse bile
+    # kaybolmaz (eski snapshot-only fold davranışının regression guard'ı).
+    import importlib.util, sys as _sys
+    _engine(monkeypatch, str(tmp_path))
+    bb.stamp_tool_event(str(tmp_path), "file_editor", "docs/a.md")
+    board = bb.read_board(str(tmp_path))
+    assert board["keys"]["last_tool.file_editor"]["value"] == "docs/a.md"
+    os.remove(bb.board_paths(str(tmp_path))["snapshot"])  # force rebuild
+    board2 = bb.read_board(str(tmp_path))
+    assert board2["keys"]["last_tool.file_editor"]["value"] == "docs/a.md"
+
+
+def test_stamp_tool_event_no_tool_ok(tmp_path):
+    out = bb.stamp_tool_event(str(tmp_path), "", "x")
+    assert out["ok"] is True
+
+
+def test_watch_matches_normalizes_rel_abs(tmp_path):
+    assert bb._watch_matches("docs/", "docs/a.md") is True
+    assert bb._watch_matches("docs", "docs/a.md") is True
+    assert bb._watch_matches("docs/", "skills/x.md") is False
+    assert bb._watch_matches("./docs/", "docs/a.md") is True
+    assert bb._watch_matches("docs/", "docs\\a.md") is True  # backslash equalized
+
+
 def test_stop_deny_carries_hot_key_notice(tmp_path, monkeypatch):
     audit_mod, stop_mod, config_mod = _engine(monkeypatch, str(tmp_path))
     monkeypatch.setattr(config_mod, "hook_gate_mode", lambda key: "hard")
@@ -1277,9 +1303,30 @@ def test_doctor_detects_snapshot_drift(root):
     assert any("drift" in w and "rebuild" in w for w in d["warnings"])
 
 
+def test_no_blackboard_set_command_in_source(root):
+    """`blackboard.py set` diye bir komut YOK — doğrusu `write`. Doküman/yorum/
+    skill metinlerinde `set` geçerse LLM geçersiz komut üretir."""
+    import pathlib
+    repo = pathlib.Path(__file__).resolve().parent.parent.parent.parent
+    self_file = pathlib.Path(__file__).resolve()
+    offenders = []
+    for pat in ("hooks/engine/**/*.py", "skills/**/*.md", "docs/*.md"):
+        for p in pathlib.Path(repo).glob(pat):
+            if p.resolve() == self_file:
+                continue  # this guard text, not a real usage
+            try:
+                text = p.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            for i, line in enumerate(text.splitlines(), 1):
+                if "blackboard.py set " in line or "blackboard.py set --" in line:
+                    offenders.append(f"{p.relative_to(repo)}:{i}: {line.strip()}")
+    assert not offenders, "blackboard.py set komutu yok, write kullan:\n" + "\n".join(offenders)
+
+
 def test_doctor_ignores_tool_stamped_keys_in_drift(root):
-    """last_tool.* keys are folded into the snapshot without events by design —
-    they must not read as drift."""
+    """last_tool.* keys are folded from `tool` events and carry type "tool" —
+    drift norm excludes them, so a tool stamp never reads as drift."""
     bb.write_key(root, "k", "v")
     paths = bb.board_paths(root)
     with open(paths["snapshot"], encoding="utf-8") as f:

@@ -655,7 +655,7 @@ verifies mechanically (byte-identical to the generator, roots resolvable by
 {
   "timestamp": 1757068800.0,
   "tool": "file_editor",
-  "input": { "path": "src/main.py", "content": "print(1)... [truncated 6000 chars]" },
+  "input": { "path": "src/main.py", "content": "print(1)... [truncated 20001 chars]" },
   "output_summary": "...",
   "intent": "optimize query time",
   "progress": "in-progress",

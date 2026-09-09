@@ -28,7 +28,7 @@ Hardening cuts the idea down; this builds it out. Before drafting, offer what th
 
 ## Track decisions continuously
 
-As decisions and directions land, record them with the run's working state (see `references/working-state-patterns.md` for the strategy this build uses). For a new skill, propose a kebab-case name when the user did not give one; renaming later is a recorded decision, not a redo. The decision trail is the process memory, the source for resume, and the audit you walk at handoff so the user can confirm their thinking was handled the way they meant. Capture as you go, not in a batch at the end, because the value is in catching the reasoning while it is still fresh.
+As decisions and directions land, record them with the run's working state (see `references/working-state-patterns.md` for the strategy this build uses) and mirror durable ones onto the board: open threads ride the run list (`blackboard.py list-add --key build.<skill-name>.pending --item "<thread>"`, resolved threads come off), declined proposals stay recorded so a later session does not re-propose them. For a new skill, propose a kebab-case name when the user did not give one; renaming later is a recorded decision, not a redo. The decision trail is the process memory, the source for resume, and the audit you walk at handoff so the user can confirm their thinking was handled the way they meant. Capture as you go, not in a batch at the end, because the value is in catching the reasoning while it is still fresh.
 
 ## Write the minimal outcome-driven version first
 

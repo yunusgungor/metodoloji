@@ -1,6 +1,9 @@
 __pycache__/
 *.pyc
 .metodoloji/logs/
+.metodoloji/blackboard.json
+.metodoloji/blackboard.json.lock
+.metodoloji/blackboard.json.*.tmp
 _generated_splits/
 .env
 

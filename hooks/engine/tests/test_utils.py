@@ -277,12 +277,24 @@ def test_active_intent_reads_purpose(tmp_path, monkeypatch):
     assert _active_intent(str(tmp_path)) == "auth flow"
 
 
-def test_active_intent_env_priority(tmp_path, monkeypatch):
+def test_active_intent_board_beats_stale_env(tmp_path, monkeypatch):
+    # Board canlıdır, env bootstrap snapshot'ı: session içinde skill purpose'u
+    # güncellerse hook'lar yeni değeri görür (env staleness regression guard).
+    monkeypatch.setenv("METODOLOJI_INTENT", "stale snapshot")
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
+    import modules.blackboard as bb
+    monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({"purpose": "fresh board intent"}))
+    assert _active_intent(str(tmp_path)) == "fresh board intent"
+
+
+def test_active_intent_env_fallback_when_board_empty(tmp_path, monkeypatch):
+    # Board boşken bootstrap snapshot'ı hâlâ işe yarar.
     monkeypatch.setenv("METODOLOJI_INTENT", "from-env")
     import modules.config as cfg
     monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
     import modules.blackboard as bb
-    monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({"purpose": "from-board"}))
+    monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({}))
     assert _active_intent(str(tmp_path)) == "from-env"
 
 
@@ -351,12 +363,23 @@ def test_active_scope_reads_board(tmp_path, monkeypatch):
     assert _active_scope(str(tmp_path)) == "src/auth"
 
 
-def test_active_scope_env_priority(tmp_path, monkeypatch):
+def test_active_scope_board_beats_stale_env(tmp_path, monkeypatch):
+    # Scope'ta da board canlıdır: session içinde skill scope'u daraltırsa
+    # guard yeni kapsamı görür.
     monkeypatch.setenv("METODOLOJI_SCOPE", "src/payments")
     import modules.config as cfg
     monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
     import modules.blackboard as bb
     monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({"scope": "src/auth"}))
+    assert _active_scope(str(tmp_path)) == "src/auth"
+
+
+def test_active_scope_env_fallback_when_board_empty(tmp_path, monkeypatch):
+    monkeypatch.setenv("METODOLOJI_SCOPE", "src/payments")
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
+    import modules.blackboard as bb
+    monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({}))
     assert _active_scope(str(tmp_path)) == "src/payments"
 
 

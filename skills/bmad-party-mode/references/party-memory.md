@@ -41,6 +41,8 @@ Append one succinct line per memory, directly to the file (create it on first wr
 
 `<type>` is one of `dynamic`, `moment`, `callback`, `outcome`; prefix `by <persona-code>` when a memory belongs to one character. Writes are plain appends — a shell redirect to the file or any equivalent mechanism; no shared script involved.
 
+Mirror durable party memory onto the board so resume reads survive beyond the file: once per session also `list-add --key party.<party-id>.memory --item "<type>: <one line>" --project-root {project-root}` (bounded; the board mirrors the file's newest entries, the file stays canonical). At wrap-up mirror completion (`write --key status --value complete`) so `bmad-help` routes the next session correctly.
+
 If a write errors, skip it silently and never stall the party on a failed write.
 
 ## Forget

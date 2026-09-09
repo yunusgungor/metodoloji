@@ -4,7 +4,7 @@ The Validate intent playbook. Standalone — this intent critiques an existing P
 
 ## Orient
 
-Source-extract against any original inputs and the PRD/addendum themselves. Delegate to subagents per PRD Discipline → "Extract, don't ingest" (in SKILL.md); the parent assembles from extracts.
+Source-extract against any original inputs and the PRD/addendum themselves. Delegate to subagents per PRD Discipline → "Extract, don't ingest" (in SKILL.md); the parent assembles from extracts. Also re-read the run's own thread list (`blackboard.py read --key prd.<product-slug>.pending`) — prior deferred decisions and rejected alternatives live there since the memlog removal; a validation that ignores them is shallow.
 
 ## Run the Reviewer Gate
 

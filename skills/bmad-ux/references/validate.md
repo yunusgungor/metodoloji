@@ -4,7 +4,7 @@ Critique an existing spine pair (`DESIGN.md` + `EXPERIENCE.md`) or any format of
 
 ## Orient
 
-Subagent-extract from sources in frontmatter, `imports/`, `mockups/`, `wireframes/`, `DESIGN.md`, `EXPERIENCE.md`. Parent assembles from extracts.
+Subagent-extract from sources in frontmatter, `imports/`, `mockups/`, `wireframes/`, `DESIGN.md`, `EXPERIENCE.md`. Parent assembles from extracts. Also re-read the run's thread list (`blackboard.py read --key ux.<product-slug>.mock-pending`) and pending design decisions on the board — rejected directions live there since the memlog removal; a validation that ignores them is shallow.
 
 ## Reviewer Gate
 
