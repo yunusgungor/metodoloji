@@ -753,10 +753,46 @@ def guard(json_in: dict) -> dict:
                 continue
             return {"decision": "deny", "reason": msg}
 
-    if _soft_warnings:
-        return {"decision": "allow", "methodology_warnings": _soft_warnings}
+    # --- Intent-scope check (warn-only) ---
+    # Blackboard'daki scope key'i varsa (ör. blackboard.py set --key scope
+    # --value src/auth), scope dışı bir yazma warn-only uyarı üretir —
+    # deny değil. Experiment-approval deny mantığı her zaman önceliklidir.
+    from .utils import _active_scope
+    scope = _active_scope(root)
+    intent_warnings = _intent_scope_warnings(scope=scope, targets=targets, root=root)
+
+    all_warnings = intent_warnings + _soft_warnings
+    if all_warnings:
+        return {"decision": "allow", "methodology_warnings": all_warnings}
 
     return {"decision": "allow"}
+
+
+def _intent_scope_warnings(scope: str, targets: list, root: str = "") -> list[str]:
+    """Aktif scope dışındaki yazmaları warn-only olarak listele.
+
+    scope bir path'tir (ör. "src/auth"). O path dışındaki bir target uyarı
+    alır. Story key'leri (S-003, 1-2-login) ve boş scope [] döner.
+    Hiçbir zaman deny üretmez.
+    """
+    scope = (scope or "").strip()
+    if not scope or scope.startswith("S-") or re.fullmatch(r"\d+-\d+-[a-z][\w-]*", scope):
+        return []  # path scope yok ya da bir story key'i — kontrol edilecek bir şey yok
+    if not root:
+        from .utils import repo_root
+        root = repo_root({})
+    from .utils import rel_to_root, norm_path
+    scope_norm = norm_path(scope).rstrip("/")
+    warnings = []
+    for t in targets:
+        rel = rel_to_root(root, str(t))
+        if rel and not (rel == scope_norm or rel.startswith(scope_norm + "/")):
+            warnings.append(
+                f"Write to {rel} is outside the active scope '{scope}'. "
+                f"If this is a different task, update the blackboard scope "
+                f"(blackboard.py set --key scope --value <new-scope>)."
+            )
+    return warnings
 
 
 # --- Quality Gate (PreToolUse, terminal) ---

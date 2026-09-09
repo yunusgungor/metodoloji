@@ -895,3 +895,64 @@ def test_guard_terminal_existing_story_unreadable_warns(tmp_path, monkeypatch):
     assert res["decision"] == "allow"
     assert any("content is not visible" in w
                for w in res.get("methodology_warnings", []))
+
+
+# --- Intent-scope warning tests (_intent_scope_warnings) ---------------------
+
+from modules.guard import _intent_scope_warnings  # noqa: E402
+
+
+def test_scope_warning_outside_scope(tmp_path):
+    """Scope dışı yazma uyarısı üretmeli."""
+    warnings = _intent_scope_warnings(
+        scope="src/auth",
+        targets=["src/payments/pay.py"],
+        root=str(tmp_path),
+    )
+    assert len(warnings) == 1
+    assert "src/payments/pay.py" in warnings[0] or "src/payments" in warnings[0]
+    assert "src/auth" in warnings[0]
+
+
+def test_scope_warning_inside_scope_no_warn(tmp_path):
+    """Scope içindeki yazma uyarı üretmemeli."""
+    warnings = _intent_scope_warnings(
+        scope="src/auth",
+        targets=["src/auth/login.py"],
+        root=str(tmp_path),
+    )
+    assert warnings == []
+
+
+def test_scope_warning_empty_scope_no_warn(tmp_path):
+    """Boş scope → hiçbir şey kontrol edilmez."""
+    warnings = _intent_scope_warnings(scope="", targets=["src/any.py"], root=str(tmp_path))
+    assert warnings == []
+
+
+def test_scope_warning_story_key_scope_no_warn(tmp_path):
+    """Story key scope'u (S-003 veya 1-2-login) → path kontrolü atlanır."""
+    warnings = _intent_scope_warnings(
+        scope="S-003",
+        targets=["src/anywhere.py"],
+        root=str(tmp_path),
+    )
+    assert warnings == []
+    warnings2 = _intent_scope_warnings(
+        scope="1-2-login",
+        targets=["src/anywhere.py"],
+        root=str(tmp_path),
+    )
+    assert warnings2 == []
+
+
+def test_scope_warning_multiple_targets(tmp_path):
+    """Birden fazla target arasında sadece scope dışındakiler uyarı alır."""
+    warnings = _intent_scope_warnings(
+        scope="src/auth",
+        targets=["src/auth/login.py", "src/payments/pay.py", "src/auth/utils.py"],
+        root=str(tmp_path),
+    )
+    # src/auth içindekiler uyarı almamalı, payments almalı
+    assert len(warnings) == 1
+    assert "payments" in warnings[0]

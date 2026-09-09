@@ -217,6 +217,94 @@ def rel_to_root(root: str, p: str, cwd: str | None = None) -> str:
     return f
 
 
+# --- Intent bridge (blackboard-backed) ---------------------------------------
+# Memlog kaynaklı intent/scope/progress kabiliyetleri — artık blackboard'dan
+# okunuyor. Öncelik sırası memlog bridge ile aynı:
+#   1. METODOLOJI_INTENT / METODOLOJI_SCOPE env (bootstrap'in export ettiği değer,
+#      session içindeki tüm hook prosesleri paylaşır).
+#   2. Blackboard'da saklanan purpose / scope / status key'leri.
+# Blackboard devre dışıysa veya okunamazsa '' döner (fail-open).
+
+def _active_blackboard_meta(root: str) -> dict:
+    """Blackboard'daki purpose/scope/status key'lerini çek ({} if none/disabled).
+
+    Sadece dört canonical key kontrol edilir; board okunamıyorsa {} döner.
+    Fail-open: bu fonksiyon hiçbir zaman istisna fırlatmaz.
+    """
+    try:
+        from .config import blackboard_enabled
+        if not blackboard_enabled():
+            return {}
+        from . import blackboard as bb
+        board = bb.read_board(root)
+        keys = board.get("keys", {})
+        meta = {}
+        for field in ("purpose", "scope", "status", "topic", "goal", "idea"):
+            entry = keys.get(field)
+            if entry and isinstance(entry, dict):
+                val = str(entry.get("value", "")).strip()
+                if val:
+                    meta[field] = val
+        return meta
+    except Exception:
+        return {}
+
+
+def _active_intent(root: str, env_override: bool = True) -> str:
+    """Session için aktif intent (amaç) döndür.
+
+    Öncelik:
+      1. METODOLOJI_INTENT env (bootstrap.sh tarafından SessionStart'ta set
+         edilir) — aynı session içindeki tüm hook prosesleri aynı intent'i görür.
+      2. Blackboard'daki purpose, topic, goal veya idea key'i (skill'in
+         kullandığı vocabulary'e göre intent'e ulaşır).
+    Intent kayıtlı değilse '' döner.
+    """
+    if env_override:
+        env_intent = os.environ.get("METODOLOJI_INTENT", "").strip()
+        if env_intent:
+            return env_intent
+    meta = _active_blackboard_meta(root)
+    for key in ("purpose", "topic", "goal", "idea"):
+        val = meta.get(key, "")
+        if val:
+            return val
+    return ""
+
+
+def _active_progress(root: str) -> str:
+    """Blackboard'daki session progress status'unu döndür.
+
+    Skill'ler `blackboard.py set --key status --value complete` ile yazar
+    (veya active / in-progress). Kayıtlı değilse '' döner.
+    """
+    return _active_blackboard_meta(root).get("status", "")
+
+
+def _active_scope(root: str, env_override: bool = True) -> str:
+    """Aktif scope (bir path kapsamı) döndür.
+
+    Scope, intent'ten bağımsız bir field'dır: bir blackboard kaydı
+    `purpose: auth flow` ile `scope: src/auth` birlikte taşıyabilir.
+    Guard, scope dışı yazmaları warn-only olarak işaretlemek için bunu kullanır.
+
+    Öncelik:
+      1. METODOLOJI_SCOPE env (bootstrap.sh tarafından set edilir).
+      2. METODOLOJI_INTENT env içinde `scope:` tag'i (eski bootstrap versiyonları).
+      3. Blackboard'daki scope key'i.
+    """
+    if env_override:
+        env_scope = os.environ.get("METODOLOJI_SCOPE", "").strip()
+        if env_scope:
+            return env_scope
+        env_intent = os.environ.get("METODOLOJI_INTENT", "").strip()
+        if env_intent:
+            m = re.search(r"(?:scope|kapsam)\s*[:=]\s*([\w\-./]+(?:/[\w\-./]+)*)", env_intent)
+            if m:
+                return m.group(1).strip()
+    return _active_blackboard_meta(root).get("scope", "")
+
+
 _STORY_KEY_IN_INTENT = re.compile(
     r"(?i)\b(S-\d+|(?:\d+-\d+-[a-z][a-z0-9-]*))\.md\b|"
     r"\b(S-\d+|(?:\d+-\d+-[a-z][a-z0-9-]*))\b")

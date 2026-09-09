@@ -238,4 +238,167 @@ def test_extract_story_key_no_match():
     assert extract_story_key_from_content("## Title\nbody") == ""
 
 
-# END — intent bridge tests removed
+# --- Intent bridge (blackboard-backed) tests ---------------------------------
+# Blackboard board_read monkeylendi; gerçek dosya sistemi yazımı gerekmez.
+
+from modules.utils import (  # noqa: E402
+    _active_intent,
+    _active_progress,
+    _active_scope,
+    _story_key_from_intent,
+)
+
+
+def _mock_board(keys: dict):
+    """_active_blackboard_meta'nın döndüreceği bir board nesnesi hazırla."""
+    board_keys = {}
+    for k, v in keys.items():
+        board_keys[k] = {"value": v, "type": "note", "updated": 0.0}
+    return {"version": 2, "hot": None, "hot_canvas": None,
+            "keys": board_keys, "tags": [], "contributions": [],
+            "links": [], "canvases": {}, "subscriptions": [],
+            "alerts": [], "watchers": {}, "updated": 0.0}
+
+
+def test_active_intent_no_blackboard(tmp_path, monkeypatch):
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    # blackboard_enabled() = False → boş dönmeli
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: False)
+    assert _active_intent(str(tmp_path)) == ""
+
+
+def test_active_intent_reads_purpose(tmp_path, monkeypatch):
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
+    import modules.blackboard as bb
+    monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({"purpose": "auth flow"}))
+    assert _active_intent(str(tmp_path)) == "auth flow"
+
+
+def test_active_intent_env_priority(tmp_path, monkeypatch):
+    monkeypatch.setenv("METODOLOJI_INTENT", "from-env")
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
+    import modules.blackboard as bb
+    monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({"purpose": "from-board"}))
+    assert _active_intent(str(tmp_path)) == "from-env"
+
+
+def test_active_intent_falls_back_topic(tmp_path, monkeypatch):
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
+    import modules.blackboard as bb
+    monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({"topic": "PRD billing"}))
+    assert _active_intent(str(tmp_path)) == "PRD billing"
+
+
+def test_active_intent_falls_back_goal(tmp_path, monkeypatch):
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
+    import modules.blackboard as bb
+    monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({"goal": "lift retention"}))
+    assert _active_intent(str(tmp_path)) == "lift retention"
+
+
+def test_active_intent_falls_back_idea(tmp_path, monkeypatch):
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
+    import modules.blackboard as bb
+    monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({"idea": "search autocomplete"}))
+    assert _active_intent(str(tmp_path)) == "search autocomplete"
+
+
+def test_active_intent_purpose_beats_topic(tmp_path, monkeypatch):
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
+    import modules.blackboard as bb
+    monkeypatch.setattr(bb, "read_board",
+                        lambda root: _mock_board({"purpose": "auth flow", "topic": "something else"}))
+    assert _active_intent(str(tmp_path)) == "auth flow"
+
+
+def test_active_intent_empty_when_only_scope(tmp_path, monkeypatch):
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
+    import modules.blackboard as bb
+    monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({"scope": "src/auth"}))
+    assert _active_intent(str(tmp_path)) == ""
+    assert _active_scope(str(tmp_path)) == "src/auth"
+
+
+def test_active_scope_no_blackboard(tmp_path, monkeypatch):
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: False)
+    assert _active_scope(str(tmp_path)) == ""
+
+
+def test_active_scope_reads_board(tmp_path, monkeypatch):
+    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
+    import modules.blackboard as bb
+    monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({"scope": "src/auth"}))
+    assert _active_scope(str(tmp_path)) == "src/auth"
+
+
+def test_active_scope_env_priority(tmp_path, monkeypatch):
+    monkeypatch.setenv("METODOLOJI_SCOPE", "src/payments")
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
+    import modules.blackboard as bb
+    monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({"scope": "src/auth"}))
+    assert _active_scope(str(tmp_path)) == "src/payments"
+
+
+def test_active_scope_intent_tag_extraction(tmp_path, monkeypatch):
+    monkeypatch.setenv("METODOLOJI_INTENT", "auth flow (scope: src/auth)")
+    monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: False)
+    assert _active_scope(str(tmp_path)) == "src/auth"
+
+
+def test_active_progress_empty(tmp_path, monkeypatch):
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: False)
+    assert _active_progress(str(tmp_path)) == ""
+
+
+def test_active_progress_reads_status(tmp_path, monkeypatch):
+    import modules.config as cfg
+    monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
+    import modules.blackboard as bb
+    monkeypatch.setattr(bb, "read_board",
+                        lambda root: _mock_board({"purpose": "auth flow", "status": "complete"}))
+    assert _active_progress(str(tmp_path)) == "complete"
+
+
+# --- _story_key_from_intent tests (preserved) --------------------------------
+
+def test_story_key_from_intent_md_suffix():
+    assert _story_key_from_intent("finish 1-2-mod.md") == "1-2-mod"
+    assert _story_key_from_intent("finish S-003.md") == "S-003"
+
+
+def test_story_key_from_intent_s_key():
+    assert _story_key_from_intent("S-003'ü bitir") == "S-003"
+    assert _story_key_from_intent("finish S-003 now") == "S-003"
+
+
+def test_story_key_from_intent_slug_key():
+    assert _story_key_from_intent("finish 1-2-login") == "1-2-login"
+
+
+def test_story_key_from_intent_no_match():
+    assert _story_key_from_intent("auth flow") == ""
+    assert _story_key_from_intent("") == ""
