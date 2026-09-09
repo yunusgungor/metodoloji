@@ -69,7 +69,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 
 ### Chain Handshake
 
-Before `## Execution`, check the chain for signals addressed to you: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoffs --skill bmad-dev-story --project-root {project-root}` — the canonical sender is a `bmad-create-story` run (the epics or spec workflow may also hand off directly). Read the named story first — the signal's note names the story key or file to pull from the sprint queue — then complete the handshake: `python3 {metodoloji-root}/bmad/scripts/blackboard.py consume --channel handoff.bmad-dev-story --project-root {project-root}` (consume only after the story file is located and `sprint_status` read — an unconsumed signal keeps the hand-off waiting, which is correct when the user picks a different story).
+Before `## Execution`, check the chain for signals addressed to you: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoffs --skill bmad-dev-story --project-root {project-root}` — the canonical sender is a `bmad-create-story` run (the epics or spec workflow may also hand off directly). Read the named story first — the signal's note names the story key or file to pull from the sprint queue — then complete the handshake: `python3 {metodoloji-root}/bmad/scripts/blackboard.py consume --channel handoff.bmad-dev-story --project-root {project-root}` (consume only after the story file is located and `sprint_status` read — an unconsumed signal keeps the hand-off waiting, which is correct when the user picks a different story). Mirror the run onto the session intent bridge so hooks attribute tool traffic to this run: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key purpose --value "dev {story_key}" --type state --project-root {project-root}`.
 
 ## Paths
 
@@ -561,7 +561,7 @@ Before `## Execution`, check the chain for signals addressed to you: `python3 {m
       - Run `code-review` workflow for peer review
       - Optional: If Test Architect module installed, run `/bmad:tea:automate` to expand guardrail tests
     </action>
-    <action>Post a chain signal so the code-review run opens knowing the story landed: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-code-review --from-key story.{story_key} --note "Dev complete — story {story_key} in review, QR created; run the review and fold findings into docs/development/QR." --project-root {project-root}` (waits in `handoff.bmad-code-review` until a code-review run consumes it).</action>
+    <action>Post a chain signal so the code-review run opens knowing the story landed: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-code-review --from-key story.{story_key} --note "Dev complete — story {story_key} in review, QR created; run the review and fold findings into docs/development/QR." --project-root {project-root}` (waits in `handoff.bmad-code-review` until a code-review run consumes it). Mirror completion onto the intent bridge: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key status --value complete --type state --project-root {project-root}` (stop skips story checks once progress is `complete`)</action>
 
     <output>💡 **Tip:** For best results, run `code-review` using a **different** LLM than the one that implemented this story.</output>
     <check if="{sprint_status} file exists">
