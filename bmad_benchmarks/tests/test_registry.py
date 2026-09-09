@@ -24,8 +24,8 @@ class TestRegistrySync:
         )
 
     def test_same_length(self):
-        assert len(BENCHMARKS) == len(_ADAPTERS) == 17, (
-            f"Expected 17 benchmarks, got {len(BENCHMARKS)} benchmarks / "
+        assert len(BENCHMARKS) == len(_ADAPTERS) == 16, (
+            f"Expected 16 benchmarks, got {len(BENCHMARKS)} benchmarks / "
             f"{len(_ADAPTERS)} adapters"
         )
 

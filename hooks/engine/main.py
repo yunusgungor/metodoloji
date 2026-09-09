@@ -137,10 +137,6 @@ def main():
         hso = {"hookEventName": "Stop"}
         if reason:
             hso["additionalContext"] = reason
-        pending = result.get("pending_docs")
-        if pending:
-            existing = hso.get("additionalContext", "")
-            hso["additionalContext"] = (existing + "\n" + pending).strip() if existing else pending
         print(json.dumps({**out, "hookSpecificOutput": hso}, ensure_ascii=False))
         return
     elif hook_type == "session_start":

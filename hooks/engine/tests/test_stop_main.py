@@ -152,6 +152,9 @@ def test_stop_allows_free_zone_code(tmp_path, monkeypatch):
 
 
 def test_stop_denies_unapproved_code(tmp_path, monkeypatch):
+    # Isolate from local config: the deny contract requires stop_guard=hard.
+    from modules import config
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
     (tmp_path / "src").mkdir()
     (tmp_path / "src/main.py").write_text("print(1)\n", encoding="utf-8")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
@@ -190,6 +193,8 @@ def test_stop_hook_active_allows(tmp_path, monkeypatch):
 
 def test_stop_deny_budget_allows_second_fire(tmp_path, monkeypatch):
     # First deny records stop_deny; the second fire (same session) allows.
+    from modules import config
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
     from modules.stop import _stop_denies_so_far
     (tmp_path / "src").mkdir()
     (tmp_path / "src/main.py").write_text("print(1)\n", encoding="utf-8")
@@ -291,6 +296,8 @@ def test_stop_ignores_shell_variable_targets(tmp_path, monkeypatch):
 
 def test_stop_stale_sprint_status_blocks_without_marker(tmp_path, monkeypatch):
     # No session marker (old bootstrap) → legacy behavior preserved.
+    from modules import config
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
     cand = tmp_path / ".metodoloji"
     cand.mkdir(parents=True)
     (cand / "sprint-status.yaml").write_text(

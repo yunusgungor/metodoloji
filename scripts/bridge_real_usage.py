@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 """Bridge real methodology usage into SkillOpt training data.
 
-The methodology already records real use: audit-log events (intent-stamped),
-approved experiment records (docs/experiments/E-*.md), and auto-generated
-code-docs learnings (docs/code-docs/learnings/L-*.md). None of that reaches the
+The methodology already records real use: audit-log events (intent-stamped) and
+approved experiment records (docs/experiments/E-*.md). None of that reaches the
 SkillOpt benchmarks — whose training JSONs are hand-written synthetic scenarios.
 
 This script converts the real artifacts into bmad_research_experiment training
 items so the self-optimization loop learns from actual sessions, not just
 synthetic ones. It is additive and idempotent: items are keyed by their source
-artifact (E-id / L-id / audit timestamp), and a re-run overwrites the same ids
+artifact (E-id / audit timestamp), and a re-run overwrites the same ids
 instead of duplicating them.
 
 Usage:
-  python3 scripts/bridge_real_usage.py [--audit-log PATH] [--learnings-dir PATH]
+  python3 scripts/bridge_real_usage.py [--audit-log PATH]
     [--out PATH]
-Defaults: .metodoloji/logs/hook-audit.log, docs/code-docs/learnings,
+Defaults: .metodoloji/logs/hook-audit.log,
 bmad_benchmarks/envs/bmad_research_experiment/data/train/real-usage.json
 """
 
@@ -119,40 +118,6 @@ def from_experiment_records(exp_dir: pathlib.Path) -> list[dict]:
     return items
 
 
-def from_learnings(learnings_dir: pathlib.Path) -> list[dict]:
-    """L-*.md learnings (auto-generated from approved experiments) → items."""
-    if not learnings_dir.is_dir():
-        return []
-    items = []
-    for doc in sorted(learnings_dir.glob("L-*.md")):
-        try:
-            text = doc.read_text(encoding="utf-8")
-        except OSError:
-            continue
-        # Learning docs carry related_experiments: [E-XXX].
-        m = re.search(r"related_experiments:\s*\[([^\]]*)\]", text)
-        exp_refs = [x.strip() for x in m.group(1).split(",") if x.strip()] if m else []
-        eid = exp_refs[0] if exp_refs else doc.stem
-        title = ""
-        tm = re.search(r"title:\s*\"([^\"]+)\"", text)
-        if tm:
-            title = tm.group(1)
-        items.append({
-            "id": f"real-{doc.stem}",
-            "task_desc": (
-                f"Apply the learning from {eid} ('{title}'): produce a "
-                f"methodology record capturing the approved experiment, its "
-                f"hypothesis, measurement, and decision."
-            ),
-            "expected_fields": EXPECTED_FIELDS,
-            "expected_hypothesis_format": True,
-            "expected_metric_type": "accuracy",
-            "task_type": "research-experiment",
-            "source": f"learning:{doc.stem}",
-        })
-    return items
-
-
 def from_audit_log(audit_log: pathlib.Path) -> list[dict]:
     """Audit-log events mentioning an approved experiment → items."""
     events = _read_jsonl(audit_log)
@@ -195,15 +160,12 @@ def main() -> int:
                    default=REPO_ROOT / ".metodoloji/logs/hook-audit.log")
     p.add_argument("--experiments-dir", type=pathlib.Path,
                    default=REPO_ROOT / "docs/experiments")
-    p.add_argument("--learnings-dir", type=pathlib.Path,
-                   default=REPO_ROOT / "docs/code-docs/learnings")
     p.add_argument("--out", type=pathlib.Path,
                    default=REPO_ROOT / "bmad_benchmarks/envs/bmad_research_experiment/data/train/real-usage.json")
     args = p.parse_args()
 
     items = []
     items += from_experiment_records(args.experiments_dir)
-    items += from_learnings(args.learnings_dir)
     items += from_audit_log(args.audit_log)
     total = _write_train(items, args.out)
     print(f"bridge_real_usage: {len(items)} real-usage items → {args.out} "

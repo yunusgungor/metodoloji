@@ -48,7 +48,6 @@ def test_is_free_free_zones():
 
 
 def test_is_free_docs_raw():
-    assert is_free("docs/code-docs/decisions/D-001-x.md")
     assert is_free("docs/foo/raw/data.json")
 
 

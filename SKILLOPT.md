@@ -26,7 +26,6 @@ modifying model weights**.
 | `bmad-meta-root` | Root classification (project vs plugin) | Root + direction accuracy |
 | `bmad-meta-path` | Path resolution correctness | Path classification accuracy |
 | `bmad-research-experiment` | Experiment methodology | Record completeness |
-| `bmad-code-docs` | Code documentation quality | Doc coverage |
 
 ## Architecture
 
@@ -48,7 +47,6 @@ bmad_benchmarks/envs/
 ├── bmad_meta_guard/
 ├── bmad_meta_root/
 ├── bmad_meta_path/
-├── bmad_code_docs/
 └── bmad_research_experiment/
 
 configs/
@@ -193,7 +191,6 @@ Each benchmark uses JSON items with this structure:
 | meta-root | Correct root + direction classification | Per-component accuracy |
 | meta-path | Correct path classification | Per-component accuracy |
 | research-experiment | Record completeness + gate validity | Field coverage |
-| code-docs | Documentation coverage | Per-section coverage |
 
 ## Adding More Training Data
 
@@ -204,7 +201,7 @@ The dataloader globs `*.json` from the split directory.
 ## SkillOpt-Sleep (Nightly Self-Evolution)
 
 For continuous improvement from real usage sessions. The repo ships a launcher
-that bridges real usage (experiments, learnings, audit events) into the training
+that bridges real usage (experiments, audit events) into the training
 data first, then runs the cycle:
 
 ```bash

@@ -26,7 +26,6 @@ RESULTS = {
     "bmad-meta-root":      0.000,
     "bmad-meta-path":      0.333,
     "bmad-research-experiment": 0.733,
-    "bmad-code-docs":      0.737,
 }
 
 def main():

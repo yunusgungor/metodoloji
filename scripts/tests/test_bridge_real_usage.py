@@ -72,29 +72,6 @@ def test_experiment_dir_missing():
     assert mod.from_experiment_records(Path("/nonexistent")) == []
 
 
-# --- from_learnings ----------------------------------------------------------
-
-def test_learning_with_experiment_ref(tmp_path):
-    d = tmp_path / "learnings"
-    d.mkdir()
-    (d / "L-E-001-x.md").write_text(
-        '---\ntitle: "Auth learning"\nrelated_experiments: [E-001]\n---\nbody\n',
-        encoding="utf-8")
-    items = mod.from_learnings(d)
-    assert len(items) == 1
-    assert items[0]["id"] == "real-L-E-001-x"
-    assert "E-001" in items[0]["task_desc"]
-
-
-def test_learning_no_experiment_uses_stem(tmp_path):
-    d = tmp_path / "learnings"
-    d.mkdir()
-    (d / "L-001.md").write_text('---\ntitle: "X"\n---\n', encoding="utf-8")
-    items = mod.from_learnings(d)
-    assert len(items) == 1
-    assert "L-001" in items[0]["task_desc"]
-
-
 # --- from_audit_log ----------------------------------------------------------
 
 def test_audit_approved_experiment(tmp_path):

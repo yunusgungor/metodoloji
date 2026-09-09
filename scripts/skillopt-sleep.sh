@@ -4,7 +4,7 @@
 # Wraps the pip-installed skillopt-sleep CLI with the repo's config so the
 # self-optimization loop runs against the actual skills/ tree. It also runs
 # scripts/bridge_real_usage.py first, so the night's training data includes
-# real sessions (experiments, learnings, audit events) — not just synthetic
+# real sessions (experiments, audit events) — not just synthetic
 # benchmark scenarios.
 #
 # Usage:

@@ -10,7 +10,7 @@ Covers all 6 scoring strategies:
   C: explicit-declaration (meta_root, meta_guard)
   D: multi-axis word (meta_chain)
   E: section/invariant (architecture)
-  F: rich structural (research_experiment, code_docs)
+  F: rich structural (research_experiment)
 """
 from __future__ import annotations
 
@@ -158,42 +158,6 @@ GOLD_RE = [
      1, 1.0, "good"),
 ]
 
-# Strategy F: code_docs (type=short code, frontmatter, section patterns)
-def _cd(doc_type, sections, tags=None):
-    return {"expected_type": doc_type, "expected_sections": sections,
-            "expected_tags": tags or []}
-
-# Good pattern doc: type=P, frontmatter with 5 fields, all P sections
-_P_GOOD = (
-    "---\nid: P-001\ntype: pattern\ntitle: \"Repo Auth\"\ndate: 2026-08-30\n"
-    "tags: [pattern, auth]\n---\n"
-    "## Pattern\nToken-based auth for repo access.\n"
-    "## Usage Scenario\nWhen API access requires authentication.\n"
-    "## Example\ncurl -H 'Authorization: Bearer ...' url\n"
-    "## Advantages\nStateless, scalable.\n"
-    "## Disadvantages\nToken rotation complexity."
-)
-
-GOLD_CD = [
-    # good: correct type (P), complete frontmatter, all P sections
-    (_P_GOOD, _cd("P", ["## Pattern", "## Usage Scenario", "## Example"],
-                  ["pattern", "auth"]), 1, 1.0, "good"),
-    # bad: wrong type (detected=P but expected=A)
-    (_P_GOOD, _cd("A", ["## Pattern", "## Usage Scenario", "## Example"]),
-     0, 0.0, "bad"),
-    # corrupted: no frontmatter at all
-    ("## Signature\nchat_target(system, user)\n## Usage\nCall to chat",
-     _cd("A", ["## Signature", "## Usage"]), 0, 0.0, "corrupted"),
-    # good: decision doc
-    ("---\nid: D-001\ntype: decision\ntitle: \"x\"\ndate: 01.09.2026\n"
-     "tags: [decision]\n---\n"
-     "## Decision\nUse Redis for caching.\n"
-     "## Rationale\nPerformance requirements.\n"
-     "## Results\n50ms p99 latency.",
-     _cd("D", ["## Decision", "## Rationale", "## Results"], ["decision"]),
-     1, 1.0, "good"),
-]
-
 # ---------------------------------------------------------------------------
 # Corrupted-output regression cases (label="corrupted-regression")
 # These test edge cases where the scorer's logic MUST reject bad outputs.
@@ -230,11 +194,6 @@ GOLD_CORRUPTED = [
      "## Experiment Design\n\n## Code Scope\n\n",
      _re(["Theory", "Hypothesis", "Measurement Metrics", "Experiment Design", "Code Scope"]),
      0, 0.0, "corrupted-regression"),
-    # --- code_docs: missing frontmatter MUST fail even if sections are perfect ---
-    ("## API\nchat_target makes API calls.\n## Signature\nchat_target(sys, usr)\n"
-     "## Usage\nCall it.\n## Notes\nBe careful.",
-     _cd("A", ["## API", "## Signature", "## Usage", "## Notes"]), 0, 0.0,
-     "corrupted-regression"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -289,17 +248,10 @@ def _build_scorer_map():
     except Exception:
         pass
 
-    # F: code_docs
-    try:
-        scorers["code_docs"] = (
-            _import_score("bmad_benchmarks.envs.bmad_code_docs.rollout"), GOLD_CD)
-    except Exception:
-        pass
-
     # Corrupted-output regression cases (merged into their respective scorers)
     _corrupted_by_scorer = {
         "meta_root": [], "meta_guard": [], "meta_chain": [],
-        "architecture": [], "research_experiment": [], "code_docs": [],
+        "architecture": [], "research_experiment": [],
     }
     for item in GOLD_CORRUPTED:
         output_text, item_dict, exp_hard, exp_soft, label = item
@@ -314,8 +266,6 @@ def _build_scorer_map():
             _corrupted_by_scorer["architecture"].append(item)
         elif "expected_hypothesis_format" in item_dict:
             _corrupted_by_scorer["research_experiment"].append(item)
-        elif "expected_type" in item_dict:
-            _corrupted_by_scorer["code_docs"].append(item)
 
     for scorer_name, corrupted_items in _corrupted_by_scorer.items():
         if corrupted_items and scorer_name in scorers:

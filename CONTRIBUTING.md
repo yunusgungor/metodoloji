@@ -9,10 +9,10 @@ Thank you for your interest in contributing to **Metodoloji**! We welcome contri
 Metodoloji uses [SkillOpt](https://github.com/microsoft/SkillOpt) (Reinforcement Learning on text-based skills without model weight changes) to continually tune and elevate skill instructions (`SKILL.md`). **Skill contributions backed by SkillOpt training and benchmark evaluation are highly valued.**
 
 ### 1. Training Environment & Benchmarks
-Our 17 benchmark environments are located under `bmad_benchmarks/envs/`:
+Our 16 benchmark environments are located under `bmad_benchmarks/envs/`:
 - **Core Engineering:** `bmad-code-review`, `bmad-create-story`, `bmad-architecture`, `bmad-prd`, `bmad-test-design`
 - **Methodology Record Gates:** `bmad-custom-ir`, `bmad-custom-sp`, `bmad-custom-story`, `bmad-custom-qr`, `bmad-custom-pr`
-- **Meta & Architecture:** `bmad-meta-guard`, `bmad-meta-chain`, `bmad-meta-mod`, `bmad-meta-root`, `bmad-meta-path`, `bmad-research-experiment`, `bmad-code-docs`
+- **Meta & Architecture:** `bmad-meta-guard`, `bmad-meta-chain`, `bmad-meta-mod`, `bmad-meta-root`, `bmad-meta-path`, `bmad-research-experiment`
 
 Each benchmark contains:
 - `adapter.py`: Runtime/agent harness
@@ -50,7 +50,7 @@ Each benchmark contains:
    - If the new score beats the baseline without regression, update `skills/<skill-name>/SKILL.md`
 
 ### 3. Nightly Self-Evolution Cycle (`skillopt-sleep.sh`)
-Metodoloji supports feeding real-world session data (audit logs, learnings, approved experiments) back into training:
+Metodoloji supports feeding real-world session data (audit logs, approved experiments) back into training:
 ```bash
 # Dry run to preview training queue
 sh scripts/skillopt-sleep.sh dry-run

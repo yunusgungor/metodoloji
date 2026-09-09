@@ -46,28 +46,6 @@ FIELD_MAP = {
     "Ölçüm metrikleri": "Measurement Metrics",
     "Deney tasarımı": "Experiment Design",
     "Kod kapsamı": "Code Scope",
-    # Code docs sections
-    "## Kalıp": "## Pattern",
-    "## Kullanım Senaryosu": "## Usage Scenario",
-    "## Örnek": "## Example",
-    "## Avantajlar": "## Advantages",
-    "## Dezavantajlar": "## Disadvantages",
-    "## Hata": "## Error",
-    "## Neden": "## Cause",
-    "## Çözüm": "## Solution",
-    "## Önleme": "## Prevention",
-    "## Gerekçe": "## Rationale",
-    "## Sonuçlar": "## Results",
-    "## Öğrenilen": "## Learned",
-    "## Bağlam": "## Context",
-    "## Kanıt": "## Evidence",
-    "## Uygulama": "## Application",
-    "## İmza": "## Signature",
-    "## Kullanım": "## Usage",
-    "## Dikkat Edilecekler": "## Notes",
-    "## Açıklama": "## Description",
-    "## Sonraki Adımlar": "## Next Steps",
-    "## API": "## API",
 }
 
 
@@ -87,7 +65,7 @@ def main() -> int:
     changed = 0
     for bench in ["bmad_custom_ir", "bmad_custom_sp", "bmad_custom_story",
                   "bmad_custom_qr", "bmad_custom_pr",
-                  "bmad_research_experiment", "bmad_code_docs"]:
+                  "bmad_research_experiment"]:
         bench_dir = DATA_DIRS / bench / "data"
         for f in sorted(bench_dir.rglob("*.json")):
             with open(f, encoding="utf-8") as fh:

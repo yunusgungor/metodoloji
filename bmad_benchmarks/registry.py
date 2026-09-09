@@ -33,8 +33,6 @@ BENCHMARKS = [
     "bmad-meta-path",
     # Research methodology benchmark
     "bmad-research-experiment",
-    # Code docs benchmark
-    "bmad-code-docs",
 ]
 
 # {benchmark_name: (module_path, class_name)}
@@ -58,8 +56,6 @@ _ADAPTERS = {
     "bmad-meta-path": ("bmad_benchmarks.envs.bmad_meta_path.adapter", "BmadMetaPathAdapter"),
     # Research methodology benchmark
     "bmad-research-experiment": ("bmad_benchmarks.envs.bmad_research_experiment.adapter", "BmadResearchExperimentAdapter"),
-    # Code docs benchmark
-    "bmad-code-docs": ("bmad_benchmarks.envs.bmad_code_docs.adapter", "BmadCodeDocsAdapter"),
 }
 
 

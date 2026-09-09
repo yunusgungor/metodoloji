@@ -138,7 +138,7 @@ Trained rules can contradict reality. When applying a gain:
 
 ## 10. A weak model can't generalize a learned skill to held-out items
 
-**Symptom (bmad-code-docs, laguna):** `accept=0 reject=15`, best_score stuck at
+**Symptom (laguna model):** `accept=0 reject=15`, best_score stuck at
 baseline through all 21 steps. Gate scores were *real* (0 gateway-503s, 9/9
 items) yet every patch scored below baseline: `sel_hard` 0.222–0.555 vs
 baseline 0.5556. `best_skill.md` == initial skill.
@@ -163,7 +163,7 @@ can't absorb the skill.
 
 ## 11. Manual decision-guide edits can beat 21 ReflACT steps
 
-**Symptom (bmad-code-docs, deepseek):** baseline 7/9 (0.778) was ideal, but
+**Symptom (deepseek):** baseline 7/9 (0.778) was ideal, but
 step_0001's patch scored equal (0.7778) → reject (gate needs strict >). The
 model kept confusing **P vs A** (`codoc-val-pattern` → picked `api`) and
 **L vs P** (`codoc-val-context-loading` → picked `pattern`). ReflACT would
@@ -205,7 +205,7 @@ partial, and corrupted cases.
 
 **Key finding:** The proxy scorer is structurally consistent but semantically
 shallow. It can detect heading spam (research_experiment requires ≥20 chars per
-section), missing frontmatter (code_docs), and wrong type codes — but
+section) and wrong type codes — but
 `score_field_presence` (custom_ir family) passes any text containing the field
 label strings, even gibberish. This is a known ceiling: the proxy verifies
 *structure*, not *content quality*.
@@ -216,7 +216,6 @@ label strings, even gibberish. This is a known ceiling: the proxy verifies
 - meta_chain: record token as substring of path must not match
 - architecture: partial invariant match (2/3 < 0.8 threshold)
 - research_experiment: heading spam without content
-- code_docs: missing frontmatter
 
 **Regex fix applied:** meta_root `_extract()` "correct root" pattern changed from
 `.{0,60}?` to `.*?` to handle intervening words ("correct destination would be
@@ -254,8 +253,7 @@ precision, score, rate, quality) or the gate flags a MISMATCH.
 - **EASY (≥0.9, 6 benchmarks):** code-review, custom-ir/sp/story/qr/pr — model
   already solves these with substring matching. Nothing to learn; training would
   waste tokens.
-- **IN RANGE (0.6–0.8, 2 benchmarks):** research-experiment (0.733), code-docs
-  (0.737) — ideal for training.
+- **IN RANGE (0.6–0.8):** research-experiment (0.733) — ideal for training.
 - **PARTIAL (0.3–0.6, 5 benchmarks):** prd (0.583), test-design (0.400),
   meta-mod (0.500), meta-guard (0.500), meta-path (0.333) — model gets some
   credit but not enough.

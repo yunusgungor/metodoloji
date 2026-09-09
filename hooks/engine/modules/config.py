@@ -155,7 +155,7 @@ EXEC_CONFIG_NAME = re.compile(
 # ordinary project; see PLUGIN_FREE_PREFIXES for the self-modification exemption.
 FREE_PREFIXES = (
     "_bmad/", "scratch/", "graft/", ".git/", "tmp/", "temp/",
-    "openhands/", ".metodoloji/", "docs/code-docs/",
+    "openhands/", ".metodoloji/",
 )
 
 # Plugin source trees that are free ONLY when the plugin root resolves to the
@@ -164,17 +164,6 @@ FREE_PREFIXES = (
 PLUGIN_FREE_PREFIXES = ("hooks/", "scripts/", "skills/", "bmad_benchmarks/", "custom/")
 
 INFRA_FILES = {"scripts/check-methodology.sh", "skills/bmad-research-experiment/scripts/run_experiment.py"}
-
-# Code docs paths
-CODE_DOCS_DIR = "docs/code-docs"
-CODE_DOCS_TYPES = {
-    "decision": {"prefix": "D", "dir": "decisions"},
-    "pattern": {"prefix": "P", "dir": "patterns"},
-    "learning": {"prefix": "L", "dir": "learnings"},
-    "api": {"prefix": "A", "dir": "api"},
-    "troubleshooting": {"prefix": "T", "dir": "troubleshooting"},
-    "pending": {"prefix": "X", "dir": "pending"},
-}
 
 FREE_DOC_MD = re.compile(r"(?i)^docs/.*\.md$")
 FREE_DOC_RAW = re.compile(r"(?i)^docs/.*/raw(/|$)")
