@@ -133,11 +133,14 @@ _SESSION_TAIL_LINES = 20000
 
 
 def _read_session_lines(root: str) -> list[str]:
-    """Audit lines after the newest session_start marker (all lines if none).
+    """Audit lines after the newest session_start marker, filtered by session_id.
 
     Single reader shared by touched-set + deny-budget (one file read per
     stop, not one per helper). Bounded to the newest _SESSION_TAIL_LINES so
     stop stays O(session), never O(history).
+    
+    NEW: Also extracts current session_id and filters events to that session only
+    (MEDIUM #13 / ISSUE #72) — prevents concurrent session interference.
     """
     from .config import log_file
     log_path = pathlib.Path(root).absolute() / log_file()
@@ -146,6 +149,9 @@ def _read_session_lines(root: str) -> list[str]:
     except OSError:
         return []
     lines = lines[-_SESSION_TAIL_LINES:]
+    
+    # Find most recent session_start marker and extract session_id
+    current_session_id = None
     offset = 0
     for i, line in enumerate(lines):
         try:
@@ -153,8 +159,30 @@ def _read_session_lines(root: str) -> list[str]:
         except ValueError:
             continue
         if isinstance(rec, dict) and rec.get("type") == _SESSION_MARKER_TYPE:
-            offset = i + 1
-    return lines[offset:]
+            if rec.get("hook_event") == "SessionStart":
+                current_session_id = rec.get("session_id", "")
+                offset = i + 1
+    
+    # Return lines after marker, filtered by session_id if available
+    result = lines[offset:]
+    
+    # NEW: Filter events by session_id for strict isolation (MEDIUM #13)
+    if current_session_id:
+        filtered = []
+        for line in result:
+            try:
+                rec = json.loads(line)
+                # Keep events that belong to this session or have no session_id (backward compat)
+                if isinstance(rec, dict):
+                    event_session_id = rec.get("session_id", "")
+                    if not event_session_id or event_session_id == current_session_id:
+                        filtered.append(line)
+            except ValueError:
+                # Malformed lines: include them (fail-safe)
+                filtered.append(line)
+        return filtered
+    
+    return result
 
 
 def _session_touched_code(root: str) -> list[str]:
@@ -523,18 +551,29 @@ def stop(json_in: dict) -> dict:
     root = repo_root(json_in)
 
     # NEW: Validate hook state machine (SessionStart→PreToolUse→PostToolUse→Stop order)
-    # This is a diagnostic check, doesn't block stop, but informs operator (HIGH #7)
+    # NEW: Validate hook state machine (SessionStart→PreToolUse→PostToolUse→Stop order)
+    # In hard gate: block stop if violations detected (HIGH #9 / ISSUE #64)
+    # In soft gate: log warning but allow
     hook_ok, hook_msg = _validate_hook_state_machine(root)
     if not hook_ok:
-        # Log hook violation but don't block stop (fail-open)
-        # Operator will see in blackboard diagnostics
+        from .config import hook_gate_mode
+        is_hard_gate = hook_gate_mode("stop_guard") == "hard"
+        
         try:
             from .config import blackboard_enabled
             if blackboard_enabled():
                 from . import blackboard as bb
-                bb.post_alert(root, "stop", "warn", f"Hook sequence issue: {hook_msg}")
+                bb.post_alert(root, "stop", "error" if is_hard_gate else "warn", 
+                             f"Hook sequence issue: {hook_msg}")
         except Exception:
             pass
+        
+        # In hard gate: block stop if hook sequence violated
+        if is_hard_gate:
+            return {
+                "decision": "deny",
+                "reason": f"Hook state machine violation: {hook_msg} (SessionStart→PreToolUse→PostToolUse→Stop order required)"
+            }
 
     # Record session end to blackboard (fire-and-forget)
     _record_session_to_blackboard(root)

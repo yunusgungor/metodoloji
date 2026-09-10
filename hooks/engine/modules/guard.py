@@ -85,19 +85,65 @@ def verify_record(rec: str) -> tuple[int, str]:
                 import fcntl
                 fcntl.flock(lock_file, fcntl.LOCK_SH)  # Shared lock
             except ImportError:
-                # Windows: msvcrt
+                # Windows: msvcrt with exponential backoff (MEDIUM #10 / ISSUE #65)
                 try:
                     import msvcrt
-                    lock_file.seek(0)
-                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+                    import time
+                    max_retries = 10
+                    retry_interval_ms = 10  # Start with 10ms
+                    max_interval_ms = 100   # Cap at 100ms
+                    
+                    for attempt in range(max_retries):
+                        try:
+                            lock_file.seek(0)
+                            msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)  # Blocking lock
+                            break
+                        except OSError:
+                            if attempt < max_retries - 1:
+                                # Exponential backoff: 10ms * 2^attempt, capped at 100ms
+                                wait_ms = min(retry_interval_ms * (2 ** attempt), max_interval_ms)
+                                time.sleep(wait_ms / 1000.0)
+                            else:
+                                # Last attempt failed, continue without lock (fail-open)
+                                pass
                 except (ImportError, OSError):
                     pass  # Lock failed, continue anyway (fail-open)
     except OSError:
         pass  # Lock file creation failed, continue anyway
     
     try:
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            rc = gate.verify(rec)
+        # NEW: Re-check file exists after lock acquired (HIGH #8 / ISSUE #63)
+        # Prevents TOCTOU race where record is deleted between initial check and verify call
+        if not rec_path.exists():
+            return 1, ""  # Record deleted after we acquired lock
+        
+        # NEW: Add timeout to gate.verify() to prevent indefinite hangs (MEDIUM #14 / ISSUE #73)
+        from .config import GATE_VERIFY_TIMEOUT_SECONDS
+        import threading
+        
+        verify_result = [None]  # Mutable to capture result from thread
+        verify_exception = [None]
+        
+        def run_verify():
+            try:
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    verify_result[0] = gate.verify(rec)
+            except Exception as e:
+                verify_exception[0] = e
+        
+        verify_thread = threading.Thread(target=run_verify, daemon=True)
+        verify_thread.start()
+        verify_thread.join(timeout=GATE_VERIFY_TIMEOUT_SECONDS)
+        
+        # If thread still running after timeout, return error (fail-open)
+        if verify_thread.is_alive():
+            sys.stderr.write(f"metodoloji: verify_record({rec}) timeout after {GATE_VERIFY_TIMEOUT_SECONDS}s\n")
+            return 1, ""  # Timeout = verification failed
+        
+        if verify_exception[0]:
+            raise verify_exception[0]
+        
+        rc = verify_result[0]
         return rc, gate.record_scope(rec)
     except (AttributeError, TypeError, ValueError):
         # Specific exceptions: gate module errors (MEDIUM #7 / ISSUE #66)
@@ -461,8 +507,16 @@ def _check_duplicate_record_ids(root: str, filename: str, record_type: str) -> t
         if not rec_dir.exists():
             return True, ""  # Directory doesn't exist yet
         
-        # Count how many files have this record ID
-        matching_files = list(rec_dir.glob(f"{record_id}.md"))
+        # Count how many files have this record ID (with bounds check)
+        # NEW: Limit glob iteration (MEDIUM #11 / ISSUE #70)
+        from .config import MAX_DUPLICATE_CHECK_RECORDS
+        matching_files = []
+        count = 0
+        for f in rec_dir.glob(f"{record_id}.md"):
+            count += 1
+            if count > MAX_DUPLICATE_CHECK_RECORDS:
+                break
+            matching_files.append(f)
         
         # If more than 1 file, it's a duplicate
         if len(matching_files) > 1:
@@ -593,6 +647,8 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
 
     Returns (is_valid, reason).
     """
+    from .config import MAX_CHAIN_DEPTH, MAX_DUPLICATE_CHECK_RECORDS, MAX_EXPERIMENTS_TO_CHECK, MAX_STORY_COUNT
+    
     issues = []
     if not root:
         root = repo_root({})
@@ -628,7 +684,11 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
         if qr_dir.is_dir():
             # Look for QR record that references this story
             found_qr = False
+            count = 0
             for qr_file in qr_dir.glob("QR-*.md"):
+                count += 1
+                if count > MAX_DUPLICATE_CHECK_RECORDS:  # Bounds check (MEDIUM #11)
+                    break
                 try:
                     qr_content = _cached_text(qr_file)
                     if story_key in qr_content:
@@ -652,7 +712,11 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
             # trivially matched and the methodology check false-positived.
             target_name = pathlib.Path(rel_path).name
             found_meth = False
+            count = 0
             for meth_file in meth_dir.glob("S-*.md"):
+                count += 1
+                if count > MAX_STORY_COUNT:  # Bounds check (MEDIUM #11)
+                    break
                 if meth_file.name == target_name:
                     continue
                 try:
@@ -1034,6 +1098,12 @@ def guard(json_in: dict) -> dict:
                         valid, reason = _validate_story_metadata(story_content)
                         if not valid:
                             warnings.append(f"Story metadata: {reason}")
+                        # NEW: Check for duplicate record IDs (CRITICAL #23 / ISSUE #62)
+                        basename = pathlib.Path(rel).name
+                        record_type = basename.split("-")[0] if "-" in basename else ""
+                        is_unique, dup_reason = _check_duplicate_record_ids(root, basename, record_type)
+                        if not is_unique:
+                            warnings.append(f"Record ID duplicate: {dup_reason}")
                         valid, reason = _validate_methodology_chain(story_content, rel, root)
                         if not valid:
                             warnings.append(f"Methodology chain: {reason}")
@@ -1045,6 +1115,15 @@ def guard(json_in: dict) -> dict:
                             return {
                                 "decision": "deny",
                                 "reason": f"Story metadata validation failed for {rel}: {reason}"
+                            }
+                        # NEW: Check for duplicate record IDs (CRITICAL #23 / ISSUE #62)
+                        basename = pathlib.Path(rel).name
+                        record_type = basename.split("-")[0] if "-" in basename else ""
+                        is_unique, dup_reason = _check_duplicate_record_ids(root, basename, record_type)
+                        if not is_unique:
+                            return {
+                                "decision": "deny",
+                                "reason": f"Record ID duplicate detected for {rel}: {dup_reason}"
                             }
                         valid, reason = _validate_methodology_chain(story_content, rel, root)
                         if not valid:

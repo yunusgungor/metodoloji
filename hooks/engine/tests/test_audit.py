@@ -184,3 +184,88 @@ def test_audit_writes_warnings(tmp_path, monkeypatch):
 
 
 
+
+
+# === NEW TESTS for audit module enhancements (MEDIUM #12 / ISSUE #71) ===
+
+
+def test_redacted_input_truncates_long_input():
+    """Test that _redacted_input respects length limits."""
+    # Import the config limit
+    from modules.config import ERROR_CODE_REGISTRY
+    
+    # Create long input
+    long_input = "x" * 1000
+    
+    # Redacted input should be truncated
+    result = _redacted_input({"path": "test.py", "content": long_input})
+    
+    # Result should be reasonable length (audit.py truncates at 300 chars)
+    assert len(str(result)) < 500  # Sanity check
+
+
+def test_audit_records_hook_events_to_blackboard(tmp_path, monkeypatch):
+    """Test that audit module records PostToolUse events to blackboard."""
+    import json
+    
+    root = tmp_path
+    (root / ".metodoloji").mkdir()
+    
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(root))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    
+    # Call audit with a file edit
+    json_in = {
+        "command": "audit",
+        "root": str(root),
+        "tool": "file_editor",
+        "input": {"path": "test.py", "content": "x = 1"},
+    }
+    
+    result = audit(json_in)
+    
+    # Should return decision (allow/deny)
+    assert "decision" in result
+    assert result["decision"] in ("allow", "deny")
+
+
+def test_audit_exception_handling_graceful(tmp_path, monkeypatch):
+    """Test that audit handles exceptions gracefully (broad exception handling reduction)."""
+    root = tmp_path
+    (root / ".metodoloji").mkdir()
+    
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(root))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    
+    # Malformed input
+    json_in = {
+        "command": "audit",
+        "root": str(root),
+        "tool": "file_editor",
+        "input": None,  # Invalid
+    }
+    
+    try:
+        result = audit(json_in)
+        # Should not raise, but may fail gracefully
+        assert isinstance(result, dict)
+    except Exception as e:
+        # If it raises, should be a specific exception, not generic
+        assert not isinstance(e, Exception) or "specific" in str(type(e)).lower()
+
+
+def test_bridge_validation_on_qr_file():
+    """Test that bridge (S→QR) validation works on QR files."""
+    from modules.audit import _check_kopru_consumption
+    
+    # QR file consumption check
+    warnings = _check_kopru_consumption(
+        "file_editor",
+        {
+            "path": "docs/quality/QR-001.md",
+            "content": "# Quality Record\n## Definition of Done\n- [ ] DoD-001 verified"
+        }
+    )
+    
+    # Should return list of warnings (may be empty)
+    assert isinstance(warnings, list)

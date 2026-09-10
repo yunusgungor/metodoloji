@@ -4,6 +4,117 @@ import os
 import pathlib
 import re
 
+# NEW: Error code registry (CRITICAL #24 / ISSUE #69)
+# Centralized error codes for consistent diagnostics across modules
+ERROR_CODE_REGISTRY = {
+    # Verification return codes (verify_record)
+    "VERIFY_OK": {
+        "rc": 0,
+        "level": "info",
+        "message": "Record passed HMAC verification",
+        "recovery": "Record is approved for use"
+    },
+    "VERIFY_FAILED": {
+        "rc": 1,
+        "level": "error",
+        "message": "Record verification failed (HMAC mismatch, not found, or gate error)",
+        "recovery": "Check record file exists, token valid, or re-generate record"
+    },
+    "ADVISORY_BLOCKED": {
+        "rc": 2,
+        "level": "warning",
+        "message": "Record has valid token but is restricted (small sample, metric missing, or locked)",
+        "recovery": "Increase experiment sample size, collect metrics, or wait for lock release"
+    },
+    "KEY_MISSING": {
+        "rc": 3,
+        "level": "error",
+        "message": "Gate secret key not configured",
+        "recovery": "Run: python3 scripts/run_experiment.py --init-secret"
+    },
+    
+    # Story validation errors
+    "INVALID_AC_METADATA": {
+        "status": "deny",
+        "level": "error",
+        "message": "AC missing required fields (Type, Measured, Verify, or Experiment)",
+        "recovery": "Complete all required AC metadata fields"
+    },
+    "EXPERIMENT_NOT_FOUND": {
+        "status": "deny",
+        "level": "error",
+        "message": "Referenced experiment record E-NNN not found in docs/experiments/",
+        "recovery": "Create experiment record or correct the E-NNN reference"
+    },
+    "INVALID_STATUS": {
+        "status": "deny",
+        "level": "error",
+        "message": "Story status invalid (must be: backlog, ready-for-dev, in-progress, review, done, blocked)",
+        "recovery": "Set status to one of the valid states"
+    },
+    "DUPLICATE_RECORD_ID": {
+        "status": "deny",
+        "level": "error",
+        "message": "Duplicate record ID (e.g., two S-001.md files)",
+        "recovery": "Use unique record IDs within each type, or rename existing record"
+    },
+    "ORPHANED_STORY": {
+        "status": "deny",
+        "level": "error",
+        "message": "Story references missing IR/SP (broken methodology chain)",
+        "recovery": "Ensure S→SP→IR→E chain is complete before writing story"
+    },
+    
+    # Hook validation errors
+    "HOOK_SEQUENCE_VIOLATION": {
+        "status": "warning",
+        "level": "error",
+        "message": "Hook event sequence invalid (not SessionStart→PreToolUse→PostToolUse→Stop)",
+        "recovery": "Check agent hook execution order and trigger sequence"
+    },
+    "INVALID_HOOKS_CONFIG": {
+        "level": "warning",
+        "message": "Invalid [hooks] section key in config.toml",
+        "recovery": "Use valid keys: quality_gate, deploy_guard, code_guard, stop_guard, blackboard"
+    },
+    
+    # Blackboard errors
+    "EVENT_LOG_CORRUPTION": {
+        "code": "E001",
+        "level": "error",
+        "message": "Event log contains malformed JSON (truncated or incomplete line)",
+        "recovery": "Rotate event log: python3 bmad/scripts/blackboard.py --rotate"
+    },
+    "FILE_LOCK_TIMEOUT": {
+        "code": "E002",
+        "level": "error",
+        "message": "Snapshot file lock timeout (high contention or crashed process)",
+        "recovery": "Wait for other processes to complete, or kill crashed processes in .metodoloji/"
+    },
+    "STALE_SESSION": {
+        "code": "E004",
+        "level": "error",
+        "message": "Session started >1h ago without Stop marker (hung session)",
+        "recovery": "Kill hung process: ps aux | grep hooks; kill -9 <pid>"
+    },
+    "CASCADE_INVALIDATION": {
+        "code": "E005",
+        "level": "warning",
+        "message": "Referenced experiment modified recently; downstream records may be stale",
+        "recovery": "Review experiment changes and re-validate affected records"
+    },
+    "SESSION_ISOLATION_FAILURE": {
+        "level": "error",
+        "message": "Session ID context lost (concurrent session interference)",
+        "recovery": "Ensure sessions are not overlapping; check for agent crashes"
+    },
+    "GATE_VERIFY_TIMEOUT": {
+        "level": "error",
+        "message": f"Gate verification timeout after {30}s (record verification hung)",
+        "recovery": "Check for corrupted record files, or increase GATE_VERIFY_TIMEOUT_SECONDS"
+    },
+}
+
 # Runtime detection. main.py sets METODOLOJI_RUNTIME from --runtime= AFTER
 # imports, so this must stay a function: a module-level constant would freeze
 # the pre-flag value. (The old RUNTIME constant was removed — zero readers.)
@@ -37,6 +148,23 @@ def log_file() -> str:
     # OpenHands plugin olarak her zaman .metodoloji/logs/ kullan
     return ".metodoloji/logs/hook-audit.log"
 
+
+# --- Validation Bounds (MEDIUM #11 / ISSUE #70) --------------------------------
+# Prevent quadratic validation loops by bounding collection sizes
+MAX_STORY_COUNT = 1000            # Max stories to validate in single check
+MAX_AC_PER_STORY = 100             # Max acceptance criteria per story
+MAX_EXPERIMENTS_TO_CHECK = 50      # Max experiment references to validate per chain
+MAX_CHAIN_DEPTH = 10               # Max steps in methodology chain (S→SP→IR→E→QR→PR)
+MAX_DUPLICATE_CHECK_RECORDS = 5000 # Max record files to scan for duplicate IDs
+MAX_VALIDATION_LOOP_ITERATIONS = 10000  # Hard cap on any validation loop
+
+# --- Timeout Values (MEDIUM #14 / ISSUE #73) --------------------------------
+# Prevent indefinite hangs on corrupted files or locked resources
+GATE_VERIFY_TIMEOUT_SECONDS = 30      # Max time for gate.verify() to complete
+BLACKBOARD_READ_TIMEOUT_SECONDS = 5   # Max time to read blackboard state
+BLACKBOARD_WRITE_TIMEOUT_SECONDS = 5  # Max time to write blackboard state
+LOCK_ACQUIRE_TIMEOUT_SECONDS = 10     # Max time to acquire advisory lock (fail-open after)
+FILE_OPERATION_TIMEOUT_SECONDS = 10   # Max time for file I/O operations
 
 # --- Gate strictness ---------------------------------------------------------
 # custom/config.toml [hooks]: quality_gate / deploy_guard / code_guard /
