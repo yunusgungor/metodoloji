@@ -9,19 +9,19 @@ from .guard import find_approved
 from .utils import is_code_target, is_free, rel_to_root
 
 
-def _check_story_status(root: str, intent: str = "") -> tuple[bool, str]:
+def _check_story_status(root: str, focus: str = "") -> tuple[bool, str]:
     """Check if a story is in-progress but incomplete.
 
-    intent-aware: when the session intent names a story (e.g. "1-2-login"
-    or "S-003") only that story blocks. Without an intent, or one naming
+    focus-aware: when the session focus names a story (e.g. "1-2-login"
+    or "S-003") only that story blocks. Without a focus, or one naming
     no story, every in-progress story blocks (legacy behavior).
 
     Returns (should_block, reason).
     """
     target_key = ""
-    if intent:
-        from .utils import _story_key_from_intent
-        target_key = _story_key_from_intent(intent)
+    if focus:
+        from .utils import _story_key_from_focus
+        target_key = _story_key_from_focus(focus)
 
     # Look for sprint-status.yaml. Canonical path is bmad-output/ (config.toml);
     # _bmad-output kept only as a legacy fallback for pre-migration projects.
@@ -36,7 +36,7 @@ def _check_story_status(root: str, intent: str = "") -> tuple[bool, str]:
                 # Check for in-progress stories
                 in_progress = re.findall(r"^\s+(\d+-\d+-[a-z][a-z0-9-]+):\s+in-progress", content, re.MULTILINE)
                 if target_key:
-                    # Intent names one story: only that story blocks.
+                    # Focus names one story: only that story blocks.
                     if any(target_key == k for k in in_progress):
                         return True, (
                             f"Story {target_key} is in-progress but stop requested. "
@@ -98,15 +98,15 @@ def _latest_session_start(root: str) -> float:
     return newest
 
 
-def _story_status_is_stale(root: str, intent: str = "") -> bool:
+def _story_status_is_stale(root: str, focus: str = "") -> bool:
     """True when the sprint-status file predates this session's start.
 
     A leftover in-progress story from a previous session must not wedge a new
-    one; the intent-named story still blocks (explicit user focus wins).
+    one; the focus-named story still blocks (explicit user focus wins).
     No session marker (old bootstrap) → not stale, legacy blocking behavior.
     """
-    from .utils import _story_key_from_intent
-    if intent and _story_key_from_intent(intent):
+    from .utils import _story_key_from_focus
+    if focus and _story_key_from_focus(focus):
         return False  # explicit story focus — never stale
     session_start = _latest_session_start(root)
     if not session_start:
@@ -313,18 +313,18 @@ def stop(json_in: dict) -> dict:
     if _stop_denies_so_far(root) >= _MAX_STOP_DENIES_PER_SESSION:
         return {"decision": "allow"}
 
-    # 1. Check for incomplete stories (intent-aware: if the session intent
+    # 1. Check for incomplete stories (focus-aware: if the session scope
     #    names a specific story, only that story blocks stop). A blackboard
     #    status of 'complete' means the session's work is done — no story check.
     #    A stale sprint-status older than the session start never blocks
-    #    (brownfield leftover), unless the intent names that story.
-    from .utils import _active_intent, _active_progress
-    intent = _active_intent(root)
+    #    (brownfield leftover), unless the scope names that story.
+    from .utils import _active_scope, _active_progress
+    focus = _active_scope(root)
     progress = _active_progress(root)
     if progress and progress.lower() in ("complete", "done", "completed"):
-        intent = ""  # work finished — don't block on in-progress stories
-    should_block, reason = _check_story_status(root, intent=intent)
-    if should_block and not _story_status_is_stale(root, intent):
+        focus = ""  # work finished — don't block on in-progress stories
+    should_block, reason = _check_story_status(root, focus=focus)
+    if should_block and not _story_status_is_stale(root, focus):
         reason = _board_dirty_notice(root, reason)
         _record_stop_deny(root, reason)
         return {"decision": "deny", "reason": reason}

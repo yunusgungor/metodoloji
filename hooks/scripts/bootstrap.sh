@@ -45,14 +45,17 @@ mkdir -p "$WS/.metodoloji/logs"
 # Short context: gate-key status + record chain reminder.
 if [ -f "$HOME/.bmad/gate-key" ]; then KEY="present"; else KEY="MISSING — python run_experiment.py --init-secret"; fi
 
-# Intent bridge: read the blackboard's purpose (intent) and scope, export to env.
-# Every hook process shares the same session intent. Fail-open (read error → empty).
+# Intent bridge: read the blackboard's status (progress) and scope, export to
+# env. Every hook process shares the same session focus. Fail-open
+# (read error → empty). Only status + scope are bridged: stop skips story
+# checks on status=complete and the guard warns outside scope. (The old
+# purpose/topic/goal/idea intent mirror was removed — nothing read it.)
 # ponytail: WS with quote/backslash exits early (kept raw for mkdir;
 # PYWS passed to python via env is quote-safe normalized).
 case "$WS" in
     *\'* | *\"* | *\`* | *\\* | *\$*)
-        export METODOLOJI_INTENT="" METODOLOJI_SCOPE=""
-        INTENT_CTX=""; SCOPE_CTX=""
+        export METODOLOJI_SCOPE=""
+        SCOPE_CTX=""
         SKIP_INTENT_READ=1
         ;;
 esac
@@ -62,54 +65,40 @@ if command -v cygpath >/dev/null 2>&1; then
 fi
 PYWS=$(printf '%s' "$PYWS" | tr '\\' '/')
 # ponytail: shell vars cross into python via env, never string interpolation
-# (a quote in $WS/$SYNCED would break `python -c` and silently empty the intent).
+# (a quote in $WS/$SYNCED would break `python -c` and silently empty the scope).
 export METODOLOJI_WS="$PYWS"
 export METODOLOJI_SYNCED="$SYNCED"
 if [ "$SKIP_INTENT_READ" = "1" ]; then
-    INTENT_AND_SCOPE=$(printf '\n\n')
+    SCOPE=$(printf '')
 else
-INTENT_AND_SCOPE=$("$PY" -c "
+SCOPE=$("$PY" -c "
 import sys, os, pathlib
 ws = os.environ.get('METODOLOJI_WS', '')
 try:
-    import json
     plugin = pathlib.Path(os.environ.get('METODOLOJI_SYNCED', ''))
     sys.path.insert(0, str(plugin / 'hooks' / 'engine'))
     os.environ['CLAUDE_PROJECT_DIR'] = ws
     from modules.config import blackboard_enabled
     if not blackboard_enabled():
-        print(''); print('')
+        print('')
     else:
         from modules import blackboard as bb
         board = bb.read_board(ws)
         keys = board.get('keys', {})
-        intent = ''
-        for field in ('purpose', 'topic', 'goal', 'idea'):
-            entry = keys.get(field)
-            if entry and isinstance(entry, dict):
-                val = str(entry.get('value', '')).strip()
-                if val:
-                    intent = val
-                    break
         scope_entry = keys.get('scope')
         scope = str(scope_entry.get('value', '')).strip() if scope_entry and isinstance(scope_entry, dict) else ''
-        print(intent)
         print(scope)
 except Exception:
-    print(''); print('')
-" 2>/dev/null || printf '\n\n')
+    print('')
+" 2>/dev/null || printf '')
 fi
-INTENT=$(printf '%s\n' "$INTENT_AND_SCOPE" | sed -n '1p')
-SCOPE=$(printf '%s\n' "$INTENT_AND_SCOPE" | sed -n '2p')
-export METODOLOJI_INTENT="$INTENT"
 export METODOLOJI_SCOPE="$SCOPE"
-if [ -n "$INTENT" ]; then INTENT_CTX=" Active intent: $INTENT."; else INTENT_CTX=""; fi
 if [ -n "$SCOPE" ]; then SCOPE_CTX=" Active scope: $SCOPE."; else SCOPE_CTX=""; fi
 
 # Build full context and output as proper JSON (Python handles escaping).
 # ponytail: shell vars cross into python via env (see above) — $SYNCED/$PYWS
 # stay shell-side (ctx template, export); python reads them from env.
-export METODOLOJI_KEY="$KEY" METODOLOJI_INTENT_CTX="$INTENT_CTX" METODOLOJI_SCOPE_CTX="$SCOPE_CTX"
+export METODOLOJI_KEY="$KEY" METODOLOJI_SCOPE_CTX="$SCOPE_CTX"
 "$PY" -c "
 import json, sys, os, pathlib
 
@@ -118,7 +107,7 @@ sys.path.insert(0, str(plugin / 'hooks' / 'engine'))
 ws = os.environ.get('METODOLOJI_WS', '')
 os.environ['CLAUDE_PROJECT_DIR'] = ws
 
-ctx = ('METODOLOJI active (plugin: ' + os.environ.get('METODOLOJI_SYNCED', '') + '). Record chain: E → IR → SP → S → QR → PR. Before writing code you need a scope-matching VERIFIED experiment approval; gate key: ' + os.environ.get('METODOLOJI_KEY', '') + '.' + os.environ.get('METODOLOJI_INTENT_CTX', '') + os.environ.get('METODOLOJI_SCOPE_CTX', '') + ' Record templates: /metodoloji:init')
+ctx = ('METODOLOJI active (plugin: ' + os.environ.get('METODOLOJI_SYNCED', '') + '). Record chain: E → IR → SP → S → QR → PR. Before writing code you need a scope-matching VERIFIED experiment approval; gate key: ' + os.environ.get('METODOLOJI_KEY', '') + '.' + os.environ.get('METODOLOJI_SCOPE_CTX', '') + ' Record templates: /metodoloji:init')
 
 try:
     # Reuse the engine's session_start (compact_context + consume session
@@ -139,5 +128,5 @@ except Exception:
         pass
 
 print(json.dumps({'additionalContext': ctx}))
-" 2>/dev/null || printf '%s\n' "{\"additionalContext\":\"METODOLOJI active (plugin: $SYNCED). Record chain: E → IR → SP → S → QR → PR. Before writing code you need a scope-matching VERIFIED experiment approval; gate key: $KEY.$INTENT_CTX$SCOPE_CTX Record templates: /metodoloji:init\"}"
+" 2>/dev/null || printf '%s\n' "{\"additionalContext\":\"METODOLOJI active (plugin: $SYNCED). Record chain: E → IR → SP → S → QR → PR. Before writing code you need a scope-matching VERIFIED experiment approval; gate key: $KEY.$SCOPE_CTX Record templates: /metodoloji:init\"}"
 exit 0

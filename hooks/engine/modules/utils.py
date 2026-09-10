@@ -220,58 +220,27 @@ def rel_to_root(root: str, p: str, cwd: str | None = None) -> str:
     return f
 
 
-# --- Intent bridge (blackboard-backed) ---------------------------------------
-# Intent/scope/progress capabilities read from the blackboard. Priority:
-# the board is live (skills write mid-session), env is only a bootstrap
-# snapshot:
-#   1. purpose / scope / status keys stored on the blackboard (live).
-#   2. METODOLOJI_INTENT / METODOLOJI_SCOPE env (the SessionStart snapshot
-#      bootstrap exports — fallback while the board is empty).
-# Blackboard disabled or unreadable → fall back to env, then '' (fail-open).
+# --- Session focus (blackboard-backed) ----------------------------------------
+# Two live signals steer the hooks; both are read per-call (board first, env
+# snapshot fallback) so mid-session skill writes take effect immediately:
+#   - status: `complete`/`done` skips the stop story check (session finished).
+#   - scope: a path boundary; the guard flags out-of-scope writes warn-only.
+# (The old purpose/topic/goal/idea intent mirror was removed: the audit trail
+# already stamps per-record intent, and no hook consumed the mirror.)
+# Fail-open throughout: blackboard disabled/unreadable → env → ''.
 
-def _active_blackboard_meta(root: str) -> dict:
-    """Fetch the blackboard's purpose/scope/status keys ({} if none/disabled).
-
-    Only the canonical keys are checked; {} when the board is unreadable.
-    Fail-open: never raises.
-    """
+def _read_focus_key(root: str, field: str) -> str:
+    """Fetch one focus key (status/scope) from the board ('' if none)."""
     try:
         from .config import blackboard_enabled
         if not blackboard_enabled():
-            return {}
+            return ""
         from . import blackboard as bb
-        board = bb.read_board(root)
-        keys = board.get("keys", {})
-        meta = {}
-        for field in ("purpose", "scope", "status", "topic", "goal", "idea"):
-            entry = keys.get(field)
-            if entry and isinstance(entry, dict):
-                val = str(entry.get("value", "")).strip()
-                if val:
-                    meta[field] = val
-        return meta
+        entry = bb.read_board(root).get("keys", {}).get(field)
+        if entry and isinstance(entry, dict):
+            return str(entry.get("value", "")).strip()
     except Exception:
-        return {}
-
-
-def _active_intent(root: str, env_override: bool = True) -> str:
-    """Return the session's active intent.
-
-    Priority (board live, env snapshot):
-      1. purpose, topic, goal or idea key on the blackboard (the live value
-         a skill wrote mid-session — post-bootstrap updates show up here).
-      2. METODOLOJI_INTENT env (bootstrap.sh snapshot — fallback when empty).
-    Returns '' when no intent is recorded.
-    """
-    meta = _active_blackboard_meta(root)
-    for key in ("purpose", "topic", "goal", "idea"):
-        val = meta.get(key, "")
-        if val:
-            return val
-    if env_override:
-        env_intent = os.environ.get("METODOLOJI_INTENT", "").strip()
-        if env_intent:
-            return env_intent
+        pass
     return ""
 
 
@@ -281,50 +250,39 @@ def _active_progress(root: str) -> str:
     Skills write it via `blackboard.py write --key status --value complete`
     (or active / in-progress). Returns '' when unrecorded.
     """
-    return _active_blackboard_meta(root).get("status", "")
+    return _read_focus_key(root, "status")
 
 
 def _active_scope(root: str, env_override: bool = True) -> str:
     """Return the active scope (a path boundary).
 
-    Scope is independent of intent: one blackboard record may carry both
-    `purpose: auth flow` and `scope: src/auth`. The guard uses it to flag
-    out-of-scope writes as warn-only.
-
-    Priority (board live, env snapshot):
+    The guard uses it to flag out-of-scope writes as warn-only. Priority:
       1. scope key on the blackboard (the live value a skill wrote).
       2. METODOLOJI_SCOPE env (bootstrap.sh snapshot — fallback when empty).
-      3. A `scope:` tag inside METODOLOJI_INTENT (older bootstrap versions).
     """
-    board_scope = _active_blackboard_meta(root).get("scope", "")
-    if board_scope:
-        return board_scope
+    scope = _read_focus_key(root, "scope")
+    if scope:
+        return scope
     if env_override:
-        env_scope = os.environ.get("METODOLOJI_SCOPE", "").strip()
-        if env_scope:
-            return env_scope
-        env_intent = os.environ.get("METODOLOJI_INTENT", "").strip()
-        if env_intent:
-            m = re.search(r"(?:scope|kapsam)\s*[:=]\s*([\w\-./]+(?:/[\w\-./]+)*)", env_intent)
-            if m:
-                return m.group(1).strip()
+        return os.environ.get("METODOLOJI_SCOPE", "").strip()
     return ""
 
 
-_STORY_KEY_IN_INTENT = re.compile(
+_STORY_KEY_IN_FOCUS = re.compile(
     r"(?i)\b(S-\d+|(?:\d+-\d+-[a-z][a-z0-9-]*))\.md\b|"
     r"\b(S-\d+|(?:\d+-\d+-[a-z][a-z0-9-]*))\b")
 
 
-def _story_key_from_intent(intent: str) -> str:
-    """Extract a story key (S-003 or 1-2-login) from an intent string.
+def _story_key_from_focus(focus: str) -> str:
+    """Extract a story key (S-003 or 1-2-login) from a focus string.
 
-    Returns '' when the intent doesn't name a story. E.g.
-    "finish S-003" → "S-003", "finish 1-2-login" → "1-2-login".
+    The session scope usually names a path, but it may name a story instead
+    (e.g. scope "S-003"): then only that story blocks stop. Returns '' when
+    the focus doesn't name a story.
     """
-    if not intent:
+    if not focus:
         return ""
-    m = _STORY_KEY_IN_INTENT.search(intent)
+    m = _STORY_KEY_IN_FOCUS.search(focus)
     if not m:
         return ""
     key = m.group(1) or m.group(2) or m.group(3) or m.group(4) or ""

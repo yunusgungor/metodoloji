@@ -81,23 +81,6 @@ def main():
         # Unknown hook type - allow
         result = {"decision": "allow"}
 
-    # Intent bridge: inject the session intent + scope into the hook result so
-    # consumers (test suites, external tooling) can see the active focus.
-    # Read from the blackboard (board first, then env snapshot); fail-open,
-    # never blocks.
-    if isinstance(result, dict):
-        try:
-            from modules.utils import _active_intent, _active_scope, repo_root
-            root = repo_root(json_in)
-            intent = _active_intent(root)
-            if intent:
-                result["intent"] = intent
-            scope = _active_scope(root)
-            if scope:
-                result["scope"] = scope
-        except Exception:
-            pass
-
     # Output result — Claude Code v2 schema: hookSpecificOutput wrapper.
     # Schema differs per event type:
     #   PreToolUse (guard/quality/deploy) → permissionDecision

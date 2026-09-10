@@ -385,7 +385,7 @@ def test_main_dispatch_quality_non_commit_allows(tmp_path, monkeypatch):
     assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
 
 
-# --- Intent-aware story blocking tests ---------------------------------------
+# --- Focus-aware story blocking tests ----------------------------------------
 
 def _seed_sprint_status(root, stories: dict):
     """Write sprint-status.yaml with the given story states."""
@@ -395,26 +395,26 @@ def _seed_sprint_status(root, stories: dict):
     (cand / "sprint-status.yaml").write_text(lines, encoding="utf-8")
 
 
-def test_story_status_intent_named_story_blocks_only_that(tmp_path, monkeypatch):
-    """An intent naming one story blocks only that story."""
+def test_story_status_focus_named_story_blocks_only_that(tmp_path, monkeypatch):
+    """A focus naming one story blocks only that story."""
     _seed_sprint_status(tmp_path, {"1-2-login": "in-progress", "3-4-export": "in-progress"})
-    # Intent names only 1-2-login → only it blocks
-    blocked, reason = _check_story_status(str(tmp_path), intent="finish 1-2-login")
+    # Focus names only 1-2-login → only it blocks
+    blocked, reason = _check_story_status(str(tmp_path), focus="1-2-login")
     assert blocked is True
     assert "1-2-login" in reason
 
 
-def test_story_status_intent_named_story_other_ignored(tmp_path, monkeypatch):
-    """An intent naming 1-2-login must not block 3-4-export."""
+def test_story_status_focus_named_story_other_ignored(tmp_path, monkeypatch):
+    """A focus naming 1-2-login must not block 3-4-export."""
     _seed_sprint_status(tmp_path, {"1-2-login": "done", "3-4-export": "in-progress"})
-    blocked, reason = _check_story_status(str(tmp_path), intent="finish 1-2-login")
+    blocked, reason = _check_story_status(str(tmp_path), focus="1-2-login")
     assert blocked is False
 
 
-def test_story_status_no_intent_all_block(tmp_path, monkeypatch):
-    """No intent → every in-progress story blocks (legacy behavior)."""
+def test_story_status_no_focus_all_block(tmp_path, monkeypatch):
+    """No focus → every in-progress story blocks (legacy behavior)."""
     _seed_sprint_status(tmp_path, {"1-2-login": "in-progress", "3-4-export": "in-progress"})
-    blocked, reason = _check_story_status(str(tmp_path), intent="")
+    blocked, reason = _check_story_status(str(tmp_path), focus="")
     assert blocked is True
     assert "1-2-login" in reason
 
@@ -424,11 +424,11 @@ def test_stop_progress_complete_skips_story_check(tmp_path, monkeypatch):
     _seed_sprint_status(tmp_path, {"1-2-login": "in-progress"})
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
+    monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
     # _active_progress returns "complete"
     import modules.utils as ut
     monkeypatch.setattr(ut, "_active_progress", lambda root: "complete")
-    monkeypatch.setattr(ut, "_active_intent", lambda root: "")
+    monkeypatch.setattr(ut, "_active_scope", lambda root: "")
     res = stop({})
     # The story check is skipped, so no story block (code approval irrelevant here);
     # only the "Story in-progress" reason must be absent
@@ -436,17 +436,17 @@ def test_stop_progress_complete_skips_story_check(tmp_path, monkeypatch):
         assert "Story" not in res.get("reason", "")
 
 
-def test_stop_intent_aware_story_blocking_e2e(tmp_path, monkeypatch):
-    """End-to-end: stop() honors intent-aware story blocking."""
+def test_stop_focus_aware_story_blocking_e2e(tmp_path, monkeypatch):
+    """End-to-end: stop() honors focus-aware story blocking."""
     from modules import config
     monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
     _seed_sprint_status(tmp_path, {"1-2-login": "done", "3-4-export": "in-progress"})
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
-    # Intent targets only 1-2-login; 3-4-export is in-progress but not targeted
+    monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
+    # Scope targets only 1-2-login; 3-4-export is in-progress but not targeted
     import modules.utils as ut
-    monkeypatch.setattr(ut, "_active_intent", lambda root: "finish 1-2-login")
+    monkeypatch.setattr(ut, "_active_scope", lambda root: "1-2-login")
     monkeypatch.setattr(ut, "_active_progress", lambda root: "")
     res = stop({})
     # 1-2-login is done and it is the only one checked → no story block

@@ -11,36 +11,8 @@ sys.path.insert(0, str(_HOOKS))
 from modules.audit import (  # noqa: E402
     _check_kopru_consumption,
     _redacted_input,
-    _validate_methodology_compliance,
     audit,
 )
-
-
-# --- _validate_methodology_compliance ---------------------------------------
-
-def test_compliance_story_without_ac():
-    warnings = _validate_methodology_compliance(
-        "file_editor",
-        {"path": "docs/development/stories/1-2-login.md",
-         "content": "## Acceptance Criteria\n- item\n"},
-    )
-    assert any("AC metadata missing" in w for w in warnings)
-
-
-def test_compliance_story_with_ac_ok():
-    warnings = _validate_methodology_compliance(
-        "file_editor",
-        {"path": "docs/development/stories/1-2-login.md",
-         "content": "## Acceptance Criteria\n- [AC-001] item\n"},
-    )
-    assert all("AC metadata missing" not in w for w in warnings)
-
-
-def test_compliance_non_story_no_warnings():
-    warnings = _validate_methodology_compliance(
-        "file_editor", {"path": "src/a.py", "content": "print(1)"}
-    )
-    assert warnings == []
 
 
 # --- _check_kopru_consumption ------------------------------------------------

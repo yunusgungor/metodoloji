@@ -9,29 +9,6 @@ from .config import log_file
 from .utils import dod_issues, has_dod_content, scan_dod_items
 
 
-def _validate_methodology_compliance(tool_name: str, tool_input: dict) -> list[str]:
-    """Check if the tool usage follows methodology rules.
-
-    Returns list of warnings (non-blocking).
-    """
-    warnings = []
-
-    if tool_name == "file_editor":
-        path = tool_input.get("path", "")
-        # Check if writing to story file without proper metadata
-        if path and re.search(r"\d+-\d+-[a-z][a-z0-9-]*\.md", path, re.IGNORECASE):
-            content = str(tool_input.get("content", ""))
-            if content:
-                # Check for AC metadata
-                if "[AC-" not in content and "Acceptance Criteria" in content:
-                    warnings.append(f"Story file {path}: AC metadata missing (no [AC-XXX] identifiers)")
-                # Check for experiment_refs
-                if "experiment_refs" not in content and "---" in content:
-                    warnings.append(f"Story file {path}: experiment_refs missing in frontmatter")
-
-    return warnings
-
-
 # Preview caps for the audit trail: bodies never land whole in the log.
 _INPUT_PREVIEW_LEN = 300
 _OUTPUT_PREVIEW_LEN = 500
@@ -187,25 +164,22 @@ def audit(json_in: dict) -> dict:
 
     # Build audit record. File content is NEVER logged whole: large or
     # sensitive bodies stay out of the trail (preview + length only).
-    # Intent bridge (blackboard-backed): stamp each record with the active
-    # session intent + progress so the log answers "who did what, under
-    # which intent". Fail-open — helpers return '' when the board is empty.
-    from .utils import _active_intent, _active_progress
+    # Session progress is stamped so the log answers "who did what, at what
+    # stage" (stop reads it back to skip story checks on completion).
+    # Fail-open — the helper returns '' when the board is empty.
+    from .utils import _active_progress
     record = {
         "timestamp": time.time(),
         "tool": tool_name,
         "input": _redacted_input(tool_input),
         "output_summary": str(tool_output)[:500] if tool_output else None,
-        "intent": _active_intent(root),
         "progress": _active_progress(root),
     }
 
-    # Methodology validation (non-blocking, just warnings)
-    warnings = _validate_methodology_compliance(tool_name, tool_input)
-
-    # Bridge consumption check (non-blocking)
-    kopru_warnings = _check_kopru_consumption(tool_name, tool_input)
-    warnings.extend(kopru_warnings)
+    # Bridge consumption check (non-blocking, just warnings). Story-file AC /
+    # experiment_refs validation lives in the guard (deny-or-warn by gate
+    # mode) — auditing it again here would double-report the same defect.
+    warnings = _check_kopru_consumption(tool_name, tool_input)
 
     if warnings:
         record["methodology_warnings"] = warnings
