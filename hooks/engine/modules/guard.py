@@ -75,11 +75,10 @@ def verify_record(rec: str) -> tuple[int, str]:
         return 1, ""
 
 
-# Matches native story files (1-2-user-auth.md) AND methodology story records (S-001.md)
-_STORY_RE = re.compile(r"(?:\b\d+-\d+-[a-z][a-z0-9-]*\.md\b|\bS-\d+\.md\b)", re.IGNORECASE)
-# Basename-anchored variant: notes-S-001.md or a/b-S-001.md/notes.md must NOT
-# count as story files (substring match would drag ordinary files into the
-# story metadata chain).
+# Matches native story files (1-2-user-auth.md) AND methodology story records
+# (S-001.md). Basename-anchored: notes-S-001.md or a/b-S-001.md/notes.md must
+# NOT count as story files (substring match would drag ordinary files into
+# the story metadata chain).
 _STORY_BASENAME_RE = re.compile(r"^(?:\d+-\d+-[a-z][a-z0-9-]*\.md|S-\d+\.md)$", re.IGNORECASE)
 
 

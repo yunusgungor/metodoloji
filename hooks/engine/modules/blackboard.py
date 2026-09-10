@@ -985,7 +985,7 @@ def read_canvas(project_root: str, name: str) -> dict:
 def _touch_canvases(board: dict, paths: dict, tool: str, target: str) -> list:
     """Push one audited touch into every canvas watching a matching path.
 
-    Shared by stamp_tool_event and watch_touch (same scope, no nesting).
+    Called by stamp_tool_event in the same lock scope (no nesting).
     Returns touched canvas names."""
     touched = []
     if not target:
@@ -1049,46 +1049,6 @@ def _watch_matches(watch_path: str, target: str) -> bool:
     if not w or not t:
         return False
     return t == w or t.startswith(w + "/") or w.startswith(t + "/")
-
-
-def watch_touch(project_root: str, tool: str, target: str) -> dict:
-    """Real-time push: an audited tool touched `target` — land it into every
-    canvas that watches a matching path prefix and alert the session channel.
-    Single lock scope: all matched canvases update atomically together."""
-    target = str(target or "")
-    if not target or target == tool:
-        return {"ok": True, "touched": 0}
-
-    def mut(board):
-        paths = board_paths(project_root)
-        touched = _touch_canvases(board, paths, tool, target)
-        return board, {"ok": True, "touched": len(touched), "canvases": touched}
-
-    return _mutate(project_root, mut)
-
-
-def canvas_touch(project_root: str, name: str, path: str, *,
-                 content: str = "") -> dict:
-    """Land one auto cell into a canvas (real-time feed primitive — used by
-    watch_touch's single-scope path and callable directly for programmatic
-    feeds). Never nest inside another _mutate scope."""
-    name = str(name).strip()[:MAX_CANVAS_NAME]
-    path = str(path).strip()[:MAX_CELL_ID]
-    if not name or not path:
-        return {"ok": False, "error": "canvas-touch needs --name and --path"}
-    event = {"event": "canvas_touch", "name": name, "path": path,
-             "content": str(content)[:MAX_CELL_LEN], "ts": time.time()}
-
-    def mut(board):
-        paths = board_paths(project_root)
-        _append_event(paths, event)
-        _apply_event(board, event)
-        _route_alerts(paths, board, f"canvas:{name}", "canvas",
-                      f"canvas '{name}' live: {path} updated")
-        return board, {"ok": True, "canvas": name, "cell": path,
-                       "cells": len(board["canvases"].get(name, {}).get("cells", {}))}
-
-    return _mutate(project_root, mut)
 
 
 # --- subscriptions & alerts ----------------------------------------------------------

@@ -570,8 +570,10 @@ def test_canvas_cell_cap_expires_oldest(root):
 
 def test_canvas_auto_cells_capped_separately(root):
     bb.canvas_create(root, "c")
+    bb.canvas_watch(root, "c", "docs/")
     for i in range(bb.MAX_AUTO_CELLS + 5):
-        bb.canvas_touch(root, "c", f"docs/f{i}.md", content="auto")
+        ack = bb.stamp_tool_event(root, "file_editor", f"docs/f{i}.md")
+        assert ack["ok"]
     cv = bb.read_canvas(root, "c")
     autos = [c for c, v in cv["cells"].items() if v["kind"] == "auto"]
     assert len(autos) == bb.MAX_AUTO_CELLS
@@ -622,19 +624,19 @@ def test_canvas_watch_requires_path(root):
     assert bb.canvas_watch(root, "c", " ")["ok"] is False
 
 
-def test_watch_touch_lands_auto_cells(root):
+def test_stamp_touch_lands_auto_cells(root):
     bb.canvas_create(root, "c")
     bb.canvas_watch(root, "c", "docs/")
-    out = bb.watch_touch(root, "file_editor", "docs/a.md")
+    out = bb.stamp_tool_event(root, "file_editor", "docs/a.md")
     assert out["touched"] == 1 and out["canvases"] == ["c"]
     cell = bb.read_canvas(root, "c")["cells"]["docs/a.md"]
     assert cell["kind"] == "auto" and "a.md" in cell["content"]
     # outside prefix → no touch
-    assert bb.watch_touch(root, "file_editor", "skills/x/SKILL.md")["touched"] == 0
+    assert bb.stamp_tool_event(root, "file_editor", "skills/x/SKILL.md")["touched"] == 0
 
 
-def test_watch_touch_empty_board_ok(root):
-    out = bb.watch_touch(root, "bash", "anything.txt")
+def test_stamp_touch_empty_board_ok(root):
+    out = bb.stamp_tool_event(root, "bash", "anything.txt")
     assert out["ok"] and out["touched"] == 0
 
 
@@ -877,7 +879,7 @@ def test_compact_context_hot_canvas_summary(root):
     bb.canvas_create(root, "m", grid="2x2", focus=True)
     bb.canvas_set(root, "m", "A1", "x")
     bb.canvas_watch(root, "m", "docs/")
-    bb.watch_touch(root, "file_editor", "docs/z.md")
+    bb.stamp_tool_event(root, "file_editor", "docs/z.md")
     ctx = bb.compact_context(root)
     hc = ctx["hot_canvas"]
     assert hc["name"] == "m" and hc["cells"] == 2 and hc["auto"] == 1
@@ -918,7 +920,7 @@ def test_session_start_surfaces_hot_canvas(tmp_path, monkeypatch):
     assert "canvas 'live-map' live (1 cells" in out["additionalContext"]
 
 
-def test_audit_watch_touch_feeds_watching_canvas(tmp_path, monkeypatch):
+def test_audit_stamp_feeds_watching_canvas(tmp_path, monkeypatch):
     audit_mod, _, _ = _engine(monkeypatch, str(tmp_path))
     bb.canvas_create(str(tmp_path), "doc-map")
     bb.canvas_watch(str(tmp_path), "doc-map", "docs/")
@@ -1010,9 +1012,9 @@ def test_stop_allow_no_canvas_notice(tmp_path, monkeypatch):
 # ==============================================================================
 # v2 — fail-open hardening
 # ==============================================================================
-def test_watch_touch_missing_project_ok(root):
+def test_stamp_touch_missing_project_ok(root):
     ghost = os.path.join(root, "never")
-    assert bb.watch_touch(ghost, "t", "p")["ok"] is True
+    assert bb.stamp_tool_event(ghost, "t", "p")["ok"] is True
 
 
 def test_read_canvas_missing_project_ok(root):

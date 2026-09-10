@@ -106,16 +106,6 @@ def test_hook_gate_values_read_independently(tmp_path, monkeypatch):
     assert config.hook_gate_mode("deploy_guard") == "hard"
 
 
-def test_health_json_contract_keys():
-    """The audit-status.sh health snapshot contract: these keys must always be
-    present. (The script itself runs via subprocess which is flaky under
-    Windows handle exhaustion; the contract is pinned here instead.)"""
-    contract = {
-        "generated", "gate_key", "experiments", "audit_log_lines",
-        "skills", "custom_toml", "guard_ok",
-    }
-    # No executable check — just pin the key set the script must emit.
-    assert len(contract) == 7
 
 
 def test_non_code_exts_includes_markup_and_assets():

@@ -64,9 +64,9 @@ any project actor mutates in real time:
 - `canvas focus` — one canvas is the board's `hot_canvas` (surfaced by the
   engine at session start and stop).
 - `canvas watch --path docs/` — **real-time feed**: every audited tool touch
-  under the path lands as an `auto` cell (`watch_touch` in the PostToolUse
-  hook), so a canvas can mirror the project's living filesystem. Un-watch
-  with `--remove`.
+  under the path lands as an `auto` cell (via `stamp_tool_event` in the
+  PostToolUse hook), so a canvas can mirror the project's living filesystem.
+  Un-watch with `--remove`.
 
 Grid coordinates are advisory layout hints; free canvases (`grid = null`)
 carry cells keyed by id only. Producers update cells mid-run; consumers read
@@ -117,7 +117,7 @@ onward).
   up to 3 routed alerts.
 - **audit** (PostToolUse) — mirrors the last tool target into a bounded
   `last_tool.<tool>` key (never the content body), then pushes the touch into
-  every watching canvas (`watch_touch`) — the real-time plane.
+  every watching canvas (`stamp_tool_event`) — the real-time plane.
 - **stop** — deny reasons carry hot-key + focused-canvas notices and pending
   `stop`-channel alerts, consumed deliver-once; unclaimed hand-offs surface
   as the same proactive warning (announce-only — a nudge, never a block on

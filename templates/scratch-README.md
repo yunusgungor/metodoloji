@@ -28,7 +28,6 @@ Serbest deneme alanı — guard denetimi yok, gate gerektirmez.
 ```
 scratch/
 ├── README.md           ← bu dosya
-├── _seed_helper.py     ← seed helper (mevcut)
 ├── <deneme-adi>/       ← her deneme kendi klasöründe
 │   ├── explore.py
 │   └── notes.md

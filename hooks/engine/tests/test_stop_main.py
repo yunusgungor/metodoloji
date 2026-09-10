@@ -359,7 +359,7 @@ def test_main_dispatch_bad_stdin_allows():
 
 
 def test_main_dispatch_runtime_flag(tmp_path, monkeypatch):
-    # --runtime=openhands should set METODOLOJI_RUNTIME (visible to config.RUNTIME).
+    # --runtime=openhands must be accepted and the engine must still decide.
     env = dict(os.environ)
     env["CLAUDE_PROJECT_DIR"] = str(tmp_path)
     r = subprocess.run(

@@ -4,12 +4,9 @@ import os
 import pathlib
 import re
 
-# Runtime detection. Module-level constant kept for backward compatibility,
-# but main.py sets METODOLOJI_RUNTIME from --runtime= AFTER imports, so live
-# code must call runtime() instead of reading RUNTIME.
-RUNTIME = os.environ.get("METODOLOJI_RUNTIME", "claude")
-
-
+# Runtime detection. main.py sets METODOLOJI_RUNTIME from --runtime= AFTER
+# imports, so this must stay a function: a module-level constant would freeze
+# the pre-flag value. (The old RUNTIME constant was removed — zero readers.)
 def runtime() -> str:
     """Live runtime value (main.py may set it after import)."""
     return os.environ.get("METODOLOJI_RUNTIME", "claude")
