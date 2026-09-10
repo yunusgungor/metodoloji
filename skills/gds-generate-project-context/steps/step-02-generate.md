@@ -323,7 +323,7 @@ After each category, show the generated rules and present choices:
 
 #### If 'A' (Advanced Elicitation):
 
-- Execute advanced-elicitation.xml with current category rules
+- Execute skill:bmad-advanced-elicitation with current category rules
 - Process enhanced rules that come back
 - Ask user: "Accept these enhanced rules for {{category}}? (y/n)"
 - If yes: Update content, then return to A/P/C menu
@@ -331,7 +331,7 @@ After each category, show the generated rules and present choices:
 
 #### If 'P' (Party Mode):
 
-- Execute party-mode workflow with category rules context
+- Execute skill:bmad-party-mode with category rules context
 - Process collaborative insights on implementation patterns
 - Ask user: "Accept these changes to {{category}} rules? (y/n)"
 - If yes: Update content, then return to A/P/C menu

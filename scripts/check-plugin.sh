@@ -523,7 +523,7 @@ for skill, (rec_type, target, _) in BRIDGE_SKILLS.items():
     if target not in txt:
         missing.append("%s (methodology record target %s missing)" % (skill, target))
 
-# Phase-3 QR feeders — ones working through the "## Metodoloji" section of SKILL.md.
+# Phase-3 QR feeders — ones working through the "## Methodology" section of SKILL.md.
 QR_FEEDERS_SKILLMD = ["bmad-review-adversarial-general", "bmad-review-edge-case-hunter", "bmad-eval-runner"]
 for skill in QR_FEEDERS_SKILLMD:
     skill_md = os.path.join(PLUGIN, "skills", skill, "SKILL.md")

@@ -4,14 +4,14 @@ description: Run a skill's evals and report results. Use when the user wants to 
 triggers: ["bmad-eval-runner", "/bmad-eval-runner", "eval-runner"]
 ---
 
-## Metodoloji
+## Methodology
 
-Bu yuzey arastirma metodolojisine baglidir: `docs/bmad/research-methodology.md` — Mod A (sayisal) — skill degerlendirmesi; E-id kaydi.
-Bu yuzey gelistirme kanadina da baglidir: `docs/bmad/development-methodology.md` — Kapi 3 (kalite) — degerlendirme sonuclari QR kaydina kanit girer.
-Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayini ister
-(run_experiment.py --verify + guard-code.sh). Uydurma kanit/olcum sahtekarliktir.
+Bound to `docs/bmad/research-methodology.md` — Mode A (quantitative) — skill evaluation; measurements live in the run folder, opens no E-id record.
+Also bound to `docs/bmad/development-methodology.md` — Gate 3 (quality) — evaluation results feed the QR record as evidence.
+A documentary decision is not code-writing permission; code always requires Mode A mechanical approval
+(`/metodoloji:verify` + guard hook). Fabricated evidence/measurements are fraud.
 
-**Bridge:** This skill does not produce an independent methodology record; it adds the evaluation results to the `Mechanical checks` section of the `docs/development/QR-<seq>.md` record produced by `bmad-code-review` (docs/bmad/dev-skill-to-methodology-bridge.md §1.1 and §3.1, Phase 3). If there is no linked QR record (bmad-code-review has not run before), say to run it first; feed the findings into the QR, do not open a separate record. If there are findings, update the relevant QR record and add the `Methodology record: docs/development/QR-<seq>.md` reference to the native evaluation output.
+**Bridge:** This skill does not produce an independent methodology record; it feeds evaluation results into the `Mechanical Checks` section of the `docs/quality/QR-<sequence>.md` record produced by `bmad-code-review` (docs/bmad/dev-skill-to-methodology-bridge.md §2.5, Phase 3 QR feeder). If there is no linked QR record (bmad-code-review has not run before), say to run it first; feed the findings into the QR, do not open a separate record. If there are findings, update the relevant QR record's `Skill Eval` block (skill name, cases passed/total, run folder path) and add the `Methodology record: docs/quality/QR-<sequence>.md` reference to the native evaluation output.
 
 
 # Skill Eval Runner
@@ -33,13 +33,13 @@ Each mode answers a different question about a skill. Pick the one that matches 
 
 Baseline runs every case twice — once with the skill staged into the clean working directory and once with nothing staged — so the bare model is measured as the long-term floor under identical conditions. Variant runs the full skill against a stripped smallest-version of itself to settle whether a section is doing real work. Quality grades one config's output against a rubric with the read-only grader. Trigger measures real firing through the adapter and can optimize the description across rounds; the optimization loop lives in `references/description-optimization.md`.
 
-A case is `input + rubric + optional state_prefix + optional fixture files`. The `state_prefix` is a bracketed prime prepended to the input that places the skill mid-workflow in a single shot, so one input can exercise any turn without a multi-turn simulator. The full case format and the strong-versus-weak expectation taxonomy are in `references/eval-format.md`.
+A case is `input + rubric + optional checks + optional state_prefix + optional fixture files`. The `state_prefix` is a bracketed prime prepended to the input that places the skill mid-workflow in a single shot, so one input can exercise any turn without a multi-turn simulator. The full case format and the strong-versus-weak expectation taxonomy are in `references/eval-format.md`.
 
 ## Args
 
 - Positional: a path to the skill being evaluated (directory containing `SKILL.md`).
 - `--evals <path>`: explicit path to the cases file. If omitted, discover.
-- `--mode baseline|variant|quality|trigger`: which mode to run. May be repeated.
+- `--mode baseline|variant|quality|trigger`: which mode to run. One per run (`run_evals.py --mode` takes a single value); run again for additional modes.
 - `--variant-path <path>`: for variant mode, the stripped or prior-version skill to compare against.
 - `--project-root <path>`: root of the project the skill belongs to. Default: walk up from the skill path looking for `bmad/` or `.git/`.
 - `--output-dir <path>`: where run folders are written. Default: `{bmad_builder_reports}/eval-runs/` if configured, else `~/bmad-evals/`.
@@ -54,11 +54,11 @@ These map directly onto the script CLIs below; anything not listed there (case s
 
 2. If `--headless` was passed, set `{headless_mode}=true`, skip every confirmation below, pick the safest defaults, and proceed.
 
-3. Resume check: glob the output dir for an in-progress run folder. If one exists and matches this skill, read its decision log once to rebuild state, then continue. Capture decisions and direction changes into the run's decision log as they land, and mirror the current round/state as a blackboard key: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key eval.<skill-name> --value "<round/state, one line>" --type state --hot --project-root {project-root}` (the hot key is what hooks surface on session start and stop). Also mirror the run onto the session bridge (`write --key purpose --value "eval <skill-name>"`) so guard/stop/audit attribute tool traffic to this run. Mirror the run's shape on the live planes: failing or blocked cases go on the run list — `blackboard.py list-add --key eval.<skill-name>.failing --item "<case-id>: <reason, one line>" --project-root {project-root}` (and come off via `list-remove --item ...` the moment a rerun passes) — and a per-round progress canvas is optional for long runs: `canvas create --name eval.<skill-name>.rounds --grid 8x8`, one cell per round (`canvas set --name eval.<skill-name>.rounds --cell r<N> --content "<round outcome>"`), so any session can read the run's arc at a glance.
+3. Resume check: glob the output dir for a run folder with `run.json` but no `execution-summary.json` (that combination means a prior run never finished). If one exists and matches this skill, read its `run.json` once to rebuild state, then continue. Per-case results land in `execution-summary.json` when the run completes — there is no separate decision log on plain eval runs (the typed decision-log trail belongs to the auto-iterate loop in `references/self-improvement.md`). Inherit the blackboard (read-only): `python3 {metodoloji-root}/bmad/scripts/blackboard.py read --context --project-root {project-root}` — this shows the invoking run's focus so the eval grounds in the live session (fail-open: missing/corrupt board → proceed alone). This skill never touches focus, bridge keys, run lists, canvases, or hand-offs (`write`, `list-add`, `handoff`, `canvas`, `hot`, `notify` are forbidden here) — the run folder is the record; the single permitted write is the close-out `contribute` below.
 
 4. Locate the skill and verify `<skill-path>/SKILL.md` exists. Halt with a clear error if it does not.
 
-5. Resolve the adapter config per the discovery rules in `references/platform-adapter.md` (explicit `--adapter`, `BMAD_EVAL_ADAPTER`, `adapter.json` beside the cases file). When nothing is configured, use the adapter matching the current runtime: `{skill-root}/assets/adapter-claude-code.json` (Claude Code) or `{skill-root}/assets/adapter-openhands.json` (OpenHands CLI).
+5. Resolve the adapter config per the discovery rules in `references/platform-adapter.md` (explicit `--adapter`, `BMAD_EVAL_ADAPTER`, `adapter.json` / `.bmad-eval-adapter.json` / `adapter-9router.json` beside the cases file). The repo's installed suites ship `adapter-9router.json` (gateway-backed, no CLI needed) and resolve with no flags. When nothing is configured, use the adapter matching the current runtime: `{skill-root}/assets/adapter-claude-code.json` (Claude Code) or `{skill-root}/assets/adapter-openhands.json` (OpenHands CLI).
 
 6. Discover the cases file. Look at `--evals` first, then `<skill-path>/evals/`, then `<skill-path>/../../evals/<skill-name>/`, then `<project-root>/evals/<skill-name>/`, then anywhere under `<project-root>/evals/`. Take the first match. If nothing is found, halt and say so; the runner does not invent cases.
 
@@ -87,19 +87,19 @@ python3 {skill-root}/scripts/run_triggers.py \
   [--adapter <adapter.json>] [--runs-per-query N]
 ```
 
-It stages a synthetic skill where the runtime discovers skills, sends each query through the adapter, and detects the skill-load tool call. Each query runs several times for stability. When the user wants to optimize the description rather than just measure it, follow `references/description-optimization.md`.
+It stages a synthetic skill where the runtime discovers skills, sends each query through the adapter, and detects the skill-load tool call. Each query runs several times for stability. The queries file is always passed explicitly (`--queries` is required; no discovery, and no query files ship with the repo — author one per evaluated skill). When the user wants to optimize the description rather than just measure it, follow `references/description-optimization.md`.
 
-For quality mode, spawn the grader described in `references/grader.md` per case, passing the case's rubric, transcript path, artifacts dir (the case's `cwd/`), and a `grading_path` of `<case-folder>/grading.json`. The grader writes that file, gives no partial credit, and flags weak or non-discriminating assertions; relay that feedback. If a grader subagent errors, mark that case `grading_error` — never substitute a default verdict.
+Grade each case two-tier where applicable: first the deterministic `checks` (if the case carries them) via `python3 <skill>/evals/grade_local.py --cases <cases-file> --run-dir <run-dir>` where `<run-dir>` is the dated run folder itself (the one containing `skill/` — not its parent output dir) — a FAIL here needs no second opinion; then, for judgments `checks` cannot express, spawn the LLM grader described in `references/grader.md` per case, passing the case's rubric, transcript path, artifacts dir (the case's `cwd/`), and a `grading_path` of `<case-folder>/grading.json`. The grader writes that file, gives no partial credit, and flags weak or non-discriminating assertions; relay that feedback. If a grader subagent errors, mark that case `grading_error` — never substitute a default verdict. Cases with only `checks` skip the LLM grader entirely. The full two-tier contract lives in `references/eval-format.md`.
 
 When `--runs` is greater than one, call `python3 {skill-root}/scripts/aggregate_benchmark.py --baseline <run-dir>/<config-a> --variant <run-dir>/<config-b>` to produce the mean, sample standard deviation, min, max, and the delta between configs (`--runs <run-dir>/<config>` for a single config's spread).
 
-When a run fails or comes back weak and the user wants the skill improved from the results, follow `references/self-improvement.md`.
+When a run fails or comes back weak and the user wants the skill improved from the results, follow `references/self-improvement.md`. The loop's mechanics are runnable as `python3 {skill-root}/scripts/auto_iterate.py --skill <SKILL.md> --eval <score-cmd> --improve <fix-cmd> [--rounds N] [--pass-threshold F] [--trail PATH]` (round bound, one change per round, revert on regression, typed trail); the fix content itself stays an LLM act per that reference.
 
 ## Artifacts
 
-Every run writes a dated run folder under the output dir, and those artifacts are permanent. Each case folder holds its prompt, transcript, the `cwd/` with any files the skill wrote, `timing.json`, and `grading.json` when quality mode ran. Never delete, overwrite, or rotate a run folder; disk usage is the user's call. The run's decision log records the decisions and deltas so a resumed or audited run reads back cleanly.
+Every run writes a dated run folder under the output dir, and those artifacts are permanent. Each case folder holds its prompt, transcript, the `cwd/` with any files the skill wrote, `timing.json`, and `grading.json` once graded. Never delete, overwrite, or rotate a run folder; disk usage is the user's call. `run.json` records the run parameters and `execution-summary.json` the per-case results, so a resumed or audited run reads back cleanly.
 
-Tell the user where the run folder is when you finish. Close-out check before exiting: `python3 {metodoloji-root}/bmad/scripts/blackboard.py doctor --json --project-root {project-root}` — on `NEEDS ATTENTION`, surface the warnings to the user, naming any unclaimed hand-off signals from earlier runs explicitly; clear the run's own board mirror — empty resolved threads (`list-clear --key eval.<skill-name>.failing`, only when nothing remains open) and clear focus (`hot --clear`) — so it never reads as residue.
+Tell the user where the run folder is when you finish. Leave one trace on the board (the only write this skill makes): `python3 {metodoloji-root}/bmad/scripts/blackboard.py contribute --who bmad-eval-runner --what "eval on <skill-name>: <passed>/<total> cases, <run-dir>" --project-root {project-root}` (one line; fail-open — board errors never block the return). If the run feeds a linked QR record, fill its `Skill Eval` block per the header bridge. Then exit — no `doctor` close-out, no focus handling: this skill owns no board state to clear.
 
 ## Outcomes
 

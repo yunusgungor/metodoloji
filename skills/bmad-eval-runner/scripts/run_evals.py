@@ -127,6 +127,7 @@ def find_adapter(explicit: Path | None, cases_file: Path) -> Path | None:
     for candidate in (
         cases_file.parent / "adapter.json",
         cases_file.parent / ".bmad-eval-adapter.json",
+        cases_file.parent / "adapter-9router.json",
     ):
         if candidate.is_file():
             return candidate

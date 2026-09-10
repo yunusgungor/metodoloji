@@ -8,7 +8,5 @@ persistent_facts = [
 ]
 activation_steps_append = [
   "Before starting this work, verify the gate rules of the relevant module in the methodology manifesto (docs/bmad/research-methodology.md): the evidence type and record format of the output to be produced.",
-  "Create the evaluation scenarios",
-  "Run the tests",
-  "Analyze the results"
+  "Feed results into the linked QR record's Skill Eval block per the SKILL.md header bridge; open no separate methodology record."
 ]

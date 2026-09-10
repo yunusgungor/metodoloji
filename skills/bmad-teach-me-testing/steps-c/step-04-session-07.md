@@ -6,8 +6,8 @@ progressFile: '{test_artifacts}/teaching-progress/{user_name}-tea-progress.yaml'
 sessionNotesTemplate: '../templates/session-notes-template.md'
 sessionNotesFile: '{test_artifacts}/tea-academy/{user_name}/session-07-notes.md'
 nextStepFile: '{skill-root}/steps-c/step-03-session-menu.md'
-advancedElicitationTask: '{metodoloji-root}/bmad/core/workflows/advanced-elicitation/workflow.xml'
-partyModeWorkflow: '{metodoloji-root}/bmad/core/workflows/party-mode/workflow.md'
+advancedElicitationTask: 'skill:bmad-advanced-elicitation'
+partyModeWorkflow: 'skill:bmad-party-mode'
 ---
 
 # Step 4: Session 7 - Advanced Patterns
@@ -207,9 +207,14 @@ You can return to Session 7 anytime to explore more fragments!"
 
 ### 9. Menu
 
-[A] Advanced Elicitation [P] Party Mode [C] Continue to Session Menu
+Display: **Select an Option:** [A] Advanced Elicitation [P] Party Mode [C] Continue to Session Menu
 
-Return to {nextStepFile}.
+#### Menu Handling Logic:
+
+- IF A: Execute {advancedElicitationTask}, and when finished redisplay the menu
+- IF P: Execute {partyModeWorkflow}, and when finished redisplay the menu
+- IF C: Progress file already updated in step 7, then load, read entire file, then execute {nextStepFile}
+- IF Any other: help user, then redisplay menu
 
 ---
 

@@ -25,8 +25,19 @@ Field semantics:
 - `rubric`: a list of named expectations, each gradeable to `{text, passed, evidence}` by the grader. The strong-versus-weak taxonomy below decides whether each one is worth keeping.
 - `state_prefix`: optional bracketed prime that places the skill mid-workflow (see below). Null or absent means the skill starts cold.
 - `files`: optional fixture paths staged into the case's clean working directory before the run. A bare filename lands at the workspace root; a nested path keeps its directory structure, so the input can reference it verbatim. Sources resolve against `--project-root`, then the cases file's directory, then as absolute paths.
+- `checks`: optional deterministic assertions graded without an LLM, each `{"must_any": [...], "must_not_any": [...]}` — all checks must pass. Matching is case-insensitive substring on the transcript text. Prefer `checks` for anything mechanically decidable (file named, keyword present/absent, status block emitted); reserve `rubric` for judgments that need reading (scope fidelity, no invented claims, critique-without-rewrite). A case may carry both: the deterministic grader and the LLM grader each write the same `grading.json` shape (`expectations` + `summary` + `rubric_feedback`), so reporting stays uniform whether one or both ran.
 
 For trigger cases the shape is lighter: a `query` and a `should_trigger` boolean, because there is no artifact to grade, only whether the skill fired. Those cases are covered in `platform-adapter.md` and `description-optimization.md`.
+
+## The deterministic grader (`grade_local.py`)
+
+The repo's installed eval suites (`<skill>/evals/cases.json`) pair each case with `checks` and grade them with a stdlib-only script kept beside the cases (`<skill>/evals/grade_local.py` — the five copies are byte-identical; treat one as canonical and keep the rest in sync):
+
+```
+python3 <skill>/evals/grade_local.py --cases <skill>/evals/cases.json --run-dir <run-dir>
+```
+
+It reads each case's `transcript.jsonl`, applies the `checks`, writes `grading.json` per case folder, prints `[PASS]/[FAIL]` per case id, and exits 0 iff every case passes. Use it when the rubric is fully mechanical (no LLM judgment needed) or as the cheap first gate before spawning the LLM grader — a deterministic FAIL needs no second opinion.
 
 ## state_prefix: turn simulation in one shot
 

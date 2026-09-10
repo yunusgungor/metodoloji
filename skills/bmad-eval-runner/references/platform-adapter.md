@@ -13,10 +13,14 @@ An adapter is a JSON file the scripts read. A working Claude Code adapter ships 
                  "--verbose", "--dangerously-skip-permissions"],
   "auth_env": "ANTHROPIC_API_KEY",
   "transcript": { "format": "stdout-jsonl" },
-  "skill_dir": "{metodoloji-root}/skills",
+  "skill_dir": ".claude/skills",
   "load_signal": { "skill_tool": "Skill", "read_tool": "Read" },
   "env_passthrough": []
 }
+
+(`skill_dir` is a literal relative path under the case cwd — it is NOT
+placeholder-expanded, so it must never contain `{metodoloji-root}` or similar;
+the runner stages the skill at `<cwd>/<skill_dir>/<skill-name>/` verbatim.)
 ```
 
 A working OpenHands CLI adapter ships at `assets/adapter-openhands.json`:
@@ -49,9 +53,13 @@ A working OpenHands CLI adapter ships at `assets/adapter-openhands.json`:
 
 1. `--adapter <path>` on the command line.
 2. `BMAD_EVAL_ADAPTER` env var pointing at a config file.
-3. `adapter.json` or `.bmad-eval-adapter.json` beside the cases/queries file.
+3. `adapter.json`, `.bmad-eval-adapter.json`, or `adapter-9router.json` beside the cases/queries file.
 
 Nothing found means the run degrades to staging-only (cases prepared, results recorded as skipped). When the current runtime is Claude Code and no project adapter exists, pass `--adapter {skill-root}/assets/adapter-claude-code.json`; under OpenHands, pass `--adapter {skill-root}/assets/adapter-openhands.json`.
+
+### The 9router shim (gateway-backed runs)
+
+The repo's installed eval suites (`<skill>/evals/`) run through a third adapter shape that needs no CLI binary: `adapter-9router.json` points `invocation` at the shared shim `skills/bmad-research-experiment/evals/run_9router.py` (the single copy — it lives with the first suite that grew it, and every other suite's adapter references it by absolute repo path). The shim stages the skill under test from the clean cwd, reads its `SKILL.md` + `references/*.md` as the system prompt (truncated to ~26k chars), sends the case input as the user message through the gateway's OpenAI-compatible `/v1/chat/completions`, and prints a two-line `stdout-jsonl` transcript (`assistant` text + `result` usage) that `run_evals.py` already accounts. Credentials arrive via `env_passthrough` (`NINEROUTER_URL`, `NINEROUTER_MODEL`, optional `NINEROUTER_KEY`); `METODOLOJI_REPO` lets the shim resolve placeholder values. The shim measures the skill document itself — a fail is a `SKILL.md` bug, fixed in `SKILL.md`, never in the shim.
 
 ## Invocation and isolation
 

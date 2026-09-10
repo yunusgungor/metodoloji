@@ -54,6 +54,21 @@ def test_find_adapter_sibling(tmp_path):
     assert run_evals.find_adapter(None, cases) == tmp_path / "adapter.json"
 
 
+def test_find_adapter_9router(tmp_path):
+    cases = tmp_path / "cases.json"
+    cases.write_text("[]", encoding="utf-8")
+    (tmp_path / "adapter-9router.json").write_text("{}", encoding="utf-8")
+    assert run_evals.find_adapter(None, cases) == tmp_path / "adapter-9router.json"
+
+
+def test_find_adapter_prefers_plain_over_9router(tmp_path):
+    cases = tmp_path / "cases.json"
+    cases.write_text("[]", encoding="utf-8")
+    (tmp_path / "adapter.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "adapter-9router.json").write_text("{}", encoding="utf-8")
+    assert run_evals.find_adapter(None, cases) == tmp_path / "adapter.json"
+
+
 def test_find_adapter_none(tmp_path):
     cases = tmp_path / "cases.json"
     cases.write_text("[]", encoding="utf-8")

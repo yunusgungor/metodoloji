@@ -52,6 +52,12 @@
 - **Memory usage:** [X MB] (previous: [Y MB]) → [% change]
 - **Status:** ✓ NO REGRESSION / ✗ REGRESSION DETECTED
 
+### Skill Eval (bmad-eval-runner feed)
+- **Skill:** [evaluated skill name]
+- **Cases:** [X passed / Y total]
+- **Run folder:** [run dir path]
+- **Status:** ✓ ALL PASS / ✗ FAILURES / — (no eval ran)
+
 ---
 
 ## AC Verification Results

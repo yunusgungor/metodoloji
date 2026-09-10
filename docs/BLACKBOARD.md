@@ -196,8 +196,8 @@ result and exit 0.
 
 ## Skill contract
 
-Producing skills (PRD, UX, brief, architecture, brainstorming, forge,
-eval-runner) run on three planes:
+Producing skills (PRD, UX, brief, architecture, brainstorming, forge)
+run on three planes:
 
 - **Focus (required)** — `write --hot` one state key at activation,
   `hot --clear` at close, milestone re-writes in between.
@@ -227,10 +227,21 @@ eval-runner) run on three planes:
   tmp residue, or *earlier* runs' unclaimed signals get named before the
   session ends instead of silently rotting on the board.
 - **Canvas (where a live picture helps)** — surface maps (ux), decision maps
-  (architecture), idea boards (brainstorming), round arcs (eval-runner);
+  (architecture), idea boards (brainstorming);
   `watch` paths feed touches automatically; leave the canvas standing when
   downstream skills read it, clear focus at close.
 
 That is the entire contract — no lifecycle status beyond the `status` bridge
 key, no log schema, no resume machinery beyond the artifacts themselves
 plus the run lists that back them.
+
+## Guest skills (read + trace only)
+
+Helpers that produce no methodology record of their own
+(`bmad-advanced-elicitation`, `bmad-eval-runner`) stay off the planes above:
+no focus key, no bridge writes, no run list, no hand-off, no canvas, no
+`doctor` close-out — those stay owned by the invoking skill. They inherit
+context read-only (`read --context`, plus targeted `read --key` peeks) and
+leave exactly one trace: `contribute --who <skill> --what "<session>:
+<one-line outcome>"`. Fail-open throughout — board errors never block the
+return to the caller.
