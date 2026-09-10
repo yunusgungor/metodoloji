@@ -37,9 +37,27 @@ import sys
 import threading
 import time
 from contextlib import contextmanager
+from enum import Enum  # NEW: For AlertKind (PHASE 4 #7)
 
 # Unique tmp-name sequence (per-call uniqueness across threads).
 _TMP_SEQ = itertools.count()
+
+# NEW: Structured alert taxonomy (PHASE 4 #7)
+class AlertKind(Enum):
+    """Enumeration of valid alert kinds for type-safe alert posting."""
+    INFO = "info"
+    WARN = "warn"
+    ERROR = "error"
+    HANDOFF = "handoff"
+    CASCADE_INVALIDATION = "cascade_invalidation"
+    STALE_SESSION = "stale_session"
+    VERIFICATION_FAILURE = "verification_failure"
+    HOOK_VIOLATION = "hook_violation"
+    ESCALATION = "escalation"
+    CACHE_INVALIDATION = "cache_invalidation"
+    
+    def __str__(self):
+        return self.value
 
 # --- Limits (oldest expire first) -------------------------------------------
 MAX_KEYS = 128
@@ -1123,14 +1141,36 @@ def stamp_tool_event(project_root: str, tool_name: str, target: str, hook_event:
     inside another _mutate scope.
     
     NEW: Optional hook_event parameter to track PreToolUse/PostToolUse sequence (HIGH #7)
+    NEW: Session ID inclusion for multi-session isolation (PHASE 2 #2)
     """
     tool_name = str(tool_name or "")[:100]
     target = str(target or "")[:MAX_TEXT_LEN]
     if not tool_name:
         return {"ok": True, "touched": 0}
+    
+    # NEW: Extract session_id from latest SessionStart marker (PHASE 2 #2)
+    session_id = ""
+    try:
+        paths = board_paths(project_root)
+        with open(paths["events"], "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        # Scan backwards to find last session_start
+        for line in reversed(lines[-1000:]):  # Only check last 1000 lines for efficiency
+            try:
+                entry = json.loads(line)
+                if entry.get("type") == "session_marker" and entry.get("hook_event") == "SessionStart":
+                    session_id = entry.get("session_id", "")
+                    break
+            except (json.JSONDecodeError, ValueError):
+                pass
+    except (OSError, IOError):
+        pass  # Can't read events file, continue without session_id
+    
     event = {"event": "tool", "tool": tool_name, "target": target, "ts": time.time()}
     if hook_event:
         event["hook_event"] = str(hook_event)[:40]  # NEW: PreToolUse or PostToolUse
+    if session_id:
+        event["session_id"] = session_id  # NEW: Multi-session isolation (PHASE 2 #2)
 
     def mut(board):
         paths = board_paths(project_root)
@@ -1706,10 +1746,20 @@ def post_alert(project_root: str, channel: str, kind: str, text: str) -> dict:
     """Manual alert injection (skills can notify the session/stop channels).
     
     NEW: Bounds enforcement visible - checks MAX_ALERTS limit (MEDIUM #4 / ISSUE #63)
+    NEW: Kind validation against AlertKind enum (PHASE 4 #7)
     Oldest alerts are expired when limit is reached.
     """
+    # NEW: Validate kind against AlertKind enum (PHASE 4 #7)
+    kind_str = str(kind).strip()[:20] or "info"
+    valid_kinds = {k.value for k in AlertKind}
+    if kind_str not in valid_kinds:
+        # Log warning but allow (fail-open) — map unknown kinds to "info"
+        sys.stderr.write(f"metodoloji: unknown alert kind '{kind_str}' (expected one of {valid_kinds}), "
+                        f"mapping to 'info'\n")
+        kind_str = "info"
+    
     event = {"event": "alert", "channel": str(channel).strip()[:40] or "session",
-             "kind": str(kind).strip()[:20] or "info",
+             "kind": kind_str,
              "text": str(text).strip()[:MAX_ALERT_TEXT],
              "id": f"m{int(time.time() * 1000):013d}", "ts": time.time()}
     if not event["text"]:
@@ -1821,16 +1871,28 @@ def compact_context(project_root: str) -> dict:
     # scope/status even when bootstrap's env snapshot predates a mid-session
     # skill write (see utils board-first ordering).
     focus = {}
-    for k in ("scope", "status"):
+    for k in ("scope", "status", "priority", "focus_story"):  # NEW: Expanded context (PHASE 3 #6)
         entry = board["keys"].get(k)
         if entry and isinstance(entry, dict) and str(entry.get("value", "")).strip():
             focus[k] = str(entry.get("value"))[:120]
+    
+    # NEW: Operator preferences and urgency (PHASE 3 #6)
+    tags_list = list(board["tags"])
+    priority = "normal"
+    if "critical" in tags_list:
+        priority = "critical"
+    elif "urgent" in tags_list:
+        priority = "urgent"
+    elif "low-priority" in tags_list:
+        priority = "low"
+    
     return {
         "hot": hot_key,
         "hot_meta": hot_value,
         "hot_canvas": canvas_summary,
         "focus": focus,
-        "tags": list(board["tags"]),
+        "priority": priority,  # NEW (PHASE 3 #6)
+        "tags": tags_list,
         "watchers": sorted(board["watchers"].keys()),
         "contributions": board["contributions"][-5:],
         "key_count": len(board["keys"]),

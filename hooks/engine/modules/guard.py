@@ -395,8 +395,18 @@ def _validate_story_experiment_refs(content: str, root: str = "") -> tuple[bool,
                 f"Get experiment approval first."
             )
     
-    # NEW: If cascade warnings exist, return them as soft warnings (for hard gate only)
+    # NEW: If cascade warnings exist, post to blackboard and return as soft warnings
     if cascade_warnings:
+        # Post cascade invalidation alerts to blackboard for Stop hook to check
+        try:
+            from .config import blackboard_enabled
+            if blackboard_enabled():
+                from . import blackboard as bb
+                for warning in cascade_warnings[:2]:  # Post top 2 warnings
+                    bb.post_alert(root, "cascade", "invalidation", warning)
+        except Exception:
+            pass  # fail-open: blackboard unavailable
+        
         return False, "; ".join(cascade_warnings[:2])  # Return as validation failure in hard mode
     
     return True, ""
@@ -808,17 +818,22 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
 # don't re-verify unchanged records. Bounded (128 entries); rc=3 (key
 # missing) is never cached — it would stick after --init-secret.
 # NEW: Time-based expiry to prevent TOCTOU issues (MEDIUM #8 / ISSUE #67)
-_VERIFY_CACHE: dict[str, tuple[tuple[int, int], int, str, float]] = {}
+# NEW: Version-keyed invalidation to handle file deletion/recreation (PHASE 1 #3)
+_VERIFY_CACHE: dict[str, tuple[tuple[int, int], int, str, float, int]] = {}  # Added version field
 _VERIFY_CACHE_TTL_SECONDS = 300  # 5 minutes
+_VERIFY_CACHE_VERSION = 0  # Global version, incremented when cache invalidated
 
 
 def _cached_verify(rec: str) -> tuple[int, str]:
     """verify_record with a small mtime+size-keyed cache (5-min TTL).
     
     NEW: Includes timestamp for time-based cache expiry (MEDIUM #8 / ISSUE #67)
+    NEW: Version-keyed invalidation to handle file deletion/recreation (PHASE 1 #3)
     Prevents stale verification in long-running sessions where files may be deleted/re-created.
     """
     import time
+    global _VERIFY_CACHE_VERSION
+    
     try:
         st = pathlib.Path(rec).stat()
         key = (st.st_mtime_ns, st.st_size)
@@ -828,16 +843,40 @@ def _cached_verify(rec: str) -> tuple[int, str]:
     hit = _VERIFY_CACHE.get(rec)
     now = time.time()
     
-    # Check cache hit: key must match AND cache must not be stale (5 min TTL)
-    if hit is not None and hit[0] == key and (now - hit[3]) < _VERIFY_CACHE_TTL_SECONDS:
+    # Check cache hit: key must match AND version must match AND cache must not be stale (5 min TTL)
+    if hit is not None and hit[0] == key and hit[4] == _VERIFY_CACHE_VERSION and (now - hit[3]) < _VERIFY_CACHE_TTL_SECONDS:
         return hit[1], hit[2]
     
     rc, scope = verify_record(rec)
     if rc != 3:
         if len(_VERIFY_CACHE) >= 128:
             _VERIFY_CACHE.pop(next(iter(_VERIFY_CACHE)))
-        _VERIFY_CACHE[rec] = (key, rc, scope, now)  # NEW: Include timestamp
+        _VERIFY_CACHE[rec] = (key, rc, scope, now, _VERIFY_CACHE_VERSION)  # NEW: Include version
     return rc, scope
+
+
+def invalidate_verify_cache(reason: str = "") -> None:
+    """Increment cache version to invalidate all cached verification results.
+    
+    Called when:
+    - Experiment record deleted or forged (PHASE 1 #3)
+    - Gate key changes
+    - Any authorization-related state change
+    
+    Args:
+        reason: diagnostic message for logging (optional)
+    """
+    global _VERIFY_CACHE_VERSION
+    _VERIFY_CACHE_VERSION += 1
+    if reason:
+        try:
+            from .config import blackboard_enabled
+            if blackboard_enabled():
+                from . import blackboard as bb
+                bb.post_alert(root="", channel="guard", kind="cache_invalidation",
+                             text=f"Verify cache invalidated: {reason[:100]}")
+        except Exception:
+            pass  # fail-open
 
 
 def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> tuple[bool, str]:
@@ -1173,6 +1212,23 @@ def guard(json_in: dict) -> dict:
             msg = (f"No approved experiment record for {rel}: {detail}. "
                    f"Create a hypothesis, measure, and get approval with "
                    f"run_experiment.py --record docs/experiments/E-XXX.md --run <cmd>")
+            
+            # NEW: Write diagnostic context to blackboard (PHASE 4 #8)
+            try:
+                from .config import blackboard_enabled
+                if blackboard_enabled():
+                    from . import blackboard as bb
+                    import json
+                    diagnostic = {
+                        "stage": "guard:approval_search",
+                        "target": rel,
+                        "reason": detail,
+                        "timestamp": time.time()
+                    }
+                    bb.write_key(root, "_diag.last_guard_failure", json.dumps(diagnostic), type_="diagnostic")
+            except Exception:
+                pass  # fail-open
+            
             if hook_gate_mode("code_guard") == "soft":
                 _soft_warnings.append(msg)
                 continue
@@ -1182,6 +1238,37 @@ def guard(json_in: dict) -> dict:
     # When the blackboard holds a scope key (e.g. blackboard.py write --key
     # scope --value src/auth), an out-of-scope write produces a warn-only
     # notice, never a deny. Experiment-approval deny always takes precedence.
+    
+    # NEW: Check operator context (PHASE 3 #6)
+    try:
+        from .config import blackboard_enabled
+        if blackboard_enabled():
+            from . import blackboard as bb
+            ctx = bb.compact_context(root)
+            
+            # Check if write is to focused story
+            focus_story = ctx.get("focus", {}).get("focus_story", "")
+            if focus_story and targets:
+                for target in targets:
+                    if focus_story not in str(target):
+                        _soft_warnings.append(
+                            f"Writing to {target} but focus story is {focus_story}. "
+                            f"Refocus (blackboard.py write --key focus_story --value <new>) if needed."
+                        )
+            
+            # Check if critical priority
+            priority = ctx.get("priority", "normal")
+            if priority == "critical" and targets:
+                # Additional scrutiny for critical path
+                for target in targets:
+                    if "critical" in str(target).lower():
+                        _soft_warnings.append(
+                            f"CRITICAL PATH: Write to {target} under critical tag. "
+                            f"Extra verification recommended."
+                        )
+    except Exception:
+        pass  # fail-open: blackboard unavailable
+    
     from .utils import _active_scope
     scope = _active_scope(root)
     intent_warnings = _intent_scope_warnings(scope=scope, targets=targets, root=root)

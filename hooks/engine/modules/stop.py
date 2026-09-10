@@ -186,15 +186,35 @@ def _read_session_lines(root: str) -> list[str]:
 
 
 def _session_touched_code(root: str) -> list[str]:
-    """Code files this session actually wrote (from the audit trail).
+    """Code files this session actually wrote (from the audit trail or real-time canvas).
 
     Only lines after the newest session_start marker count; no marker (fresh
     session / logging disabled) → whole log counts once, then the marker is
     written. Pre-existing brownfield files are never listed: only PostToolUse
     records this session wrote count.
+    
+    NEW: Tries canvas-based approach first for O(1) performance (PHASE 2 #4)
+    Falls back to audit trail replay if canvas unavailable.
     """
     from .bash_targets import extract_bash_targets
+    
+    # NEW: Try canvas-based touched-set (O(1) instead of O(session)) (PHASE 2 #4)
+    try:
+        from . import blackboard as bb
+        board = bb.read_board(root)
+        canvas = board.get("canvases", {}).get("bridge", {})
+        if canvas and canvas.get("cells"):
+            # Canvas has real-time touches; use those instead of replaying
+            touched: set[str] = set()
+            for cell_id in canvas.get("cells", {}).keys():
+                if cell_id and is_code_target(cell_id):
+                    touched.add(cell_id)
+            if touched:
+                return sorted(touched)
+    except Exception:
+        pass  # Fall back to audit trail replay
 
+    # Fallback: replay audit trail (old behavior)
     lines = _read_session_lines(root)
     touched: set[str] = set()
     for line in lines:
@@ -432,6 +452,32 @@ def _validate_hook_state_machine(root: str) -> tuple[bool, str]:
         from . import blackboard as bb
         ctx = bb.compact_context(root)
         bits = []
+        
+        # NEW: Check for cascade invalidation alerts (PHASE 1 #1)
+        cascade_alerts = bb.pending_alerts(root, "cascade")
+        if cascade_alerts:
+            cascade_msgs = "; ".join(a["text"] for a in cascade_alerts[-2:])
+            bits.append(f"⚠️  CASCADE INVALIDATION DETECTED: {cascade_msgs}. "
+                       "Downstream records may be stale — re-validate before proceeding.")
+        
+        # NEW: Check for stale handoff signals (PHASE 3 #5)
+        now = time.time()
+        stale_handoffs = [
+            a for a in bb.read_board(root).get("alerts", [])
+            if a.get("kind") == "handoff" and 
+               (now - (a.get("ts", 0.0))) > bb.HANDOFF_SIGNAL_TTL_SECONDS
+        ]
+        if stale_handoffs:
+            skill_names = set()
+            for alert in stale_handoffs:
+                channel = alert.get("channel", "")
+                if channel.startswith("handoff."):
+                    skill_names.add(channel[len("handoff."):])
+            if skill_names:
+                bits.append(f"🚨 ESCALATION: {len(stale_handoffs)} STALE HANDOFF SIGNAL(S) "
+                           f"({', '.join(sorted(skill_names))} unreachable > 24h). "
+                           f"Skill may have crashed — manual intervention needed.")
+        
         if ctx.get("hot"):
             bits.append(f"Blackboard hot key '{ctx['hot']}' is still active — "
                         "clear it (blackboard.py hot --clear) or finalize its artifact.")
@@ -620,8 +666,34 @@ def stop(json_in: dict) -> dict:
             continue
         approved, _ = find_approved(rel, root=root)
         if not approved:
+            # NEW: Invalidate verify cache on unapproved code (PHASE 1 #3)
+            # This ensures next guard call re-verifies all experiments
+            try:
+                from .modules.guard import invalidate_verify_cache
+                invalidate_verify_cache(f"Unapproved code: {rel}")
+            except Exception:
+                pass  # fail-open
+            
             reason = (f"Unapproved code changes detected: {rel}. "
                       f"Complete experiment record before stopping.")
+            
+            # NEW: Include diagnostic context in error message (PHASE 4 #8)
+            try:
+                from .config import blackboard_enabled
+                if blackboard_enabled():
+                    from . import blackboard as bb
+                    import json
+                    board = bb.read_board(root)
+                    diag_entry = board.get("keys", {}).get("_diag.last_guard_failure", {})
+                    if diag_entry:
+                        try:
+                            diag = json.loads(diag_entry.get("value", "{}"))
+                            reason += f" (Last guard failure: {diag.get('reason', 'unknown')})"
+                        except (json.JSONDecodeError, ValueError):
+                            pass
+            except Exception:
+                pass  # fail-open
+            
             reason = _board_dirty_notice(root, reason)
             _record_stop_deny(root, reason)
             return {"decision": "deny", "reason": reason}
