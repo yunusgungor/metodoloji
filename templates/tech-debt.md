@@ -3,7 +3,7 @@
 > This file tracks technical debt accumulated in the project and the repayment plan.
 > A time-box should be reserved for technical debt in every sprint.
 
-**Last updated:** 2026-08-26
+**Last updated:** 2026-09-10
 
 > **2026-08-26 — SkillOpt tech-debt integration completed.** With 12 commits (957e5c2..8f2eb93),
 > all debt in all 6 manifests was paid (TD-001/002/003/010/011/012), the SkillOpt `techdebt` task
@@ -37,7 +37,7 @@
 
 | ID | Description | Why Added | Date Added | Impact | Owner | Target Sprint |
 |----|-------|---------------|---------------|------|--------|--------------|
-| — | — | — | — | — | — | — |
+| TD-013 | Tighten gates to hard after first VERIFIED experiment (`code_guard`/`stop_guard`, then `quality_gate`/`deploy_guard` in `custom/config.toml [hooks]`) | Shipped brownfield-soft defaults warn instead of blocking; hard mode is the documented steady state (README, CLAUDE.md) but the switch has no owner/date | 2026-09-10 | Soft gates stay warn-only; unapproved writes and session close never mechanically block until switched | @yunusgungor | next sprint after first VERIFIED scope |
 
 ---
 

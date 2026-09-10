@@ -23,6 +23,12 @@ plugin root and dispatch to the same `hooks/engine/` core.
 | PreToolUse guard | Write\|Edit\|MultiEdit\|file_editor\|terminal | fail-closed | 10s |
 | PreToolUse quality | Bash\|terminal | config-gated: soft (default) / hard | 10s |
 | PreToolUse deploy | Bash\|terminal | config-gated: soft (default) / hard | 10s |
+
+> quality and deploy share the `Bash|terminal` matcher by design: every Bash
+> call fires both, each returns in <10s, and they check disjoint conditions
+> (git-commit chain vs deploy-command chain). Merging them would couple two
+> independent gates (`quality_gate` vs `deploy_guard`) — see TD-013 for the
+> hardening track.
 | PostToolUse audit | Write\|Edit\|MultiEdit\|Bash\|file_editor\|terminal | fail-open (sync) | 5s |
 | Stop | — | fail-closed | 15s |
 
