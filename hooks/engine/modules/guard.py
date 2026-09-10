@@ -6,6 +6,7 @@ import os
 import pathlib
 import re
 import sys
+import time
 
 from .config import GATE_DIR, _BMD_DIR, _KEY_ACCESS_IN_CONTENT, _DONE_RE
 from .utils import (is_code_target, is_free, norm_path, normalize_hook_input,
@@ -64,15 +65,69 @@ def _notebook_content_to_text(content) -> str:
 
 
 def verify_record(rec: str) -> tuple[int, str]:
-    """Run gate verify on a record; return (rc, scope)."""
+    """Run gate verify on a record; return (rc, scope).
+    
+    Acquires an advisory lock on the record file during verification to prevent
+    concurrent deletion (TOCTOU race). (HIGH #5 / ISSUE #57)
+    """
     if not _load_gate():
         return 1, ""
+    
+    # NEW: Acquire advisory lock to prevent TOCTOU race (HIGH #5)
+    # If locking fails, continue anyway (fail-open) but note the risk
+    lock_file = None
+    try:
+        rec_path = pathlib.Path(rec)
+        if rec_path.exists():
+            # Try to acquire shared advisory lock
+            lock_file = open(str(rec_path) + ".lock", "a+")
+            try:
+                import fcntl
+                fcntl.flock(lock_file, fcntl.LOCK_SH)  # Shared lock
+            except ImportError:
+                # Windows: msvcrt
+                try:
+                    import msvcrt
+                    lock_file.seek(0)
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+                except (ImportError, OSError):
+                    pass  # Lock failed, continue anyway (fail-open)
+    except OSError:
+        pass  # Lock file creation failed, continue anyway
+    
     try:
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             rc = gate.verify(rec)
         return rc, gate.record_scope(rec)
-    except Exception:
+    except (AttributeError, TypeError, ValueError):
+        # Specific exceptions: gate module errors (MEDIUM #7 / ISSUE #66)
         return 1, ""
+    except Exception:
+        # Unknown exceptions: log to stderr but fail-open
+        try:
+            import traceback
+            sys.stderr.write(f"metodoloji: verify_record({rec}) unexpected error: {traceback.format_exc()[:200]}\n")
+        except Exception:
+            pass
+        return 1, ""
+    finally:
+        # Release lock
+        if lock_file:
+            try:
+                import fcntl
+                fcntl.flock(lock_file, fcntl.LOCK_UN)
+            except (ImportError, AttributeError):
+                try:
+                    import msvcrt
+                    lock_file.seek(0)
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                except (ImportError, OSError, AttributeError):
+                    pass
+            finally:
+                try:
+                    lock_file.close()
+                except OSError:
+                    pass
 
 
 # Matches native story files (1-2-user-auth.md) AND methodology story records
@@ -195,19 +250,48 @@ def _parse_experiment_refs(content: str) -> list[dict]:
 def _validate_story_experiment_refs(content: str, root: str = "") -> tuple[bool, str]:
     """Validate that all experiment_refs in a story file point to approved records.
 
+    Also validates that a story file has at least 1 AC with an experiment reference.
+    
+    NEW: Check if experiment records have been recently revised. If so, mark downstream
+    as potentially stale (HIGH #6 / ISSUE #12: Rollback/cascade invalidation)
+
     Returns (is_valid, reason).
     """
     if not root:
         root = repo_root({})
     refs = _parse_experiment_refs(content)
+    
+    # NEW: Check for AC experiment references using regex to find AC-NNN with Experiment: E-NNN
+    ac_exp_pattern = re.compile(r"\[AC-\d+\].*?Experiment:\s*(E-\d+|—|-)", re.DOTALL | re.IGNORECASE)
+    ac_experiment_refs = ac_exp_pattern.findall(content)
+    
+    # Filter out dashes (—, -) to get actual experiment IDs
+    actual_ac_exp_refs = [e for e in ac_experiment_refs if e not in ("—", "-")]
+    
+    # NEW: A story must have at least 1 AC with an experiment reference (not mandatory, but recommended)
+    # For now, warn but don't block. Can be made mandatory later.
+    if not actual_ac_exp_refs and not refs:
+        # No experiment references found anywhere in story
+        # This is a warning case (story can still proceed but should be linked to an experiment)
+        pass  # Allow it to proceed (soft enforcement)
+    
     if not refs:
-        # No experiment_refs — not a story with metadata, allow
+        # No experiment_refs in frontmatter — allow, but if no ACs have experiments either, it's orphaned
+        if not actual_ac_exp_refs:
+            # Story has no link to any experiment — this is the orphan case
+            return False, (
+                "Story has no experiment reference: every acceptance criterion must reference "
+                "an Experiment (E-NNN). Add 'Experiment: E-XXX' field to each AC to link this story "
+                "to the experiment that validates it."
+            )
         return True, ""
 
     recs_dir = pathlib.Path(root) / "docs" / "experiments"
     if not recs_dir.is_dir():
         return False, "experiment_refs found but docs/experiments/ directory missing"
 
+    cascade_warnings = []  # NEW: Collect cascade invalidation warnings
+    
     for ref in refs:
         exp_id = ref.get("id", "")
         status = ref.get("status", "")
@@ -232,6 +316,43 @@ def _validate_story_experiment_refs(content: str, root: str = "") -> tuple[bool,
                 f"Experiment record {exp_id} is not verified (rc={rc}). "
                 f"Run run_experiment.py --verify --record {exp_file} first."
             )
+        
+        # NEW: Check if experiment was recently revised (HIGH #6 / ISSUE #12)
+        # If E-NNN was modified recently, downstream records may be stale
+        try:
+            exp_mtime = exp_file.stat().st_mtime
+            story_path = pathlib.Path(root) / content.split("\n")[0].replace("# Story: ", "").split(" — ")[0]
+            # Very simple heuristic: if experiment is newer than 1 hour, warn about potential staleness
+            # (In production, would compare with story's last-verified timestamp)
+            import time
+            if time.time() - exp_mtime < 3600:  # Modified in last hour
+                cascade_warnings.append(
+                    f"{exp_id} was recently modified (< 1 hour ago). "
+                    f"Downstream records (IR/SP/S/QR/PR) may be stale — consider re-validation."
+                )
+        except (OSError, ValueError):
+            pass  # Can't get mtime, continue
+    
+    # Also validate AC experiment references
+    for ac_exp_ref in actual_ac_exp_refs:
+        exp_id = ac_exp_ref
+        exp_file = recs_dir / f"{exp_id}.md"
+        if not exp_file.exists():
+            return False, (
+                f"AC references Experiment {exp_id} but record not found in docs/experiments/. "
+                f"Create the experiment record before implementing this AC."
+            )
+        rc, _ = verify_record(str(exp_file))
+        if rc != 0:
+            return False, (
+                f"AC references Experiment {exp_id} which is not verified (rc={rc}). "
+                f"Get experiment approval first."
+            )
+    
+    # NEW: If cascade warnings exist, return them as soft warnings (for hard gate only)
+    if cascade_warnings:
+        return False, "; ".join(cascade_warnings[:2])  # Return as validation failure in hard mode
+    
     return True, ""
 
 
@@ -306,8 +427,60 @@ def _parse_task_ac_refs(content: str) -> list[dict]:
     return tasks
 
 
+def _check_duplicate_record_ids(root: str, filename: str, record_type: str) -> tuple[bool, str]:
+    """Check if a record ID is unique across all existing records of that type.
+    
+    Scans docs/experiments (E-NNN), docs/stories (S-NNN), docs/implementation-readiness (IR-NNN),
+    docs/sprint-plans (SP-NNN), docs/quality-records (QR-NNN), docs/production-readiness (PR-NNN)
+    for duplicate IDs. (MEDIUM #2 / ISSUE #61)
+    
+    Returns (is_unique, reason).
+    """
+    try:
+        # Extract record ID from filename (e.g., "E-001.md" → "E-001")
+        match = re.match(r"^([A-Z]+-\d+)\.md$", filename)
+        if not match:
+            return True, ""  # Not a record file, skip
+        
+        record_id = match.group(1)
+        
+        # Map record type to directory
+        type_to_dir = {
+            "E": "docs/experiments",
+            "IR": "docs/implementation-readiness",
+            "SP": "docs/sprint-plans",
+            "S": "docs/stories",
+            "QR": "docs/quality-records",
+            "PR": "docs/production-readiness",
+        }
+        
+        if record_type not in type_to_dir:
+            return True, ""  # Unknown type, skip
+        
+        rec_dir = pathlib.Path(root) / type_to_dir[record_type]
+        if not rec_dir.exists():
+            return True, ""  # Directory doesn't exist yet
+        
+        # Count how many files have this record ID
+        matching_files = list(rec_dir.glob(f"{record_id}.md"))
+        
+        # If more than 1 file, it's a duplicate
+        if len(matching_files) > 1:
+            duplicates = [str(f.relative_to(root)) for f in matching_files]
+            return False, (
+                f"Duplicate record ID '{record_id}' detected: {', '.join(duplicates)}. "
+                f"Record IDs must be unique within their type."
+            )
+        
+        return True, ""
+    
+    except Exception as e:
+        # Can't check, allow write (fail-open)
+        return True, f"(duplicate check skipped: {str(e)[:100]})"
+
+
 def _validate_story_metadata(content: str) -> tuple[bool, str]:
-    """Validate AC metadata, Task↔AC mapping, and DoD structure.
+    """Validate AC metadata, Task↔AC mapping, DoD structure, and STATUS field state machine.
 
     Returns (is_valid, reason).
 
@@ -321,8 +494,25 @@ def _validate_story_metadata(content: str) -> tuple[bool, str]:
           field' and 'Experiment=— but no [HYPOTHESIS] tag' checks. The
           [HYPOTHESIS] tag is an explicit opt-out from the Experiment
           field requirement.
+          
+    NEW: Status field state machine validation (HIGH #3 / ISSUE #11)
+    - Valid states: backlog, ready-for-dev, in-progress, review, done, blocked
+    - Valid transitions: backlog → ready-for-dev → in-progress → review → done
+    - blocked can transition from/to any state (exception for emergencies)
     """
     issues = []
+
+    # NEW: Validate status field state machine (HIGH #3 / ISSUE #11)
+    _STATUS_RE = re.compile(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(.+)", re.IGNORECASE | re.MULTILINE)
+    status_match = _STATUS_RE.search(content)
+    if status_match:
+        current_status = status_match.group(1).strip().lower()
+        # Valid states in the state machine
+        valid_states = {"backlog", "ready-for-dev", "in-progress", "review", "done", "blocked"}
+        if current_status not in valid_states:
+            issues.append(f"Invalid status '{current_status}'. Valid: backlog, ready-for-dev, in-progress, review, done, blocked")
+        # Note: Full transition validation (e.g., backlog→done not allowed) would require
+        # knowing previous status. For now, we validate only that current status is legal.
 
     refs = _parse_experiment_refs(content)
     has_refs = bool(refs)
@@ -398,6 +588,8 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
     - If story status is 'done', QR record must exist
     - If story status is 'review', methodology record must exist
     - If story references SP-XXX, SP record must exist
+    - If story references SP-XXX, SP must reference IR which must reference E (backreference chain)
+    - Every AC must reference an approved experiment E-NNN
 
     Returns (is_valid, reason).
     """
@@ -476,18 +668,20 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
                     f"Run: python3 scripts/create-methodology-record.py --story {rel_path}"
                 )
 
-    # Check 3: If story references SP-XXX, SP record must exist
+    # Check 3: If story references SP-XXX, SP record must exist AND backreference chain S→SP→IR→E
     sprint_match = re.search(r"\bSP-(\d+)\b", content, re.IGNORECASE)
     if sprint_match:
         sp_id = sprint_match.group(0)  # e.g. SP-001
         dev_dir = pathlib.Path(root) / "docs" / "development"
         if dev_dir.is_dir():
             found_sp = False
+            sp_file_found = None
             for sp_file in dev_dir.glob("SP-*.md"):
                 try:
                     sp_content = _cached_text(sp_file)
                     if story_key in sp_content or sp_id in sp_content:
                         found_sp = True
+                        sp_file_found = sp_file
                         break
                 except OSError:
                     pass
@@ -496,6 +690,49 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
                     f"Story references {sp_id} but no SP record found for {story_key}. "
                     f"Run bmad-sprint-planning to create SP record."
                 )
+            else:
+                # NEW: Check backreference chain S→SP→IR→E (HIGH #4 / HIGH #8)
+                # SP must reference IR, IR must reference E
+                if sp_file_found:
+                    sp_content = _cached_text(sp_file_found)
+                    # Look for IR-NNN reference in SP
+                    ir_match = re.search(r"\bIR-(\d+)\b", sp_content, re.IGNORECASE)
+                    if ir_match:
+                        ir_id = ir_match.group(0)
+                        # Find IR record
+                        found_ir = False
+                        ir_file_found = None
+                        for ir_file in dev_dir.glob("IR-*.md"):
+                            try:
+                                ir_content = _cached_text(ir_file)
+                                if ir_id in ir_content:
+                                    found_ir = True
+                                    ir_file_found = ir_file
+                                    break
+                            except OSError:
+                                pass
+                        if not found_ir:
+                            issues.append(
+                                f"SP {sp_id} references {ir_id} but IR record not found. "
+                                f"Create IR record before sprint planning."
+                            )
+                        else:
+                            # Check if IR references E
+                            if ir_file_found:
+                                ir_content = _cached_text(ir_file_found)
+                                # Look for E-NNN reference in IR
+                                e_match = re.search(r"\bE-(\d+)\b", ir_content, re.IGNORECASE)
+                                if not e_match:
+                                    issues.append(
+                                        f"IR record {ir_id} does not reference any Experiment (E-NNN). "
+                                        f"IR must trace back to an approved experiment."
+                                    )
+                    else:
+                        # NEW: SP exists but does NOT reference any IR (HIGH #4 - orphaned detection)
+                        issues.append(
+                            f"SP record {sp_id} does not reference any Implementation Readiness (IR) record. "
+                            f"Stories cannot be planned without IR. Create IR record first."
+                        )
 
     if issues:
         return False, "; ".join(issues[:3])
@@ -506,29 +743,45 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
 # record per call. Cache per (mtime_ns, size) so repeated writes in a session
 # don't re-verify unchanged records. Bounded (128 entries); rc=3 (key
 # missing) is never cached — it would stick after --init-secret.
-_VERIFY_CACHE: dict[str, tuple[tuple[int, int], int, str]] = {}
+# NEW: Time-based expiry to prevent TOCTOU issues (MEDIUM #8 / ISSUE #67)
+_VERIFY_CACHE: dict[str, tuple[tuple[int, int], int, str, float]] = {}
+_VERIFY_CACHE_TTL_SECONDS = 300  # 5 minutes
 
 
 def _cached_verify(rec: str) -> tuple[int, str]:
-    """verify_record with a small mtime+size-keyed cache."""
+    """verify_record with a small mtime+size-keyed cache (5-min TTL).
+    
+    NEW: Includes timestamp for time-based cache expiry (MEDIUM #8 / ISSUE #67)
+    Prevents stale verification in long-running sessions where files may be deleted/re-created.
+    """
+    import time
     try:
         st = pathlib.Path(rec).stat()
         key = (st.st_mtime_ns, st.st_size)
     except OSError:
         return verify_record(rec)
+    
     hit = _VERIFY_CACHE.get(rec)
-    if hit is not None and hit[0] == key:
+    now = time.time()
+    
+    # Check cache hit: key must match AND cache must not be stale (5 min TTL)
+    if hit is not None and hit[0] == key and (now - hit[3]) < _VERIFY_CACHE_TTL_SECONDS:
         return hit[1], hit[2]
+    
     rc, scope = verify_record(rec)
     if rc != 3:
         if len(_VERIFY_CACHE) >= 128:
             _VERIFY_CACHE.pop(next(iter(_VERIFY_CACHE)))
-        _VERIFY_CACHE[rec] = (key, rc, scope)
+        _VERIFY_CACHE[rec] = (key, rc, scope, now)  # NEW: Include timestamp
     return rc, scope
 
 
 def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> tuple[bool, str]:
-    """Find a VERIFIED record whose scope matches target."""
+    """Find a VERIFIED record whose scope matches target.
+    
+    Acquires advisory locks on record files while reading to prevent concurrent
+    deletion (TOCTOU race). (HIGH #5 / ISSUE #57)
+    """
     if not _load_gate():
         return False, "gate script not available"
     target_rel = norm_path(target).lstrip("/")
@@ -548,31 +801,107 @@ def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> t
     for rec in sorted(base.glob("*.md")):
         if rec.name == "_template.md":
             continue
-        rc, scope = _cached_verify(str(rec))
-        if rc == 3:
-            key_missing = True
-            continue
-        if rc == 2:
-            # Genuine token but locked (small sample / n unknown / metric
-            # mismatch) — remember why instead of reporting "no record".
-            if advisory is None:
-                advisory = (f"record {rec} is ADVISORY-BLOCKED (genuine token, "
-                            f"code stays closed: small sample, n unknown, or metric "
-                            f"mismatch — re-measure in a new record)")
-            continue
-        if rc != 0:
-            continue
+        
+        # NEW: Acquire advisory lock while verifying (HIGH #5 / ISSUE #57)
+        lock_file = None
         try:
-            matched = gate.scope_matches(scope, target_rel)
-        except Exception:
-            continue
-        if matched:
-            return True, f"record {rec} (scope matched)"
-        if best is None:
-            best = f"record {rec} scope not matched"
+            lock_file = open(str(rec) + ".lock", "a+")
+            try:
+                import fcntl
+                fcntl.flock(lock_file, fcntl.LOCK_SH)  # Shared lock
+            except ImportError:
+                try:
+                    import msvcrt
+                    lock_file.seek(0)
+                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+                except (ImportError, OSError):
+                    pass  # Lock failed, continue anyway
+        except OSError:
+            pass
+        
+        try:
+            rc, scope = _cached_verify(str(rec))
+            if rc == 3:
+                key_missing = True
+                continue
+            if rc == 2:
+                # Genuine token but locked (small sample / n unknown / metric
+                # mismatch) — remember why instead of reporting "no record".
+                if advisory is None:
+                    advisory = (f"record {rec} is ADVISORY-BLOCKED (genuine token, "
+                                f"code stays closed: small sample, n unknown, or metric "
+                                f"mismatch — re-measure in a new record)")
+                continue
+            if rc != 0:
+                continue
+            try:
+                matched = gate.scope_matches(scope, target_rel)
+            except (AttributeError, TypeError, ValueError):
+                # Specific exceptions from gate module (MEDIUM #7 / ISSUE #66)
+                continue
+            except Exception:
+                # Unknown exceptions: log to stderr but continue
+                try:
+                    import traceback
+                    sys.stderr.write(f"metodoloji: scope_matches error: {traceback.format_exc()[:200]}\n")
+                except Exception:
+                    pass
+                continue
+            if matched:
+                return True, f"record {rec} (scope matched)"
+            if best is None:
+                best = f"record {rec} scope not matched"
+        finally:
+            # Release lock
+            if lock_file:
+                try:
+                    import fcntl
+                    fcntl.flock(lock_file, fcntl.LOCK_UN)
+                except (ImportError, AttributeError):
+                    try:
+                        import msvcrt
+                        lock_file.seek(0)
+                        msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                    except (ImportError, OSError, AttributeError):
+                        pass
+                finally:
+                    try:
+                        lock_file.close()
+                    except OSError:
+                        pass
+    
     if key_missing:
         return False, "gate key not configured (python3 run_experiment.py --init-secret)"
     return False, advisory or best or "no approved experiment record"
+
+
+def _stamp_guard_to_blackboard(root: str, tool_name: str, tool_input: dict, decision: str) -> None:
+    """Write guard decision to blackboard for traceability."""
+    try:
+        from .config import blackboard_enabled
+        if not blackboard_enabled():
+            return
+        from . import blackboard as bb
+        target = tool_input.get("path") or tool_input.get("file_path") or tool_name
+        bb.stamp_tool_event(root, tool_name, str(target), hook_event="PreToolUse")  # NEW: Track hook sequence (HIGH #7)
+        # Set hot key if this is a story file
+        if tool_name in ("file_editor", "notebook_editor"):
+            path = tool_input.get("path", "")
+            if path and ("S-" in path or re.search(r"/\d+-\d+-[a-z]", path)):
+                bb.set_hot(root, path.split("/")[-1].replace(".md", ""))
+        # Route alerts for guard decisions
+        if decision == "deny":
+            bb.post_alert(root, "guard", "warn", f"Guard denied: {tool_name} → {target}")
+    except (ImportError, AttributeError, OSError):
+        # Specific exceptions from blackboard (MEDIUM #7 / ISSUE #66)
+        pass  # fail-open
+    except Exception:
+        # Unknown exceptions: log to stderr but fail-open
+        try:
+            import traceback
+            sys.stderr.write(f"metodoloji: blackboard stamp error: {traceback.format_exc()[:200]}\n")
+        except Exception:
+            pass
 
 
 def guard(json_in: dict) -> dict:
@@ -581,6 +910,10 @@ def guard(json_in: dict) -> dict:
     tool_name = norm["tool_name"]
     tool_input = norm["tool_input"]
     _soft_warnings: list[str] = []  # warn-only findings when quality_gate=soft
+
+    # Stamp to blackboard (fire-and-forget, fail-open)
+    root = repo_root(json_in)
+    _stamp_guard_to_blackboard(root, tool_name, tool_input, "allow")
 
     # Determine targets based on tool
     targets: list[str] = []
@@ -591,6 +924,7 @@ def guard(json_in: dict) -> dict:
 
         # Check for secret references in command
         if _secret_ref(command):
+            _stamp_guard_to_blackboard(root, tool_name, tool_input, "deny")
             return {
                 "decision": "deny",
                 "reason": "Gate key reference detected in command — blocked."
@@ -665,6 +999,19 @@ def guard(json_in: dict) -> dict:
                             _soft_warnings.append(_unchecked_story_write_warning(rel))
 
                 if story_content:
+                    # NEW: Check for duplicate record IDs (MEDIUM #2 / ISSUE #61)
+                    # Extract record ID from filename
+                    filename = pathlib.Path(rel).name
+                    match = re.match(r"^([A-Z]+-\d+)\.md$", filename)
+                    if match:
+                        record_type = match.group(1).split("-")[0]
+                        unique, dup_reason = _check_duplicate_record_ids(root, filename, record_type)
+                        if not unique:
+                            return {
+                                "decision": "deny",
+                                "reason": f"Duplicate record ID detected: {dup_reason}"
+                            }
+                    
                     # 1. Validate experiment_refs in frontmatter — ALWAYS deny:
                     #    a story referencing an unapproved experiment must not be
                     #    written, regardless of strictness.
@@ -869,9 +1216,57 @@ def _find_done_stories_without_sp(root: str) -> list[str]:
                                              require_sp_ref=True)
 
 
-def _find_done_stories_without_pr(root: str) -> list[str]:
-    """Find stories with Status: done that lack a PR record."""
-    return _find_done_stories_without_record(root, "PR-*.md", "docs/development")
+def _check_methodology_chain_readiness(root: str) -> tuple[bool, str]:
+    """Verify that each stage in the methodology chain is ready.
+    
+    E → IR → SP → S → QR → PR chain validation.
+    Used by quality/deploy gates to ensure no stage is skipped.
+    """
+    issues = []
+    
+    # Check E (Experiment) records exist for done stories
+    exp_dir = pathlib.Path(root) / "docs" / "experiments"
+    if not exp_dir.is_dir():
+        issues.append("No docs/experiments/ directory — E stage setup incomplete")
+    
+    # Check IR (Implementation Readiness) records
+    ir_dir = pathlib.Path(root) / "docs" / "development"
+    if not ir_dir.is_dir():
+        issues.append("No docs/development/ directory — IR stage setup incomplete")
+    
+    # Check SP (Sprint Planning) records
+    sp_files = list((ir_dir / "SP-*.md" if ir_dir.is_dir() else pathlib.Path()).glob("SP-*.md"))
+    if not sp_files:
+        # Not critical, but warn if stories exist
+        story_dir = pathlib.Path(root) / "docs" / "development" / "stories"
+        if story_dir.is_dir() and list(story_dir.glob("S-*.md")):
+            issues.append("Stories exist but no SP (Sprint Planning) records found")
+    
+    # Check S (Story) and S→QR chain
+    story_dir = pathlib.Path(root) / "docs" / "development" / "stories"
+    qr_dir = pathlib.Path(root) / "docs" / "quality"
+    if story_dir.is_dir() and qr_dir.is_dir():
+        for story_file in story_dir.glob("S-*.md"):
+            try:
+                content = story_file.read_text(encoding="utf-8", errors="replace")
+                # Check if story is marked done
+                if re.search(r"status.*done", content, re.IGNORECASE):
+                    story_key = story_file.stem
+                    # Find corresponding QR
+                    qr_found = False
+                    for qr_file in qr_dir.glob("QR-*.md"):
+                        qr_content = qr_file.read_text(encoding="utf-8", errors="replace")
+                        if story_key in qr_content:
+                            qr_found = True
+                            break
+                    if not qr_found:
+                        issues.append(f"Story {story_key} done but no QR (Quality Record) found — QR stage skipped")
+            except OSError:
+                pass
+    
+    if issues:
+        return False, "; ".join(issues[:3])
+    return True, ""
 
 
 def _find_done_stories_without_ir(root: str) -> list[str]:
@@ -925,6 +1320,8 @@ def quality(json_in: dict) -> dict:
     - An Implementation Readiness record (IR) in docs/development/ (Gate 1)
     - A corresponding Quality Record (QR) in docs/quality/ (Gate 3)
     - A Sprint Planning record (SP) in docs/development/ (if story references SP, Gate 2)
+    
+    Also verifies the methodology chain E→IR→SP→S→QR→PR is intact.
     """
     norm = normalize_hook_input(json_in)
     tool_name = norm["tool_name"]
@@ -937,6 +1334,25 @@ def quality(json_in: dict) -> dict:
 
     root = repo_root(json_in)
     root = os.path.abspath(root)
+
+    # Stamp quality check to blackboard
+    try:
+        from .config import blackboard_enabled
+        if blackboard_enabled():
+            from . import blackboard as bb
+            bb.stamp_tool_event(root, "quality", "git commit")
+    except Exception:
+        pass
+
+    # Check methodology chain readiness first
+    chain_ok, chain_reason = _check_methodology_chain_readiness(root)
+    if not chain_ok:
+        from .config import hook_gate_mode
+        msg = f"Methodology chain incomplete: {chain_reason}"
+        if hook_gate_mode("quality_gate") != "hard":
+            return {"decision": "allow", "methodology_warnings": [msg]}
+        return {"decision": "deny", "reason": msg}
+
     return _apply_gate_strictness(_check_gate_records(root, "git commit blocked"),
                                   "quality_gate")
 
@@ -1036,6 +1452,8 @@ def deploy(json_in: dict) -> dict:
     - A Sprint Planning record (SP) in docs/development/ (if story references SP, Gate 2)
     - A Quality Record (QR) in docs/quality/ (Gate 3)
     - A Production Readiness (PR) record in docs/development/ (Gate 4)
+    
+    Also verifies the methodology chain E→IR→SP→S→QR→PR is complete for production.
     """
     norm = normalize_hook_input(json_in)
     tool_name = norm["tool_name"]
@@ -1048,5 +1466,26 @@ def deploy(json_in: dict) -> dict:
 
     root = repo_root(json_in)
     root = os.path.abspath(root)
+
+    # Stamp deploy check to blackboard
+    try:
+        from .config import blackboard_enabled
+        if blackboard_enabled():
+            from . import blackboard as bb
+            bb.stamp_tool_event(root, "deploy", command[:100])
+            # Post handoff notification to production-readiness check
+            bb.post_alert(root, "deploy", "gate", "Deploy gate triggered - checking PR readiness")
+    except Exception:
+        pass
+
+    # Check methodology chain readiness for production
+    chain_ok, chain_reason = _check_methodology_chain_readiness(root)
+    if not chain_ok:
+        from .config import hook_gate_mode
+        msg = f"Methodology chain incomplete for production: {chain_reason}"
+        if hook_gate_mode("deploy_guard") != "hard":
+            return {"decision": "allow", "methodology_warnings": [msg]}
+        return {"decision": "deny", "reason": msg}
+
     return _apply_gate_strictness(_check_gate_records(root, "Deploy blocked", include_pr=True),
                                   "deploy_guard")

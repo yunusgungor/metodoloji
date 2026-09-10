@@ -96,6 +96,67 @@ _GATE_DEFAULTS = {
     "stop_guard": "hard",
 }
 
+# NEW: Valid [hooks] config keys (MEDIUM #9 / ISSUE #68)
+_VALID_HOOKS_KEYS = frozenset({
+    "quality_gate",
+    "deploy_guard",
+    "code_guard",
+    "stop_guard",
+    "blackboard",
+})
+
+
+def _validate_hooks_config() -> tuple[bool, str]:
+    """Validate [hooks] section in custom/config.toml (MEDIUM #9 / ISSUE #68).
+    
+    Checks that all keys in [hooks] are recognized. Invalid keys raise error.
+    Returns (is_valid, error_message).
+    """
+    try:
+        text = _HOOKS_CFG.read_text(encoding="utf-8")
+    except OSError:
+        return True, ""  # Config file doesn't exist yet
+    
+    in_hooks = False
+    invalid_keys = []
+    line_no = 0
+    
+    for line in text.splitlines():
+        line_no += 1
+        stripped = line.strip()
+        
+        # Skip empty lines and comments
+        if not stripped or stripped.startswith("#"):
+            continue
+        
+        # Check for [hooks] section start
+        if stripped.startswith("[hooks]"):
+            in_hooks = True
+            continue
+        
+        # Check for other sections
+        if stripped.startswith("[") and not stripped.startswith("[hooks]"):
+            in_hooks = False
+            continue
+        
+        # Validate keys in [hooks] section
+        if in_hooks and "=" in stripped:
+            key, _, _ = stripped.partition("=")
+            key = key.strip()
+            
+            if key not in _VALID_HOOKS_KEYS:
+                invalid_keys.append((line_no, key))
+    
+    if invalid_keys:
+        error_msg = f"Invalid [hooks] keys in {_HOOKS_CFG}: "
+        error_parts = [f"line {line}: '{key}' (valid: {', '.join(sorted(_VALID_HOOKS_KEYS))})"
+                      for line, key in invalid_keys[:3]]
+        error_msg += "; ".join(error_parts)
+        return False, error_msg
+    
+    return True, ""
+
+
 def blackboard_enabled() -> bool:
     """[hooks] blackboard = on|off (default on). Read live per-call.
 
@@ -220,3 +281,12 @@ _KEY_ACCESS_IN_CONTENT = re.compile(
     r"(?:load_secret|secret_file|secret_env)\s*[(=:\[]"  # call/assign/open context
     r")"
 )
+
+
+# NEW: Validate config on module load (MEDIUM #9 / ISSUE #68)
+# Checks [hooks] section for invalid keys at import time
+_config_valid, _config_error = _validate_hooks_config()
+if not _config_valid:
+    import sys
+    sys.stderr.write(f"metodoloji: config error: {_config_error}\n")
+    # Note: We don't raise here (fail-open) but log the error so deployment tools can catch it

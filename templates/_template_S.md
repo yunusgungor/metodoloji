@@ -9,7 +9,7 @@
 ## Story: S-XXX — [Story title]
 
 - **Date:** [YYYY-MM-DD]
-- **Status:** backlog | sprint | in-progress | review | done | blocked
+- **Status:** backlog | ready-for-dev | in-progress | review | done | blocked
 - **Sprint:** [SP-id reference, e.g. SP-003]
 - **Priority:** Critical / High / Medium / Low
 - **Story points:** [X points]

@@ -227,13 +227,23 @@ def record_session_start(root: str) -> None:
 
     Carries a timestamp so stop can tell stale sprint-status leftovers from
     this session's stories, and so the touched-set starts after this line.
+    
+    NEW: Also records hook_event type for state machine validation (HIGH #7 / ISSUE #58)
+    NEW: Generates unique session_id for multi-session isolation (MEDIUM #6 / ISSUE #65)
     """
     from .config import log_file
+    import uuid
+    
+    # Generate unique session_id (timestamp + uuid for collision avoidance)
+    session_id = f"{int(time.time() * 1000)}-{uuid.uuid4().hex[:8]}"
+    
     log_path = pathlib.Path(root).absolute() / log_file()
     try:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         with open(log_path, "a", encoding="utf-8") as f:
             f.write(json.dumps({"type": _SESSION_MARKER_TYPE,
+                                "hook_event": "SessionStart",
+                                "session_id": session_id,
                                 "timestamp": time.time()},
                                ensure_ascii=False) + "\n")
     except OSError:
@@ -253,7 +263,135 @@ def _record_stop_deny(root: str, reason: str) -> None:
         pass
 
 
-def _board_dirty_notice(root: str, reason: str) -> str:
+def _check_methodology_chain_completion(root: str) -> tuple[bool, str]:
+    """Check if methodology chain E→IR→SP→S→QR→PR is complete.
+    
+    Warns if chain is incomplete (signals waiting in handoff channels).
+    Does not block stop, only informs operator about pending stages.
+    """
+    try:
+        from . import blackboard as bb
+        waiting = bb.pending_handoff_channels(root)
+        
+        # Check for methodology chain stages waiting
+        methodology_stages = {
+            "bmad-research-experiment",
+            "bmad-check-implementation-readiness",
+            "bmad-sprint-planning",
+            "bmad-create-story",
+            "bmad-quality-record",
+            "bmad-production-readiness",
+        }
+        
+        stuck = [(s, c) for s, c in waiting.items() if s in methodology_stages and c > 0]
+        if stuck:
+            msg = "Methodology chain incomplete: " + ", ".join(
+                f"{s} ({c} signal(s))" for s, c in stuck
+            )
+            return False, msg
+    except Exception:
+        pass
+    
+    return True, ""
+
+
+def _validate_hook_state_machine(root: str) -> tuple[bool, str]:
+    """Validate that hook events follow SessionStart→PreToolUse→PostToolUse→Stop order.
+    
+    Reads audit log and checks hook_event sequence for violations.
+    Returns (is_valid, reason). (HIGH #7 / ISSUE #58)
+    
+    NEW: Also recognizes session_stop marker as session end (MEDIUM #3 / ISSUE #62)
+    """
+    from .config import log_file
+    log_path = pathlib.Path(root).absolute() / log_file()
+    if not log_path.exists():
+        return True, ""  # No log yet, OK
+    
+    try:
+        session_started = False
+        last_event = None
+        violations = []
+        
+        with open(log_path, "r", encoding="utf-8") as f:
+            for line_no, line in enumerate(f, 1):
+                try:
+                    entry = json.loads(line)
+                except (json.JSONDecodeError, ValueError):
+                    continue
+                
+                entry_type = entry.get("type", "")
+                hook_event = entry.get("hook_event", "")
+                
+                # SessionStart marker
+                if entry_type == "session_marker":
+                    if hook_event == "SessionStart":
+                        session_started = True
+                        last_event = "SessionStart"
+                    continue
+                
+                # NEW: session_stop marker (explicit session-end event)
+                if entry_type == "session_stop":
+                    if hook_event == "Stop":
+                        if session_started and last_event:
+                            # Valid end: SessionStart/PreToolUse/PostToolUse → Stop
+                            if last_event not in ("SessionStart", "PreToolUse", "PostToolUse"):
+                                violations.append(
+                                    f"Hook sequence violation: last event '{last_event}' "
+                                    f"should not transition to Stop"
+                                )
+                        session_started = False
+                        last_event = "Stop"
+                    continue
+                
+                # Stop marker (end of session) - legacy
+                if entry_type == "stop":
+                    if session_started and last_event:
+                        # Valid end: SessionStart/PreToolUse/PostToolUse → Stop
+                        if last_event not in ("SessionStart", "PreToolUse", "PostToolUse", "Stop"):
+                            violations.append(
+                                f"Hook sequence violation: last event '{last_event}' "
+                                f"should not transition to Stop"
+                            )
+                    session_started = False
+                    last_event = "Stop"
+                    continue
+                
+                # Tool events with hook_event
+                if hook_event in ("PreToolUse", "PostToolUse"):
+                    # Validate transitions
+                    if hook_event == "PreToolUse":
+                        # PreToolUse must come after SessionStart (or another PostToolUse)
+                        if not session_started:
+                            violations.append(
+                                f"Hook sequence violation: PreToolUse at line {line_no} "
+                                f"without SessionStart"
+                            )
+                        elif last_event not in ("SessionStart", "PostToolUse"):
+                            violations.append(
+                                f"Hook sequence violation: PreToolUse follows '{last_event}' "
+                                f"(expected SessionStart or PostToolUse)"
+                            )
+                        last_event = "PreToolUse"
+                    
+                    elif hook_event == "PostToolUse":
+                        # PostToolUse must follow PreToolUse
+                        if last_event != "PreToolUse":
+                            violations.append(
+                                f"Hook sequence violation: PostToolUse at line {line_no} "
+                                f"follows '{last_event}' (expected PreToolUse)"
+                            )
+                        last_event = "PostToolUse"
+        
+        if violations:
+            # Return first 2 violations as summary
+            return False, "; ".join(violations[:2])
+        
+        return True, ""
+    
+    except Exception as e:
+        # Can't validate log, but don't block stop
+        return True, f"(hook validation skipped: {str(e)[:100]})"
     """Append the board's hot-key state to a deny reason (fail-open, gated).
 
     The notice tells the model which working context is still hot before the
@@ -298,10 +436,108 @@ def _board_dirty_notice(root: str, reason: str) -> str:
     return reason
 
 
+def _record_session_stop_marker(root: str) -> None:
+    """Append a session_stop marker to the audit log (explicit session-end marker).
+    
+    Called by the stop hook to record session end time and context.
+    (MEDIUM #3 / ISSUE #62: Session stop event)
+    
+    NEW: Includes session_id for multi-session isolation (MEDIUM #6 / ISSUE #65)
+    """
+    from .config import log_file
+    log_path = pathlib.Path(root).absolute() / log_file()
+    try:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Extract session_id from most recent session_start if available
+        session_id = ""
+        try:
+            with open(log_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+            # Scan backwards to find last session_start
+            for line in reversed(lines):
+                try:
+                    entry = json.loads(line)
+                    if entry.get("type") == "session_marker" and entry.get("hook_event") == "SessionStart":
+                        session_id = entry.get("session_id", "")
+                        break
+                except (json.JSONDecodeError, ValueError):
+                    pass
+        except OSError:
+            pass
+        
+        with open(log_path, "a", encoding="utf-8") as f:
+            event = {"type": "session_stop",
+                    "hook_event": "Stop",
+                    "session_id": session_id,
+                    "timestamp": time.time()}
+            f.write(json.dumps(event, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
+
+def _record_session_to_blackboard(root: str) -> None:
+    """Record session end to blackboard with handoff check."""
+    # NEW: Write explicit session_stop marker to audit log (MEDIUM #3)
+    _record_session_stop_marker(root)
+    
+    try:
+        from .config import blackboard_enabled
+        if not blackboard_enabled():
+            return
+        from . import blackboard as bb
+
+        # Record session end timestamp
+        bb.record_watcher(root, "session_stop")
+
+        # Update status to "complete"
+        board = bb.read_board(root)
+        if board.get("keys", {}).get("status"):
+            bb.write_key(root, "status", "complete", type_="session")
+
+        # Check for pending handoffs and notify
+        try:
+            waiting = bb.pending_handoff_channels(root)
+            if waiting:
+                for skill, count in waiting.items():
+                    if count > 0:
+                        bb.post_alert(root, "session", "handoff",
+                                      f"Skill '{skill}' has {count} pending handoff(s)")
+        except Exception:
+            pass
+
+        # Ensure bridge canvas is clean (focus cleared)
+        try:
+            board = bb.read_board(root)
+            if board.get("hot_canvas") == "bridge":
+                bb.canvas_focus(root, None)
+        except Exception:
+            pass
+    except Exception:
+        pass  # fail-open
+
+
 def stop(json_in: dict) -> dict:
     """Stop hook: block stop if unapproved code changes or incomplete stories exist."""
     from .utils import repo_root
     root = repo_root(json_in)
+
+    # NEW: Validate hook state machine (SessionStart→PreToolUse→PostToolUse→Stop order)
+    # This is a diagnostic check, doesn't block stop, but informs operator (HIGH #7)
+    hook_ok, hook_msg = _validate_hook_state_machine(root)
+    if not hook_ok:
+        # Log hook violation but don't block stop (fail-open)
+        # Operator will see in blackboard diagnostics
+        try:
+            from .config import blackboard_enabled
+            if blackboard_enabled():
+                from . import blackboard as bb
+                bb.post_alert(root, "stop", "warn", f"Hook sequence issue: {hook_msg}")
+        except Exception:
+            pass
+
+    # Record session end to blackboard (fire-and-forget)
+    _record_session_to_blackboard(root)
 
     # 0. Loop breaker: stop_hook_active means Claude re-invoked Stop after a
     #    previous deny — honor the deny budget instead of wedging the session.
@@ -333,6 +569,13 @@ def stop(json_in: dict) -> dict:
     # ponytail: audit log is the touched set; whole-tree scan false-blocks
     # brownfield projects (pre-existing code ≠ this session did it).
     # find_approved caches verify results by record mtime, so stop stays fast.
+    
+    # Also check methodology chain completion (warn-only, doesn't block)
+    chain_ok, chain_msg = _check_methodology_chain_completion(root)
+    if not chain_ok:
+        # Add to the dirty notice but don't block stop
+        reason = _board_dirty_notice(root, chain_msg)
+    
     for rel in _session_touched_code(root):
         if is_free(rel):
             continue

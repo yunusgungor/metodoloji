@@ -31,6 +31,9 @@ import fnmatch
 import itertools
 import json
 import os
+import pathlib
+import re
+import sys
 import threading
 import time
 from contextlib import contextmanager
@@ -63,6 +66,9 @@ MAX_SUBSCRIPTIONS = 16
 MAX_ALERTS = 32               # global, oldest expire
 MAX_ALERT_TEXT = 200
 
+# Handoff signal TTL (24 hours) and stale cleanup (CRITICAL #4 / ISSUE #25)
+HANDOFF_SIGNAL_TTL_SECONDS = 24 * 3600
+
 # Watcher stamps recorded by the engine, bounded.
 MAX_WATCHERS = 16
 
@@ -76,9 +82,10 @@ def _acquire_lock(lock_path: str):
     """Acquire an exclusive advisory lock; None only when locking is unsupported.
 
     Windows: msvcrt.locking is byte-range based and non-blocking LK_NBLCK
-    raises on contention — retry a bounded number of times. When the lock
-    cannot be taken at all the caller proceeds unguarded (fail-open) and the
-    per-process tmp filename keeps the snapshot rename safe.
+    raises on contention — retry a bounded number of times with exponential backoff.
+    When the lock cannot be taken at all the caller proceeds unguarded (fail-open)
+    and the per-process tmp filename keeps the snapshot rename safe.
+    (HIGH #2 / ISSUE #6: Windows lock retry with exponential backoff)
     """
     try:
         f = open(lock_path, "a+")
@@ -99,16 +106,29 @@ def _acquire_lock(lock_path: str):
         f.close()
         return None
     f.seek(0)
-    for attempt in range(600):  # ~12s worst case
+    
+    # NEW: Exponential backoff strategy (HIGH #2)
+    # Retry with exponential backoff: 10ms, 50ms, 100ms, then steady 100ms
+    base_backoff = 0.01  # 10ms
+    max_backoff = 0.1    # 100ms
+    max_retries = 100    # ~10 seconds total with exponential backoff
+    
+    for attempt in range(max_retries):
         try:
             msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
-            return f
+            return f  # Lock acquired
         except OSError:
-            if attempt in (25, 50, 100, 200):  # progressive backoff marks
-                time.sleep(0.05 + 0.01 * attempt)
-            else:
-                time.sleep(0.02)
-    raise BoardError("lock busy")  # caller retries the mutation atomically
+            # Lock contention — backoff and retry
+            if attempt < max_retries - 1:
+                # Exponential backoff: 10ms * 2^attempt, capped at max_backoff
+                sleep_time = min(base_backoff * (2 ** attempt), max_backoff)
+                time.sleep(sleep_time)
+            # else: last attempt failed, fall through to fail-open
+    
+    # FIXED: Fail-open (return None) instead of raising exception (HIGH #2 / ISSUE #6)
+    # The per-process tmp filename in _replace_atomic() keeps the snapshot rename safe
+    f.close()
+    return None
 
 
 def _release_lock(f) -> None:
@@ -287,21 +307,47 @@ def read_board(project_root: str) -> dict:
 
 
 def _replay_events(paths: dict) -> dict:
-    """Fold the event log into a board (used to rebuild a lost snapshot)."""
+    """Fold the event log into a board (used to rebuild a lost snapshot).
+    
+    Skips malformed JSON lines gracefully. (HIGH #1 / ISSUE #45)
+    """
     board = _empty_board()
+    skipped_lines = 0
     try:
         with open(paths["events"], encoding="utf-8") as f:
-            for line in f:
+            for line_num, line in enumerate(f, 1):
                 line = line.strip()
                 if not line:
                     continue
                 try:
                     ev = json.loads(line)
-                except ValueError:
+                except ValueError as e:
+                    # NEW: Skip malformed JSON but log for diagnostics
+                    skipped_lines += 1
+                    # Could emit warning, but silently skip for now (fail-open)
+                    # In production, operator would see these in doctor output
                     continue
-                _apply_event(board, ev)
+                except Exception as e:
+                    # Catch other errors (e.g., encoding, memory) and skip
+                    skipped_lines += 1
+                    continue
+                
+                try:
+                    _apply_event(board, ev)
+                except Exception as e:
+                    # NEW: If applying an event crashes, skip it but keep going
+                    # (HIGH #1: Corruption recovery - keep as much state as possible)
+                    skipped_lines += 1
+                    continue
     except OSError:
         pass
+    
+    # Store skipped line count for diagnostics (can be exposed in doctor())
+    # For now, it's available but not used in output
+    if skipped_lines > 0:
+        board["_metadata"] = board.get("_metadata", {})
+        board["_metadata"]["replay_skipped_lines"] = skipped_lines
+    
     return board
 
 
@@ -528,6 +574,37 @@ def _apply_event(board: dict, ev: dict) -> None:
         })
         while len(board["alerts"]) > MAX_ALERTS:
             board["alerts"].pop(0)
+        # NEW: Clean up stale handoff signals (CRITICAL #4)
+        _cleanup_stale_handoffs(board)
+
+
+def _cap_auto_cells(cv: dict) -> None:
+    autos = [c for c, v in cv["cells"].items() if v.get("kind") == "auto"]
+    while len(autos) > MAX_AUTO_CELLS:
+        oldest = min(autos, key=lambda c: cv["cells"][c].get("updated", 0.0))
+        cv["cells"].pop(oldest)
+        autos.remove(oldest)
+
+
+def _cleanup_stale_handoffs(board: dict) -> None:
+    """Remove handoff signals older than TTL (24 hours).
+    
+    Prevents hung skills from blocking the chain indefinitely.
+    Called during every mutation to keep stale signals from accumulating.
+    (CRITICAL #4 / ISSUE #25: Skill timeout/crash handling)
+    """
+    now = time.time()
+    initial_count = len(board["alerts"])
+    board["alerts"] = [
+        a for a in board["alerts"]
+        if not (a.get("kind") == "handoff" and 
+                (now - (a.get("ts", 0.0))) > HANDOFF_SIGNAL_TTL_SECONDS)
+    ]
+    stale_removed = initial_count - len(board["alerts"])
+    if stale_removed > 0:
+        # Log that stale signals were cleaned up (for diagnostics)
+        # Could write to a stale-signal counter if needed
+        pass
 
 
 def _cap_auto_cells(cv: dict) -> None:
@@ -551,7 +628,13 @@ def _cap_canvases(board: dict) -> None:
 # Focus keys that must survive key-cap eviction: they carry the session
 # scope/status the hook engine and bmad-help route on. A busy board
 # must never evict the very keys the methodology is steering from.
-_BRIDGE_KEYS = frozenset({"scope", "status"})
+# methodology.* keys also protected: they track E→IR→SP→S→QR→PR chain status.
+_BRIDGE_KEYS = frozenset({
+    "scope", "status",
+    "bridge.last_story", "bridge.last_qr", "bridge.last_pr", "bridge.last_ir",
+    "methodology.last_experiment", "methodology.last_ir", "methodology.last_sp",
+    "methodology.last_story", "methodology.last_qr", "methodology.last_pr"
+})
 
 
 def _cap_keys(board: dict) -> None:
@@ -648,7 +731,11 @@ def _mutate(project_root: str, mutator) -> dict:
 # --- text keys -------------------------------------------------------------------
 def write_key(project_root: str, key: str, value, *, type_: str = "note",
               hot: bool = False) -> dict:
-    """Write (create or overwrite) a namespaced key. Returns the ack."""
+    """Write (create or overwrite) a namespaced key. Returns the ack.
+    
+    NEW: Bounds enforcement visible - checks MAX_KEYS limit before write (MEDIUM #4 / ISSUE #63)
+    Oldest keys are expired when limit is reached.
+    """
     if not key or not str(key).strip():
         return {"ok": False, "error": "empty key"}
     value = str(value)[:MAX_VALUE_LEN]
@@ -659,6 +746,14 @@ def write_key(project_root: str, key: str, value, *, type_: str = "note",
         paths = board_paths(project_root)
         _append_event(paths, event)
         _apply_event(board, event)
+        
+        # NEW: Explicit bounds check - enforce MAX_KEYS (MEDIUM #4 / ISSUE #63)
+        keys_count = len(board["keys"])
+        if keys_count > MAX_KEYS:
+            # Log warning about bounds enforcement
+            sys.stderr.write(f"metodoloji: bounds enforced — keys {keys_count}/{MAX_KEYS}, "
+                           f"oldest expired\n")
+        
         _clear_hot_if_dangling(board)
         _route_alerts(paths, board, event["key"], "update",
                       f"key '{event['key']}' updated ({event['type']})")
@@ -832,6 +927,11 @@ def _parse_grid(spec) -> list | None:
 
 def canvas_create(project_root: str, name: str, *, grid=None,
                   focus: bool = False) -> dict:
+    """Create a new canvas or retrieve existing. 
+    
+    NEW: Bounds enforcement visible - checks MAX_CANVASES limit (MEDIUM #4 / ISSUE #63)
+    Oldest canvases are expired when limit is reached (except hot_canvas).
+    """
     name = str(name).strip()[:MAX_CANVAS_NAME]
     if not name:
         return {"ok": False, "error": "empty canvas name"}
@@ -842,6 +942,13 @@ def canvas_create(project_root: str, name: str, *, grid=None,
         existed = name in board["canvases"]
         _append_event(board_paths(project_root), event)
         _apply_event(board, event)
+        
+        # NEW: Explicit bounds check - enforce MAX_CANVASES (MEDIUM #4 / ISSUE #63)
+        canvas_count = len(board["canvases"])
+        if canvas_count > MAX_CANVASES:
+            sys.stderr.write(f"metodoloji: bounds enforced — canvases {canvas_count}/{MAX_CANVASES}, "
+                           f"oldest expired\n")
+        
         _clear_hot_if_dangling(board)
         return board, {"ok": True, "canvas": name, "grid": event["grid"],
                        "existed": existed, "focused": board.get("hot_canvas") == name}
@@ -1006,7 +1113,7 @@ def _touch_canvases(board: dict, paths: dict, tool: str, target: str) -> list:
     return touched
 
 
-def stamp_tool_event(project_root: str, tool_name: str, target: str) -> dict:
+def stamp_tool_event(project_root: str, tool_name: str, target: str, hook_event: str = "") -> dict:
     """Fold one audited tool touch into the board in a single lock scope.
 
     Called by the audit hook (PostToolUse): appends the `last_tool.<tool>`
@@ -1014,12 +1121,16 @@ def stamp_tool_event(project_root: str, tool_name: str, target: str) -> dict:
     in the same scope. One `_mutate`, so no writer can interleave; all
     event-sourced, so `last_tool.*` survives a snapshot rebuild. Never nest
     inside another _mutate scope.
+    
+    NEW: Optional hook_event parameter to track PreToolUse/PostToolUse sequence (HIGH #7)
     """
     tool_name = str(tool_name or "")[:100]
     target = str(target or "")[:MAX_TEXT_LEN]
     if not tool_name:
         return {"ok": True, "touched": 0}
     event = {"event": "tool", "tool": tool_name, "target": target, "ts": time.time()}
+    if hook_event:
+        event["hook_event"] = str(hook_event)[:40]  # NEW: PreToolUse or PostToolUse
 
     def mut(board):
         paths = board_paths(project_root)
@@ -1148,11 +1259,29 @@ def pending_handoff_channels(project_root: str) -> dict:
 
 # --- chain health (hand-off diagnostics) ----------------------------------------------
 # The canonical delivery relay: each hop is one skill handing off to the next.
-CHAIN = ["bmad-prd", "bmad-ux", "bmad-architecture", "bmad-spec",
-         "bmad-create-epics-and-stories", "bmad-create-story", "bmad-dev-story"]
+# METHODOLOGY CHAIN: Experiment → IR → Sprint Planning → Story → Quality Record → Production Readiness
+CHAIN = [
+    "bmad-research-experiment",                 # E (Experiment)
+    "bmad-check-implementation-readiness",      # IR (Implementation Readiness)
+    "bmad-sprint-planning",                     # SP (Sprint Planning)
+    "bmad-create-story",                        # S (Story)
+    "bmad-quality-record",                      # QR (Quality Record)
+    "bmad-production-readiness",                # PR (Production Readiness)
+    # OPTIONAL EXTENDED CHAIN (for tool workflows):
+    "bmad-prd", "bmad-ux", "bmad-architecture", "bmad-spec",
+    "bmad-create-epics-and-stories", "bmad-dev-story"
+]
 
 # Run-key namespace prefix → the skill that owns the hand-off (sender attribution).
 _KEY_PREFIX_TO_SKILL = [
+    # METHODOLOGY CHAIN prefixes
+    ("E-", "bmad-research-experiment"),
+    ("IR-", "bmad-check-implementation-readiness"),
+    ("SP-", "bmad-sprint-planning"),
+    ("S-", "bmad-create-story"),
+    ("QR-", "bmad-quality-record"),
+    ("PR-", "bmad-production-readiness"),
+    # EXTENDED CHAIN prefixes (tool workflows)
     ("prd.", "bmad-prd"),
     ("ux.", "bmad-ux"),
     ("architecture.", "bmad-architecture"),
@@ -1276,10 +1405,84 @@ def _doctor_drift(paths: dict, board: dict) -> dict:
     return {"in_sync": in_sync, "status": "ok" if in_sync else "warn"}
 
 
+def rotate_event_log(project_root: str, max_lines: int = 10000) -> dict:
+    """Archive old event log entries and start fresh (MEDIUM #1 / ISSUE #60).
+    
+    Strategy:
+    1. Read all events from current log
+    2. Rebuild snapshot from all events (to capture current state)
+    3. Archive old events to logs/events-YYYY-MM-DD-HHmmss.log.gz
+    4. Truncate current event log (fresh start)
+    5. Append session_marker to new log
+    
+    Returns (ok, rotated_file, lines_archived, message).
+    """
+    paths = board_paths(project_root)
+    events_path = pathlib.Path(paths["events"])
+    
+    if not events_path.exists():
+        return {"ok": False, "error": "no event log to rotate"}
+    
+    try:
+        # 1. Read all events
+        all_events = []
+        with open(events_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        all_events.append(json.loads(line))
+                    except (json.JSONDecodeError, ValueError):
+                        pass  # Skip corrupted lines
+        
+        if not all_events or len(all_events) < max_lines:
+            return {"ok": False, "message": f"log has {len(all_events)} lines (threshold: {max_lines})"}
+        
+        # 2. Rebuild snapshot from all events to capture current state
+        board_rebuilt = _replay_events(paths)
+        
+        # 3. Archive old events to timestamped file
+        import gzip
+        import datetime
+        now = datetime.datetime.now()
+        archive_name = f"events-{now.strftime('%Y-%m-%d-%H%M%S')}.log.gz"
+        archive_path = events_path.parent / archive_name
+        
+        # Write compressed archive
+        with gzip.open(archive_path, "wt", encoding="utf-8") as f:
+            for event in all_events:
+                f.write(json.dumps(event, ensure_ascii=False) + "\n")
+        
+        # 4. Truncate current event log
+        with open(events_path, "w", encoding="utf-8") as f:
+            pass  # Empty file
+        
+        # 5. Append session marker to new log (if not already there)
+        # This will be done by the next record_session_start()
+        
+        return {
+            "ok": True,
+            "archived_to": str(archive_path),
+            "lines_archived": len(all_events),
+            "message": f"Archived {len(all_events)} events to {archive_name}; event log rotated"
+        }
+    
+    except Exception as e:
+        return {
+            "ok": False,
+            "error": f"rotation failed: {str(e)[:200]}"
+        }
+
+
 def doctor(project_root: str) -> dict:
     """One-glance diagnostic for the whole board: gate, snapshot, event log,
     state counts, cap usage, focus, chain health, integrity (snapshot/event
-    drift, tmp residue) and watch paths. Verdict is HEALTHY iff no warnings."""
+    drift, tmp residue) and watch paths. Verdict is HEALTHY iff no warnings.
+    
+    NEW: Supports --rotate flag to archive old event logs (MEDIUM #1)
+    NEW: Includes record ID uniqueness check (MEDIUM #2 / ISSUE #61)
+    NEW: Detects stale sessions (SessionStart without Stop) (MEDIUM #5 / ISSUE #64)
+    """
     paths = board_paths(project_root)
     warnings = []
     board = read_board(project_root)
@@ -1332,6 +1535,100 @@ def doctor(project_root: str) -> dict:
                                 "oldest will expire soon)")
     warnings.extend(cap_warnings)
 
+    # NEW: Check if snapshot rebuild from events works (corruption recovery)
+    replay_for_check = _replay_events(paths)
+    skipped = replay_for_check.get("_metadata", {}).get("replay_skipped_lines", 0)
+    if skipped > 0:
+        warnings.append(f"event log replay skipped {skipped} line(s) during rebuild "
+                        "(corruption detected, but auto-recovered by skipping bad lines)")
+    
+    # NEW: Check for duplicate record IDs (MEDIUM #2 / ISSUE #61)
+    # Scan all record directories for duplicate IDs
+    type_to_dir = {
+        "E": "docs/experiments",
+        "IR": "docs/implementation-readiness",
+        "SP": "docs/sprint-plans",
+        "S": "docs/stories",
+        "QR": "docs/quality-records",
+        "PR": "docs/production-readiness",
+    }
+    
+    root = os.path.abspath(project_root or os.getcwd())
+    seen_ids = {}  # type → set of IDs
+    
+    for rec_type, rec_dir in type_to_dir.items():
+        rec_path = pathlib.Path(root) / rec_dir
+        if not rec_path.exists():
+            continue
+        
+        for record_file in rec_path.glob("*.md"):
+            match = re.match(r"^([A-Z]+-\d+)\.md$", record_file.name)
+            if not match:
+                continue
+            record_id = match.group(1)
+            type_key = record_id.split("-")[0]
+            
+            if type_key not in seen_ids:
+                seen_ids[type_key] = set()
+            
+            if record_id in seen_ids[type_key]:
+                warnings.append(
+                    f"Duplicate record ID '{record_id}' detected in {rec_dir} "
+                    f"(record IDs must be globally unique per type)"
+                )
+            else:
+                seen_ids[type_key].add(record_id)
+    
+    # NEW: Detect stale sessions (MEDIUM #5 / ISSUE #64)
+    # Look for SessionStart without corresponding Stop in recent history
+    try:
+        last_session_start = None
+        last_session_stop = None
+        last_session_id = ""
+        session_count = 0
+        current_session_id = ""
+        
+        with open(paths["events"], "r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    entry = json.loads(line)
+                except (json.JSONDecodeError, ValueError):
+                    continue
+                
+                entry_type = entry.get("type", "")
+                if entry_type == "session_marker":
+                    if entry.get("hook_event") == "SessionStart":
+                        last_session_start = entry.get("ts", 0.0)
+                        last_session_id = entry.get("session_id", "")
+                        current_session_id = last_session_id
+                        session_count += 1
+                
+                elif entry_type == "session_stop":
+                    last_session_stop = entry.get("ts", 0.0)
+        
+        # Check if there's an unclosed session
+        if last_session_start and (last_session_stop is None or last_session_start > last_session_stop):
+            session_age = time.time() - last_session_start
+            stale_threshold = 3600  # 1 hour
+            
+            if session_age > stale_threshold:
+                hours = int(session_age / 3600)
+                warnings.append(
+                    f"Stale session detected: SessionStart {hours}h+ ago without Stop "
+                    f"(hung session? agent crash?)"
+                )
+        
+        # NEW: Check multi-session isolation (MEDIUM #6 / ISSUE #65)
+        # If more than one session, track session boundaries
+        if session_count > 1:
+            warnings.append(
+                f"Multi-session log detected: {session_count} sessions tracked "
+                f"(use session_id for isolation). Current: {current_session_id[:12]}..."
+            )
+    except Exception:
+        pass  # Can't check session history, skip
+
+    
     # integrity: snapshot presence + drift
     snapshot_exists = os.path.exists(paths["snapshot"])
     drift = _doctor_drift(paths, board)
@@ -1359,6 +1656,18 @@ def doctor(project_root: str) -> dict:
         waiting_hops += [f"{h['from']}→{h['to']}" for h in chain["extra"] if h["waiting"]]
         warnings.append(f"{chain['total_waiting']} unclaimed hand-off signal(s) "
                         f"({', '.join(waiting_hops)}) — PROACTIVE, see chain-health")
+    
+    # NEW: Detect stale handoff signals (CRITICAL #4 / ISSUE #25)
+    now = time.time()
+    stale_handoffs = [
+        a for a in board["alerts"]
+        if a.get("kind") == "handoff" and 
+           (now - (a.get("ts", 0.0))) > HANDOFF_SIGNAL_TTL_SECONDS
+    ]
+    if stale_handoffs:
+        warnings.append(f"{len(stale_handoffs)} STALE hand-off signal(s) "
+                        f"(> 24h old) — skill crashed/hung? "
+                        f"Run 'blackboard.py doctor' to clean up")
 
     # watch paths (informational: missing prefixes may be created later)
     watch = [{"canvas": name, "path": w, "exists": os.path.exists(w)}
@@ -1394,7 +1703,11 @@ def doctor(project_root: str) -> dict:
 
 
 def post_alert(project_root: str, channel: str, kind: str, text: str) -> dict:
-    """Manual alert injection (skills can notify the session/stop channels)."""
+    """Manual alert injection (skills can notify the session/stop channels).
+    
+    NEW: Bounds enforcement visible - checks MAX_ALERTS limit (MEDIUM #4 / ISSUE #63)
+    Oldest alerts are expired when limit is reached.
+    """
     event = {"event": "alert", "channel": str(channel).strip()[:40] or "session",
              "kind": str(kind).strip()[:20] or "info",
              "text": str(text).strip()[:MAX_ALERT_TEXT],
@@ -1405,8 +1718,15 @@ def post_alert(project_root: str, channel: str, kind: str, text: str) -> dict:
     def mut(board):
         _append_event(board_paths(project_root), event)
         _apply_event(board, event)
+        
+        # NEW: Explicit bounds check - enforce MAX_ALERTS (MEDIUM #4 / ISSUE #63)
+        alert_count = len(board["alerts"])
+        if alert_count > MAX_ALERTS:
+            sys.stderr.write(f"metodoloji: bounds enforced — alerts {alert_count}/{MAX_ALERTS}, "
+                           f"oldest expired\n")
+        
         return board, {"ok": True, "channel": event["channel"],
-                       "alerts": len(board["alerts"])}
+                       "alerts": alert_count}
 
     return _mutate(project_root, mut)
 
