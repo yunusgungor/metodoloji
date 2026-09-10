@@ -3,7 +3,6 @@
 import os
 import pathlib
 import re
-import sys
 
 from .config import (
     CODE_BASENAMES,

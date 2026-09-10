@@ -548,10 +548,10 @@ def _cap_canvases(board: dict) -> None:
         board["canvases"].pop(oldest)
 
 
-# Bridge keys that must survive key-cap eviction: they carry the session
-# intent/scope/status the hook engine and bmad-help route on. A busy board
+# Focus keys that must survive key-cap eviction: they carry the session
+# scope/status the hook engine and bmad-help route on. A busy board
 # must never evict the very keys the methodology is steering from.
-_BRIDGE_KEYS = frozenset({"purpose", "scope", "status", "topic", "goal", "idea"})
+_BRIDGE_KEYS = frozenset({"scope", "status"})
 
 
 def _cap_keys(board: dict) -> None:
@@ -1496,20 +1496,20 @@ def compact_context(project_root: str) -> dict:
                           "auto": autos, "grid": cv.get("grid"),
                           "watch": cv.get("watch", []), "latest": latest}
     nb = [n["node"] for n in neighbors(project_root, hot_key)] if hot_key else []
-    # Intent bridge summary: the same keys bootstrap exports as env. Included so
-    # a session-start inject (or read --context consumer) sees the live intent/
+    # Focus summary: the same keys bootstrap exports as env. Included so
+    # a session-start inject (or read --context consumer) sees the live
     # scope/status even when bootstrap's env snapshot predates a mid-session
-    # skill write (see utils._active_* board-first ordering).
-    bridge = {}
-    for k in ("purpose", "scope", "status", "topic", "goal", "idea"):
+    # skill write (see utils board-first ordering).
+    focus = {}
+    for k in ("scope", "status"):
         entry = board["keys"].get(k)
         if entry and isinstance(entry, dict) and str(entry.get("value", "")).strip():
-            bridge[k] = str(entry.get("value"))[:120]
+            focus[k] = str(entry.get("value"))[:120]
     return {
         "hot": hot_key,
         "hot_meta": hot_value,
         "hot_canvas": canvas_summary,
-        "intent": bridge,
+        "focus": focus,
         "tags": list(board["tags"]),
         "watchers": sorted(board["watchers"].keys()),
         "contributions": board["contributions"][-5:],

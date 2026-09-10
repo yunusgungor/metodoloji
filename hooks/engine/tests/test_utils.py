@@ -1,6 +1,5 @@
 """Tests for hooks/engine/modules/utils.py — path classification helpers."""
 
-import importlib.util
 import sys
 from pathlib import Path
 
@@ -8,7 +7,6 @@ _HOOKS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_HOOKS))
 
 from modules.utils import (  # noqa: E402
-    rel_to_root,
     extract_story_key_from_content,
     is_code_target,
     is_free,

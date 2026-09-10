@@ -105,13 +105,27 @@ def test_compact_context_shape(root):
     bb.write_key(root, "prd.acme", "v", type_="state", hot=True)
     bb.add_tag(root, "t")
     bb.add_contribution(root, "w", "what")
+    bb.write_key(root, "scope", "src/auth", type_="state")
+    bb.write_key(root, "status", "active", type_="state")
     ctx = bb.compact_context(root)
     assert ctx["hot"] == "prd.acme"
     assert ctx["hot_meta"]["type"] == "state"
     assert ctx["tags"] == ["t"]
     assert ctx["contributions"][-1]["who"] == "w"
-    assert ctx["key_count"] == 1
+    assert ctx["key_count"] == 3
+    assert ctx["focus"] == {"scope": "src/auth", "status": "active"}
     assert "keys" not in ctx  # bounded contract: never dumps all values
+    assert "intent" not in ctx  # removed mirror: scope/status only
+
+
+def test_bridge_keys_survive_key_cap(root):
+    bb.write_key(root, "scope", "src/auth", type_="state")
+    bb.write_key(root, "status", "active", type_="state")
+    for i in range(bb.MAX_KEYS + 5):
+        bb.write_key(root, f"fill{i:03d}", "x")
+    board = bb.read_board(root)
+    assert len(board["keys"]) == bb.MAX_KEYS
+    assert "scope" in board["keys"] and "status" in board["keys"]
 
 
 def test_stats(root):

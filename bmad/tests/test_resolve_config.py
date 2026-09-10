@@ -18,8 +18,9 @@ _SCRIPT = (
 )
 _spec = importlib.util.spec_from_file_location("resolve_config", _SCRIPT)
 rc = importlib.util.module_from_spec(_spec)
-sys.modules.setdefault("resolve_config", rc)
 _spec.loader.exec_module(rc)
+# Pure-function tests below use `rc`; resolver invocations load a fresh copy
+# per call via _fresh_resolver (correct {metodoloji-root} per fake plugin).
 
 
 def _write_toml(path: Path, content: str) -> None:

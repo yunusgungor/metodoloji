@@ -1,6 +1,5 @@
 """Tests for hooks/engine/modules/guard.py — gate record checks + story validation."""
 
-import importlib.util
 import sys
 import tempfile
 from pathlib import Path

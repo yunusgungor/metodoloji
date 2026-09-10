@@ -4,10 +4,7 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
-
-import pytest
 
 _HOOKS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_HOOKS))

@@ -1,8 +1,6 @@
-"""Tests for hooks/engine/modules/audit.py — trail redaction + compliance."""
+"""Tests for hooks/engine/modules/audit.py — trail redaction + bridge check."""
 
-import os
 import sys
-import tempfile
 from pathlib import Path
 
 _HOOKS = Path(__file__).resolve().parent.parent
