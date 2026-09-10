@@ -333,8 +333,8 @@ docs/
 │   ├── research-methodology.md              ← Methodology manifesto
 │   └── development-methodology.md           ← Development methodology
 ├── development/
-│   ├── _template_S.md                       ← Methodology record template
 │   └── stories/
+│       ├── _template_S.md                   ← Story record template (canonical copy)
 │       ├── S-001.md                         ← Story methodology records
 │       └── S-002.md
 ├── experiments/

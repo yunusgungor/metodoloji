@@ -45,10 +45,10 @@ mkdir -p "$WS/.metodoloji/logs"
 # Short context: gate-key status + record chain reminder.
 if [ -f "$HOME/.bmad/gate-key" ]; then KEY="present"; else KEY="MISSING — python run_experiment.py --init-secret"; fi
 
-# Intent bridge: blackboard'daki purpose (intent) ve scope'u oku, env'e export et.
-# Her hook prosesi aynı session intent'ini paylaşır. Fail-open (okuma hatası → boş).
-# ponytail: quote/backslash içeren WS erken çıkar (mkdir amaçlı ham tutulur;
-# python'a env ile taşınan PYWS quote-safe normalize edilir).
+# Intent bridge: read the blackboard's purpose (intent) and scope, export to env.
+# Every hook process shares the same session intent. Fail-open (read error → empty).
+# ponytail: WS with quote/backslash exits early (kept raw for mkdir;
+# PYWS passed to python via env is quote-safe normalized).
 case "$WS" in
     *\'* | *\"* | *\`* | *\\* | *\$*)
         export METODOLOJI_INTENT="" METODOLOJI_SCOPE=""

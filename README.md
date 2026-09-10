@@ -34,11 +34,17 @@ Every stage must be completed and HMAC-signed before the next one unlocks. Hooks
 
 The same `hooks/hooks.json` manifest is auto-discovered by both runtimes. OpenHands and Claude Code share one hook engine; each command resolves its installation path at runtime. Methodology records are always written to your **project root**, never inside the plugin.
 
-**Guard (fail-closed)** — writing any code requires an approved Experiment record. No approval → no edit.
+**Guard (fail-closed at hard)** — writing code requires an approved Experiment record. No approval → no edit.
 
-**Quality / Deploy** — `git commit` and deploy commands require the full chain: IR → SP → QR → PR.
+**Quality / Deploy (config-gated)** — `git commit` and deploy commands require the full chain: IR → SP → QR → PR (warn-only unless hardened).
 
-**Stop (fail-closed)** — the session cannot close with unfinished stories or unapproved changes.
+**Stop (fail-closed at hard)** — the session cannot close with unfinished stories or unapproved changes.
+
+> **Shipped defaults are brownfield-soft:** `custom/config.toml [hooks]` sets all four
+> gates to `soft`, so a fresh install warns instead of blocking on existing projects.
+> Tighten `code_guard` / `stop_guard` (and `quality_gate` / `deploy_guard`) to `"hard"`
+> after the first VERIFIED experiment scope exists. `/metodoloji:audit` (§5b) shows
+> the live mode. The fail-closed paths above describe hard mode.
 
 **PostToolUse audit** — every write, edit, and bash call is logged to `.metodoloji/logs/hook-audit.log` synchronously.
 

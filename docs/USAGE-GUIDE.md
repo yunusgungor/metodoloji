@@ -33,14 +33,14 @@
 
 ### What Does the Plugin Do?
 
-`metodoloji` is the plugin implementation of the **BMAD (Build Methodology for Agent-Driven development)** methodology for OpenHands and Claude Code. It ships with 123 skills + 119 customization TOMLs (33 BRIDGE active) + mechanical gates + a record chain.
+`metodoloji` is the plugin implementation of the **BMAD (Build Methodology for Agent-Driven development)** methodology for OpenHands and Claude Code. It ships with 122 skills + 118 customization TOMLs (33 BRIDGE active; `bmad-customize`, `bmad-help`, `memory`, `sync` are tool/meta skills with no bridge TOML by design) + mechanical gates + a record chain.
 
 Core components:
 
 | Component | Function |
 |-----------|----------|
-| `skills/` | 123 BMAD skills (native body) |
-| `custom/` | 119 customization TOMLs (33 active with BRIDGE: `activation_steps_append`/`principles` → links native outputs to methodology records) + `config.toml` (soft/hard gates) |
+| `skills/` | 122 BMAD skills (native body) |
+| `custom/` | 118 customization TOMLs (33 active with BRIDGE: `activation_steps_append`/`principles` → links native outputs to methodology records) + `config.toml` (soft/hard gates) |
 | `hooks/` | `hooks.json` (unified, auto-discovered by both runtimes) + `engine/` (Python) + `scripts/` (`bootstrap.sh`, `hook-entry.sh`) |
 | `hooks/engine/` | Python engine: `main.py` (entry), `resolve_customization.py` (thin re-export), `modules/` (guard, audit, stop, utils, config, archive, bash_targets) |
 | `bmad/` | Module data (bmm, cis, gds, wds, tea, core, bmb, bmad-loop, `_config`) + `bmad/scripts/` (canonical `resolve_customization.py`, `resolve_config.py`) |
@@ -95,8 +95,8 @@ metodoloji/
 │   └── scripts/
 │       ├── bootstrap.sh         # SessionStart: gate-key + directories + context + intent
 │       └── hook-entry.sh        # Single dispatch point → Python engine
-├── skills/                      # 123 BMAD skill directories
-├── custom/                      # 119 TOMLs (33 BRIDGE active) + config.toml
+├── skills/                      # 122 BMAD skill directories
+├── custom/                      # 118 TOMLs (33 BRIDGE active) + config.toml
 ├── bmad/                        # Module data + scripts (resolve_customization)
 ├── templates/                   # Record templates
 ├── commands/                    # Slash-command definitions (.md)

@@ -12,9 +12,9 @@ from .utils import is_code_target, is_free, rel_to_root
 def _check_story_status(root: str, intent: str = "") -> tuple[bool, str]:
     """Check if a story is in-progress but incomplete.
 
-    intent-aware: session intent belirli bir story'yi adlandırıyorsa (ör.
-    "1-2-login" veya "S-003") sadece o story block eder. Intent yoksa veya
-    story adı içermiyorsa her in-progress story block eder (legacy behavior).
+    intent-aware: when the session intent names a story (e.g. "1-2-login"
+    or "S-003") only that story blocks. Without an intent, or one naming
+    no story, every in-progress story blocks (legacy behavior).
 
     Returns (should_block, reason).
     """
@@ -36,7 +36,7 @@ def _check_story_status(root: str, intent: str = "") -> tuple[bool, str]:
                 # Check for in-progress stories
                 in_progress = re.findall(r"^\s+(\d+-\d+-[a-z][a-z0-9-]+):\s+in-progress", content, re.MULTILINE)
                 if target_key:
-                    # Intent belirli bir story'yi adlandırıyor: sadece o story block eder.
+                    # Intent names one story: only that story blocks.
                     if any(target_key == k for k in in_progress):
                         return True, (
                             f"Story {target_key} is in-progress but stop requested. "
@@ -251,25 +251,6 @@ def _record_stop_deny(root: str, reason: str) -> None:
                                ensure_ascii=False) + "\n")
     except OSError:
         pass
-
-
-def _session_start_offset(root: str) -> int:
-    """Index of the first audit line after the newest session_start marker (0 = none)."""
-    from .config import log_file
-    log_path = pathlib.Path(root).absolute() / log_file()
-    try:
-        lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
-    except OSError:
-        return 0
-    offset = 0
-    for i, line in enumerate(lines):
-        try:
-            rec = json.loads(line)
-        except ValueError:
-            continue
-        if isinstance(rec, dict) and rec.get("type") == _SESSION_MARKER_TYPE:
-            offset = i + 1
-    return offset
 
 
 def _board_dirty_notice(root: str, reason: str) -> str:

@@ -1,6 +1,6 @@
 # Contributing to Metodoloji
 
-Thank you for your interest in contributing to **Metodoloji**! We welcome contributions across our 123 BMAD skills, hook engine, and documentation.
+Thank you for your interest in contributing to **Metodoloji**! We welcome contributions across our 122 BMAD skills, hook engine, and documentation.
 
 ---
 

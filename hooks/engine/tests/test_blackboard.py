@@ -364,8 +364,8 @@ def test_audit_stamp_gated_off(tmp_path, monkeypatch):
 
 
 def test_stamp_tool_event_survives_snapshot_rebuild(tmp_path, monkeypatch):
-    # Event-sourced: last_tool.* replay'den geri gelir, snapshot silinse bile
-    # kaybolmaz (eski snapshot-only fold davranışının regression guard'ı).
+    # Event-sourced: last_tool.* returns from replay and survives a deleted
+    # snapshot (regression guard for the old snapshot-only fold).
     import importlib.util, sys as _sys
     _engine(monkeypatch, str(tmp_path))
     bb.stamp_tool_event(str(tmp_path), "file_editor", "docs/a.md")
@@ -1304,8 +1304,8 @@ def test_doctor_detects_snapshot_drift(root):
 
 
 def test_no_blackboard_set_command_in_source(root):
-    """`blackboard.py set` diye bir komut YOK — doğrusu `write`. Doküman/yorum/
-    skill metinlerinde `set` geçerse LLM geçersiz komut üretir."""
+    """There is NO `blackboard.py set` command — the verb is `write`. A `set`
+    in doc/comment/skill text makes the LLM emit an invalid command."""
     import pathlib
     repo = pathlib.Path(__file__).resolve().parent.parent.parent.parent
     self_file = pathlib.Path(__file__).resolve()

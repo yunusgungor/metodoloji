@@ -388,7 +388,7 @@ def test_main_dispatch_quality_non_commit_allows(tmp_path, monkeypatch):
 # --- Intent-aware story blocking tests ---------------------------------------
 
 def _seed_sprint_status(root, stories: dict):
-    """sprint-status.yaml dosyasını belirli story durumlarıyla yaz."""
+    """Write sprint-status.yaml with the given story states."""
     cand = root / "bmad-output/implementation-artifacts"
     cand.mkdir(parents=True, exist_ok=True)
     lines = "stories:\n" + "".join(f"  {k}: {v}\n" for k, v in stories.items())
@@ -396,23 +396,23 @@ def _seed_sprint_status(root, stories: dict):
 
 
 def test_story_status_intent_named_story_blocks_only_that(tmp_path, monkeypatch):
-    """Intent belirli bir story'yi adlandırıyorsa sadece o story block etmeli."""
+    """An intent naming one story blocks only that story."""
     _seed_sprint_status(tmp_path, {"1-2-login": "in-progress", "3-4-export": "in-progress"})
-    # Intent sadece 1-2-login'i adlandırıyor → sadece o bloke etmeli
+    # Intent names only 1-2-login → only it blocks
     blocked, reason = _check_story_status(str(tmp_path), intent="finish 1-2-login")
     assert blocked is True
     assert "1-2-login" in reason
 
 
 def test_story_status_intent_named_story_other_ignored(tmp_path, monkeypatch):
-    """Intent 1-2-login'i adlandırıyorsa 3-4-export block etmemeli."""
+    """An intent naming 1-2-login must not block 3-4-export."""
     _seed_sprint_status(tmp_path, {"1-2-login": "done", "3-4-export": "in-progress"})
     blocked, reason = _check_story_status(str(tmp_path), intent="finish 1-2-login")
     assert blocked is False
 
 
 def test_story_status_no_intent_all_block(tmp_path, monkeypatch):
-    """Intent yoksa her in-progress story block etmeli (legacy behavior)."""
+    """No intent → every in-progress story blocks (legacy behavior)."""
     _seed_sprint_status(tmp_path, {"1-2-login": "in-progress", "3-4-export": "in-progress"})
     blocked, reason = _check_story_status(str(tmp_path), intent="")
     assert blocked is True
@@ -420,36 +420,36 @@ def test_story_status_no_intent_all_block(tmp_path, monkeypatch):
 
 
 def test_stop_progress_complete_skips_story_check(tmp_path, monkeypatch):
-    """Blackboard'da status=complete yazılmışsa stop story check'i atlamalı."""
+    """status=complete on the blackboard skips the stop story check."""
     _seed_sprint_status(tmp_path, {"1-2-login": "in-progress"})
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
     monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
-    # _active_progress → "complete" dönsün
+    # _active_progress returns "complete"
     import modules.utils as ut
     monkeypatch.setattr(ut, "_active_progress", lambda root: "complete")
     monkeypatch.setattr(ut, "_active_intent", lambda root: "")
     res = stop({})
-    # Story check atlandığı için story engeli olmamalı (kod approved da gerekmez burada)
-    # Sadece "Story in-progress" reason'ı olmamalı
+    # The story check is skipped, so no story block (code approval irrelevant here);
+    # only the "Story in-progress" reason must be absent
     if res["decision"] == "deny":
         assert "Story" not in res.get("reason", "")
 
 
 def test_stop_intent_aware_story_blocking_e2e(tmp_path, monkeypatch):
-    """stop() intent-aware story blocking'i uçtan uca test eder."""
+    """End-to-end: stop() honors intent-aware story blocking."""
     from modules import config
     monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
     _seed_sprint_status(tmp_path, {"1-2-login": "done", "3-4-export": "in-progress"})
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
     monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
-    # Intent sadece 1-2-login'i hedefliyor, 3-4-export in-progress ama intent hedeflemiyor
+    # Intent targets only 1-2-login; 3-4-export is in-progress but not targeted
     import modules.utils as ut
     monkeypatch.setattr(ut, "_active_intent", lambda root: "finish 1-2-login")
     monkeypatch.setattr(ut, "_active_progress", lambda root: "")
     res = stop({})
-    # 1-2-login done, sadece o kontrol edilir → story bloğu yok
-    # (Eğer code block varsa o farklı bir şey, burda sadece story bloğu test ediyoruz)
+    # 1-2-login is done and it is the only one checked → no story block
+    # (a code block, if any, is a different thing — this tests the story block)
     if res["decision"] == "deny":
         assert "1-2-login" not in res.get("reason", "")

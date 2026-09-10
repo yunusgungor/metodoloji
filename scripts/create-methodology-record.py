@@ -131,7 +131,12 @@ def extract_story_metadata(content: str) -> dict:
 
 def create_methodology_record(meta: dict, sira: int, project_root: Path) -> Path:
     """Create S-<sira>.md methodology record from template."""
-    template_path = project_root / "docs" / "development" / "_template_S.md"
+    # Canonical story template lives in stories/ (see templates/_template_S.md
+    # header); fall back to the legacy docs/development/_template_S.md copy.
+    template_path = project_root / "docs" / "development" / "stories" / "_template_S.md"
+    legacy_path = project_root / "docs" / "development" / "_template_S.md"
+    if not template_path.exists():
+        template_path = legacy_path
     output_path = project_root / "docs" / "development" / "stories" / f"S-{sira:03d}.md"
 
     # Ensure output directory exists

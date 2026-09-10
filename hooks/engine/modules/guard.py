@@ -754,9 +754,9 @@ def guard(json_in: dict) -> dict:
             return {"decision": "deny", "reason": msg}
 
     # --- Intent-scope check (warn-only) ---
-    # Blackboard'daki scope key'i varsa (ör. blackboard.py write --key scope
-    # --value src/auth), scope dışı bir yazma warn-only uyarı üretir —
-    # deny değil. Experiment-approval deny mantığı her zaman önceliklidir.
+    # When the blackboard holds a scope key (e.g. blackboard.py write --key
+    # scope --value src/auth), an out-of-scope write produces a warn-only
+    # notice, never a deny. Experiment-approval deny always takes precedence.
     from .utils import _active_scope
     scope = _active_scope(root)
     intent_warnings = _intent_scope_warnings(scope=scope, targets=targets, root=root)
@@ -769,15 +769,14 @@ def guard(json_in: dict) -> dict:
 
 
 def _intent_scope_warnings(scope: str, targets: list, root: str = "") -> list[str]:
-    """Aktif scope dışındaki yazmaları warn-only olarak listele.
+    """List writes outside the active scope as warn-only notices.
 
-    scope bir path'tir (ör. "src/auth"). O path dışındaki bir target uyarı
-    alır. Story key'leri (S-003, 1-2-login) ve boş scope [] döner.
-    Hiçbir zaman deny üretmez.
+    scope is a path (e.g. "src/auth"): any target outside it warns. Story
+    keys (S-003, 1-2-login) and empty scope return []. Never denies.
     """
     scope = (scope or "").strip()
     if not scope or scope.startswith("S-") or re.fullmatch(r"\d+-\d+-[a-z][\w-]*", scope):
-        return []  # path scope yok ya da bir story key'i — kontrol edilecek bir şey yok
+        return []  # no path scope, or a story key — nothing to check
     if not root:
         from .utils import repo_root
         root = repo_root({})

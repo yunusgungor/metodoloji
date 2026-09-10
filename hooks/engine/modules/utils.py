@@ -161,6 +161,9 @@ def is_code_target(path: str) -> bool:
         return False
     if base.lower() in CODE_BASENAMES or first in CODE_DIRS:
         return True
+    # Intentionally fail-closed: an unlisted extension is treated as code, so
+    # a new data format never silently bypasses the experiment gate. Projects
+    # with exotic data trees should add them to NON_CODE_* instead.
     return True
 
 
@@ -218,19 +221,19 @@ def rel_to_root(root: str, p: str, cwd: str | None = None) -> str:
 
 
 # --- Intent bridge (blackboard-backed) ---------------------------------------
-# Memlog kaynaklı intent/scope/progress kabiliyetleri — artık blackboard'dan
-# okunuyor. Öncelik sırası: board canlıdır (skill'ler session içinde yazar),
-# env sadece bootstrap snapshot'ıdır:
-#   1. Blackboard'da saklanan purpose / scope / status key'leri (canlı).
-#   2. METODOLOJI_INTENT / METODOLOJI_SCOPE env (bootstrap'in SessionStart'ta
-#      export ettiği snapshot — board boşken fallback).
-# Blackboard devre dışıysa veya okunamazsa env'e düşülür, o da yoksa '' (fail-open).
+# Intent/scope/progress capabilities read from the blackboard. Priority:
+# the board is live (skills write mid-session), env is only a bootstrap
+# snapshot:
+#   1. purpose / scope / status keys stored on the blackboard (live).
+#   2. METODOLOJI_INTENT / METODOLOJI_SCOPE env (the SessionStart snapshot
+#      bootstrap exports — fallback while the board is empty).
+# Blackboard disabled or unreadable → fall back to env, then '' (fail-open).
 
 def _active_blackboard_meta(root: str) -> dict:
-    """Blackboard'daki purpose/scope/status key'lerini çek ({} if none/disabled).
+    """Fetch the blackboard's purpose/scope/status keys ({} if none/disabled).
 
-    Sadece dört canonical key kontrol edilir; board okunamıyorsa {} döner.
-    Fail-open: bu fonksiyon hiçbir zaman istisna fırlatmaz.
+    Only the canonical keys are checked; {} when the board is unreadable.
+    Fail-open: never raises.
     """
     try:
         from .config import blackboard_enabled
@@ -252,14 +255,13 @@ def _active_blackboard_meta(root: str) -> dict:
 
 
 def _active_intent(root: str, env_override: bool = True) -> str:
-    """Session için aktif intent (amaç) döndür.
+    """Return the session's active intent.
 
-    Öncelik (board canlı, env snapshot):
-      1. Blackboard'daki purpose, topic, goal veya idea key'i (skill'in
-         session içinde yazdığı canlı değer — bootstrap sonrası güncellemeler
-         buradan görülür).
-      2. METODOLOJI_INTENT env (bootstrap.sh snapshot'ı — board boşken fallback).
-    Intent kayıtlı değilse '' döner.
+    Priority (board live, env snapshot):
+      1. purpose, topic, goal or idea key on the blackboard (the live value
+         a skill wrote mid-session — post-bootstrap updates show up here).
+      2. METODOLOJI_INTENT env (bootstrap.sh snapshot — fallback when empty).
+    Returns '' when no intent is recorded.
     """
     meta = _active_blackboard_meta(root)
     for key in ("purpose", "topic", "goal", "idea"):
@@ -274,25 +276,25 @@ def _active_intent(root: str, env_override: bool = True) -> str:
 
 
 def _active_progress(root: str) -> str:
-    """Blackboard'daki session progress status'unu döndür.
+    """Return the session progress status from the blackboard.
 
-    Skill'ler `blackboard.py write --key status --value complete` ile yazar
-    (veya active / in-progress). Kayıtlı değilse '' döner.
+    Skills write it via `blackboard.py write --key status --value complete`
+    (or active / in-progress). Returns '' when unrecorded.
     """
     return _active_blackboard_meta(root).get("status", "")
 
 
 def _active_scope(root: str, env_override: bool = True) -> str:
-    """Aktif scope (bir path kapsamı) döndür.
+    """Return the active scope (a path boundary).
 
-    Scope, intent'ten bağımsız bir field'dır: bir blackboard kaydı
-    `purpose: auth flow` ile `scope: src/auth` birlikte taşıyabilir.
-    Guard, scope dışı yazmaları warn-only olarak işaretlemek için bunu kullanır.
+    Scope is independent of intent: one blackboard record may carry both
+    `purpose: auth flow` and `scope: src/auth`. The guard uses it to flag
+    out-of-scope writes as warn-only.
 
-    Öncelik (board canlı, env snapshot):
-      1. Blackboard'daki scope key'i (skill'in session içinde yazdığı canlı değer).
-      2. METODOLOJI_SCOPE env (bootstrap.sh snapshot'ı — board boşken fallback).
-      3. METODOLOJI_INTENT env içinde `scope:` tag'i (eski bootstrap versiyonları).
+    Priority (board live, env snapshot):
+      1. scope key on the blackboard (the live value a skill wrote).
+      2. METODOLOJI_SCOPE env (bootstrap.sh snapshot — fallback when empty).
+      3. A `scope:` tag inside METODOLOJI_INTENT (older bootstrap versions).
     """
     board_scope = _active_blackboard_meta(root).get("scope", "")
     if board_scope:
@@ -318,7 +320,7 @@ def _story_key_from_intent(intent: str) -> str:
     """Extract a story key (S-003 or 1-2-login) from an intent string.
 
     Returns '' when the intent doesn't name a story. E.g.
-    "S-003'ü bitir" → "S-003", "finish 1-2-login" → "1-2-login".
+    "finish S-003" → "S-003", "finish 1-2-login" → "1-2-login".
     """
     if not intent:
         return ""

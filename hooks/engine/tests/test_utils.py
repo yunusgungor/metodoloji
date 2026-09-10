@@ -237,7 +237,7 @@ def test_extract_story_key_no_match():
 
 
 # --- Intent bridge (blackboard-backed) tests ---------------------------------
-# Blackboard board_read monkeylendi; gerçek dosya sistemi yazımı gerekmez.
+# blackboard.read_board is monkeypatched; no real filesystem writes needed.
 
 from modules.utils import (  # noqa: E402
     _active_intent,
@@ -248,7 +248,7 @@ from modules.utils import (  # noqa: E402
 
 
 def _mock_board(keys: dict):
-    """_active_blackboard_meta'nın döndüreceği bir board nesnesi hazırla."""
+    """Build the board object _active_blackboard_meta will return."""
     board_keys = {}
     for k, v in keys.items():
         board_keys[k] = {"value": v, "type": "note", "updated": 0.0}
@@ -260,7 +260,7 @@ def _mock_board(keys: dict):
 
 def test_active_intent_no_blackboard(tmp_path, monkeypatch):
     monkeypatch.delenv("METODOLOJI_INTENT", raising=False)
-    # blackboard_enabled() = False → boş dönmeli
+    # blackboard_enabled() = False → must return empty
     import modules.config as cfg
     monkeypatch.setattr(cfg, "blackboard_enabled", lambda: False)
     assert _active_intent(str(tmp_path)) == ""
@@ -276,8 +276,8 @@ def test_active_intent_reads_purpose(tmp_path, monkeypatch):
 
 
 def test_active_intent_board_beats_stale_env(tmp_path, monkeypatch):
-    # Board canlıdır, env bootstrap snapshot'ı: session içinde skill purpose'u
-    # güncellerse hook'lar yeni değeri görür (env staleness regression guard).
+    # The board is live, env is a bootstrap snapshot: when a skill updates the
+    # purpose mid-session, hooks see the new value (env staleness guard).
     monkeypatch.setenv("METODOLOJI_INTENT", "stale snapshot")
     import modules.config as cfg
     monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
@@ -287,7 +287,7 @@ def test_active_intent_board_beats_stale_env(tmp_path, monkeypatch):
 
 
 def test_active_intent_env_fallback_when_board_empty(tmp_path, monkeypatch):
-    # Board boşken bootstrap snapshot'ı hâlâ işe yarar.
+    # While the board is empty the bootstrap snapshot still works.
     monkeypatch.setenv("METODOLOJI_INTENT", "from-env")
     import modules.config as cfg
     monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
@@ -362,8 +362,8 @@ def test_active_scope_reads_board(tmp_path, monkeypatch):
 
 
 def test_active_scope_board_beats_stale_env(tmp_path, monkeypatch):
-    # Scope'ta da board canlıdır: session içinde skill scope'u daraltırsa
-    # guard yeni kapsamı görür.
+    # The board is live for scope too: when a skill narrows it mid-session,
+    # the guard sees the new boundary.
     monkeypatch.setenv("METODOLOJI_SCOPE", "src/payments")
     import modules.config as cfg
     monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
@@ -412,7 +412,7 @@ def test_story_key_from_intent_md_suffix():
 
 
 def test_story_key_from_intent_s_key():
-    assert _story_key_from_intent("S-003'ü bitir") == "S-003"
+    assert _story_key_from_intent("finish S-003") == "S-003"
     assert _story_key_from_intent("finish S-003 now") == "S-003"
 
 

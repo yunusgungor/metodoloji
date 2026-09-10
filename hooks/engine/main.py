@@ -81,10 +81,10 @@ def main():
         # Unknown hook type - allow
         result = {"decision": "allow"}
 
-    # Intent bridge: hook result'a session intent + scope inject et. Hook
-    # consumer'ları (test suite'ler, harici tooling) aktif odağı görebilir.
-    # Blackboard'dan okunur (env önce, sonra board); fail-open, hiçbir zaman
-    # bloke etmez.
+    # Intent bridge: inject the session intent + scope into the hook result so
+    # consumers (test suites, external tooling) can see the active focus.
+    # Read from the blackboard (board first, then env snapshot); fail-open,
+    # never blocks.
     if isinstance(result, dict):
         try:
             from modules.utils import _active_intent, _active_scope, repo_root

@@ -1007,13 +1007,13 @@ def _touch_canvases(board: dict, paths: dict, tool: str, target: str) -> list:
 
 
 def stamp_tool_event(project_root: str, tool_name: str, target: str) -> dict:
-    """Audit tool touch'unu board'a tek lock-scope'ta işle (event-sourced).
+    """Fold one audited tool touch into the board in a single lock scope.
 
-    Audit hook'u bunu çağırır (PostToolUse): `last_tool.<tool>` key'ini bir
-    `tool` event'i olarak append eder + izleyen canvas'lara `canvas_touch`
-    push'unu aynı lock-scope'ta yapar. Tek `_mutate` olduğu için araya başka
-    writer giremez; event-sourced olduğu için snapshot rebuild'de
-    `last_tool.*` kaybolmaz. Never nest inside another _mutate scope.
+    Called by the audit hook (PostToolUse): appends the `last_tool.<tool>`
+    key as a `tool` event plus a `canvas_touch` push to watching canvases
+    in the same scope. One `_mutate`, so no writer can interleave; all
+    event-sourced, so `last_tool.*` survives a snapshot rebuild. Never nest
+    inside another _mutate scope.
     """
     tool_name = str(tool_name or "")[:100]
     target = str(target or "")[:MAX_TEXT_LEN]
@@ -1033,9 +1033,10 @@ def stamp_tool_event(project_root: str, tool_name: str, target: str) -> dict:
 
 
 def _watch_matches(watch_path: str, target: str) -> bool:
-    """Watch prefix eşleşmesini normalize et (rel/abs, backslash, ./ farkına
-    bakmaz). Ham string `startswith` ses çıkarıyordu — rel path skill'in
-    watch'a yazdığı absoluğa, ya da tersine hiç eşleşmeyebiliyordu."""
+    """Normalize a watch-prefix match (agnostic to rel/abs, backslash, ./).
+
+    A raw string `startswith` misfired here — a rel path never matched the
+    abs path a skill wrote to the watch, or vice versa."""
     import re as _re
     w = _re.sub(r"(?i)^[a-z]:", "", str(watch_path or "").replace("\\", "/"))
     t = _re.sub(r"(?i)^[a-z]:", "", str(target or "").replace("\\", "/"))

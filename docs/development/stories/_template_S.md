@@ -1,3 +1,6 @@
+<!-- CANONICAL story template. Copies: docs/development/stories/_template_S.md
+     (init destination, byte-identical — enforced by check-plugin.sh §6c).
+     Use the stories/ copy when creating records, never this file directly. -->
 # Story: S-XXX — [Story Title]
 
 > This template is used for User Story (S) records.

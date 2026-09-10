@@ -62,16 +62,73 @@ def _make_project(tmp_path: Path) -> Path:
     return tmp_path / "project"
 
 
-def _run(plugin_root: Path, project_root: Path, *extra: str) -> dict:
-    import subprocess
+def _in_process_argv(script: Path, project_root: Path, extra: tuple) -> list[str]:
+    """Build argv for an in-process resolve_config.main() call.
 
-    cmd = [
-        sys.executable, str(plugin_root / "bmad" / "scripts" / "resolve_config.py"),
-        "--project-root", str(project_root), *extra,
-    ]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-    assert proc.returncode == 0, proc.stderr
-    return json.loads(proc.stdout)
+    Single constructor: every test funnels through here, so a future CLI
+    change touches one place instead of N subprocess command builders.
+    """
+    return [str(script), "--project-root", str(project_root), *extra]
+
+
+def _run(plugin_root: Path, project_root: Path, *extra: str) -> dict:
+    """Run the resolver IN-PROCESS (no subprocess).
+
+    The plugin fixture copies resolve_config.py next to the fake plugin root
+    so {metodoloji-root} derivation matches production. The copy is loaded
+    FRESH per call (own namespace, own __file__) — a shared module import
+    would pin {metodoloji-root} to the real repo and leak layers between
+    tests. subprocess is deliberately avoided: repeated capture_output pipes
+    exhaust inheritable handles on Windows (DuplicateHandle → WinError 6).
+    """
+    script = plugin_root / "bmad" / "scripts" / "resolve_config.py"
+    assert script.is_file(), f"fixture copy missing: {script}"
+    out = _run_argv(_fresh_resolver(script), _in_process_argv(script, project_root, extra))
+    assert out["returncode"] == 0, out["stderr"]
+    return json.loads(out["stdout"])
+
+
+def _fresh_resolver(script: Path):
+    """Load a FRESH resolve_config module from `script` (isolated namespace).
+
+    main() derives {metodoloji-root} from its OWN __file__ — the fake plugin
+    copy (fixture) vs the selfhost root must each resolve to their own tree.
+    A shared module-level import would pin __file__ to the real repo for every
+    test, so each call gets its own namespace (no sys.modules pollution —
+    subprocess parity: a fresh interpreter per invocation).
+    """
+    import importlib.util
+
+    name = f"resolve_config_{abs(hash(str(script))) % 10**8}"
+    spec = importlib.util.spec_from_file_location(name, script)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _run_argv(mod, argv: list[str]) -> dict:
+    """Invoke mod.main() with argv, capturing stdout/stderr/exit code.
+
+    main() calls parser.parse_args() (reads sys.argv) and sys.exit() on
+    error — both are emulated: sys.argv is swapped, SystemExit is caught,
+    stdout/stderr are captured. Returns
+    {"returncode", "stdout", "stderr"}.
+    """
+    import contextlib
+    import io
+
+    old_argv = sys.argv
+    sys.argv = list(argv)
+    stdout, stderr = io.StringIO(), io.StringIO()
+    returncode = 0
+    try:
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            mod.main()
+    except SystemExit as exc:
+        returncode = exc.code if isinstance(exc.code, int) else 1
+    finally:
+        sys.argv = old_argv
+    return {"returncode": returncode, "stdout": stdout.getvalue(), "stderr": stderr.getvalue()}
 
 
 # ── Legacy YAML parser ───────────────────────────────────────────────
@@ -290,16 +347,10 @@ def test_module_output_project_override_applies(plugin, tmp_path):
 
 def test_module_unknown_module_errors(plugin, tmp_path):
     project = _make_project(tmp_path)
-    import subprocess
-
-    cmd = [
-        sys.executable,
-        str(plugin / "bmad" / "scripts" / "resolve_config.py"),
-        "--project-root", str(project), "--module", "nope",
-    ]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-    assert proc.returncode == 1
-    assert "unknown module" in proc.stderr
+    script = plugin / "bmad" / "scripts" / "resolve_config.py"
+    out = _run_argv(_fresh_resolver(script), _in_process_argv(script, project, ("--module", "nope")))
+    assert out["returncode"] == 1
+    assert "unknown module" in out["stderr"]
 
 
 def test_module_via_legacy_yaml(plugin, tmp_path):
@@ -337,7 +388,6 @@ def test_same_file_layers_not_double_applied(tmp_path):
     # {project-root} and plugin/project layers point at the SAME files.
     # Double-applying append-merged arrays duplicated every list (4 → 8).
     import shutil
-    import subprocess
 
     root = tmp_path / "selfhost"
     root.mkdir()
@@ -348,15 +398,9 @@ def test_same_file_layers_not_double_applied(tmp_path):
     dest = root / "bmad" / "scripts"
     dest.mkdir(parents=True)
     shutil.copy(_SCRIPT, dest / "resolve_config.py")
-    cmd = [
-        sys.executable, str(dest / "resolve_config.py"),
-        "--project-root", str(root), "--module", "gds",
-    ]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-    assert proc.returncode == 0, proc.stderr
-    import json
-    out = json.loads(proc.stdout)
-    assert out["gds"]["primary_platform"] == ["unity", "unreal", "godot", "other"]
+    out = _run_argv(_fresh_resolver(dest / "resolve_config.py"), _in_process_argv(dest / "resolve_config.py", root, ("--module", "gds")))
+    assert out["returncode"] == 0, out["stderr"]
+    assert json.loads(out["stdout"])["gds"]["primary_platform"] == ["unity", "unreal", "godot", "other"]
 
 
 def test_keyed_array_merge_by_code():

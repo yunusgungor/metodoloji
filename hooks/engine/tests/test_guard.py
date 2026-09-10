@@ -903,7 +903,7 @@ from modules.guard import _intent_scope_warnings  # noqa: E402
 
 
 def test_scope_warning_outside_scope(tmp_path):
-    """Scope dışı yazma uyarısı üretmeli."""
+    """An out-of-scope write must warn."""
     warnings = _intent_scope_warnings(
         scope="src/auth",
         targets=["src/payments/pay.py"],
@@ -915,7 +915,7 @@ def test_scope_warning_outside_scope(tmp_path):
 
 
 def test_scope_warning_inside_scope_no_warn(tmp_path):
-    """Scope içindeki yazma uyarı üretmemeli."""
+    """An in-scope write must not warn."""
     warnings = _intent_scope_warnings(
         scope="src/auth",
         targets=["src/auth/login.py"],
@@ -925,13 +925,13 @@ def test_scope_warning_inside_scope_no_warn(tmp_path):
 
 
 def test_scope_warning_empty_scope_no_warn(tmp_path):
-    """Boş scope → hiçbir şey kontrol edilmez."""
+    """Empty scope → nothing is checked."""
     warnings = _intent_scope_warnings(scope="", targets=["src/any.py"], root=str(tmp_path))
     assert warnings == []
 
 
 def test_scope_warning_story_key_scope_no_warn(tmp_path):
-    """Story key scope'u (S-003 veya 1-2-login) → path kontrolü atlanır."""
+    """A story-key scope (S-003 or 1-2-login) skips the path check."""
     warnings = _intent_scope_warnings(
         scope="S-003",
         targets=["src/anywhere.py"],
@@ -947,12 +947,12 @@ def test_scope_warning_story_key_scope_no_warn(tmp_path):
 
 
 def test_scope_warning_multiple_targets(tmp_path):
-    """Birden fazla target arasında sadece scope dışındakiler uyarı alır."""
+    """Across targets, only the out-of-scope ones warn."""
     warnings = _intent_scope_warnings(
         scope="src/auth",
         targets=["src/auth/login.py", "src/payments/pay.py", "src/auth/utils.py"],
         root=str(tmp_path),
     )
-    # src/auth içindekiler uyarı almamalı, payments almalı
+    # src/auth entries must not warn, payments must
     assert len(warnings) == 1
     assert "payments" in warnings[0]

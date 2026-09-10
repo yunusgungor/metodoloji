@@ -77,10 +77,14 @@ for d in docs/development docs/development/stories docs/quality docs/experiments
     fi
 done
 
-if [ -f "$PROJECT_ROOT/docs/development/_template_S.md" ]; then
-    log_ok "docs/development/_template_S.md exists"
+# Canonical story template lives in stories/ (legacy docs/development/
+# _template_S.md was removed — accept it as a fallback, not a requirement).
+if [ -f "$PROJECT_ROOT/docs/development/stories/_template_S.md" ]; then
+    log_ok "docs/development/stories/_template_S.md exists"
+elif [ -f "$PROJECT_ROOT/docs/development/_template_S.md" ]; then
+    log_warn "legacy docs/development/_template_S.md in use — move to docs/development/stories/_template_S.md"
 else
-    log_issue "docs/development/_template_S.md is MISSING — required by bridge doc §2.3"
+    log_issue "docs/development/stories/_template_S.md is MISSING — required by bridge doc §2.3"
 fi
 
 # ─── CHECK 3: Story files have methodology references ───

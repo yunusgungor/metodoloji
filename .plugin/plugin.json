@@ -1,7 +1,7 @@
 {
   "name": "metodoloji",
   "version": "1.0.0",
-  "description": "BMAD methodology: record chain (E→IR→SP→S→QR→PR), hard gate and 123 skills / 120 bridge TOMLs",
+  "description": "BMAD methodology: record chain (E→IR→SP→S→QR→PR), mechanical gates and 122 skills / 118 bridge TOMLs",
   "author": "yunusgungor",
   "license": "MIT",
   "repository": "https://github.com/yunusgungor/metodoloji"
