@@ -54,6 +54,13 @@ Comparison of the measured value against the hypothesis threshold:
 - "We didn't try it, but made it look like we did" is forbidden.
 - A negative result is still a result.
 
+## Blackboard integration (Methodology chain origin)
+
+- **Start:** `write --key E-{id} --value "in-progress" --type state --hot`, `write --key status --value in-progress`, `write --key scope --value "docs/experiments"`
+- **On APPROVED:** `write --key E-{id} --value "APPROVED..."`, `handoff --to bmad-check-implementation-readiness --from-key E-{id}`
+- **On REJECTED:** `write --key E-{id} --value "REJECTED..."`
+- **Close:** `write --key status --value complete`, `hot --clear`, `doctor --json`
+
 ## Verification (bmad-customize Step 6)
 
 - `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow` — the OpenHands terminal tool accepts only the command parameter; do NOT add description

@@ -95,6 +95,13 @@ Turn the theory into a **falsifiable hypothesis**:
 - Assign an id: `H-xxx`.
 - **Gate:** If the hypothesis cannot be tested — no measurable output, no threshold — you must reformulate it before proceeding. Do not run an experiment that cannot falsify anything.
 - Output: `Hypothesis` + `Measurement Metrics` (metric name + threshold) recorded.
+- **Blackboard run binding:** Once the experiment ID (`E-xxx`) and hypothesis are established, bind the run to the blackboard:
+  ```bash
+  python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key E-{experiment-id} --value "in-progress: H-{xxx} <claim>" --type state --hot --project-root {project-root}
+  python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key status --value in-progress --type state --project-root {project-root}
+  python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key scope --value "docs/experiments" --type state --project-root {project-root}
+  ```
+  The `--hot` flag marks this experiment as the active focus so session start/stop hooks and audit logs trace the run.
 
 ### Stage 3 — Experiment
 
@@ -191,7 +198,18 @@ python3 {skill-root}/scripts/run_experiment.py --verify --record {project-root}/
 ### Stage 6 — Result (Record & Delivery)
 
 - Write/update `docs/experiments/<experiment-id>.md` per `experiment-log.md` (the manifesto's mandatory format).
-- Record: theory, hypothesis + threshold, measurement metrics, design, raw results, decision + rationale, next step. Mirror completion onto the intent bridge: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key status --value complete --type state --project-root {project-root}` (the audit trail stamps this intent on every record, and stop skips story checks once progress is `complete`). On APPROVED, bind the experiment run key (`python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key E-{experiment-id} --value "<one-line outcome>" --type state --project-root {project-root}`) and signal the next stage so the readiness run opens already knowing the verified experiment: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-check-implementation-readiness --from-key E-{experiment-id} --note "Experiment E-NNN APPROVED — see docs/experiments/E-NNN.md; <one-line what readiness should account for>" --project-root {project-root}` (waits in `handoff.bmad-check-implementation-readiness` until a readiness run consumes it — that consumption completes the handshake).
+- Record: theory, hypothesis + threshold, measurement metrics, design, raw results, decision + rationale, next step.
+- **Blackboard run close-out:**
+  - **On APPROVED:** Bind the outcome and post the hand-off signal to implementation readiness:
+    `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key E-{experiment-id} --value "APPROVED: <metric>=<measured> (GATE-OK token verified)" --type state --project-root {project-root}`
+    `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-check-implementation-readiness --from-key E-{experiment-id} --note "Experiment E-NNN APPROVED — see docs/experiments/E-NNN.md; <one-line what readiness should account for>" --project-root {project-root}`
+    (waits in `handoff.bmad-check-implementation-readiness` until a readiness run consumes it — that consumption completes the handshake).
+  - **On REJECTED:** Confess the outcome honestly on the blackboard (no hand-off is posted to readiness, as unapproved experiments cannot unlock code):
+    `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key E-{experiment-id} --value "REJECTED: <metric>=<measured> failed threshold <threshold> — return to theory" --type state --project-root {project-root}`
+  - **Intent mirror & close-out check (both outcomes):**
+    Mirror completion onto the intent bridge: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key status --value complete --type state --project-root {project-root}` (the audit trail stamps this intent on every record, and stop skips story checks once progress is `complete`).
+    Clear the blackboard focus: `python3 {metodoloji-root}/bmad/scripts/blackboard.py hot --clear --project-root {project-root}`.
+    Run the close-out diagnostic check: `python3 {metodoloji-root}/bmad/scripts/blackboard.py doctor --json --project-root {project-root}` — on `NEEDS ATTENTION`, surface warnings to the user before exiting, naming any unclaimed hand-off signals from earlier runs explicitly.
 - **Next step is derived from the decision:** APPROVED → proceed to delivery (below); REJECTED → "Return to Theory; open a new experiment for a new hypothesis."
 - Summarize honestly to the user: what was measured, what the gate decided, and what happens next.
 
