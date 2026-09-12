@@ -275,6 +275,11 @@ def session_start(json_in: dict) -> dict:
                 parts.append(f"last: {last['who']} — {last['what']}")
             if board_ctx.get("neighbors"):
                 parts.append("neighbors: " + ", ".join(board_ctx["neighbors"]))
+            if board_ctx.get("methodology"):
+                m = board_ctx["methodology"]
+                chain = " → ".join(f"{stage}:{m[stage]}" for stage in
+                                    ("E", "IR", "SP", "S", "QR", "PR") if stage in m)
+                parts.append(f"chain progress: {chain}")
             if delivered:
                 msgs = "; ".join(f"[{a['kind']}] {a['text']}" for a in delivered[-3:])
                 parts.append(f"alerts: {msgs}" +

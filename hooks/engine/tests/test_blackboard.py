@@ -118,6 +118,19 @@ def test_compact_context_shape(root):
     assert "intent" not in ctx  # removed mirror: scope/status only
 
 
+def test_compact_context_surfaces_methodology_chain_progress(root):
+    # The record watcher stamps methodology.last_* — the injected context
+    # must surface them in E→IR→SP→S→QR→PR order so a session sees how
+    # far the relay has progressed.
+    bb.write_key(root, "methodology.last_experiment", "E-001.md", type_="state")
+    bb.write_key(root, "methodology.last_story", "S-003.md", type_="state")
+    ctx = bb.compact_context(root)
+    assert list(ctx["methodology"].items()) == [("E", "E-001.md"), ("S", "S-003.md")]
+    # Missing/corrupt board → empty dict, never a missing key or crash
+    ctx2 = bb.compact_context(os.path.join(root, "never-created"))
+    assert ctx2["methodology"] == {}
+
+
 def test_bridge_keys_survive_key_cap(root):
     bb.write_key(root, "scope", "src/auth", type_="state")
     bb.write_key(root, "status", "active", type_="state")

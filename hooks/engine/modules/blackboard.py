@@ -1896,6 +1896,21 @@ def compact_context(project_root: str) -> dict:
         entry = board["keys"].get(k)
         if entry and isinstance(entry, dict) and str(entry.get("value", "")).strip():
             focus[k] = str(entry.get("value"))[:120]
+
+    # Methodology chain progress: the PostToolUse record watcher stamps
+    # methodology.last_* as E/IR/SP/S/QR/PR records are touched; surface
+    # them in chain order so the injected context shows how far the
+    # E→IR→SP→S→QR→PR relay has actually progressed (empty = not started).
+    methodology = {}
+    for stage, key in (("E", "methodology.last_experiment"),
+                       ("IR", "methodology.last_ir"),
+                       ("SP", "methodology.last_sp"),
+                       ("S", "methodology.last_story"),
+                       ("QR", "methodology.last_qr"),
+                       ("PR", "methodology.last_pr")):
+        entry = board["keys"].get(key)
+        if entry and isinstance(entry, dict) and str(entry.get("value", "")).strip():
+            methodology[stage] = str(entry.get("value"))[:80]
     
     # NEW: Operator preferences and urgency (PHASE 3 #6)
     tags_list = list(board["tags"])
@@ -1912,6 +1927,7 @@ def compact_context(project_root: str) -> dict:
         "hot_meta": hot_value,
         "hot_canvas": canvas_summary,
         "focus": focus,
+        "methodology": methodology,
         "priority": priority,  # NEW (PHASE 3 #6)
         "tags": tags_list,
         "watchers": sorted(board["watchers"].keys()),
