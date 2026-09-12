@@ -382,6 +382,8 @@ GATE_REQUIRED = {
 # not counted as a leak; appearing anywhere else is an error.
 GATE_REFERENCE_OK = {
     "bmad-tea",  # test strategy documentary: "depends on Mod A mechanical approval"
+    "bmad-quality-record",        # QR consumer: reads experiment/story gate status
+    "bmad-production-readiness",  # PR consumer: reads QR gate status before certifying
 }
 # May appear in both activation_steps_append and principles.
 # Accept both the legacy Turkish markers and the new English markers.

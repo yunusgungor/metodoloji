@@ -321,15 +321,8 @@ def _check_methodology_chain_completion(root: str) -> tuple[bool, str]:
         from . import blackboard as bb
         waiting = bb.pending_handoff_channels(root)
         
-        # Check for methodology chain stages waiting
-        methodology_stages = {
-            "bmad-research-experiment",
-            "bmad-check-implementation-readiness",
-            "bmad-sprint-planning",
-            "bmad-create-story",
-            "bmad-quality-record",
-            "bmad-production-readiness",
-        }
+        # Methodology chain stages (single source of truth: blackboard.METHODOLOGY_CHAIN)
+        methodology_stages = set(bb.METHODOLOGY_CHAIN)
         
         stuck = [(s, c) for s, c in waiting.items() if s in methodology_stages and c > 0]
         if stuck:
@@ -345,169 +338,169 @@ def _check_methodology_chain_completion(root: str) -> tuple[bool, str]:
 
 def _validate_hook_state_machine(root: str) -> tuple[bool, str]:
     """Validate that hook events follow SessionStart→PreToolUse→PostToolUse→Stop order.
-    
-    Reads audit log and checks hook_event sequence for violations.
-    Returns (is_valid, reason). (HIGH #7 / ISSUE #58)
-    
-    NEW: Also recognizes session_stop marker as session end (MEDIUM #3 / ISSUE #62)
+
+    Hook events live in TWO append-only streams, merged here in timestamp
+    order for validation:
+      1. Audit log (.metodoloji/logs/hook-audit.log): session_marker /
+         session_stop markers (record_session_start / _record_session_stop_marker).
+      2. Blackboard event log (.metodoloji/logs/blackboard-events.log):
+         tool events carrying hook_event=PreToolUse/PostToolUse
+         (stamp_tool_event), plus session stamps (see _stamp_session_event).
+
+    Accepts BOTH stream schemas: the audit markers' {type, hook_event} and
+    the generic {type: "hook", name: <event>} shape used by tests and
+    external tooling (.metodoloji/events.log). Returns (is_valid, reason).
+    (HIGH #7 / ISSUE #58)
     """
     from .config import log_file
-    log_path = pathlib.Path(root).absolute() / log_file()
-    if not log_path.exists():
-        return True, ""  # No log yet, OK
+    root_abs = pathlib.Path(root).absolute()
+    log_path = root_abs / log_file()
+
+    # --- collect (ts, hook_event, origin) rows from every stream ----------
+    rows: list[tuple[float, str, str]] = []
+
+    def _hook_from_generic(entry: dict) -> str:
+        """hook_event under either schema: hook_event key, or name key."""
+        return str(entry.get("hook_event") or entry.get("name") or "")
+
+    if log_path.exists():
+        try:
+            with open(log_path, "r", encoding="utf-8") as f:
+                for line_no, line in enumerate(f, 1):
+                    try:
+                        entry = json.loads(line)
+                    except (json.JSONDecodeError, ValueError):
+                        continue
+                    entry_type = str(entry.get("type", ""))
+                    hook_event = str(entry.get("hook_event", ""))
+                    ts = float(entry.get("timestamp", 0.0) or 0.0)
+                    if entry_type in ("session_marker", "session_start"):
+                        # record_session_start writes type=_SESSION_MARKER_TYPE
+                        # ("session_start"); "session_marker" is accepted for
+                        # backward compatibility with older logs.
+                        if hook_event == "SessionStart" or _hook_from_generic(entry) == "SessionStart":
+                            rows.append((ts, "SessionStart", f"audit:{line_no}"))
+                        continue
+                    if entry_type == "session_stop":
+                        if hook_event == "Stop" or _hook_from_generic(entry) == "Stop":
+                            rows.append((ts, "Stop", f"audit:{line_no}"))
+                        continue
+                    if entry_type == "stop":  # legacy end marker
+                        rows.append((ts, "Stop", f"audit:{line_no}"))
+                        continue
+                    # Tool events with a hook_event field (future-proof: the
+                    # audit record itself may carry the event name)
+                    if hook_event in ("PreToolUse", "PostToolUse"):
+                        rows.append((ts, hook_event, f"audit:{line_no}"))
+                        continue
+                    # Generic {type: hook, name: <event>} schema
+                    if entry_type == "hook":
+                        name = _hook_from_generic(entry)
+                        if name in ("SessionStart", "PreToolUse", "PostToolUse", "Stop"):
+                            rows.append((ts, name, f"audit:{line_no}"))
+        except OSError:
+            pass  # unreadable audit log — board stream below may still validate
+
+    # Board stream: raw event replay (read-only — no _mutate scope here).
+    try:
+        from . import blackboard as bb
+        paths = bb.board_paths(root)
+        events_path = pathlib.Path(paths["events"])
+        if events_path.exists():
+            with open(events_path, "r", encoding="utf-8") as f:
+                for line_no, line in enumerate(f, 1):
+                    try:
+                        ev = json.loads(line)
+                    except (json.JSONDecodeError, ValueError):
+                        continue
+                    kind = ev.get("event")
+                    hook_event = str(ev.get("hook_event", ""))
+                    ts = float(ev.get("ts", 0.0) or 0.0)
+                    if kind == "tool":
+                        if hook_event in ("PreToolUse", "PostToolUse"):
+                            rows.append((ts, hook_event, f"board:{line_no}"))
+                    elif kind == "session_start":
+                        rows.append((ts, "SessionStart", f"board:{line_no}"))
+                    elif kind == "session_stop":
+                        rows.append((ts, "Stop", f"board:{line_no}"))
+                    elif kind == "hook":
+                        name = str(ev.get("name", ""))
+                        if name in ("SessionStart", "PreToolUse", "PostToolUse", "Stop"):
+                            rows.append((ts, name, f"board:{line_no}"))
+    except Exception:
+        pass  # fail-open: board stream unreadable — audit stream already read
+
+    # Legacy fallback: a bare .metodoloji/events.log (generic hook schema),
+    # read LAST so dated streams take precedence when both exist.
+    legacy_path = root_abs / ".metodoloji" / "events.log"
+    if legacy_path.exists():
+        try:
+            with open(legacy_path, "r", encoding="utf-8") as f:
+                for line_no, line in enumerate(f, 1):
+                    try:
+                        entry = json.loads(line)
+                    except (json.JSONDecodeError, ValueError):
+                        continue
+                    name = _hook_from_generic(entry)
+                    if name in ("SessionStart", "PreToolUse", "PostToolUse", "Stop"):
+                        ts = float(entry.get("timestamp", 0.0) or 0.0)
+                        rows.append((ts, name, f"legacy:{line_no}"))
+        except OSError:
+            pass
+
+    if not rows:
+        return True, ""  # nothing recorded yet, OK
     
     try:
+        # Merge streams chronologically (stable: equal ts keep file order).
+        rows.sort(key=lambda r: r[0])
+
         session_started = False
         last_event = None
         violations = []
-        
-        with open(log_path, "r", encoding="utf-8") as f:
-            for line_no, line in enumerate(f, 1):
-                try:
-                    entry = json.loads(line)
-                except (json.JSONDecodeError, ValueError):
-                    continue
-                
-                entry_type = entry.get("type", "")
-                hook_event = entry.get("hook_event", "")
-                
-                # SessionStart marker
-                if entry_type == "session_marker":
-                    if hook_event == "SessionStart":
-                        session_started = True
-                        last_event = "SessionStart"
-                    continue
-                
-                # NEW: session_stop marker (explicit session-end event)
-                if entry_type == "session_stop":
-                    if hook_event == "Stop":
-                        if session_started and last_event:
-                            # Valid end: SessionStart/PreToolUse/PostToolUse → Stop
-                            if last_event not in ("SessionStart", "PreToolUse", "PostToolUse"):
-                                violations.append(
-                                    f"Hook sequence violation: last event '{last_event}' "
-                                    f"should not transition to Stop"
-                                )
-                        session_started = False
-                        last_event = "Stop"
-                    continue
-                
-                # Stop marker (end of session) - legacy
-                if entry_type == "stop":
-                    if session_started and last_event:
-                        # Valid end: SessionStart/PreToolUse/PostToolUse → Stop
-                        if last_event not in ("SessionStart", "PreToolUse", "PostToolUse", "Stop"):
-                            violations.append(
-                                f"Hook sequence violation: last event '{last_event}' "
-                                f"should not transition to Stop"
-                            )
-                    session_started = False
-                    last_event = "Stop"
-                    continue
-                
-                # Tool events with hook_event
-                if hook_event in ("PreToolUse", "PostToolUse"):
-                    # Validate transitions
-                    if hook_event == "PreToolUse":
-                        # PreToolUse must come after SessionStart (or another PostToolUse)
-                        if not session_started:
-                            violations.append(
-                                f"Hook sequence violation: PreToolUse at line {line_no} "
-                                f"without SessionStart"
-                            )
-                        elif last_event not in ("SessionStart", "PostToolUse"):
-                            violations.append(
-                                f"Hook sequence violation: PreToolUse follows '{last_event}' "
-                                f"(expected SessionStart or PostToolUse)"
-                            )
-                        last_event = "PreToolUse"
-                    
-                    elif hook_event == "PostToolUse":
-                        # PostToolUse must follow PreToolUse
-                        if last_event != "PreToolUse":
-                            violations.append(
-                                f"Hook sequence violation: PostToolUse at line {line_no} "
-                                f"follows '{last_event}' (expected PreToolUse)"
-                            )
-                        last_event = "PostToolUse"
-        
+
+        for ts, hook_event, origin in rows:
+            if hook_event == "SessionStart":
+                session_started = True
+                last_event = "SessionStart"
+            elif hook_event == "Stop":
+                if session_started and last_event:
+                    if last_event not in ("SessionStart", "PreToolUse", "PostToolUse"):
+                        violations.append(
+                            f"Hook sequence violation: last event '{last_event}' "
+                            f"should not transition to Stop"
+                        )
+                session_started = False
+                last_event = "Stop"
+            elif hook_event == "PreToolUse":
+                if not session_started:
+                    violations.append(
+                        f"Hook sequence violation: PreToolUse at {origin} "
+                        f"without SessionStart"
+                    )
+                elif last_event not in ("SessionStart", "PostToolUse"):
+                    violations.append(
+                        f"Hook sequence violation: PreToolUse follows '{last_event}' "
+                        f"(expected SessionStart or PostToolUse)"
+                    )
+                last_event = "PreToolUse"
+            elif hook_event == "PostToolUse":
+                if last_event != "PreToolUse":
+                    violations.append(
+                        f"Hook sequence violation: PostToolUse at {origin} "
+                        f"follows '{last_event}' (expected PreToolUse)"
+                    )
+                last_event = "PostToolUse"
+
         if violations:
             # Return first 2 violations as summary
             return False, "; ".join(violations[:2])
-        
+
         return True, ""
     
     except Exception as e:
         # Can't validate log, but don't block stop
         return True, f"(hook validation skipped: {str(e)[:100]})"
-    """Append the board's hot-key state to a deny reason (fail-open, gated).
-
-    The notice tells the model which working context is still hot before the
-    session closes — a nudge to wrap it up, never a block on its own.
-    """
-    try:
-        from .config import blackboard_enabled
-        if not blackboard_enabled():
-            return reason
-        from . import blackboard as bb
-        ctx = bb.compact_context(root)
-        bits = []
-        
-        # NEW: Check for cascade invalidation alerts (PHASE 1 #1)
-        cascade_alerts = bb.pending_alerts(root, "cascade")
-        if cascade_alerts:
-            cascade_msgs = "; ".join(a["text"] for a in cascade_alerts[-2:])
-            bits.append(f"⚠️  CASCADE INVALIDATION DETECTED: {cascade_msgs}. "
-                       "Downstream records may be stale — re-validate before proceeding.")
-        
-        # NEW: Check for stale handoff signals (PHASE 3 #5)
-        now = time.time()
-        stale_handoffs = [
-            a for a in bb.read_board(root).get("alerts", [])
-            if a.get("kind") == "handoff" and 
-               (now - (a.get("ts", 0.0))) > bb.HANDOFF_SIGNAL_TTL_SECONDS
-        ]
-        if stale_handoffs:
-            skill_names = set()
-            for alert in stale_handoffs:
-                channel = alert.get("channel", "")
-                if channel.startswith("handoff."):
-                    skill_names.add(channel[len("handoff."):])
-            if skill_names:
-                bits.append(f"🚨 ESCALATION: {len(stale_handoffs)} STALE HANDOFF SIGNAL(S) "
-                           f"({', '.join(sorted(skill_names))} unreachable > 24h). "
-                           f"Skill may have crashed — manual intervention needed.")
-        
-        if ctx.get("hot"):
-            bits.append(f"Blackboard hot key '{ctx['hot']}' is still active — "
-                        "clear it (blackboard.py hot --clear) or finalize its artifact.")
-        if ctx.get("hot_canvas"):
-            hc = ctx["hot_canvas"]
-            bits.append(f"Canvas '{hc['name']}' is still focused ({hc['cells']} cells) — "
-                        "finalize or clear focus (blackboard.py canvas focus --clear).")
-        alerts = bb.pending_alerts(root, "stop")
-        if alerts:
-            msgs = "; ".join(a["text"] for a in alerts[-3:])
-            bits.append(f"{len(alerts)} pending alert(s): {msgs}.")
-        try:
-            waiting = bb.pending_handoff_channels(root)
-        except Exception:
-            waiting = {}
-        waiting.pop("bmad-help", None)  # help skill has its own routing
-        if waiting:
-            w = ", ".join(f"{s} ({n})" for s, n in sorted(waiting.items()))
-            total = sum(waiting.values())
-            bits.append(f"PROACTIVE — hand-off waiting: {w}: {total} unclaimed "
-                        "signal(s) left by completed upstream runs; do not close "
-                        "the loop empty-handed (diagnose: blackboard.py "
-                        "chain-health; claim: handoffs --skill <downstream>, "
-                        "then consume its handoff channel).")  # announce-only
-        if bits:
-            bb.consume_alerts(root, "stop")  # deliver-once
-            return reason + " " + " ".join(bits)
-    except Exception:
-        pass
-    return reason
 
 
 def _record_session_stop_marker(root: str) -> None:
@@ -589,6 +582,55 @@ def _record_session_to_blackboard(root: str) -> None:
             pass
     except Exception:
         pass  # fail-open
+
+
+def _board_dirty_notice(root: str, reason: str) -> str:
+    """Append the board's hot-key state to a deny reason (fail-open, gated).
+
+    The notice tells the model which working context is still hot before the
+    session closes — a nudge to wrap it up, never a block on its own.
+
+    Restored: commit 48ed1f2 replaced this definition while its three call
+    sites survived, raising NameError inside stop() and crashing the
+    fail-closed Stop hook.
+    """
+    try:
+        from .config import blackboard_enabled
+        if not blackboard_enabled():
+            return reason
+        from . import blackboard as bb
+        ctx = bb.compact_context(root)
+        bits = []
+        if ctx.get("hot"):
+            bits.append(f"Blackboard hot key '{ctx['hot']}' is still active — "
+                        "clear it (blackboard.py hot --clear) or finalize its artifact.")
+        if ctx.get("hot_canvas"):
+            hc = ctx["hot_canvas"]
+            bits.append(f"Canvas '{hc['name']}' is still focused ({hc['cells']} cells) — "
+                        "finalize or clear focus (blackboard.py canvas-clear --name ... ).")
+        alerts = bb.pending_alerts(root, "stop")
+        if alerts:
+            msgs = "; ".join(f"[{a['kind']}] {a['text']}" for a in alerts[-3:])
+            bits.append(f"{len(alerts)} pending alert(s): {msgs}.")
+        try:
+            waiting = bb.pending_handoff_channels(root)
+        except Exception:
+            waiting = {}
+        waiting.pop("bmad-help", None)  # help skill has its own routing
+        if waiting:
+            w = ", ".join(f"{s} ({n})" for s, n in sorted(waiting.items()))
+            total = sum(waiting.values())
+            bits.append(f"PROACTIVE — hand-off waiting: {w}: {total} unclaimed "
+                        "signal(s) left by completed upstream runs; do not close "
+                        "the loop empty-handed (diagnose: blackboard.py "
+                        "chain-health; claim: handoffs --skill <downstream>, "
+                        "then consume its handoff channel).")  # announce-only
+        if bits:
+            bb.consume_alerts(root, "stop")  # deliver-once
+            return reason + " " + " ".join(bits)
+    except Exception:
+        pass
+    return reason
 
 
 def stop(json_in: dict) -> dict:

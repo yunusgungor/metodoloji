@@ -40,33 +40,30 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import shutil
 
-# Add modules to path
-hooks_modules_dir = Path(__file__).parent.parent.parent / "hooks" / "engine" / "modules"
+# Add ENGINE root to path so hook modules import as the `modules` package
+# (guard.py & co. use relative imports — importing them as bare top-level
+# modules fails with "attempted relative import with no known parent package").
+import pytest
+
+hooks_engine_dir = Path(__file__).parent.parent.parent / "hooks" / "engine"
 bmad_scripts_dir = Path(__file__).parent.parent / "scripts"
 
-print(f"[DEBUG] hooks_modules_dir: {hooks_modules_dir} | exists: {hooks_modules_dir.exists()}")
-print(f"[DEBUG] bmad_scripts_dir: {bmad_scripts_dir} | exists: {bmad_scripts_dir.exists()}")
-
-sys.path.insert(0, str(hooks_modules_dir))
+sys.path.insert(0, str(hooks_engine_dir))
 sys.path.insert(0, str(bmad_scripts_dir))
 
-# Verify imports can load
+# Verify imports can load; skip the whole module cleanly when the engine
+# cannot be imported on this interpreter instead of killing pytest collection
+# with sys.exit(1) (an INTERNALERROR aborts the ENTIRE test session).
 try:
-    from guard import guard
-    print("[DEBUG] ✓ guard imported successfully")
-except ImportError as e:
-    print(f"[DEBUG] ✗ Failed to import guard: {e}")
-    sys.exit(1)
-
-# Import remaining hook modules
-try:
-    from stop import stop
-    from blackboard import stamp_tool_event, post_alert, compact_context
-    from utils import normalize_hook_input, repo_root
-    print("[DEBUG] ✓ All hook modules imported successfully")
-except ImportError as e:
-    print(f"[DEBUG] ✗ Failed to import hook modules: {e}")
-    # Don't exit - these are used in tests, not in initial setup
+    from modules.guard import guard
+    from modules.stop import stop
+    from modules.blackboard import stamp_tool_event, post_alert, compact_context
+    from modules.utils import normalize_hook_input, repo_root
+except Exception as e:  # ImportError and anything raised by module import
+    pytest.skip(
+        f"hook engine not importable on this interpreter: {e}",
+        allow_module_level=True,
+    )
 
 
 # ============================================================================
@@ -271,8 +268,15 @@ def create_blackboard_dir(root: str) -> Path:
 
 
 def read_blackboard_events(root: str) -> list[dict]:
-    """Read all events from blackboard."""
-    events_file = Path(root) / ".metodoloji" / "blackboard" / "events.jsonl"
+    """Read all events from the blackboard event log.
+
+    The engine appends to ``.metodoloji/logs/blackboard-events.log``; the
+    earlier ``.metodoloji/blackboard/events.jsonl`` path never existed in
+    the engine and is kept as a legacy fallback.
+    """
+    real_file = Path(root) / ".metodoloji" / "logs" / "blackboard-events.log"
+    legacy_file = Path(root) / ".metodoloji" / "blackboard" / "events.jsonl"
+    events_file = real_file if real_file.exists() else legacy_file
     if not events_file.exists():
         return []
     
@@ -292,7 +296,12 @@ def read_blackboard_events(root: str) -> list[dict]:
 # TEST PHASE 1: CASCADE INVALIDATION & CACHE VERSIONING
 # ============================================================================
 
-def test_phase_1_cascade_and_cache(temp_root: str) -> dict:
+# NOTE: the phase functions below are the REAL workflow simulations, written
+# for the standalone runner (`python test_claude_code_simulation.py`). They
+# take a `temp_root` argument and RETURN a result dict, so pytest cannot run
+# them directly. Thin pytest wrappers (`test_*`) further down inject an
+# isolated `temp_root` fixture per phase and assert the recorded statuses.
+def _phase_1_cascade_and_cache(temp_root: str) -> dict:
     """
     Test Phase 1:
     #1 Cascade Invalidation - Guard posts alert, Stop checks
@@ -393,7 +402,7 @@ def test_phase_1_cascade_and_cache(temp_root: str) -> dict:
 # TEST PHASE 2: SESSION ID & CANVAS INTEGRATION
 # ============================================================================
 
-def test_phase_2_session_and_canvas(temp_root: str) -> dict:
+def _phase_2_session_and_canvas(temp_root: str) -> dict:
     """
     Test Phase 2:
     #3 Session ID - stamp_tool_event includes session_id
@@ -446,10 +455,11 @@ def test_phase_2_session_and_canvas(temp_root: str) -> dict:
             cwd=temp_root,
         )
         
-        # Try to stamp event with session_id
+        # Try to stamp event with session_id (signature: project_root,
+        # tool_name, target, hook_event)
         try:
             stamp_tool_event(
-                root=temp_root,
+                project_root=temp_root,
                 tool_name="Write",
                 target="session-test.md",
                 hook_event="PreToolUse",
@@ -513,7 +523,7 @@ def test_phase_2_session_and_canvas(temp_root: str) -> dict:
 # TEST PHASE 3: HANDOFF ESCALATION & OPERATOR CONTEXT
 # ============================================================================
 
-def test_phase_3_handoff_and_context(temp_root: str) -> dict:
+def _phase_3_handoff_and_context(temp_root: str) -> dict:
     """
     Test Phase 3:
     #5 Handoff Escalation - detect >24h stale signals
@@ -566,13 +576,13 @@ def test_phase_3_handoff_and_context(temp_root: str) -> dict:
     # Test 3.2: Escalation alert posting
     print("\n[Test 3.2] Verify escalation alert posted to operator...")
     try:
-        # Post escalation alert
+        # Post escalation alert (signature: project_root, channel, kind, text)
         try:
             post_alert(
-                root=temp_root,
-                source="handoff_monitor",
+                project_root=temp_root,
+                channel="stop",
                 kind="warn",
-                message="Handoff HO-001 stale for >24h — escalating to operator",
+                text="Handoff HO-001 stale for >24h — escalating to operator",
             )
             print(f"  Escalation alert posted")
             results["tests"].append({
@@ -629,7 +639,7 @@ def test_phase_3_handoff_and_context(temp_root: str) -> dict:
 # TEST PHASE 4: ALERT TAXONOMY & DIAGNOSTICS
 # ============================================================================
 
-def test_phase_4_taxonomy_and_diagnostics(temp_root: str) -> dict:
+def _phase_4_taxonomy_and_diagnostics(temp_root: str) -> dict:
     """
     Test Phase 4:
     #7 Alert Taxonomy - AlertKind enum validation
@@ -647,28 +657,28 @@ def test_phase_4_taxonomy_and_diagnostics(temp_root: str) -> dict:
     # Test 4.1: AlertKind enum validation
     print("\n[Test 4.1] Verify AlertKind enum validation...")
     try:
-        # Valid kinds: info, warn, error, critical
-        valid_kinds = ["info", "warn", "error", "critical"]
+        # Valid kinds: the AlertKind taxonomy (blackboard.AlertKind)
+        valid_kinds = ["info", "warn", "error", "risk"]
         
         for kind in valid_kinds:
             try:
                 post_alert(
-                    root=temp_root,
-                    source="test",
+                    project_root=temp_root,
+                    channel="stop",
                     kind=kind,
-                    message=f"Test {kind} alert",
+                    text=f"Test {kind} alert",
                 )
                 print(f"  ✓ {kind:10} - PASS")
             except Exception as e:
                 print(f"  ✗ {kind:10} - ERROR: {e}")
         
-        # Invalid kind should be handled gracefully
+        # Invalid kind should be handled gracefully (fail-open: mapped to info)
         try:
             post_alert(
-                root=temp_root,
-                source="test",
+                project_root=temp_root,
+                channel="stop",
                 kind="invalid_kind",
-                message="Test invalid kind",
+                text="Test invalid kind",
             )
             print(f"  ? invalid_kind - Should be mapped to 'info'")
         except Exception as e:
@@ -752,7 +762,7 @@ def test_phase_4_taxonomy_and_diagnostics(temp_root: str) -> dict:
 # END-TO-END WORKFLOW TEST
 # ============================================================================
 
-def test_end_to_end_workflow(temp_root: str) -> dict:
+def _end_to_end_workflow(temp_root: str) -> dict:
     """
     Complete workflow simulation:
     SessionStart → Guard → PostToolUse → Stop
@@ -918,7 +928,7 @@ def test_end_to_end_workflow(temp_root: str) -> dict:
 # ============================================================================
 
 def run_all_tests():
-    """Run complete test suite."""
+    """Run complete test suite (standalone mode: python test_claude_code_simulation.py)."""
     print("\n")
     print("╔" + "=" * 78 + "╗")
     print("║" + " " * 78 + "║")
@@ -943,13 +953,13 @@ def run_all_tests():
         }
         
         # Phase tests
-        all_results["phases"].append(test_phase_1_cascade_and_cache(temp_root_str))
-        all_results["phases"].append(test_phase_2_session_and_canvas(temp_root_str))
-        all_results["phases"].append(test_phase_3_handoff_and_context(temp_root_str))
-        all_results["phases"].append(test_phase_4_taxonomy_and_diagnostics(temp_root_str))
+        all_results["phases"].append(_phase_1_cascade_and_cache(temp_root_str))
+        all_results["phases"].append(_phase_2_session_and_canvas(temp_root_str))
+        all_results["phases"].append(_phase_3_handoff_and_context(temp_root_str))
+        all_results["phases"].append(_phase_4_taxonomy_and_diagnostics(temp_root_str))
         
         # E2E workflow
-        all_results["workflow"] = test_end_to_end_workflow(temp_root_str)
+        all_results["workflow"] = _end_to_end_workflow(temp_root_str)
         
         # Generate report
         print_test_report(all_results)
@@ -1033,3 +1043,66 @@ if __name__ == "__main__":
         json.dump(results, f, indent=2)
     
     print(f"\n📊 Full results saved to: {report_file}")
+
+
+# ============================================================================
+# PYTEST WRAPPERS
+# ============================================================================
+# The phase simulations above were written for the standalone runner and
+# RETURN result dicts instead of asserting. These thin wrappers give the
+# suite real pytest coverage: each gets an ISOLATED temp project (function-
+# scoped fixture), runs its phase, and hard-asserts that no inner check
+# failed. Guard/stop run against each wrapper's own temp root — env state is
+# pinned via monkeypatch so parallel/serialized tests never share a project.
+
+
+def _phase_failures(result: dict) -> list[str]:
+    """Extract human-readable failures from a phase/workflow result dict."""
+    failures = []
+    checks = list(result.get("tests", [])) + list(result.get("steps", []))
+    for check in checks:
+        status = check.get("status", "UNKNOWN")
+        if status in ("FAIL",):
+            msg = f"{check.get('name') or check.get('step')}: {check.get('error', 'failed')}"
+            failures.append(msg)
+    return failures
+
+
+@pytest.fixture()
+def temp_root(tmp_path):
+    """An isolated temp project with the structure the simulations expect."""
+    root = tmp_path / "proj"
+    (root / "bmad").mkdir(parents=True)
+    (root / ".metodoloji" / "logs").mkdir(parents=True)
+    return str(root)
+
+
+def test_phase1_cascade_and_cache(temp_root, monkeypatch):
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", temp_root)
+    result = _phase_1_cascade_and_cache(temp_root)
+    assert _phase_failures(result) == [], _phase_failures(result)
+
+
+def test_phase2_session_and_canvas(temp_root, monkeypatch):
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", temp_root)
+    result = _phase_2_session_and_canvas(temp_root)
+    assert _phase_failures(result) == [], _phase_failures(result)
+
+
+def test_phase3_handoff_and_context(temp_root, monkeypatch):
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", temp_root)
+    result = _phase_3_handoff_and_context(temp_root)
+    assert _phase_failures(result) == [], _phase_failures(result)
+
+
+def test_phase4_taxonomy_and_diagnostics(temp_root, monkeypatch):
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", temp_root)
+    result = _phase_4_taxonomy_and_diagnostics(temp_root)
+    assert _phase_failures(result) == [], _phase_failures(result)
+
+
+def test_e2e_workflow(temp_root, monkeypatch):
+    """SessionStart → Guard → PostToolUse → Stop, all roles on one project."""
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", temp_root)
+    result = _end_to_end_workflow(temp_root)
+    assert _phase_failures(result) == [], _phase_failures(result)

@@ -293,6 +293,28 @@ def _parse_experiment_refs(content: str) -> list[dict]:
     return refs
 
 
+def _orphan_story_reason(content: str) -> str:
+    """Reason text when a story has no link to any experiment (orphan);
+    empty string when the story is experiment-linked.
+
+    A story is an orphan when it has neither frontmatter ``experiment_refs``
+    nor any AC-level ``Experiment: E-NNN`` field. Strictness for this case
+    is decided by the gate branch in the story-write path (soft → warn,
+    hard → deny); this helper only detects it.
+    """
+    if _parse_experiment_refs(content):
+        return ""
+    ac_exp_pattern = re.compile(r"\[AC-\d+\].*?Experiment:\s*(E-\d+|—|-)", re.DOTALL | re.IGNORECASE)
+    actual_ac_exp_refs = [e for e in ac_exp_pattern.findall(content) if e not in ("—", "-")]
+    if actual_ac_exp_refs:
+        return ""
+    return (
+        "Story has no experiment reference: every acceptance criterion must reference "
+        "an Experiment (E-NNN). Add 'Experiment: E-XXX' field to each AC to link this story "
+        "to the experiment that validates it."
+    )
+
+
 def _validate_story_experiment_refs(content: str, root: str = "") -> tuple[bool, str]:
     """Validate that all experiment_refs in a story file point to approved records.
 
@@ -322,14 +344,13 @@ def _validate_story_experiment_refs(content: str, root: str = "") -> tuple[bool,
         pass  # Allow it to proceed (soft enforcement)
     
     if not refs:
-        # No experiment_refs in frontmatter — allow, but if no ACs have experiments either, it's orphaned
-        if not actual_ac_exp_refs:
-            # Story has no link to any experiment — this is the orphan case
-            return False, (
-                "Story has no experiment reference: every acceptance criterion must reference "
-                "an Experiment (E-NNN). Add 'Experiment: E-XXX' field to each AC to link this story "
-                "to the experiment that validates it."
-            )
+        # No experiment_refs in frontmatter: the story may still be linked
+        # via AC-level 'Experiment:' fields; when it is not, it is an ORPHAN
+        # story. Orphan strictness is decided by the gate branch in the
+        # story-write path (_orphan_story_reason) — soft gate warns, hard
+        # gate denies. Refs that DO exist are always strictly validated
+        # below, regardless of gate mode (an unapproved/missing experiment
+        # reference must never pass).
         return True, ""
 
     recs_dir = pathlib.Path(root) / "docs" / "experiments"
@@ -567,7 +588,11 @@ def _validate_story_metadata(content: str) -> tuple[bool, str]:
     issues = []
 
     # NEW: Validate status field state machine (HIGH #3 / ISSUE #11)
-    _STATUS_RE = re.compile(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(.+)", re.IGNORECASE | re.MULTILINE)
+    # Anchored to line start: the story 'Status:' field is either a top-level
+    # line or a list item ('- **Status:** done'). Indented YAML keys (e.g.
+    # 'status: APPROVED' under experiment_refs frontmatter) must never match —
+    # the vocabulary check would flag 'approved' as an invalid story status.
+    _STATUS_RE = re.compile(r"^(?:[-*]\s+)?\*?\*?Status\s*:\s*\*?\*?\s*(.+)", re.IGNORECASE | re.MULTILINE)
     status_match = _STATUS_RE.search(content)
     if status_match:
         current_status = status_match.group(1).strip().lower()
@@ -664,8 +689,10 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
         root = repo_root({})
     root = os.path.abspath(root)
 
-    # Extract story status (handles: 'Status: done', '- **Status:** done', etc.)
-    _STATUS_RE = re.compile(r"[-*]?\s*\*?\*?Status\s*:\s*\*?\*?\s*(.+)", re.IGNORECASE | re.MULTILINE)
+    # Extract story status (handles: '- **Status:** done', 'Status: done').
+    # Line-start anchored so indented YAML 'status:' keys never match (same
+    # rationale as _validate_story_metadata).
+    _STATUS_RE = re.compile(r"^(?:[-*]\s+)?\*?\*?Status\s*:\s*\*?\*?\s*(.+)", re.IGNORECASE | re.MULTILINE)
     status_match = _STATUS_RE.search(content)
     if not status_match:
         return True, ""  # No status = not a story file
@@ -1124,16 +1151,24 @@ def guard(json_in: dict) -> dict:
                             "decision": "deny",
                             "reason": f"Story experiment validation failed for {rel}: {reason}"
                         }
-                    # 2+3. Metadata + chain validation. Strictness comes from
-                    #      custom/config.toml [hooks] quality_gate ONLY:
-                    #      hard → deny, soft → warn-only. deploy_guard must NOT
-                    #      leak into story-edit strictness (a hard deploy_guard
-                    #      governs deploy commands, not file writes).
-                    #      Read live so config changes apply per-call.
+                    # 2+3. Orphan check + metadata + chain validation.
+                    #      Strictness comes from custom/config.toml [hooks]
+                    #      quality_gate ONLY: hard → deny, soft → warn-only.
+                    #      deploy_guard must NOT leak into story-edit strictness
+                    #      (a hard deploy_guard governs deploy commands, not file
+                    #      writes). Read live so config changes apply per-call.
+                    #
+                    #      Orphan stories (no experiment link of any kind) follow
+                    #      the same gate strictness — soft warns, hard denies —
+                    #      instead of the earlier unconditional deny that broke
+                    #      the brownfield-soft contract.
                     from .config import hook_gate_mode
                     soft_gate = hook_gate_mode("quality_gate") != "hard"
                     if soft_gate:
                         warnings = []
+                        orphan = _orphan_story_reason(story_content)
+                        if orphan:
+                            warnings.append(f"Story experiment link: {orphan}")
                         valid, reason = _validate_story_metadata(story_content)
                         if not valid:
                             warnings.append(f"Story metadata: {reason}")
@@ -1149,11 +1184,20 @@ def guard(json_in: dict) -> dict:
                         if warnings:
                             _soft_warnings.extend(warnings)
                     else:
+                        # Metadata first, then the orphan link check: the
+                        # hard-gate contract message is "Story metadata
+                        # validation failed" when both gaps exist.
                         valid, reason = _validate_story_metadata(story_content)
                         if not valid:
                             return {
                                 "decision": "deny",
                                 "reason": f"Story metadata validation failed for {rel}: {reason}"
+                            }
+                        orphan = _orphan_story_reason(story_content)
+                        if orphan:
+                            return {
+                                "decision": "deny",
+                                "reason": f"Story experiment validation failed for {rel}: {orphan}"
                             }
                         # NEW: Check for duplicate record IDs (CRITICAL #23 / ISSUE #62)
                         basename = pathlib.Path(rel).name
@@ -1376,6 +1420,16 @@ def _find_done_stories_without_qr(root: str) -> list[str]:
     return _find_done_stories_without_record(root, "QR-*.md", "docs/quality")
 
 
+def _find_done_stories_without_pr(root: str) -> list[str]:
+    """Find stories with Status: done that lack a PR record.
+
+    Restored: the deploy gate (Gate 4) calls this when include_pr is set;
+    commit 48ed1f2 dropped the definition while the call site survived,
+    raising NameError at deploy time.
+    """
+    return _find_done_stories_without_record(root, "PR-*.md", "docs/development")
+
+
 def _find_done_stories_without_sp(root: str) -> list[str]:
     """Find stories with Status: done that reference an SP but lack SP record."""
     return _find_done_stories_without_record(root, "SP-*.md", "docs/development",
@@ -1395,7 +1449,18 @@ def _check_methodology_chain_readiness(root: str) -> tuple[bool, str]:
     if not exp_dir.is_dir():
         issues.append("No docs/experiments/ directory — E stage setup incomplete")
     
-    # Check IR (Implementation Readiness) records
+    # Check IR (Implementation Readiness) records — same rule as the
+    # gate-level check (_find_done_stories_without_ir): done stories with no
+    # IR record anywhere in docs/development/ mean Gate 1 was bypassed. The
+    # earlier version only tested that the directory existed, so the IR gap
+    # surfaced as a bare "directory missing" message (or not at all) instead
+    # of the "Implementation Readiness" denial the gates promise.
+    missing_ir = _find_done_stories_without_ir(root)
+    if missing_ir:
+        issues.append(
+            f"{len(missing_ir)} done story(s) exist but no Implementation Readiness (IR) record: "
+            f"{', '.join(missing_ir)}"
+        )
     ir_dir = pathlib.Path(root) / "docs" / "development"
     if not ir_dir.is_dir():
         issues.append("No docs/development/ directory — IR stage setup incomplete")
@@ -1510,15 +1575,12 @@ def quality(json_in: dict) -> dict:
     except Exception:
         pass
 
-    # Check methodology chain readiness first
-    chain_ok, chain_reason = _check_methodology_chain_readiness(root)
-    if not chain_ok:
-        from .config import hook_gate_mode
-        msg = f"Methodology chain incomplete: {chain_reason}"
-        if hook_gate_mode("quality_gate") != "hard":
-            return {"decision": "allow", "methodology_warnings": [msg]}
-        return {"decision": "deny", "reason": msg}
-
+    # Gate record checks (IR → QR → SP). The earlier chain pre-check
+    # (_check_methodology_chain_readiness) short-circuited these with vaguer
+    # messages (e.g. a directory-level SP note that was documented
+    # 'not critical' yet denied) — _check_gate_records carries the
+    # gate-specific, actionable messages the contract promises, in fixed
+    # IR → QR → SP order.
     return _apply_gate_strictness(_check_gate_records(root, "git commit blocked"),
                                   "quality_gate")
 
@@ -1644,14 +1706,8 @@ def deploy(json_in: dict) -> dict:
     except Exception:
         pass
 
-    # Check methodology chain readiness for production
-    chain_ok, chain_reason = _check_methodology_chain_readiness(root)
-    if not chain_ok:
-        from .config import hook_gate_mode
-        msg = f"Methodology chain incomplete for production: {chain_reason}"
-        if hook_gate_mode("deploy_guard") != "hard":
-            return {"decision": "allow", "methodology_warnings": [msg]}
-        return {"decision": "deny", "reason": msg}
-
+    # Gate record checks (IR → QR → SP → PR), same rationale as quality():
+    # _check_gate_records carries the gate-specific messages; PR (Gate 4) is
+    # deploy-only via include_pr=True.
     return _apply_gate_strictness(_check_gate_records(root, "Deploy blocked", include_pr=True),
                                   "deploy_guard")

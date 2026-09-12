@@ -143,6 +143,12 @@ def load_adapter(path: Path) -> dict:
     return cfg
 
 
+# Repo root of the checkout this runner ships in (scripts/ → bmad-eval-runner
+# → skills → repo). Used to expand {repo-root} in adapter invocations so
+# repo-relative shim references stay portable across machines.
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
 def build_argv(invocation: list, prompt: str, cwd: str) -> list[str]:
     argv: list[str] = []
     for tok in invocation:
@@ -150,6 +156,8 @@ def build_argv(invocation: list, prompt: str, cwd: str) -> list[str]:
         tok = (tok.replace("{prompt}", prompt)
                .replace("{query}", prompt)
                .replace("{cwd}", cwd))
+        if "{repo-root}" in tok:
+            tok = tok.replace("{repo-root}", str(_REPO_ROOT))
         argv.append(tok)
     return argv
 

@@ -48,6 +48,7 @@ class AlertKind(Enum):
     INFO = "info"
     WARN = "warn"
     ERROR = "error"
+    RISK = "risk"
     HANDOFF = "handoff"
     CASCADE_INVALIDATION = "cascade_invalidation"
     STALE_SESSION = "stale_session"
@@ -1287,7 +1288,12 @@ def pending_handoffs(project_root: str, skill: str) -> list:
 
 def pending_handoff_channels(project_root: str) -> dict:
     """Skills with waiting hand-off signals: {skill: count} (engine peek —
-    session_start announces, never consumes; the skill completes the shake)."""
+    session_start announces, never consumes; the skill completes the shake).
+
+    Unfiltered by design: tool-workflow signals (e.g. bmad-ux) are announced
+    at stop as PROACTIVE nudges, while methodology-chain strictness is applied
+    at the call site (stop filters against its own methodology_stages set).
+    """
     counts = {}
     for a in read_board(project_root)["alerts"]:
         ch = a.get("channel", "")
@@ -1299,17 +1305,25 @@ def pending_handoff_channels(project_root: str) -> dict:
 
 # --- chain health (hand-off diagnostics) ----------------------------------------------
 # The canonical delivery relay: each hop is one skill handing off to the next.
-# METHODOLOGY CHAIN: Experiment → IR → Sprint Planning → Story → Quality Record → Production Readiness
+# TOOL CHAIN: PRD → UX → Architecture → Spec → Epics → Story → Dev (7 skills,
+# 6 hops) — the ordered hop list chain_health reports.
 CHAIN = [
+    "bmad-prd", "bmad-ux", "bmad-architecture", "bmad-spec",
+    "bmad-create-epics-and-stories", "bmad-create-story", "bmad-dev-story"
+]
+
+# METHODOLOGY CHAIN: Experiment → IR → Sprint Planning → Story → Quality Record →
+# Production Readiness. Not part of the ordered hop relay — stages receive
+# hand-offs by prefix attribution (table below) and surface under
+# chain_health's 'extra' when they hold waiting signals. stop.py consults
+# this set for chain-completion checks (single source of truth).
+METHODOLOGY_CHAIN = [
     "bmad-research-experiment",                 # E (Experiment)
     "bmad-check-implementation-readiness",      # IR (Implementation Readiness)
     "bmad-sprint-planning",                     # SP (Sprint Planning)
     "bmad-create-story",                        # S (Story)
     "bmad-quality-record",                      # QR (Quality Record)
     "bmad-production-readiness",                # PR (Production Readiness)
-    # OPTIONAL EXTENDED CHAIN (for tool workflows):
-    "bmad-prd", "bmad-ux", "bmad-architecture", "bmad-spec",
-    "bmad-create-epics-and-stories", "bmad-dev-story"
 ]
 
 # Run-key namespace prefix → the skill that owns the hand-off (sender attribution).

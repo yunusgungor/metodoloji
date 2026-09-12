@@ -35,8 +35,9 @@ project_knowledge = "{project-root}/docs"
 design_artifacts = "{project-root}/design-artifacts"
 
 # --- Hook enforcement modu ---
-# code_guard / stop_guard run fail-closed (default "hard") — code writing and
-# session close without an approved experiment record return DENY.
+# code_guard / stop_guard run fail-closed. Shipped default is "soft"
+# (brownfield-soft adoption: existing projects warn instead of blocking);
+# tighten to "hard" after the first VERIFIED experiment scope exists.
 # quality_gate / deploy_guard control the commit & deploy gates:
 #   "soft" (default) → warn-only (allow + methodology_warnings), never blocks.
 #   "hard"           → DENY on missing IR/QR/SP/PR records.

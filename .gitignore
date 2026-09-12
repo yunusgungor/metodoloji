@@ -5,6 +5,14 @@ __pycache__/
 .metodoloji/blackboard.json
 .metodoloji/blackboard.json.lock
 .metodoloji/blackboard.json.*.tmp
+# Methodology state anywhere in the tree (e.g. test residue under hooks/):
+# only root-level state files above are tracked-adjacent; nested trees are
+# always local-only.
+**/.metodoloji/logs/
+**/.metodoloji/blackboard.json
+**/.metodoloji/blackboard.json.lock
+**/.metodoloji/blackboard.json.*.tmp
+**/.metodoloji/canvas.json
 _generated_splits/
 .env
 

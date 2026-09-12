@@ -140,12 +140,19 @@ def load_adapter(path: Path) -> dict:
     return cfg
 
 
+# Repo root of the checkout this runner ships in — mirrors run_evals.py —
+# so {repo-root} in adapter invocations expands identically in both modes.
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
 def build_argv(invocation: list, query: str, cwd: str) -> list[str]:
     out: list[str] = []
     for tok in invocation:
         tok = (str(tok).replace("{prompt}", query)
                .replace("{query}", query)
                .replace("{cwd}", cwd))
+        if "{repo-root}" in tok:
+            tok = tok.replace("{repo-root}", str(_REPO_ROOT))
         out.append(tok)
     return out
 

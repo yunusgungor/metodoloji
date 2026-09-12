@@ -122,7 +122,7 @@ Copy tools and data:
 
 | Source | Destination |
 |--------|-------------|
-| `{WDS_SRC}/tools/memory/SKILL.md`    | `{HOME_DIR}/.agents/wds/tools/memory/SKILL.md`    |
+| `{metodoloji-root}/skills/memory/SKILL.md` | `{HOME_DIR}/.agents/wds/tools/memory/SKILL.md`    |
 | `{WDS_SRC}/data/wds-glossary.md`     | `{HOME_DIR}/.agents/wds/data/wds-glossary.md`     |
 | `{WDS_SRC}/data/agent-contracts.md`  | `{HOME_DIR}/.agents/wds/data/agent-contracts.md`  |
 | `{WDS_SRC}/data/shared-activation.md`| `{HOME_DIR}/.agents/wds/data/shared-activation.md`|

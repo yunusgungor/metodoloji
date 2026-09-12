@@ -316,7 +316,16 @@ def test_main_session_start_returns_context(tmp_path):
     assert out["hookSpecificOutput"]["hookEventName"] == "SessionStart"
     assert "METODOLOJI" in out["hookSpecificOutput"].get("additionalContext", "")
 
-def _run_main(args, stdin_data):
+def _run_main(args, stdin_data, project_root=None):
+    """Run main.py in a subprocess.
+
+    project_root pins CLAUDE_PROJECT_DIR for the child. Without it the
+    engine resolves no project root and stamps state next to cwd — which
+    polluted the PLUGIN tree (hooks/.metodoloji/) instead of a sandbox.
+    """
+    env = dict(os.environ)
+    if project_root is not None:
+        env["CLAUDE_PROJECT_DIR"] = str(project_root)
     return subprocess.run(
         [sys.executable, str(MAIN_PY), *args],
         input=json.dumps(stdin_data),
@@ -325,18 +334,21 @@ def _run_main(args, stdin_data):
         encoding="utf-8",
         errors="replace",
         timeout=30,
+        env=env,
         cwd=str(_HOOKS.parent),
     )
 
 
-def test_main_dispatch_guard():
-    r = _run_main(["guard"], {"tool_name": "terminal", "tool_input": {"command": "ls"}})
+def test_main_dispatch_guard(tmp_path):
+    r = _run_main(["guard"], {"tool_name": "terminal", "tool_input": {"command": "ls"}},
+                  project_root=tmp_path)
     out = json.loads(r.stdout)
     assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
 
 
-def test_main_dispatch_unknown_hook_allows():
-    r = _run_main(["nonexistent-hook"], {"tool_name": "terminal"})
+def test_main_dispatch_unknown_hook_allows(tmp_path):
+    r = _run_main(["nonexistent-hook"], {"tool_name": "terminal"},
+                  project_root=tmp_path)
     out = json.loads(r.stdout)
     assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
 
@@ -374,10 +386,10 @@ def test_main_dispatch_runtime_flag(tmp_path, monkeypatch):
     assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
 
 
-def test_main_dispatch_quality_non_commit_allows(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+def test_main_dispatch_quality_non_commit_allows(tmp_path):
     r = _run_main(["quality"], {"tool_name": "terminal",
-                                "tool_input": {"command": "ls -la"}})
+                                "tool_input": {"command": "ls -la"}},
+                  project_root=tmp_path)
     out = json.loads(r.stdout)
     assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
 
