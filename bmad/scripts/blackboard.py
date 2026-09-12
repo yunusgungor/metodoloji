@@ -498,6 +498,10 @@ def main() -> int:
     common(s)
     s.set_defaults(fn=cmd_stats)
 
+    ro = sub.add_parser("rotate", help="Rotate the event log (bounds enforcement)")
+    common(ro)
+    ro.set_defaults(fn=lambda a: _emit(bb.rotate_event_log(_root(a))) or 0)
+
     args = p.parse_args()
     try:
         return args.fn(args)

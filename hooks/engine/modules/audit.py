@@ -150,7 +150,9 @@ def _update_bridge_status(root: str, tool_name: str, tool_input: dict) -> None:
                              f"Experiment updated: {path.split('/')[-1]}")
 
             # Implementation Readiness (IR) record created/updated
-            elif re.search(r"/IR-\d+\.md$", path, re.IGNORECASE):
+            # (matches both IR-NNN.md records and the workflow's
+            # implementation-readiness-report-<date>.md output)
+            elif re.search(r"/(?:IR-\d+|implementation-readiness-report[^/\\]*)\.md$", path, re.IGNORECASE):
                 bb.write_key(root, "methodology.last_ir", path.split("/")[-1],
                             type_="state")
                 # Link E→IR
@@ -162,7 +164,9 @@ def _update_bridge_status(root: str, tool_name: str, tool_input: dict) -> None:
                              f"IR record updated: {path.split('/')[-1]}")
 
             # Sprint Planning (SP) record created/updated
-            elif re.search(r"/SP-\d+\.md$", path, re.IGNORECASE):
+            # (matches both SP-NNN.md records and the workflow's
+            # sprint-status.yaml status file)
+            elif re.search(r"/(?:SP-\d+\.md|sprint-status\.yaml)$", path, re.IGNORECASE):
                 bb.write_key(root, "methodology.last_sp", path.split("/")[-1],
                             type_="state")
                 # Link IR→SP
