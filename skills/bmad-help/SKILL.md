@@ -7,7 +7,7 @@ triggers: ["bmad-help", "/bmad-help", "help"]
 ## Metodoloji
 
 Meta yuzey: urettigi yuzeyler arastirma metodolojisini miras alir
-(`docs/bmad/research-methodology.md`). Bu yuzeyin ciktisi metodoloji kapsami disinda kalamaz.
+(`{metodoloji-root}/docs/bmad/research-methodology.md`). Bu yuzeyin ciktisi metodoloji kapsami disinda kalamaz.
 
 
 # BMad Help

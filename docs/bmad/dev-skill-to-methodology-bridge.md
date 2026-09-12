@@ -2,6 +2,7 @@
 
 **Version:** 4.0.0
 **Purpose:** Connect BMAD native story workflows to the research methodology's experiment-gated development model.
+**Canonical location:** This file lives in the **plugin root** (`{metodoloji-root}/docs/bmad/`) and is read from there — the methodology does NOT require a copy under the target project's `docs/bmad/`.
 
 ---
 

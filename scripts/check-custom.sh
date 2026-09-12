@@ -274,8 +274,12 @@ for path in sorted(glob.glob(os.path.join(PLUGIN, "custom", "*.toml"))):
     if name in DEV_WING:
         if not any("research-methodology.md" in x for x in facts):
             problems.append("%s: no research-methodology.md pointer (DEV wing)" % name)
+        elif not any("{metodoloji-root}/docs/bmad/research-methodology.md" in x for x in facts):
+            problems.append("%s: research-methodology.md pointer not plugin-canonical ({metodoloji-root})" % name)
         if not any("development-methodology.md" in x for x in facts):
             problems.append("%s: no development-methodology.md pointer (DEV wing)" % name)
+        elif not any("{metodoloji-root}/docs/bmad/development-methodology.md" in x for x in facts):
+            problems.append("%s: development-methodology.md pointer not plugin-canonical ({metodoloji-root})" % name)
 
 print("  checked: %d" % checked)
 for p in problems:

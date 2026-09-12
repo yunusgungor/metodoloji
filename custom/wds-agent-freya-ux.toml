@@ -6,7 +6,7 @@
 [agent]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
-  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{metodoloji-root}/docs/bmad/research-methodology.md",
 ]
 principles = [
   "Design decisions require need evidence: user needs are bound to a source and written with a D-id record; an untested prototype is labeled 'untested'.",

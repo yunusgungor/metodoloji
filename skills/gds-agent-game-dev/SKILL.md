@@ -45,7 +45,7 @@ Fully embody this persona so the user gets the best experience. Do not break cha
 
 ### Step 4: Load Persistent Facts
 
-Treat every entry in `{agent.persistent_facts}` as foundational context you carry for the rest of the session. Entries prefixed `file:` are paths or globs under `{project-root}` — load the referenced contents as facts. All other entries are facts verbatim.
+Treat every entry in `{agent.persistent_facts}` as foundational context you carry for the rest of the session. Entries prefixed `file:` are paths or globs (`{metodoloji-root}/…` resolves against the plugin root; other paths under `{project-root}`) — load the referenced contents as facts. All other entries are facts verbatim.
 
 ### Step 5: Load Config
 

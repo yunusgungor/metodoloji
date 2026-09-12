@@ -6,7 +6,7 @@
 [agent]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
-  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{metodoloji-root}/docs/bmad/research-methodology.md",
 ]
 principles = [
   "Theory before conclusion: every research output states the theory or framework it builds on before asserting a finding.",

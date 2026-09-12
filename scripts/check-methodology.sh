@@ -20,6 +20,13 @@ PROJECT_ROOT="${OPENHANDS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(cd "$SCRIPT_DIR/.
 FIX_MODE=false
 VERBOSE=false
 
+# Newest-first glob expander (mirrors run-hook.sh) — used by CHECK 1 discovery.
+_join_newest_first() {
+    for d in $1; do
+        [ -d "$d" ] && printf '%s %s\n' "$(stat -c %Y "$d" 2>/dev/null || stat -f %m "$d" 2>/dev/null || echo 0)" "$d"
+    done | sort -rn | cut -d' ' -f2-
+}
+
 for arg in "$@"; do
     case "$arg" in
         --fix) FIX_MODE=true ;;
@@ -46,16 +53,39 @@ log_ok() {
     fi
 }
 
-# ─── CHECK 1: docs/bmad/ methodology files exist ───
+# ─── CHECK 1: plugin methodology manifestos exist (plugin-canonical) ───
 echo "═══════════════════════════════════════════════════"
 echo "CHECK 1: Methodology Files"
 echo "═══════════════════════════════════════════════════"
 
+# The three methodology manifestos are plugin-canonical: they live under the
+# plugin root and are read from there (custom/*.toml persistent_facts use
+# {metodoloji-root}/docs/bmad/...). Resolve the plugin root the same way the
+# hook engine does; fall back to this repo (dogfooding: repo == plugin).
+METODOLOJI_ROOT="${METODOLOJI_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}"
+if [ -z "$METODOLOJI_ROOT" ]; then
+    # Fixed candidates first, then versioned cache globs (newest first),
+    # mirroring run-hook.sh's discovery list.
+    for cand in "$SCRIPT_DIR/.."; do
+        if [ -f "$cand/docs/bmad/research-methodology.md" ]; then METODOLOJI_ROOT="$cand"; break; fi
+    done
+fi
+if [ -z "$METODOLOJI_ROOT" ]; then
+    for cand in $(_join_newest_first "$HOME/.claude/plugins/cache/yunusgungor/metodoloji/*") \
+                $(_join_newest_first "$HOME/.openhands/plugins/cache/*") \
+                "$HOME/.openhands/plugins/installed/metodoloji"; do
+        if [ -f "$cand/docs/bmad/research-methodology.md" ]; then METODOLOJI_ROOT="$cand"; break; fi
+    done
+fi
+if [ -z "$METODOLOJI_ROOT" ]; then
+    METODOLOJI_ROOT="$SCRIPT_DIR/.."
+fi
+
 for f in docs/bmad/research-methodology.md docs/bmad/development-methodology.md docs/bmad/dev-skill-to-methodology-bridge.md; do
-    if [ -f "$PROJECT_ROOT/$f" ]; then
-        log_ok "$f exists"
+    if [ -f "$METODOLOJI_ROOT/$f" ]; then
+        log_ok "$f exists (plugin root)"
     else
-        log_issue "$f is MISSING — required by custom/*.toml persistent_facts"
+        log_issue "$f is MISSING in plugin root ($METODOLOJI_ROOT) — required by custom/*.toml persistent_facts"
     fi
 done
 

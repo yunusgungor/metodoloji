@@ -6,7 +6,7 @@
 [workflow]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
-  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{metodoloji-root}/docs/bmad/research-methodology.md",
 ]
 activation_steps_append = [
   "Meta surface: the agents/capabilities you invoke are bound to the methodology; you do not produce records yourself; the conversation and steering must not produce a surface outside the methodology scope.",

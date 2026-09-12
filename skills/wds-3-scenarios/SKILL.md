@@ -6,7 +6,7 @@ triggers: ["wds-3-scenarios", "/wds-3-scenarios"]
 
 ## Metodoloji
 
-Bu yuzey arastirma metodolojisine baglidir: `docs/bmad/research-methodology.md` — Mod B (nitel) — senaryolar; R-id kaydi.
+Bu yuzey arastirma metodolojisine baglidir: `{metodoloji-root}/docs/bmad/research-methodology.md` — Mod B (nitel) — senaryolar; R-id kaydi.
 Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayini ister
 (run_experiment.py --verify + guard-code.sh). Uydurma kanit/olcum sahtekarliktir.
 

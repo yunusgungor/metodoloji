@@ -5,8 +5,8 @@
 [agent]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
-  "file:{project-root}/docs/bmad/research-methodology.md",
-  "file:{project-root}/docs/bmad/development-methodology.md",
+  "file:{metodoloji-root}/docs/bmad/research-methodology.md",
+  "file:{metodoloji-root}/docs/bmad/development-methodology.md",
 ]
 principles = [
   "Document the experiment, not just the code: every documented feature is linked to its experiment record, measurement, and decision.",

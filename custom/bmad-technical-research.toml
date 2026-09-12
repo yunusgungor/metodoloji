@@ -6,7 +6,7 @@
 [workflow]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
-  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{metodoloji-root}/docs/bmad/research-methodology.md",
 ]
 activation_steps_append = [
   "Before starting the research, state which of these the report will produce: (a) a theory/framework the report builds on, (b) falsifiable hypotheses (H-id) that future experiments will test, or (c) measured results with the experiment record. Label every claim accordingly.",

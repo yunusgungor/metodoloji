@@ -7,7 +7,7 @@ triggers: ["bmad-bmb-setup", "/bmad-bmb-setup", "bmb-setup", "install bmb module
 ## Metodoloji
 
 Meta yuzey: urettigi yuzeyler arastirma metodolojisini miras alir
-(`docs/bmad/research-methodology.md`). Bu yuzeyin ciktisi metodoloji kapsami disinda kalamaz.
+(`{metodoloji-root}/docs/bmad/research-methodology.md`). Bu yuzeyin ciktisi metodoloji kapsami disinda kalamaz.
 
 
 # Module Setup

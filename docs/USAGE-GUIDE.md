@@ -162,7 +162,7 @@ flowchart TD
 
 **Source-material rule:** Methodology *source* — templates (`templates/_template_*.md`), TOML configuration (`bmad/config.toml`, `custom/*.toml`), and plugin scripts (`hooks/engine/*.py`, `bmad/scripts/*.py`) — is **read** from `{metodoloji-root}`. The plugin is read-only for methodology *output*: records, artifacts, and bmad-output are never written into it. The one deliberate exception is the **customization** layer — `bmad-customize` writes user overrides under the plugin's `custom/`. Decide by what the file *is* (record/artifact → `{project-root}`; template/config/script → `{metodoloji-root}`), not by where a path text places it.
 
-**Tooling-as-instrument rule:** Running a plugin script (`run_experiment.py`, `resolve_customization.py`) *reads* it from `{metodoloji-root}`; the record or artifact the script **produces** is still written to `{project-root}`. The output's root is determined by what it is, not by the script that made it. Manifestos copied into the project (`docs/bmad/*-methodology.md`) are read from `{project-root}`.
+**Tooling-as-instrument rule:** Running a plugin script (`run_experiment.py`, `resolve_customization.py`) *reads* it from `{metodoloji-root}`; the record or artifact the script **produces** is still written to `{project-root}`. The output's root is determined by what it is, not by the script that made it. Methodology manifestos are **plugin-canonical** (`{metodoloji-root}/docs/bmad/*-methodology.md`) — they are read from the plugin root; no per-project copy is installed.
 
 ---
 
@@ -251,9 +251,9 @@ The plugin loads automatically. The `SessionStart` hook (`bootstrap.sh`, fail-op
 
 | Action | Detail |
 |--------|--------|
-| Create directories | `docs/experiments/`, `docs/development/stories/`, `docs/research/`, `docs/design/`, `docs/bmad/`, `scratch/` |
+| Create directories | `docs/experiments/`, `docs/development/stories/`, `docs/research/`, `docs/design/`, `scratch/` |
 | Copy templates | E, BD, C, IR, SP, QR, PR, S templates + README + tech-debt + scratch-README into the respective directories |
-| Manifesto copies | Bridge and methodology manifestos under `docs/bmad/` |
+| Manifestos | None — plugin-canonical, read from `{metodoloji-root}/docs/bmad/` (no project copy) |
 | Warning | Tells you to run `/metodoloji:gate-setup` if the gate key is not installed |
 
 #### Step 3: Install the Gate Key
@@ -1024,7 +1024,7 @@ Every methodology surface (skill) must reference these documents:
 - `project-context.md` — Project context (all surfaces)
 - `development-methodology.md` — Development manifesto (development wing)
 
-Bridge document: `docs/bmad/dev-skill-to-methodology-bridge.md` (§-numbered —
+Bridge document: `{metodoloji-root}/docs/bmad/dev-skill-to-methodology-bridge.md` (§-numbered —
 `check-custom.sh` §7 audits that references in `custom/` stay in sync with it).
 
 ---
@@ -1038,9 +1038,9 @@ Bridge document: `docs/bmad/dev-skill-to-methodology-bridge.md` (§-numbered —
 **Purpose:** Install the record skeleton into the target project.
 
 **Effects:**
-- Creates 6 directories (does not touch existing ones)
+- Creates 5 directories (does not touch existing ones)
 - Copies 8 templates (does not overwrite)
-- Installs manifesto copies under `docs/bmad/`
+- Manifestos: none — plugin-canonical, read from `{metodoloji-root}/docs/bmad/`
 - Warns about the gate key if missing
 
 ### 9.2. `/metodoloji:gate-setup`

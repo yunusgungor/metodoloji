@@ -2,6 +2,7 @@
 
 **Version:** 2.0.0
 **Purpose:** Defines the core rules, process flow, and quality standards of the BMAD development methodology.
+**Canonical location:** This file lives in the **plugin root** (`{metodoloji-root}/docs/bmad/`) and is read from there — the methodology does NOT require a copy under the target project's `docs/bmad/`.
 
 ---
 

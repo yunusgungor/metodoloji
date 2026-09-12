@@ -6,7 +6,7 @@ triggers: ["bmad-editorial-review-structure", "/bmad-editorial-review-structure"
 
 ## Metodoloji
 
-Bu yuzey arastirma metodolojisine baglidir: `docs/bmad/research-methodology.md` — Mod B (nitel) — yapi denetimi; R-id kaydi.
+Bu yuzey arastirma metodolojisine baglidir: `{metodoloji-root}/docs/bmad/research-methodology.md` — Mod B (nitel) — yapi denetimi; R-id kaydi.
 Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayini ister
 (run_experiment.py --verify + guard-code.sh). Uydurma kanit/olcum sahtekarliktir.
 

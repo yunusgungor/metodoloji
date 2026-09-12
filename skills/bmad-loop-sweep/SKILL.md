@@ -6,7 +6,7 @@ triggers: ["bmad-loop-sweep", "/bmad-loop-sweep", "loop-sweep"]
 
 ## Metodoloji
 
-Bu yuzey arastirma metodolojisine baglidir: `docs/bmad/research-methodology.md` — Mod A (sayisal) — bekleyen is taramasi; E-id kaydi.
+Bu yuzey arastirma metodolojisine baglidir: `{metodoloji-root}/docs/bmad/research-methodology.md` — Mod A (sayisal) — bekleyen is taramasi; E-id kaydi.
 Belgesel karar kod yazma izni degildir; kod her durumda Mod A mekanik onayini ister
 (run_experiment.py --verify + guard-code.sh). Uydurma kanit/olcum sahtekarliktir.
 

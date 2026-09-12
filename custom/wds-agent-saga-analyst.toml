@@ -6,7 +6,7 @@
 [agent]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
-  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{metodoloji-root}/docs/bmad/research-methodology.md",
 ]
 principles = [
   "Analysis findings require records: every finding is bound to a source and written with an R-id record; an unsourced claim is an assumption.",

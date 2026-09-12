@@ -486,14 +486,14 @@ for cp in sorted(set(glob.glob(os.path.join(PLUGIN, "skills", "*", "customize.to
             if s and not os.path.isdir(os.path.join(PLUGIN, "skills", s)):
                 missing.append("%s menu → %s (skill directory missing)" % (os.path.basename(cp), s))
 
-# Development wing manifesto: must be installed in the target project (/metodoloji:init).
-DEVWING = os.path.join(PROJECT, "docs", "bmad", "development-methodology.md")
+# Development wing manifesto: plugin-canonical — lives under the plugin root
+# ({metodoloji-root}/docs/bmad/). No per-project copy is required.
+DEVWING = os.path.join(PLUGIN, "docs", "bmad", "development-methodology.md")
 if not os.path.isfile(DEVWING):
-    # In dogfooding the plugin root may also be it (methodology repo = PROJECT).
-    missing.append("%s (document missing — run /metodoloji:init in target project)" % DEVWING)
+    missing.append("%s (document missing — plugin manifestos broken)" % DEVWING)
 
 # --- Bridge audit: native skill output → methodology record translation ---
-BRIDGE = os.path.join(PROJECT, "docs", "bmad", "dev-skill-to-methodology-bridge.md")
+BRIDGE = os.path.join(PLUGIN, "docs", "bmad", "dev-skill-to-methodology-bridge.md")
 if not os.path.isfile(BRIDGE):
     missing.append("%s (bridge document missing — native output not translated to methodology record)" % BRIDGE)
 

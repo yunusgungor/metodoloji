@@ -6,7 +6,7 @@
 [agent]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
-  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{metodoloji-root}/docs/bmad/research-methodology.md",
 ]
 principles = [
   "Generated surfaces inherit the manifesto: no surface is produced outside the methodology scope.",

@@ -2,6 +2,7 @@
 
 **Version:** 2.0.0
 **Purpose:** Defines the core rules, modular structure, and gate rules of the BMAD (Behavior-Driven Methodology for AI Development) research methodology.
+**Canonical location:** This file lives in the **plugin root** (`{metodoloji-root}/docs/bmad/`) and is read from there — the methodology does NOT require a copy under the target project's `docs/bmad/`.
 
 ---
 

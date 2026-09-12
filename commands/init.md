@@ -21,7 +21,6 @@ root (resolved at runtime by the hooks: `$CLAUDE_PLUGIN_ROOT` or
    - `docs/design/prds/` — PRD outputs
    - `docs/design/ux-designs/` — UX design outputs
    - `docs/design/architecture/` — Architecture spine outputs
-   - `docs/bmad/` — manifestos and bridge copies
    - `scratch/` — free zone for exploration code
 
 2. Copy templates (do not overwrite — preserve existing):
@@ -37,8 +36,13 @@ root (resolved at runtime by the hooks: `$CLAUDE_PLUGIN_ROOT` or
    - `{metodoloji-root}/templates/tech-debt.md` → `docs/development/tech-debt.md`
    - `{metodoloji-root}/templates/scratch-README.md` → `scratch/README.md`
 
-3. Manifesto copies (source: repo texts instead of the plugin's reference copies):
-   - Install the bridge and manifesto copies of this methodology package under `docs/bmad/` if present.
+3. Manifestos are plugin-canonical — do NOT copy them into the project.
+   The three methodology manifestos (`research-methodology.md`,
+   `development-methodology.md`, `dev-skill-to-methodology-bridge.md`) live
+   under `{metodoloji-root}/docs/bmad/` and are read from there via the
+   `{metodoloji-root}` entries in `custom/*.toml` `persistent_facts`. Do not
+   create `docs/bmad/` in the target project. (A legacy copy left over from an
+   older init is harmless but stale — remove it to avoid confusion.)
 
 4. If no gate key exists, warn: run `/metodoloji:gate-setup`.
 

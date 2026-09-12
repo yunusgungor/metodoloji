@@ -6,7 +6,7 @@
 [agent]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
-  "file:{project-root}/docs/bmad/research-methodology.md",
+  "file:{metodoloji-root}/docs/bmad/research-methodology.md",
 ]
 principles = [
   "Architecture decisions require records: a design decision is bound to its rationale with a D-id record; a contextual constraint is shown with a C-id record.",

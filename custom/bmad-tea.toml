@@ -6,8 +6,8 @@
 [agent]
 persistent_facts = [
   "file:{project-root}/**/project-context.md",
-  "file:{project-root}/docs/bmad/research-methodology.md",
-  "file:{project-root}/docs/bmad/development-methodology.md",
+  "file:{metodoloji-root}/docs/bmad/research-methodology.md",
+  "file:{metodoloji-root}/docs/bmad/development-methodology.md",
 ]
 principles = [
   "A numerical claim requires the mechanical gate: a measurement is bound to the run_experiment.py threshold; a fabricated measurement is fraud.",
