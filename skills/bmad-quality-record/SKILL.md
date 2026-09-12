@@ -61,6 +61,10 @@ Greet `{user_name}`, speaking in `{communication_language}`. Ask which story (S-
 
 Execute each entry in `{workflow.activation_steps_append}` in order.
 
+### Step 7: Chain Handshake
+
+Check for signals addressed to you before the workflow begins: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoffs --skill bmad-quality-record --project-root {project-root}` — the canonical sender is a `bmad-create-story` run whose note names the story key queued for a QR record. Read the named story first (step 1 requires it in review or done status — an earlier signal means the record is still pending implementation), then complete the handshake: `python3 {metodoloji-root}/bmad/scripts/blackboard.py consume --channel handoff.bmad-quality-record --project-root {project-root}` (consume only after the named story file is located — an unconsumed signal keeps the hand-off waiting, which is correct when the user routes elsewhere).
+
 Activation is complete. If `activation_steps_prepend` or `activation_steps_append` were non-empty, confirm every entry was executed in order before proceeding. Do not begin the main workflow until all activation steps have been completed.
 
 ## Paths

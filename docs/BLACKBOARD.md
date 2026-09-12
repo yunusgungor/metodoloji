@@ -114,11 +114,12 @@ code-review terminates the tool chain: it consumes and reports, it does
 not signal onward). The methodology chain rides the same protocol on its
 own run keys: research-experiment → check-implementation-readiness →
 sprint-planning → create-story → quality-record → production-readiness
-(prefixes `E-`, `IR-`, `SP-`, `S-`, `QR-`, `PR-`). The E→IR→SP hops and
-the SP→story hop are wired in the stage skills (readiness signals the
+(prefixes `E-`, `IR-`, `SP-`, `S-`, `QR-`, `PR-`). The E→IR→SP→story and
+story→QR hops are wired in the stage skills (readiness signals the
 verdict to sprint planning; sprint planning signals the queue to the
-story run); stage skills may adopt remaining hops incrementally — a
-stage that never sends just leaves its hop silent. Side entrances feed
+story run; the story run queues the QR record that will close it out);
+stage skills may adopt remaining hops incrementally — a stage that
+never sends just leaves its hop silent. Side entrances feed
 the relay: brainstorming and forge-idea signal `bmad-product-brief`, and
 the brief signals `bmad-prd`.
 
