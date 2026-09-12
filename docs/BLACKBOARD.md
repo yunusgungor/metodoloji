@@ -138,6 +138,59 @@ the brief signals `bmad-prd`.
   its own; the addressed skill still completes the handshake).
 - Engine writes are all guarded by the `[hooks] blackboard` switch.
 
+## The relay at a glance
+
+Both relays ride one handshake. The closing run posts
+`handoff --to <downstream> --from-key <run-key> --note "..."` and the
+signal waits in the reserved `handoff.<skill>` channel; the addressed
+run opens with `handoffs --skill <self>`, reads the named artifact
+first, and completes the handshake by consuming the channel:
+
+    closing run                          opening run
+    -----------                          -----------
+    handoff --to bmad-ux                 handoffs --skill bmad-ux
+         |                                    |  (note names the artifact)
+         v                                    v
+    handoff.bmad-ux  ======= waiting =======>  read the artifact first
+    from-key: prd.<slug>                       |
+         ^                                     v
+         +======== consumed <=========  consume --channel handoff.bmad-ux
+                                (that consumption IS the handshake)
+
+`chain-health` reports every hop `idle`/`clear`/`waiting`; `doctor`
+surfaces unclaimed signals at close-out; session_start/stop announce
+waiting signals without ever consuming them. A hop whose sender never
+fires stays silent — never broken.
+
+    TOOL CHAIN (side entrances feed the relay)
+
+      brainstorming --+
+      forge-idea -----+--> brief --> prd --> ux --> architecture
+                                                        |
+                                                        v
+                                                       spec
+                                                        |
+                                                        v
+                                    create-epics-and-stories
+                                                        |
+                                                        v
+      code-review <-- dev-story <-- create-story <-------+
+         (terminal)      ^              |
+                         |              +--> quality-record --> production-readiness
+                         |                  (terminal)
+          dev-story consumes story.<key>; the QR record is queued
+          with story.<key> too — both hop edges carry story.<key>
+
+      from-keys: brief.* prd.* ux.* architecture.* spec.* epics.* story.*
+
+    METHODOLOGY CHAIN (create-story is the bridge between the relays)
+
+      research-experiment --> check-implementation-readiness --> sprint-planning --> create-story
+           E-<exp-id>                   IR-<date>                 SP-<date>      (bridge)
+
+      create-story --(queue: story.<key>)--> quality-record --(QR-<id>)--> production-readiness
+                                                                              PR-... (terminal)
+
 ## Chain health (`chain-health`)
 
 Per-hop diagnostics for the delivery relay, sender-attributed from the event
