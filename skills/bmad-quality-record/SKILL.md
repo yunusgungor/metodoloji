@@ -319,7 +319,7 @@ Activation is complete. If `activation_steps_prepend` or `activation_steps_appen
 <action>Post handoff notification:</action>
 
 ```
-python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-production-readiness --from-key quality-record --note "QR-{id} approved for S-XXX. Ready for production readiness check."
+python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-production-readiness --from-key QR-{id} --note "QR-{id} approved for S-XXX. Ready for production readiness check."
 ```
 
 (Or if rejected, skip handoff and note in story why)

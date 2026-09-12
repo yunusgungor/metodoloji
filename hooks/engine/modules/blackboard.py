@@ -79,6 +79,11 @@ MAX_CELL_ID = 60
 MAX_CELL_LEN = 500
 MAX_WATCH_PATHS = 4           # watched paths per canvas
 MAX_GRID = 64                 # max grid dimension (w or h)
+MAX_CHANNEL_LEN = 80          # alert/subscription channel name; handoff channels
+                              # carry `handoff.<skill>` and the longest skill name
+                              # is 35 chars (bmad-check-implementation-readiness),
+                              # so the generic 40-char cap silently truncated those
+                              # signals out of their own receiver's reach
 
 MAX_LINKS = 128
 MAX_SUBSCRIPTIONS = 16
@@ -566,7 +571,7 @@ def _apply_event(board: dict, ev: dict) -> None:
     elif kind == "subscribe":
         watcher = str(ev.get("watcher", ""))[:100]
         pattern = str(ev.get("pattern", ""))[:200]
-        channel = str(ev.get("channel", "session"))[:40]
+        channel = str(ev.get("channel", "session"))[:MAX_CHANNEL_LEN]
         if watcher and pattern and not any(
                 s["watcher"] == watcher and s["pattern"] == pattern
                 for s in board["subscriptions"]):
@@ -586,7 +591,7 @@ def _apply_event(board: dict, ev: dict) -> None:
     elif kind == "alert":
         board["alerts"].append({
             "id": ev.get("id", ""),
-            "channel": str(ev.get("channel", "session"))[:40],
+            "channel": str(ev.get("channel", "session"))[:MAX_CHANNEL_LEN],
             "kind": str(ev.get("kind", "info"))[:20],
             "text": str(ev.get("text", ""))[:MAX_ALERT_TEXT],
             "ts": ev.get("ts", 0.0),
@@ -1211,7 +1216,7 @@ def subscribe(project_root: str, watcher: str, pattern: str, *,
     stop, or any custom channel addressable via consume_alerts)."""
     event = {"event": "subscribe", "watcher": str(watcher).strip()[:100],
              "pattern": str(pattern).strip()[:200],
-             "channel": str(channel).strip()[:40] or "session", "ts": time.time()}
+             "channel": str(channel).strip()[:MAX_CHANNEL_LEN] or "session", "ts": time.time()}
     if not event["watcher"] or not event["pattern"]:
         return {"ok": False, "error": "subscribe needs --watcher and --pattern"}
 
@@ -1269,7 +1274,7 @@ def post_handoff(project_root: str, to_skill: str, from_key: str, note: str = ""
     `handoff.<to_skill>` channel (kind `handoff`, text `<from_key>: <note>`).
     The signal waits there until the downstream skill consumes it — that
     consumption completes the handshake."""
-    to_skill = str(to_skill).strip()[:40]
+    to_skill = str(to_skill).strip()[:MAX_CHANNEL_LEN - len("handoff.")]  # channel budget
     if not to_skill:
         return {"ok": False, "error": "empty --to"}
     from_key = str(from_key).strip()[:200]
@@ -1281,7 +1286,7 @@ def post_handoff(project_root: str, to_skill: str, from_key: str, note: str = ""
 
 def pending_handoffs(project_root: str, skill: str) -> list:
     """Un-consumed hand-off signals waiting for `skill` (read-only peek)."""
-    skill = str(skill).strip()[:40]
+    skill = str(skill).strip()[:MAX_CHANNEL_LEN - len("handoff.")]  # mirror post_handoff's budget
     return [a for a in read_board(project_root)["alerts"]
             if a.get("channel") == f"handoff.{skill}" and a.get("kind") == "handoff"]
 
@@ -1345,14 +1350,16 @@ _KEY_PREFIX_TO_SKILL = [
 ]
 
 
-def _signal_sender(text: str) -> str | None:
+def _signal_sender(text: str) -> str:
     """Attribute a hand-off signal to a sender skill via its from-key prefix
-    (signal text is '<from-key>: <note>')."""
+    (signal text is '<from-key>: <note>'). Signals from keys outside every
+    known namespace (e.g. a QR record key) attribute to 'unknown' — they
+    still surface under chain_health's 'extra', just without a sender name."""
     key = text.split(":", 1)[0].strip()
     for prefix, skill in _KEY_PREFIX_TO_SKILL:
         if key.startswith(prefix):
             return skill
-    return None
+    return "unknown"
 
 
 def chain_health(project_root: str) -> dict:
@@ -1772,7 +1779,7 @@ def post_alert(project_root: str, channel: str, kind: str, text: str) -> dict:
                         f"mapping to 'info'\n")
         kind_str = "info"
     
-    event = {"event": "alert", "channel": str(channel).strip()[:40] or "session",
+    event = {"event": "alert", "channel": str(channel).strip()[:MAX_CHANNEL_LEN] or "session",
              "kind": kind_str,
              "text": str(text).strip()[:MAX_ALERT_TEXT],
              "id": f"m{int(time.time() * 1000):013d}", "ts": time.time()}

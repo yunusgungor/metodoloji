@@ -31,7 +31,10 @@ producers and consumers instead of sitting in one flat file.
 4. **Bounded.** Everything has caps; oldest items expire first:
    128 keys, 32 tags, 64 contributions, 10k events, 100 items per list,
    8 canvases, 256 cells per canvas (32 auto cells), 4 watch paths per canvas,
-   128 links, 16 subscriptions, 32 alerts.
+   128 links, 16 subscriptions, 32 alerts, 80-char channel names (the
+   `handoff.<skill>` channel must fit the longest skill name — 35 chars —
+   so the old 40-char cap would have truncated some signals out of their
+   own receiver's reach).
 5. **Fail-open.** Every consumer (hooks, CLI) degrades to silence when the
    board is missing, corrupt, or locked. The blackboard never blocks work.
 6. **Focus is single.** One `hot` key and one `hot_canvas` at a time; a
@@ -104,10 +107,20 @@ closes with `handoff --to bmad-ux`; the UX run opens, reads
 `handoffs --skill bmad-ux`, picks up the named artifact first, consumes
 `handoff.bmad-ux`, and closes with `handoff --to bmad-architecture` — the
 delivery relay in full: prd → ux → architecture → spec →
-create-epics-and-stories → create-story → dev-story (each sender is
-optional — a signal not sent just leaves that hop silent, never broken;
-dev-story terminates the chain: it consumes and builds, it does not signal
-onward).
+create-epics-and-stories → create-story → dev-story → code-review (each
+sender is optional — a signal not sent just leaves that hop silent, never
+broken; dev-story consumes upstream and signals the review run onward;
+code-review terminates the tool chain: it consumes and reports, it does
+not signal onward). The methodology chain rides the same protocol on its
+own run keys: research-experiment → check-implementation-readiness →
+sprint-planning → create-story → quality-record → production-readiness
+(prefixes `E-`, `IR-`, `SP-`, `S-`, `QR-`, `PR-`). The E→IR→SP hops and
+the SP→story hop are wired in the stage skills (readiness signals the
+verdict to sprint planning; sprint planning signals the queue to the
+story run); stage skills may adopt remaining hops incrementally — a
+stage that never sends just leaves its hop silent. Side entrances feed
+the relay: brainstorming and forge-idea signal `bmad-product-brief`, and
+the brief signals `bmad-prd`.
 
 ## Engine integration points (the octopus arms)
 
@@ -128,8 +141,10 @@ onward).
 
 Per-hop diagnostics for the delivery relay, sender-attributed from the event
 log (signal text is `<from-key>: <note>`, so a run-key namespace prefix —
-`prd.`, `ux.`, `architecture.`, `spec.`, `epics.`, `story.` — names the
-sender):
+`prd.`, `ux.`, `architecture.`, `spec.`, `epics.`, `story.` on the tool
+chain; `E-`, `IR-`, `SP-`, `S-`, `QR-`, `PR-` on the methodology chain —
+names the sender; a from-key outside every known namespace attributes to
+`unknown` and still surfaces under `extra`):
 
     python3 bmad/scripts/blackboard.py chain-health
 
@@ -196,7 +211,8 @@ result and exit 0.
 
 ## Skill contract
 
-Producing skills (PRD, UX, brief, architecture, brainstorming, forge)
+Producing skills (brief, brainstorming, forge, PRD, UX, architecture,
+spec, epics, story, dev-story)
 run on three planes:
 
 - **Focus (required)** — `write --hot` one state key at activation,

@@ -60,6 +60,10 @@ Greet `{user_name}`, speaking in `{communication_language}`.
 
 Execute each entry in `{workflow.activation_steps_append}` in order.
 
+### Step 7: Chain Handshake
+
+Check for signals addressed to you before the workflow begins: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoffs --skill bmad-sprint-planning --project-root {project-root}` — the canonical sender is an `Implementation Readiness` run (`bmad-check-implementation-readiness`) whose note names the readiness report and verdict to honor. Read the named report first, then complete the handshake: `python3 {metodoloji-root}/bmad/scripts/blackboard.py consume --channel handoff.bmad-sprint-planning --project-root {project-root}` (consume only after the named report is located — an unconsumed signal keeps the hand-off waiting, which is correct when the user routes elsewhere).
+
 Activation is complete. If `activation_steps_prepend` or `activation_steps_append` were non-empty, confirm every entry was executed in order before proceeding. Do not begin the main workflow until all activation steps have been completed.
 
 ## Paths
@@ -260,6 +264,8 @@ development_status:
 2. Use this file to track development progress
 3. Agents will update statuses as they work
 4. Re-run this workflow to refresh auto-detected statuses
+
+<action>Close the board run: bind the sprint run key (`python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key SP-{date} --value "sprint status: {status_file} — <epic_count> epics, <story_count> stories" --type state --project-root {project-root}`), signal the next stage so a story run opens already knowing the sprint queue: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-create-story --from-key SP-{date} --note "Sprint status generated — {status_file}; start with the first ready-for-dev story" --project-root {project-root}`, mirror completion onto the intent bridge (`write --key status --value complete --type state --project-root {project-root}` — stop skips story checks once progress is `complete`), and run the close-out check (`blackboard.py doctor --json --project-root {project-root}` — on `NEEDS ATTENTION`, surface the warnings to the user before exiting, naming any unclaimed hand-off signals from earlier runs explicitly).</action>
 
 <action>Run: `python3 {metodoloji-root}/hooks/engine/resolve_customization.py --skill {skill-root} --key workflow.on_complete` — the OpenHands terminal tool accepts only the command parameter; do NOT add description — if the resolved value is non-empty, follow it as the final terminal instruction before exiting.</action>
 </step>

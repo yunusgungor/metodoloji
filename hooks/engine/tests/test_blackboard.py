@@ -1230,6 +1230,35 @@ def test_chain_health_surfaces_unknown_receivers_as_extra(root):
     assert h["total_waiting"] == 1
 
 
+def test_chain_health_unknown_sender_attributes_and_never_crashes(root):
+    # A from-key outside every known namespace (e.g. the QR skill's plain
+    # 'quality-record' key) must attribute to 'unknown' — not crash the
+    # tuple sort on None.
+    ack = bb.post_handoff(root, "bmad-production-readiness", "quality-record", "QR-001 approved")
+    assert ack["ok"] is True
+    h = bb.chain_health(root)  # must not raise TypeError
+    assert h["ok"] is True
+    assert len(h["extra"]) == 1
+    assert h["extra"][0] == {"from": "unknown", "to": "bmad-production-readiness",
+                             "waiting": 1, "consumed": 0, "status": "waiting"}
+    assert h["total_waiting"] == 1
+
+
+def test_handoff_channel_fits_longest_skill_name(root):
+    # 'handoff.' + bmad-check-implementation-readiness (35 chars) = 43 chars —
+    # the old generic 40-char channel cap truncated the receiver's name out of
+    # its own reach (pending_handoffs never matched, stop never saw the stage).
+    long_skill = "bmad-check-implementation-readiness"
+    assert len(long_skill) > 32  # guards the cap at the source
+    bb.post_handoff(root, long_skill, "E-001", "approved")
+    assert bb.pending_handoffs(root, long_skill), "signal must reach its own receiver"
+    h = bb.chain_health(root)
+    assert h["extra"][0]["to"] == long_skill
+    bb.consume_alerts(root, f"handoff.{long_skill}")
+    h = bb.chain_health(root)
+    assert h["extra"][0]["waiting"] == 0 and h["extra"][0]["consumed"] == 1
+
+
 def test_chain_health_consumption_is_not_double_counted(root):
     bb.post_handoff(root, "bmad-ux", "prd.acme", "n1")
     bb.consume_alerts(root, "handoff.bmad-ux")

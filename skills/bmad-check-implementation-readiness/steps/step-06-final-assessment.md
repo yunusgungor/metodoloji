@@ -106,6 +106,17 @@ The assessment found [number] issues requiring attention. Review the detailed re
 
 The implementation readiness workflow is now complete. The report contains all findings and recommendations for the user to consider.
 
+### Close the Board Run
+
+Bind the assessment run key and mirror completion onto the intent bridge:
+
+```bash
+python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key IR-{date} --value "readiness: <READY|NEEDS WORK|NOT READY> — report: {outputFile}" --type state --project-root {project-root}
+python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key status --value complete --type state --project-root {project-root}
+```
+
+If the assessment gated the transition to implementation (READY, or NEEDS WORK the user chooses to proceed past), signal the next stage so the sprint planning run opens already knowing the readiness verdict: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-sprint-planning --from-key IR-{date} --note "Readiness <verdict> — report: {outputFile}; <one-line what sprint planning should honor first>" --project-root {project-root}` (waits in `handoff.bmad-sprint-planning` until a sprint-planning run consumes it — that consumption completes the handshake). Run the close-out check: `python3 {metodoloji-root}/bmad/scripts/blackboard.py doctor --json --project-root {project-root}` — on `NEEDS ATTENTION`, surface the warnings to the user before exiting, naming any unclaimed hand-off signals from earlier runs explicitly.
+
 Implementation Readiness complete. Invoke the `bmad-help` skill.
 
 ---

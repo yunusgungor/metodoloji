@@ -85,6 +85,10 @@ Greet `{user_name}`, speaking in `{communication_language}`.
 
 Execute each entry in `{workflow.activation_steps_append}` in order.
 
+### Step 7: Chain Handshake
+
+Check for signals addressed to you before the workflow begins: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoffs --skill bmad-check-implementation-readiness --project-root {project-root}` — the canonical sender is a `bmad-research-experiment` run whose note names the approved experiment record to pull from. Read the named artifact first (step-01's document discovery picks up the spec inputs alongside it), then complete the handshake: `python3 {metodoloji-root}/bmad/scripts/blackboard.py consume --channel handoff.bmad-check-implementation-readiness --project-root {project-root}` (consume only after the named artifact is located — an unconsumed signal keeps the hand-off waiting, which is correct when the user routes elsewhere).
+
 Activation is complete. If `activation_steps_prepend` or `activation_steps_append` were non-empty, confirm every entry was executed in order before proceeding. Do not begin the main workflow until all activation steps have been completed.
 
 ## Execution
