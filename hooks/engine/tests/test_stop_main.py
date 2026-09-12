@@ -507,47 +507,52 @@ def test_validate_hook_state_machine_allows_correct_sequence(tmp_path):
 def test_stop_denies_on_hook_violation_hard_gate(tmp_path, monkeypatch):
     """Test that stop() denies on hook state machine violation in hard gate mode (HIGH #9)."""
     from modules.stop import stop
-    
-    # Setup: create bad hook sequence
+    from modules import config
+
+    # The engine reads the project root from json_in["cwd"] (repo_root()
+    # contract); CLAUDE_PROJECT_DIR is pinned as well so no fallback can
+    # escape the sandbox and stamp state into the plugin tree.
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
+
+    # Setup: create bad hook sequence (PreToolUse before any SessionStart)
     (tmp_path / ".metodoloji").mkdir()
     events = [
         '{"type": "hook", "name": "PreToolUse", "timestamp": 1000}',
         '{"type": "hook", "name": "SessionStart", "timestamp": 2000}',
     ]
     (tmp_path / ".metodoloji" / "events.log").write_text("\n".join(events), encoding="utf-8")
-    
-    # Mock config to return hard gate
-    original_gate_mode = None
-    try:
-        # Try to make hook_gate_mode return "hard"
-        # This depends on config.toml setup, skip if not available
-        json_in = {"command": "stop", "root": str(tmp_path)}
-        result = stop(json_in)
-        
-        # In hard gate with violations, should deny
-        # (depends on gate setup, so this may not always trigger)
-        assert "decision" in result
-    except Exception:
-        # Okay if this test can't run in isolation
-        pass
+
+    json_in = {"cwd": str(tmp_path), "hook_event_name": "Stop"}
+    result = stop(json_in)
+
+    # In hard gate with violations, stop must be denied
+    assert result["decision"] == "deny"
+    assert "Hook state machine violation" in result["reason"]
 
 
-def test_stop_allows_on_hook_violation_soft_gate(tmp_path):
+def test_stop_allows_on_hook_violation_soft_gate(tmp_path, monkeypatch):
     """Test that stop() allows on hook violation in soft gate mode (HIGH #9)."""
     from modules.stop import stop
-    
+    from modules import config
+
+    # Sandbox the root via the real repo_root() contract (see hard-gate test).
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "soft")
+
     (tmp_path / ".metodoloji").mkdir()
-    
-    # Bad hook sequence
+
+    # Bad hook sequence (PostToolUse before any PreToolUse/SessionStart)
     events = [
         '{"type": "hook", "name": "PostToolUse", "timestamp": 1000}',
         '{"type": "hook", "name": "SessionStart", "timestamp": 2000}',
     ]
     (tmp_path / ".metodoloji" / "events.log").write_text("\n".join(events), encoding="utf-8")
-    
-    json_in = {"command": "stop", "root": str(tmp_path)}
+
+    json_in = {"cwd": str(tmp_path), "hook_event_name": "Stop"}
     result = stop(json_in)
-    
-    # In soft gate, should allow even with violations (fail-open)
-    # Result depends on config, so just check it returns decision
-    assert "decision" in result
+
+    # In soft gate, stop must be allowed even with violations (fail-open)
+    assert result["decision"] == "allow"

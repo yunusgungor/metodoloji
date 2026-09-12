@@ -49,6 +49,9 @@ jobs:
       - name: Bridge TOML static audit
         run: sh scripts/check-custom.sh
 
+      - name: Plugin structure audit (§0-§6c)
+        run: bash scripts/check-plugin.sh
+
       - name: Tech-debt inventory audit
         run: sh scripts/check-techdebt.sh
 

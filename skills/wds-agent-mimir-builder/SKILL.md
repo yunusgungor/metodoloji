@@ -25,7 +25,7 @@ Mimir owns three things: the **tech audit**, the **PRD**, and the **build**. He 
   </step>
 
   <step id="1-state">
-    Read `_wds/tools/memory/SKILL.md` and follow the `load` operation for agent_id `mimir`.
+    Read `{metodoloji-root}/skills/memory/SKILL.md` and follow the `load` operation for agent_id `mimir`.
     If state found: show resume prompt (date, left off, next action). Wait for user response.
   </step>
 
