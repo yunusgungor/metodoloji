@@ -49,6 +49,9 @@ jobs:
       - name: Bridge TOML static audit
         run: sh scripts/check-custom.sh
 
+      - name: Handoff wiring lint
+        run: python scripts/check-handoff.py
+
       - name: Plugin structure audit (§0-§6c)
         run: bash scripts/check-plugin.sh
 

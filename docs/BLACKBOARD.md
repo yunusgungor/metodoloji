@@ -114,14 +114,17 @@ code-review terminates the tool chain: it consumes and reports, it does
 not signal onward). The methodology chain rides the same protocol on its
 own run keys: research-experiment → check-implementation-readiness →
 sprint-planning → create-story → quality-record → production-readiness
-(prefixes `E-`, `IR-`, `SP-`, `S-`, `QR-`, `PR-`). The E→IR→SP→story and
-story→QR hops are wired in the stage skills (readiness signals the
-verdict to sprint planning; sprint planning signals the queue to the
-story run; the story run queues the QR record that will close it out);
-stage skills may adopt remaining hops incrementally — a stage that
-never sends just leaves its hop silent. Side entrances feed
-the relay: brainstorming and forge-idea signal `bmad-product-brief`, and
-the brief signals `bmad-prd`.
+(prefixes `E-`, `IR-`, `SP-`, `S-`, `QR-`, `PR-`), and `chain-health`
+reports it as a first-class ordered `methodology_chain` (5 hops) alongside
+the delivery `chain` (6 hops); signals outside both relays surface as
+`extra`. The create-story run is the bridge: it fans out both to
+`bmad-dev-story` (delivery) and `bmad-quality-record` (methodology), so
+the QR run opens knowing the story it must close out. Signals older than
+24h (`HANDOFF_SIGNAL_TTL_SECONDS`) surface as `stale` in `chain-health`
+and escalate in `doctor` / session_start / stop warnings
+(`STALE ... skill crashed/hung?`). Wiring is linted in CI by
+`scripts/check-handoff.py` (every relay member must peek its own channel
+and post its next hop; terminals and the research origin are exempt).
 
 ## Engine integration points (the octopus arms)
 

@@ -620,11 +620,20 @@ def _board_dirty_notice(root: str, reason: str) -> str:
         if waiting:
             w = ", ".join(f"{s} ({n})" for s, n in sorted(waiting.items()))
             total = sum(waiting.values())
-            bits.append(f"PROACTIVE — hand-off waiting: {w}: {total} unclaimed "
+            warn = (f"PROACTIVE -- hand-off waiting: {w}: {total} unclaimed "
                         "signal(s) left by completed upstream runs; do not close "
                         "the loop empty-handed (diagnose: blackboard.py "
                         "chain-health; claim: handoffs --skill <downstream>, "
-                        "then consume its handoff channel).")  # announce-only
+                        "then consume its handoff channel).")
+            try:
+                stale = bb.chain_health(root).get("stale", [])
+            except Exception:
+                stale = []
+            if stale:
+                oldest = max(stale, key=lambda s: s.get("age_seconds", 0))
+                warn += (f" ESCALATION: {len(stale)} signal(s) older than 24h -- "
+                         f"oldest {oldest['from']}->{oldest['to']}.")
+            bits.append(warn)  # announce-only
         if bits:
             bb.consume_alerts(root, "stop")  # deliver-once
             return reason + " " + " ".join(bits)

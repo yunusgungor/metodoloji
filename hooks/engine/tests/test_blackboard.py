@@ -991,7 +991,7 @@ def test_stop_deny_carries_proactive_handoff_warning(tmp_path, monkeypatch):
     bb.post_handoff(str(tmp_path), "bmad-ux", "prd.acme", "PRD final")
     out = stop_mod.stop({"cwd": str(tmp_path), "hook_event_name": "Stop"})
     assert out["decision"] == "deny"
-    assert "PROACTIVE — hand-off waiting: bmad-ux (1)" in out["reason"]
+    assert "PROACTIVE -- hand-off waiting: bmad-ux (1)" in out["reason"]
     assert "do not close the loop empty-handed" in out["reason"]
     assert "chain-health" in out["reason"]
     # announce-only: the signal still waits for its addressed skill
@@ -1153,7 +1153,7 @@ def test_session_start_proactive_warning_when_waiting(tmp_path, monkeypatch):
     bb.post_handoff(str(tmp_path), "bmad-ux", "prd.acme", "PRD final")
     bb.post_handoff(str(tmp_path), "bmad-architecture", "ux.acme", "UX final")
     ctx = audit_mod.session_start({"cwd": str(tmp_path)})["additionalContext"]
-    assert "PROACTIVE — hand-off waiting" in ctx
+    assert "PROACTIVE -- hand-off waiting" in ctx
     assert "2 unclaimed signal(s)" in ctx
     assert "nobody picked up the baton" in ctx
     assert "chain-health" in ctx          # diagnose path
@@ -1202,9 +1202,12 @@ def test_chain_health_idle_when_no_signals(root):
     h = bb.chain_health(root)
     assert h["ok"] is True
     assert len(h["chain"]) == 6  # 7 skills -> 6 hops
+    assert len(h["methodology_chain"]) == 5  # 6 stages -> 5 hops
     assert all(hop["waiting"] == 0 and hop["consumed"] == 0 and hop["status"] == "idle"
                for hop in h["chain"])
-    assert h["extra"] == [] and h["total_waiting"] == 0
+    assert all(hop["waiting"] == 0 and hop["consumed"] == 0 and hop["status"] == "idle"
+               for hop in h["methodology_chain"])
+    assert h["extra"] == [] and h["total_waiting"] == 0 and h["stale"] == []
 
 
 def test_chain_health_counts_waiting_and_consumed_per_hop(root):
@@ -1266,10 +1269,13 @@ def test_handoff_channel_fits_longest_skill_name(root):
     bb.post_handoff(root, long_skill, "E-001", "approved")
     assert bb.pending_handoffs(root, long_skill), "signal must reach its own receiver"
     h = bb.chain_health(root)
-    assert h["extra"][0]["to"] == long_skill
+    # E- prefix attributes to bmad-research-experiment: first-class
+    # methodology hop now, no longer 'extra'.
+    assert h["methodology_chain"][0]["to"] == long_skill
+    assert h["methodology_chain"][0]["waiting"] == 1
     bb.consume_alerts(root, f"handoff.{long_skill}")
     h = bb.chain_health(root)
-    assert h["extra"][0]["waiting"] == 0 and h["extra"][0]["consumed"] == 1
+    assert h["methodology_chain"][0]["waiting"] == 0 and h["methodology_chain"][0]["consumed"] == 1
 
 
 def test_chain_health_consumption_is_not_double_counted(root):
@@ -1278,6 +1284,99 @@ def test_chain_health_consumption_is_not_double_counted(root):
     bb.consume_alerts(root, "handoff.bmad-ux")  # second consume of empty channel
     h = bb.chain_health(root)
     assert h["chain"][0]["consumed"] == 1  # not 2
+
+
+def test_chain_health_methodology_relay_first_class(root):
+    """METHODOLOGY_CHAIN is a first-class ordered relay (E->IR->SP->S->QR->PR),
+    not just prefix attribution under 'extra'."""
+    bb.post_handoff(root, "bmad-check-implementation-readiness", "E-001", "approved")
+    bb.post_handoff(root, "bmad-sprint-planning", "IR-2026-01-01", "READY")
+    bb.consume_alerts(root, "handoff.bmad-sprint-planning")
+    h = bb.chain_health(root)
+    assert len(h["methodology_chain"]) == 5
+    hops = {(hop["from"], hop["to"]): hop for hop in h["methodology_chain"]}
+    assert ("bmad-research-experiment",
+            "bmad-check-implementation-readiness") in hops
+    assert hops[("bmad-research-experiment",
+                 "bmad-check-implementation-readiness")]["waiting"] == 1
+    assert hops[("bmad-research-experiment",
+                 "bmad-check-implementation-readiness")]["status"] == "waiting"
+    # sprint-planning hop: one consumed, none waiting -> clear
+    assert hops[("bmad-check-implementation-readiness",
+                 "bmad-sprint-planning")]["consumed"] == 1
+    assert hops[("bmad-check-implementation-readiness",
+                 "bmad-sprint-planning")]["waiting"] == 0
+    assert hops[("bmad-check-implementation-readiness",
+                 "bmad-sprint-planning")]["status"] == "clear"
+    assert h["total_waiting"] == 1
+    # no methodology signal leaks into extra
+    assert all(e["to"] != "bmad-sprint-planning" for e in h["extra"])
+
+
+def test_chain_health_stale_escalation_runtime_path(root):
+    """Stale escalation is computed off the real event log (chain_health),
+    not a manually aged dict — the Stop/session_start path calls this."""
+    bb.post_handoff(root, "bmad-ux", "prd.acme", "fresh")
+    old = bb.HANDOFF_SIGNAL_TTL_SECONDS + 3600
+    import time as _time
+    h = bb.chain_health(root, now=_time.time() + old)
+    assert len(h["stale"]) == 1
+    assert h["stale"][0]["to"] == "bmad-ux"
+    assert h["stale"][0]["age_seconds"] >= int(old)
+    # doctor on the same board (fresh now): no stale yet. A genuinely old
+    # signal (backdated event) surfaces through the real runtime path:
+    # chain_health -> doctor warnings + checks.chain.stale.
+    h2 = bb.chain_health(root)
+    assert h2["stale"] == []
+    import json as _json
+    paths = bb.board_paths(root)
+    with open(paths["events"], encoding="utf-8") as f:
+        lines = f.read().splitlines()
+    assert lines, "expected at least the handoff event"
+    ev = _json.loads(lines[-1])
+    ev["ts"] = _time.time() - (bb.HANDOFF_SIGNAL_TTL_SECONDS + 7200)
+    lines[-1] = _json.dumps(ev, ensure_ascii=False)
+    with open(paths["events"], "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    d = bb.doctor(root)
+    assert any("STALE" in w for w in d["warnings"])
+    assert d["checks"]["chain"]["stale"] != []
+    assert d["checks"]["chain"]["stale"][0]["to"] == "bmad-ux"
+
+
+def test_chain_health_bridge_fanout_first_class(root):
+    """create-story -> quality-record is the documented bridge fan-out and a
+    first-class methodology hop (S->QR): it must NOT leak into 'extra'."""
+    bb.post_handoff(root, "bmad-quality-record", "S-001", "queued")
+    h = bb.chain_health(root)
+    hops = {(hop["from"], hop["to"]): hop for hop in h["methodology_chain"]}
+    assert hops[("bmad-create-story", "bmad-quality-record")]["waiting"] == 1
+    assert h["extra"] == []
+    assert h["total_waiting"] == 1
+
+
+def test_chain_methodology_end_to_end_full_handshake(root):
+    """The full E->IR->SP->S->QR->PR relay on one board: every hop posts,
+    peeks and consumes in order; methodology_chain drains to clear."""
+    bb.post_handoff(root, "bmad-check-implementation-readiness", "E-001", "approved")
+    assert bb.pending_handoff_channels(root) == {"bmad-check-implementation-readiness": 1}
+    bb.consume_alerts(root, "handoff.bmad-check-implementation-readiness")
+    bb.post_handoff(root, "bmad-sprint-planning", "IR-2026-01-01", "READY")
+    assert bb.pending_handoffs(root, "bmad-sprint-planning")[0]["text"].startswith("IR-2026-01-01")
+    bb.consume_alerts(root, "handoff.bmad-sprint-planning")
+    bb.post_handoff(root, "bmad-create-story", "SP-2026-01-01", "queue ready")
+    bb.consume_alerts(root, "handoff.bmad-create-story")
+    bb.post_handoff(root, "bmad-dev-story", "story.1-1-x", "ready-for-dev")
+    bb.post_handoff(root, "bmad-quality-record", "story.1-1-x", "queued")
+    bb.consume_alerts(root, "handoff.bmad-dev-story")
+    bb.consume_alerts(root, "handoff.bmad-quality-record")
+    bb.post_handoff(root, "bmad-production-readiness", "QR-001", "approved")
+    bb.consume_alerts(root, "handoff.bmad-production-readiness")
+    h = bb.chain_health(root)
+    assert h["total_waiting"] == 0
+    assert all(hop["status"] == "clear" for hop in h["methodology_chain"])
+    # the bridge fan-out consumed too: no residue anywhere
+    assert h["extra"] == []
 
 
 def test_cli_chain_health(tmp_path):

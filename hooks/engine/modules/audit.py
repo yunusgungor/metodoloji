@@ -293,12 +293,19 @@ def session_start(json_in: dict) -> dict:
                 if waiting:
                     w = ", ".join(f"{s} ({n})" for s, n in sorted(waiting.items()))
                     total = sum(waiting.values())
-                    parts.append(
-                        f"PROACTIVE — hand-off waiting: {w}: {total} unclaimed "
+                    warn = (f"PROACTIVE -- hand-off waiting: {w}: {total} unclaimed "
                         "signal(s) from completed upstream runs; a run finished "
                         "its work but nobody picked up the baton (diagnose: "
                         "blackboard.py chain-health; claim: handoffs --skill "
                         "<this skill>, then consume its handoff channel)")
+                    try:
+                        stale_n = len(bb.chain_health(root).get("stale", []))
+                    except Exception:
+                        stale_n = 0
+                    if stale_n:
+                        warn += (f" ESCALATION: {stale_n} signal(s) older than 24h -- "
+                                 "skill crashed/hung?")
+                    parts.append(warn)
             if parts:
                 ctx += " Blackboard: " + "; ".join(parts) + "."
     except Exception:

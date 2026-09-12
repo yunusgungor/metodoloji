@@ -541,27 +541,40 @@ def _phase_3_handoff_and_context(temp_root: str) -> dict:
     # Test 3.1: Stale handoff detection
     print("\n[Test 3.1] Verify stale handoff detection (>24h)...")
     try:
-        # Create a stale handoff record
-        blackboard_dir = create_blackboard_dir(temp_root)
-        
-        stale_time = datetime.now() - timedelta(hours=25)
-        stale_record = {
-            "handoff_id": "HO-001",
-            "timestamp": stale_time.isoformat(),
-            "from_operator": "claude_code",
-            "to_agent": "skill_agent",
-        }
-        
-        # In real flow, Stop hook would detect this
-        age_hours = (datetime.now() - datetime.fromisoformat(stale_record["timestamp"])).total_seconds() / 3600
-        is_stale = age_hours > 24
-        
+        # REAL runtime path (no manual age arithmetic): post a genuine
+        # handoff signal, backdate its event-log timestamp past the TTL,
+        # then verify the engine flags it (chain_health.stale) and doctor
+        # escalates. Stop/session_start consume this same path.
+        from modules.blackboard import (
+            post_handoff as _post_handoff,
+            chain_health as _chain_health,
+            doctor as _doctor,
+            board_paths as _board_paths,
+            HANDOFF_SIGNAL_TTL_SECONDS as _TTL,
+        )
+        _ack = _post_handoff(temp_root, "bmad-ux", "prd.acme",
+                             note="stale-path probe")
+        assert _ack.get("ok") is True
+        _paths = _board_paths(temp_root)
+        with open(_paths["events"], encoding="utf-8") as _f:
+            _lines = _f.read().splitlines()
+        _ev = json.loads(_lines[-1])
+        _ev["ts"] = time.time() - (_TTL + 3600)
+        _lines[-1] = json.dumps(_ev, ensure_ascii=False)
+        with open(_paths["events"], "w", encoding="utf-8") as _f:
+            _f.write("\n".join(_lines) + "\n")
+        _h = _chain_health(temp_root)
+        _stale = _h.get("stale", [])
+        _escalated = any("STALE" in w for w in _doctor(temp_root)["warnings"])
+        age_hours = (_TTL + 3600) / 3600
+        is_stale = len(_stale) == 1 and _stale[0]["to"] == "bmad-ux" and _escalated
+
         print(f"  Handoff age: {age_hours:.1f} hours")
         print(f"  Is stale (>24h): {is_stale}")
-        
+
         results["tests"].append({
             "name": "Stale handoff detection",
-            "status": "PASS" if is_stale else "PARTIAL",
+            "status": "PASS" if is_stale else "FAIL",
             "age_hours": age_hours,
             "stale": is_stale,
         })

@@ -140,8 +140,12 @@ def _panel(d: dict) -> str:
     r = c["residue"]
     lines.append(f"residue   {len(r['tmp_files'])} .tmp")
     ch = c["chain"]
-    hops = ", ".join(f"{h['from']}\u2192{h['to']}" for h in ch["waiting_hops"]) or "none"
+    hops = ", ".join(f"{h['from']}->{h['to']}" for h in ch["waiting_hops"]) or "none"
     lines.append(f"chain     {ch['total_waiting']} waiting ({hops})")
+    if ch.get("stale"):
+        oldest = max(ch["stale"], key=lambda s: s.get("age_seconds", 0))
+        lines.append(f"stale     {len(ch['stale'])} signal(s) > 24h old "
+                     f"(oldest: {oldest['from']}->{oldest['to']})")
     w = c["watch"]["paths"]
     if w:
         lines.append("watch     " + "; ".join(

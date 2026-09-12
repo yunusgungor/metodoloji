@@ -1362,15 +1362,27 @@ def _signal_sender(text: str) -> str:
     return "unknown"
 
 
-def chain_health(project_root: str) -> dict:
-    """Per-hop hand-off diagnostics for the delivery relay: how many signals
-    are waiting (downstream has not picked up) and how many were consumed
-    (handshake completed) on every hop, sender-attributed from the event
-    log. Unknown receivers/senders surface as 'extra' — the protocol is
-    extensible, the diagnostic follows."""
+def chain_health(project_root: str, *, now: float | None = None) -> dict:
+    """Per-hop hand-off diagnostics for the delivery relay AND the methodology
+    relay: how many signals are waiting (downstream has not picked up) and how
+    many were consumed (handshake completed) on every hop, sender-attributed
+    from the event log.
+
+    - ``chain``: the ordered delivery relay (CHAIN, 7 skills → 6 hops).
+    - ``methodology_chain``: the ordered methodology relay (METHODOLOGY_CHAIN,
+      6 stages → 5 hops).
+    - ``extra``: signals outside both ordered relays (unknown receivers or
+      off-chain fan-out such as create-story → quality-record). The protocol
+      is extensible, the diagnostic follows.
+    - ``stale``: waiting signals older than HANDOFF_SIGNAL_TTL_SECONDS —
+      the escalation path stop/session_start surface. Pass ``now`` in tests
+      for deterministic age computation.
+    """
     waiting: dict = {}   # (sender, receiver) -> count
     consumed: dict = {}  # (sender, receiver) -> count
-    open_signals: dict = {}  # receiver -> [(sender, text)]
+    open_signals: dict = {}  # receiver -> [(sender, text, ts)]
+    stale: list = []     # waiting signals past TTL (escalation candidates)
+    ref = now if now is not None else time.time()
     paths = board_paths(project_root)
     try:
         with open(paths["events"], encoding="utf-8") as f:
@@ -1389,21 +1401,25 @@ def chain_health(project_root: str) -> dict:
                         continue
                     receiver = channel[len("handoff."):]
                     sender = _signal_sender(str(ev.get("text", "")))
-                    open_signals.setdefault(receiver, []).append(sender)
+                    open_signals.setdefault(receiver, []).append(
+                        (sender, str(ev.get("text", "")), float(ev.get("ts", 0.0) or 0.0)))
                 elif kind == "consume":
                     channel = str(ev.get("channel", ""))
                     if not channel.startswith("handoff."):
                         continue
                     receiver = channel[len("handoff."):]
-                    for sender in open_signals.pop(receiver, []):
+                    for sender, _text, _ts in open_signals.pop(receiver, []):
                         key = (sender, receiver)
                         consumed[key] = consumed.get(key, 0) + 1
     except OSError:
         pass
     for receiver, senders in open_signals.items():
-        for sender in senders:
+        for sender, text, ts in senders:
             key = (sender, receiver)
             waiting[key] = waiting.get(key, 0) + 1
+            if ref - (ts or 0.0) > HANDOFF_SIGNAL_TTL_SECONDS:
+                stale.append({"from": sender, "to": receiver, "text": text,
+                              "age_seconds": int(ref - (ts or 0.0))})
 
     def hop_rows(sender_skill: str, receiver_skill: str) -> dict:
         w = sum(v for (s, r), v in waiting.items() if s == sender_skill and r == receiver_skill)
@@ -1418,7 +1434,11 @@ def chain_health(project_root: str) -> dict:
                 "waiting": w, "consumed": c, "status": status}
 
     chain = [hop_rows(a, b) for a, b in zip(CHAIN, CHAIN[1:])]
-    seen = {(h["from"], h["to"]) for h in chain}
+    methodology_chain = [hop_rows(a, b) for a, b in zip(METHODOLOGY_CHAIN, METHODOLOGY_CHAIN[1:])]
+    # NOTE: bmad-create-story is the bridge (present in both relays). Its
+    # off-chain fan-out (create-story -> quality-record) stays in 'extra';
+    # methodology membership is tracked separately in methodology_chain.
+    seen = {(h["from"], h["to"]) for h in chain} | {(h["from"], h["to"]) for h in methodology_chain}
     extra = []
     for (s, r) in sorted(set(list(waiting) + list(consumed))):
         if (s, r) in seen:
@@ -1426,11 +1446,9 @@ def chain_health(project_root: str) -> dict:
         w, c = waiting.get((s, r), 0), consumed.get((s, r), 0)
         extra.append({"from": s, "to": r, "waiting": w, "consumed": c,
                       "status": "waiting" if w else "clear"})
-    total_waiting = sum(v for (s, r), v in waiting.items()
-                        if (s, r) not in seen) + \
-        sum(h["waiting"] for h in chain)
-    return {"ok": True, "chain": chain, "extra": extra,
-            "total_waiting": total_waiting}
+    total_waiting = sum(waiting.values())
+    return {"ok": True, "chain": chain, "methodology_chain": methodology_chain,
+            "extra": extra, "total_waiting": total_waiting, "stale": stale}
 
 
 # --- doctor (one-glance diagnostic) ---------------------------------------------------
@@ -1710,25 +1728,26 @@ def doctor(project_root: str) -> dict:
         warnings.append(f"{len(tmp_files)} leftover .tmp file(s) under "
                         f"{paths['dir']} — safe to delete")
 
-    # chain
+    # chain (delivery + methodology relays)
     chain = chain_health(project_root)
     if chain["total_waiting"] > 0:
-        waiting_hops = [f"{h['from']}→{h['to']}" for h in chain["chain"] if h["waiting"]]
-        waiting_hops += [f"{h['from']}→{h['to']}" for h in chain["extra"] if h["waiting"]]
+        waiting_hops = [f"{h['from']}->{h['to']}" for h in chain["chain"] if h["waiting"]]
+        waiting_hops += [f"{h['from']}->{h['to']}" for h in chain.get("methodology_chain", []) if h["waiting"]]
+        waiting_hops += [f"{h['from']}->{h['to']}" for h in chain["extra"] if h["waiting"]]
         warnings.append(f"{chain['total_waiting']} unclaimed hand-off signal(s) "
-                        f"({', '.join(waiting_hops)}) — PROACTIVE, see chain-health")
+                        f"({', '.join(waiting_hops)}) -- PROACTIVE, see chain-health")
     
-    # NEW: Detect stale handoff signals (CRITICAL #4 / ISSUE #25)
-    now = time.time()
-    stale_handoffs = [
-        a for a in board["alerts"]
-        if a.get("kind") == "handoff" and 
-           (now - (a.get("ts", 0.0))) > HANDOFF_SIGNAL_TTL_SECONDS
-    ]
-    if stale_handoffs:
-        warnings.append(f"{len(stale_handoffs)} STALE hand-off signal(s) "
-                        f"(> 24h old) — skill crashed/hung? "
-                        f"Run 'blackboard.py doctor' to clean up")
+    # Stale handoff escalation: event-log ages, not board-alert snapshots
+    # (per-signal ts is authoritative in the log). Oldest-first so operators
+    # triage the longest-waiting baton first.
+    stale = chain.get("stale", [])
+    if stale:
+        stale_sorted = sorted(stale, key=lambda s: -s.get("age_seconds", 0))
+        oldest = stale_sorted[0]
+        warnings.append(f"{len(stale)} STALE hand-off signal(s) "
+                        f"(> 24h old) -- skill crashed/hung? "
+                        f"oldest: {oldest['from']}->{oldest['to']} -- "
+                        f"claim via handoffs --skill <downstream>, then consume")
 
     # watch paths (informational: missing prefixes may be created later)
     watch = [{"canvas": name, "path": w, "exists": os.path.exists(w)}
@@ -1754,7 +1773,9 @@ def doctor(project_root: str) -> dict:
                     "status": "ok" if not tmp_files else "warn"},
         "chain": {"total_waiting": chain["total_waiting"],
                   "waiting_hops": [h for h in chain["chain"] if h["waiting"]]
+                                   + [h for h in chain.get("methodology_chain", []) if h["waiting"]]
                                   + [h for h in chain["extra"] if h["waiting"]],
+                  "stale": chain.get("stale", []),
                   "status": "ok" if chain["total_waiting"] == 0 else "warn"},
         "watch": {"paths": watch, "status": "info" if watch else "ok"},
     }
