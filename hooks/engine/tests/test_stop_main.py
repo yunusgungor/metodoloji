@@ -556,3 +556,109 @@ def test_stop_allows_on_hook_violation_soft_gate(tmp_path, monkeypatch):
 
     # In soft gate, stop must be allowed even with violations (fail-open)
     assert result["decision"] == "allow"
+
+
+def test_validate_hook_state_machine_allows_post_without_pre(tmp_path):
+    """PostToolUse with no preceding PreToolUse is NOT a violation.
+
+    Regression: the audit matcher covers tools (Bash) the guard matcher
+    does not, so real sessions legitimately hold Post rows with no Pre
+    behind them. Consecutive Posts are equally fine.
+    """
+    from modules.stop import _validate_hook_state_machine
+
+    (tmp_path / ".metodoloji").mkdir()
+    events = [
+        '{"type": "hook", "name": "SessionStart", "timestamp": 1000}',
+        '{"type": "hook", "name": "PostToolUse", "timestamp": 2000}',
+        '{"type": "hook", "name": "PostToolUse", "timestamp": 3000}',
+    ]
+    (tmp_path / ".metodoloji" / "events.log").write_text("\n".join(events), encoding="utf-8")
+
+    hook_ok, hook_msg = _validate_hook_state_machine(str(tmp_path))
+    assert hook_ok is True, hook_msg
+
+
+def test_validate_hook_state_machine_still_catches_orphan_post(tmp_path):
+    """A tool event with no SessionStart behind it is still a violation."""
+    from modules.stop import _validate_hook_state_machine
+
+    (tmp_path / ".metodoloji").mkdir()
+    events = [
+        '{"type": "hook", "name": "PostToolUse", "timestamp": 1000}',
+        '{"type": "hook", "name": "SessionStart", "timestamp": 2000}',
+    ]
+    (tmp_path / ".metodoloji" / "events.log").write_text("\n".join(events), encoding="utf-8")
+
+    hook_ok, hook_msg = _validate_hook_state_machine(str(tmp_path))
+    assert hook_ok is False
+    assert "SessionStart" in hook_msg
+
+
+def _seed_post_only_session(tmp_path):
+    (tmp_path / ".metodoloji").mkdir()
+    events = [
+        '{"type": "hook", "name": "SessionStart", "timestamp": 1000}',
+        '{"type": "hook", "name": "PostToolUse", "timestamp": 2000}',
+        '{"type": "hook", "name": "PostToolUse", "timestamp": 3000}',
+    ]
+    (tmp_path / ".metodoloji" / "events.log").write_text("\n".join(events), encoding="utf-8")
+
+
+def test_stop_allows_post_only_session_hard_gate(tmp_path, monkeypatch):
+    """Hard gate: a Bash-only session (Post rows, no Pre) must close cleanly."""
+    from modules.stop import stop
+    from modules import config
+
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
+    _seed_post_only_session(tmp_path)
+
+    result = stop({"cwd": str(tmp_path), "hook_event_name": "Stop"})
+    assert result["decision"] == "allow"
+
+
+def test_stop_hook_violation_deny_counts_toward_budget(tmp_path, monkeypatch):
+    """A hook-sequence deny consumes the deny budget: the next Stop allows."""
+    from modules.stop import stop
+    from modules import config
+
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
+
+    (tmp_path / ".metodoloji").mkdir()
+    events = [
+        '{"type": "hook", "name": "PostToolUse", "timestamp": 1000}',
+        '{"type": "hook", "name": "SessionStart", "timestamp": 2000}',
+    ]
+    (tmp_path / ".metodoloji" / "events.log").write_text("\n".join(events), encoding="utf-8")
+
+    first = stop({"cwd": str(tmp_path), "hook_event_name": "Stop"})
+    assert first["decision"] == "deny"
+    assert "Hook state machine violation" in first["reason"]
+
+    second = stop({"cwd": str(tmp_path), "hook_event_name": "Stop"})
+    assert second["decision"] == "allow"
+
+
+def test_stop_hook_violation_respects_stop_hook_active(tmp_path, monkeypatch):
+    """stop_hook_active re-fire bypasses the sequence check (no wedge)."""
+    from modules.stop import stop
+    from modules import config
+
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "hard")
+
+    (tmp_path / ".metodoloji").mkdir()
+    events = [
+        '{"type": "hook", "name": "PostToolUse", "timestamp": 1000}',
+        '{"type": "hook", "name": "SessionStart", "timestamp": 2000}',
+    ]
+    (tmp_path / ".metodoloji" / "events.log").write_text("\n".join(events), encoding="utf-8")
+
+    result = stop({"cwd": str(tmp_path), "hook_event_name": "Stop",
+                   "stop_hook_active": True})
+    assert result["decision"] == "allow"

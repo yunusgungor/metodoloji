@@ -1566,12 +1566,13 @@ def quality(json_in: dict) -> dict:
     root = repo_root(json_in)
     root = os.path.abspath(root)
 
-    # Stamp quality check to blackboard
+    # Stamp quality check to blackboard (as a PreToolUse row so the stop
+    # hook's sequence validator sees this gate's firing in the board stream).
     try:
         from .config import blackboard_enabled
         if blackboard_enabled():
             from . import blackboard as bb
-            bb.stamp_tool_event(root, "quality", "git commit")
+            bb.stamp_tool_event(root, "quality", "git commit", hook_event="PreToolUse")
     except Exception:
         pass
 
@@ -1695,12 +1696,13 @@ def deploy(json_in: dict) -> dict:
     root = repo_root(json_in)
     root = os.path.abspath(root)
 
-    # Stamp deploy check to blackboard
+    # Stamp deploy check to blackboard (as a PreToolUse row so the stop
+    # hook's sequence validator sees this gate's firing in the board stream).
     try:
         from .config import blackboard_enabled
         if blackboard_enabled():
             from . import blackboard as bb
-            bb.stamp_tool_event(root, "deploy", command[:100])
+            bb.stamp_tool_event(root, "deploy", command[:100], hook_event="PreToolUse")
             # Post handoff notification to production-readiness check
             bb.post_alert(root, "deploy", "gate", "Deploy gate triggered - checking PR readiness")
     except Exception:

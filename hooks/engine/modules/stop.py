@@ -350,6 +350,13 @@ def _validate_hook_state_machine(root: str) -> tuple[bool, str]:
     Accepts BOTH stream schemas: the audit markers' {type, hook_event} and
     the generic {type: "hook", name: <event>} shape used by tests and
     external tooling (.metodoloji/events.log). Returns (is_valid, reason).
+
+    Deliberately loose: only a tool event with no SessionStart behind it,
+    or a PostToolUse following a Stop, is a genuine ordering break. A
+    PostToolUse with no immediately preceding PreToolUse is NOT a
+    violation — a tool can fire its Post hook while its Pre hook never ran
+    (the audit matcher covers tools the guard matcher does not), and
+    parallel gates legitimately stamp consecutive PreToolUse rows.
     (HIGH #7 / ISSUE #58)
     """
     from .config import log_file
@@ -478,17 +485,17 @@ def _validate_hook_state_machine(root: str) -> tuple[bool, str]:
                         f"Hook sequence violation: PreToolUse at {origin} "
                         f"without SessionStart"
                     )
-                elif last_event not in ("SessionStart", "PostToolUse"):
-                    violations.append(
-                        f"Hook sequence violation: PreToolUse follows '{last_event}' "
-                        f"(expected SessionStart or PostToolUse)"
-                    )
                 last_event = "PreToolUse"
             elif hook_event == "PostToolUse":
-                if last_event != "PreToolUse":
+                if not session_started:
                     violations.append(
                         f"Hook sequence violation: PostToolUse at {origin} "
-                        f"follows '{last_event}' (expected PreToolUse)"
+                        f"without SessionStart"
+                    )
+                elif last_event == "Stop":
+                    violations.append(
+                        f"Hook sequence violation: PostToolUse at {origin} "
+                        f"follows 'Stop' (expected a live session event)"
                     )
                 last_event = "PostToolUse"
 
@@ -647,36 +654,11 @@ def stop(json_in: dict) -> dict:
     from .utils import repo_root
     root = repo_root(json_in)
 
-    # NEW: Validate hook state machine (SessionStart→PreToolUse→PostToolUse→Stop order)
-    # NEW: Validate hook state machine (SessionStart→PreToolUse→PostToolUse→Stop order)
-    # In hard gate: block stop if violations detected (HIGH #9 / ISSUE #64)
-    # In soft gate: log warning but allow
-    hook_ok, hook_msg = _validate_hook_state_machine(root)
-    if not hook_ok:
-        from .config import hook_gate_mode
-        is_hard_gate = hook_gate_mode("stop_guard") == "hard"
-        
-        try:
-            from .config import blackboard_enabled
-            if blackboard_enabled():
-                from . import blackboard as bb
-                bb.post_alert(root, "stop", "error" if is_hard_gate else "warn", 
-                             f"Hook sequence issue: {hook_msg}")
-        except Exception:
-            pass
-        
-        # In hard gate: block stop if hook sequence violated
-        if is_hard_gate:
-            return {
-                "decision": "deny",
-                "reason": f"Hook state machine violation: {hook_msg} (SessionStart→PreToolUse→PostToolUse→Stop order required)"
-            }
-
-    # Record session end to blackboard (fire-and-forget)
-    _record_session_to_blackboard(root)
-
-    # 0. Loop breaker: stop_hook_active means Claude re-invoked Stop after a
-    #    previous deny — honor the deny budget instead of wedging the session.
+    # 0. Loop breaker FIRST: stop_hook_active means Claude re-invoked Stop
+    #    after a previous deny — honor the deny budget instead of wedging the
+    #    session. (Above the hook-sequence check: the validator has no budget
+    #    of its own, so a deny placed before this point would fire on every
+    #    re-invocation and never clear.)
     if json_in.get("stop_hook_active"):
         return {"decision": "allow"}
     from .config import hook_gate_mode
@@ -684,6 +666,32 @@ def stop(json_in: dict) -> dict:
         return {"decision": "allow"}
     if _stop_denies_so_far(root) >= _MAX_STOP_DENIES_PER_SESSION:
         return {"decision": "allow"}
+
+    # 0b. Validate hook state machine (SessionStart→PreToolUse→PostToolUse→Stop
+    # order). Counted against the same deny budget as every other stop deny:
+    # one push-back per stretch of work, never a wedge.
+    hook_ok, hook_msg = _validate_hook_state_machine(root)
+    if not hook_ok:
+        is_hard_gate = hook_gate_mode("stop_guard") == "hard"
+
+        try:
+            from .config import blackboard_enabled
+            if blackboard_enabled():
+                from . import blackboard as bb
+                bb.post_alert(root, "stop", "error" if is_hard_gate else "warn",
+                             f"Hook sequence issue: {hook_msg}")
+        except Exception:
+            pass
+
+        # In hard gate: block stop if hook sequence violated
+        if is_hard_gate:
+            reason = (f"Hook state machine violation: {hook_msg} "
+                      f"(SessionStart→PreToolUse→PostToolUse→Stop order required)")
+            _record_stop_deny(root, reason)
+            return {"decision": "deny", "reason": reason}
+
+    # Record session end to blackboard (fire-and-forget)
+    _record_session_to_blackboard(root)
 
     # 1. Check for incomplete stories (focus-aware: if the session scope
     #    names a specific story, only that story blocks stop). A blackboard
