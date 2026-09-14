@@ -1566,8 +1566,7 @@ def quality(json_in: dict) -> dict:
     root = repo_root(json_in)
     root = os.path.abspath(root)
 
-    # Stamp quality check to blackboard (as a PreToolUse row so the stop
-    # hook's sequence validator sees this gate's firing in the board stream).
+    # Stamp quality check to blackboard.
     try:
         from .config import blackboard_enabled
         if blackboard_enabled():
@@ -1696,8 +1695,7 @@ def deploy(json_in: dict) -> dict:
     root = repo_root(json_in)
     root = os.path.abspath(root)
 
-    # Stamp deploy check to blackboard (as a PreToolUse row so the stop
-    # hook's sequence validator sees this gate's firing in the board stream).
+    # Stamp deploy check to blackboard.
     try:
         from .config import blackboard_enabled
         if blackboard_enabled():

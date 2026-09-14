@@ -370,90 +370,89 @@ def _validate_hook_state_machine(root: str) -> tuple[bool, str]:
         """hook_event under either schema: hook_event key, or name key."""
         return str(entry.get("hook_event") or entry.get("name") or "")
 
-    if log_path.exists():
+    def _rows_from_jsonl(path: pathlib.Path, tag: str, map_entry) -> None:
+        """Parse one JSONL event stream into rows; bad lines/files skip (fail-open)."""
         try:
-            with open(log_path, "r", encoding="utf-8") as f:
+            with open(path, "r", encoding="utf-8") as f:
                 for line_no, line in enumerate(f, 1):
                     try:
                         entry = json.loads(line)
                     except (json.JSONDecodeError, ValueError):
                         continue
-                    entry_type = str(entry.get("type", ""))
-                    hook_event = str(entry.get("hook_event", ""))
-                    ts = float(entry.get("timestamp", 0.0) or 0.0)
-                    if entry_type in ("session_marker", "session_start"):
-                        # record_session_start writes type=_SESSION_MARKER_TYPE
-                        # ("session_start"); "session_marker" is accepted for
-                        # backward compatibility with older logs.
-                        if hook_event == "SessionStart" or _hook_from_generic(entry) == "SessionStart":
-                            rows.append((ts, "SessionStart", f"audit:{line_no}"))
+                    try:
+                        row = map_entry(entry, f"{tag}:{line_no}")
+                    except (ValueError, TypeError, AttributeError):
                         continue
-                    if entry_type == "session_stop":
-                        if hook_event == "Stop" or _hook_from_generic(entry) == "Stop":
-                            rows.append((ts, "Stop", f"audit:{line_no}"))
-                        continue
-                    if entry_type == "stop":  # legacy end marker
-                        rows.append((ts, "Stop", f"audit:{line_no}"))
-                        continue
-                    # Tool events with a hook_event field (future-proof: the
-                    # audit record itself may carry the event name)
-                    if hook_event in ("PreToolUse", "PostToolUse"):
-                        rows.append((ts, hook_event, f"audit:{line_no}"))
-                        continue
-                    # Generic {type: hook, name: <event>} schema
-                    if entry_type == "hook":
-                        name = _hook_from_generic(entry)
-                        if name in ("SessionStart", "PreToolUse", "PostToolUse", "Stop"):
-                            rows.append((ts, name, f"audit:{line_no}"))
+                    if row is not None:
+                        rows.append(row)
         except OSError:
-            pass  # unreadable audit log — board stream below may still validate
+            pass
+
+    def _audit_row(entry: dict, origin: str):
+        entry_type = str(entry.get("type", ""))
+        hook_event = str(entry.get("hook_event", ""))
+        ts = float(entry.get("timestamp", 0.0) or 0.0)
+        if entry_type in ("session_marker", "session_start"):
+            # record_session_start writes type=_SESSION_MARKER_TYPE
+            # ("session_start"); "session_marker" is accepted for
+            # backward compatibility with older logs.
+            if _hook_from_generic(entry) == "SessionStart":
+                return (ts, "SessionStart", origin)
+        elif entry_type == "session_stop":
+            if _hook_from_generic(entry) == "Stop":
+                return (ts, "Stop", origin)
+        elif entry_type == "stop":  # legacy end marker
+            return (ts, "Stop", origin)
+        # Tool events with a hook_event field (future-proof: the
+        # audit record itself may carry the event name)
+        elif hook_event in ("PreToolUse", "PostToolUse"):
+            return (ts, hook_event, origin)
+        # Generic {type: hook, name: <event>} schema
+        elif entry_type == "hook":
+            name = _hook_from_generic(entry)
+            if name in ("SessionStart", "PreToolUse", "PostToolUse", "Stop"):
+                return (ts, name, origin)
+        return None
+
+    # unreadable audit log here still leaves the board stream below
+    _rows_from_jsonl(log_path, "audit", _audit_row)
 
     # Board stream: raw event replay (read-only — no _mutate scope here).
+    def _board_row(ev: dict, origin: str):
+        kind = ev.get("event")
+        hook_event = str(ev.get("hook_event", ""))
+        ts = float(ev.get("ts", 0.0) or 0.0)
+        if kind == "tool":
+            if hook_event in ("PreToolUse", "PostToolUse"):
+                return (ts, hook_event, origin)
+        elif kind == "session_start":
+            return (ts, "SessionStart", origin)
+        elif kind == "session_stop":
+            return (ts, "Stop", origin)
+        elif kind == "hook":
+            name = str(ev.get("name", ""))
+            if name in ("SessionStart", "PreToolUse", "PostToolUse", "Stop"):
+                return (ts, name, origin)
+        return None
+
+    def _generic_row(entry: dict, origin: str):
+        name = _hook_from_generic(entry)
+        if name in ("SessionStart", "PreToolUse", "PostToolUse", "Stop"):
+            return (float(entry.get("timestamp", 0.0) or 0.0), name, origin)
+        return None
+
     try:
         from . import blackboard as bb
         paths = bb.board_paths(root)
         events_path = pathlib.Path(paths["events"])
-        if events_path.exists():
-            with open(events_path, "r", encoding="utf-8") as f:
-                for line_no, line in enumerate(f, 1):
-                    try:
-                        ev = json.loads(line)
-                    except (json.JSONDecodeError, ValueError):
-                        continue
-                    kind = ev.get("event")
-                    hook_event = str(ev.get("hook_event", ""))
-                    ts = float(ev.get("ts", 0.0) or 0.0)
-                    if kind == "tool":
-                        if hook_event in ("PreToolUse", "PostToolUse"):
-                            rows.append((ts, hook_event, f"board:{line_no}"))
-                    elif kind == "session_start":
-                        rows.append((ts, "SessionStart", f"board:{line_no}"))
-                    elif kind == "session_stop":
-                        rows.append((ts, "Stop", f"board:{line_no}"))
-                    elif kind == "hook":
-                        name = str(ev.get("name", ""))
-                        if name in ("SessionStart", "PreToolUse", "PostToolUse", "Stop"):
-                            rows.append((ts, name, f"board:{line_no}"))
+        # fail-open: board stream unreadable — audit stream already read
+        _rows_from_jsonl(events_path, "board", _board_row)
     except Exception:
-        pass  # fail-open: board stream unreadable — audit stream already read
+        pass
 
     # Legacy fallback: a bare .metodoloji/events.log (generic hook schema),
     # read LAST so dated streams take precedence when both exist.
-    legacy_path = root_abs / ".metodoloji" / "events.log"
-    if legacy_path.exists():
-        try:
-            with open(legacy_path, "r", encoding="utf-8") as f:
-                for line_no, line in enumerate(f, 1):
-                    try:
-                        entry = json.loads(line)
-                    except (json.JSONDecodeError, ValueError):
-                        continue
-                    name = _hook_from_generic(entry)
-                    if name in ("SessionStart", "PreToolUse", "PostToolUse", "Stop"):
-                        ts = float(entry.get("timestamp", 0.0) or 0.0)
-                        rows.append((ts, name, f"legacy:{line_no}"))
-        except OSError:
-            pass
+    _rows_from_jsonl(root_abs / ".metodoloji" / "events.log", "legacy", _generic_row)
 
     if not rows:
         return True, ""  # nothing recorded yet, OK
@@ -479,25 +478,18 @@ def _validate_hook_state_machine(root: str) -> tuple[bool, str]:
                         )
                 session_started = False
                 last_event = "Stop"
-            elif hook_event == "PreToolUse":
+            elif hook_event in ("PreToolUse", "PostToolUse"):
                 if not session_started:
                     violations.append(
-                        f"Hook sequence violation: PreToolUse at {origin} "
+                        f"Hook sequence violation: {hook_event} at {origin} "
                         f"without SessionStart"
                     )
-                last_event = "PreToolUse"
-            elif hook_event == "PostToolUse":
-                if not session_started:
-                    violations.append(
-                        f"Hook sequence violation: PostToolUse at {origin} "
-                        f"without SessionStart"
-                    )
-                elif last_event == "Stop":
+                elif hook_event == "PostToolUse" and last_event == "Stop":
                     violations.append(
                         f"Hook sequence violation: PostToolUse at {origin} "
                         f"follows 'Stop' (expected a live session event)"
                     )
-                last_event = "PostToolUse"
+                last_event = hook_event
 
         if violations:
             # Return first 2 violations as summary
