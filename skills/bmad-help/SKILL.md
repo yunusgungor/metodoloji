@@ -4,13 +4,12 @@ description: 'Analyzes current state and user query to answer BMad questions or 
 triggers: ["bmad-help", "/bmad-help", "help"]
 ---
 
-## Metodoloji
-
-Meta yuzey: urettigi yuzeyler arastirma metodolojisini miras alir
-(`{metodoloji-root}/docs/bmad/research-methodology.md`). Bu yuzeyin ciktisi metodoloji kapsami disinda kalamaz.
-
-
 # BMad Help
+
+## Conventions
+
+- `{metodoloji-root}` resolves to the plugin root directory (where this skill is installed).
+- `{project-root}` resolves to the project working directory.
 
 ## Purpose
 
@@ -30,8 +29,8 @@ When this skill completes, the user should:
 ## Data Sources
 
 - **Catalog**: `{metodoloji-root}/bmad/_config/bmad-help.csv` — assembled manifest of all installed module skills
-- **Config**: Run `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root}` and use the merged JSON to resolve `output-location` variables and read `core.communication_language` and `modules.bmm.project_knowledge`. The resolver merges the four plugin layers (`bmad/config.toml`, `bmad/config.user.toml`, `custom/config.toml`, `custom/config.user.toml`) and then the four `{project-root}` layers (`bmad/config.toml`, `bmad/config.user.toml`, `bmad-output/config.toml`, `bmad-output/config.user.toml`) — project-root values override plugin defaults.
-- **Session focus**: Read the session focus from the blackboard (`python3 {metodoloji-root}/bmad/scripts/blackboard.py read --context --project-root {project-root}`) — `scope` and `status` (`active` / `in-progress` / `complete`). This tells you what the user is working on right now. If the `METODOLOJI_SCOPE` env var is set (bootstrap.sh exports it at SessionStart from the board), it wins.
+- **Config**: Run `python3 {metodoloji-root}/bmad/scripts/resolve_config.py --project-root {project-root}` and use the merged JSON to resolve `output-location` variables and read `core.communication_language` and `modules.bmm.project_knowledge`. The resolver merges the four plugin layers (`bmad/config.toml`, `bmad/config.user.toml`, `custom/config.toml`, `custom/config.user.toml`) and then the four `{project-root}` layers (`bmad/config.toml`, `bmad/config.user.toml`, `bmad-output/config.toml`, `bmad-output/config.user.toml`) — project-root values override plugin defaults. **Fallback:** If the script fails or is missing, read `{metodoloji-root}/bmad/config.toml` directly and use its `[core]` section for `communication_language` and `project_knowledge`. If that file is also missing, default to `communication_language = "English"` and skip `project_knowledge`.
+- **Session focus**: Read the session focus from the blackboard (`python3 {metodoloji-root}/bmad/scripts/blackboard.py read --context --project-root {project-root}`) — `scope` and `status` (`active` / `in-progress` / `complete`). This tells you what the user is working on right now. If the `METODOLOJI_SCOPE` env var is set (bootstrap.sh exports it at SessionStart from the board), it wins. **Fallback:** If `blackboard.py` fails or is missing, treat the session as unscoped and recommend based on the user's question alone.
 - **Artifacts**: Files matching `outputs` patterns at resolved `output-location` paths reveal which steps are possibly completed; their content may also provide grounding context for recommendations
 - **Project knowledge**: If `project_knowledge` resolves to an existing path, read it for grounding context. Never fabricate project-specific details.
 - **Module docs**: Rows with `_meta` in the `skill` column carry a URL or path in `output-location` pointing to the module's documentation (e.g., llms.txt). Fetch and use these to answer general questions about that module.
@@ -43,6 +42,8 @@ The catalog uses this format:
 ```
 module,skill,display-name,menu-code,description,action,args,phase,preceded-by,followed-by,required,output-location,outputs
 ```
+
+**Special row type:** Rows with `_meta` in the `skill` column are module documentation entries, not skills. They carry a documentation URL in `output-location`. When iterating skills, skip `_meta` rows. When answering module-level questions, use `_meta` URLs to fetch documentation.
 
 **Phases** determine the high-level flow:
 - `anytime` — available regardless of workflow state
@@ -59,7 +60,7 @@ module,skill,display-name,menu-code,description,action,args,phase,preceded-by,fo
 
 **Completion detection**:
 - Search resolved output paths for `outputs` patterns
-- Fuzzy-match found files to catalog rows
+- Fuzzy-match found files to catalog rows using substring matching: check if the filename contains the skill name or output pattern. Disambiguate by preferring exact matches, then shortest-path matches.
 - User may also state completion explicitly, or it may be evident from the current conversation
 
 **Descriptions carry routing context** — some contain cycle info and alternate paths (e.g., "back to DS if fixes needed"). Read them as navigation hints, not just display text.
@@ -86,4 +87,4 @@ For each recommended item, present:
 - Present all output in `{communication_language}`
 - Recommend running each skill in a **fresh context window**
 - Match the user's tone — conversational when they're casual, structured when they want specifics
-- If the active module is ambiguous, retrieve all meta rows remote sources to find relevant info also to help answer their question
+- If the active module is ambiguous, retrieve all `_meta` rows from the catalog to find module documentation URLs and use them to help answer the user's question

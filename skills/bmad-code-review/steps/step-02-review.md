@@ -7,13 +7,13 @@ failed_layers: '' # set at runtime: comma-separated list of layers that failed o
 ## RULES
 
 - YOU MUST ALWAYS SPEAK OUTPUT in your Agent communication style with the config `{communication_language}`
-- All review subagents must run at the same model capability as the current session.
+- All review subagents should run at the same model capability as the current session. When spawning agents via the `Agent` tool, omit the `model` parameter to inherit the session's model. Only override if you have a specific reason (e.g., cost optimization for mechanical tasks).
 
 ## INSTRUCTIONS
 
 1. If `{review_mode}` = `"no-spec"`, note to the user: "Acceptance Auditor skipped — no spec file provided."
 
-2. Launch Blind Hunter and Edge Case Hunter in parallel without prior conversation context. If `{review_mode}` = `"full"`, include the Acceptance Auditor in the same parallel launch. If subagents are not available, generate prompt files in `{implementation_artifacts}` for each applicable reviewer role and HALT. Ask the user to run each in a separate session (ideally a different LLM) and paste back the findings. When findings are pasted, resume from this point and proceed to step 3.
+2. Launch Blind Hunter and Edge Case Hunter in parallel without prior conversation context. If `{review_mode}` = `"full"`, include the Acceptance Auditor in the same parallel launch. If subagents are not available, generate prompt files in a temp directory (e.g., `{project-root}/.review-prompts/`) for each applicable reviewer role and HALT. Ask the user to run each in a separate session (ideally a different LLM) and paste back the findings. When findings are pasted, resume from this point and proceed to step 3.
 
    - **Blind Hunter** — prompt:
      > Invoke the `bmad-review-adversarial-general` skill on this diff:

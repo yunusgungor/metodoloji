@@ -19,7 +19,8 @@ If you need an explicit user instruction to run them, ask once now for the whole
 
 - Bare paths (e.g. `checklist.md`) resolve from the skill root.
 - `{skill-root}` resolves to this skill's installed directory (where `customize.toml` lives).
-- `{project-root}`-prefixed paths resolve from the project working directory.
+- `{project-root}` resolves to the project working directory.
+- `{metodoloji-root}` resolves to the plugin root directory (where this skill is installed).
 - `{skill-name}` resolves to the skill directory's basename.
 
 ## On Activation

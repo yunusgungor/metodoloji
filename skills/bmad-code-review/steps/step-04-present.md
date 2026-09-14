@@ -29,7 +29,7 @@ If `{spec_file}` exists and contains a Tasks/Subtasks section, append a `### Rev
 3. **`defer`** findings (checked off, marked deferred):
    `- [x] [Review][Defer] <Title> [<file>:<line>] — deferred, pre-existing`
 
-Also append each `defer` finding to `{deferred_work_file}` under a heading `## Deferred from: code review ({date})`. If `{spec_file}` is set, include its basename in the heading (e.g., `code review of story-3.3 (2026-03-18)`). One bullet per finding with description.
+Also append each `defer` finding to `{deferred_work_file}` under a heading `## Deferred from: code review ({date})`. If `{spec_file}` is set, include its basename in the heading (e.g., `code review of story-3.3 (2026-03-18)`). One bullet per finding with description. **Fallback:** If `{deferred_work_file}`'s parent directory does not exist, skip the deferred-work write and note to the user that deferred findings are only in the story file (or the conversation if no spec file was provided).
 
 ### 3. Present summary
 
@@ -86,8 +86,8 @@ Skip this section if `{spec_file}` is not set.
 
 #### Determine new status based on review outcome
 
-- If all `decision-needed` and `patch` findings were resolved (fixed or dismissed) AND no unresolved `high`/`medium` findings remain: set `{new_status}` = `done`. Update the story file Status section to `done`.
-- If `patch` findings were left as action items, or unresolved issues remain: set `{new_status}` = `in-progress`. Update the story file Status section to `in-progress`.
+- If all `decision-needed` and `patch` findings were resolved (fixed or dismissed) AND no unresolved `high`/`medium` findings remain AND no `defer` findings have `high` severity: set `{new_status}` = `done`. Update the story file Status section to `done`.
+- If `patch` findings were left as action items, or unresolved issues remain, OR any `defer` finding has `high` severity: set `{new_status}` = `in-progress`. Update the story file Status section to `in-progress`.
 
 Save the story file.
 
@@ -99,8 +99,10 @@ If `{sprint_status}` file exists:
 
 1. Load the FULL `{sprint_status}` file.
 2. Find the `development_status` entry matching `{story_key}`.
-3. If found: update `development_status[{story_key}]` to `{new_status}`. Update `last_updated` to current date. Save the file, preserving ALL comments and structure including STATUS DEFINITIONS.
-4. If `{story_key}` not found in sprint status: warn the user that the story file was updated but sprint-status sync failed.
+3. If found: update `development_status[{story_key}]` to `{new_status}`. Update `last_updated` to current date.
+4. **Epic completion check:** If `{new_status}` = `done`, scan all other stories in the same epic. If every story in the epic has status `done`, update the epic entry to `done` as well.
+5. Save the file, preserving ALL comments and structure including STATUS DEFINITIONS.
+6. If `{story_key}` not found in sprint status: warn the user that the story file was updated but sprint-status sync failed.
 
 If `{sprint_status}` file does not exist, note that story status was updated in the story file only.
 

@@ -1,19 +1,19 @@
-# Experiment Record Template — docs/experiments/<deney-id>.md
+# Experiment Record Template — docs/experiments/<experiment-id>.md
 
 This template is mandatory. Every field is filled; an empty field means the experiment
 did not pass that stage. The `Raw results`, `Uncertainty`, `Metric`, `Decision`, `Gate Evidence`, `Next Step` and
 `status` fields are written by the approval gate — they are not filled manually.
 
 ```
-## Experiment: <deney-id> — <short title>
-- **Date:** <GG.AA.YYYY>
+## Experiment: <experiment-id> — <short title>
+- **Date:** <YYYY-MM-DD>
 - **Status:** planned | in-progress | completed | REJECTED
 - **Theory:** <which theory/framework it comes from — "I was curious" is not enough>
 - **Hypothesis:** H-NNN: "metric >= threshold"   <!-- e.g. H-001: "accuracy >= 0.90" — falsifiable claim; threshold is a unitless number -->
 - **Measurement Metrics:** <metric name + threshold, e.g. "latency <= 100" (use a unitless numeric threshold)>
 - **Experiment Design:** <inputs, procedure, control variables, repeatability>
 - **Sample n:** <optional — sample size; if absent, the gate writes an "n unknown" warning>
-- **Raw Results:** <numbers/outputs — as-is; raw files: docs/experiments/<deney-id>/raw/>
+- **Raw Results:** <numbers/outputs — as-is; raw files: docs/experiments/<experiment-id>/raw/>
 - **Uncertainty:** <gate writes: sample too small | none | n unknown — not filled manually>
 - **Metric:** <gate writes: compliant | NON-COMPLIANT | n/a>
 - **Decision:** <gate writes: APPROVED | REJECTED — rationale>

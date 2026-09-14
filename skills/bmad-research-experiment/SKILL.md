@@ -215,15 +215,13 @@ python3 {skill-root}/scripts/run_experiment.py --verify --record {project-root}/
 
 **Delivery loop (APPROVED only):**
 
-1. **Production surface:** Add the function/class to the production module (`{production-root}/pipeline.py` or appropriate module) with a docstring naming the experiment: `Experiment E-NNN: docs/experiments/E-NNN.md (H-NNN: ... >= 0.90) -> GATE-OK-E-NNN-` (leave the hash empty until the gate runs; fill it in after).
+1. **Production surface:** Add the function/class to the appropriate production module with a docstring naming the experiment: `Experiment E-NNN: docs/experiments/E-NNN.md (H-NNN: ... >= 0.90) -> GATE-OK-E-NNN-` (leave the hash empty until the gate runs; fill it in after). Locate the production module by checking the architecture doc or project structure — do not assume a fixed path.
 2. **Benchmark re-verify:** Run the bench again against the production surface to confirm `measured=1.00`. A broken integration must score below the threshold (falsifiability).
-3. **Append to cli.py:** Add the experiment to the Verified Tokens banner (both the `E-XXX (hash)` list and the `| E-XXX` list).
-4. **Update sprint-status.yaml:** Append a one-line entry to `_bmad-output/implementation-artifacts/sprint-status.yaml` (same style as existing `E-NNN ...` entries).
-5. **Update R-002:** If the experiment closes a PDF gap / research direction, add a row to the R-002 table and update the closing paragraph + experiment count.
-6. **Commit (one experiment per commit):**
+3. **Update project tracking:** Add the experiment to whatever tracking mechanism the project uses (verified tokens list, sprint status, experiment registry). Check existing project files to find the right format — do not assume a specific file or banner exists.
+4. **Commit (one experiment per commit):**
 
 ```
-git add -A && git commit -m "Add <feature> (E-NNN) — <PDF claim / one-line>
+git add -A && git commit -m "Add <feature> (E-NNN) — <claim / one-line>
 
 <2-4 lines: what was added, measured value + token, what a broken impl would do>.
 
@@ -234,7 +232,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 "
 ```
 
-7. **Update memory:** After committing, update the project memory file (e.g. `ge-dre-project-state.md` under `progress/`): add the new capability to the direction list, bump the experiment count + latest commit hash, and record any new lesson learned.
+5. **Update memory:** After committing, update the project memory file if one exists: add the new capability, bump the experiment count + latest commit hash, and record any new lesson learned.
 
 ## Integrity Rules (from the manifesto — non-negotiable)
 

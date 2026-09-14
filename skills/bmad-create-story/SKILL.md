@@ -97,7 +97,7 @@ Before loading the first step file, check the chain for signals addressed to you
 <workflow>
 
 <step n="1" goal="Determine target story">
-  <check if="{{story_path}} is provided by user or user provided the epic and story number such as 2-4 or 1.6 or epic 1 story 5">
+  <check if="user provided the epic and story number such as 2-4 or 1.6 or epic 1 story 5">
     <action>Parse user-provided story path: extract epic_num, story_num, story_title from format like "1-2-user-auth"</action>
     <action>Set {{epic_num}}, {{story_num}}, {{story_key}} from user input</action>
     <action>GOTO step 2a</action>
@@ -130,7 +130,7 @@ Before loading the first step file, check the chain for signals addressed to you
     </check>
 
     <check if="user provides story docs path">
-      <action>Use user-provided path for story documents</action>
+      <action>Parse user-provided path: extract epic_num, story_num, story_title from path</action>
       <action>GOTO step 2a</action>
     </check>
   </check>
@@ -186,7 +186,7 @@ Before loading the first step file, check the chain for signals addressed to you
       </check>
       <check if="epic status is not one of: backlog, contexted, in-progress, done">
         <output>🚫 ERROR: Invalid epic status '{{epic_status}}'</output>
-        <output>Epic {{epic_num}} has invalid status. Expected: backlog, in-progress, or done</output>
+        <output>Epic {{epic_num}} has invalid status. Expected: backlog, contexted, in-progress, or done</output>
         <output>Please fix sprint-status.yaml manually or run sprint-planning to regenerate</output>
         <action>HALT - Cannot proceed</action>
       </check>
@@ -195,62 +195,6 @@ Before loading the first step file, check the chain for signals addressed to you
 
     <action>GOTO step 2a</action>
   </check>
-  <action>Load the FULL file: {{sprint_status}}</action>
-  <action>Read ALL lines from beginning to end - do not skip any content</action>
-  <action>Parse the development_status section completely</action>
-
-  <action>Find the FIRST story (by reading in order from top to bottom) where:
-    - Key matches pattern: number-number-name (e.g., "1-2-user-auth")
-    - NOT an epic key (epic-X) or retrospective (epic-X-retrospective)
-    - Status value equals "backlog"
-  </action>
-
-  <check if="no backlog story found">
-    <output>No backlog stories found in sprint-status.yaml
-
-      All stories are either already created, in progress, or done.
-
-      **Options:**
-      1. Run sprint-planning to refresh story tracking
-      2. Load PM agent and run correct-course to add more stories
-      3. Check if current sprint is complete and run retrospective
-    </output>
-    <action>HALT</action>
-  </check>
-
-  <action>Extract from found story key (e.g., "1-2-user-authentication"):
-    - epic_num: first number before dash (e.g., "1")
-    - story_num: second number after first dash (e.g., "2")
-    - story_title: remainder after second dash (e.g., "user-authentication")
-  </action>
-  <action>Set {{story_id}} = "{{epic_num}}.{{story_num}}"</action>
-  <action>Store story_key for later use (e.g., "1-2-user-authentication")</action>
-
-  <!-- Mark epic as in-progress if this is first story -->
-  <action>Check if this is the first story in epic {{epic_num}} by looking for {{epic_num}}-1-* pattern</action>
-  <check if="this is first story in epic {{epic_num}}">
-    <action>Load {{sprint_status}} and check epic-{{epic_num}} status</action>
-    <action>If epic status is "backlog" → update to "in-progress"</action>
-    <action>If epic status is "contexted" (legacy status) → update to "in-progress" (backward compatibility)</action>
-    <action>If epic status is "in-progress" → no change needed</action>
-    <check if="epic status is 'done'">
-      <output>ERROR: Cannot create story in completed epic</output>
-      <output>Epic {{epic_num}} is marked as 'done'. All stories are complete.</output>
-      <output>If you need to add more work, either:</output>
-      <output>1. Manually change epic status back to 'in-progress' in sprint-status.yaml</output>
-      <output>2. Create a new epic for additional work</output>
-      <action>HALT - Cannot proceed</action>
-    </check>
-    <check if="epic status is not one of: backlog, contexted, in-progress, done">
-      <output>ERROR: Invalid epic status '{{epic_status}}'</output>
-      <output>Epic {{epic_num}} has invalid status. Expected: backlog, in-progress, or done</output>
-      <output>Please fix sprint-status.yaml manually or run sprint-planning to regenerate</output>
-      <action>HALT - Cannot proceed</action>
-    </check>
-    <output>Epic {{epic_num}} status updated to in-progress</output>
-  </check>
-
-  <action>GOTO step 2a</action>
 </step>
 
 <step n="2" goal="Load and analyze core artifacts">
@@ -351,6 +295,23 @@ Before loading the first step file, check the chain for signals addressed to you
 
   <action>Initialize from template.md:
   {default_output_file}</action>
+
+  <!-- Template section mapping (each name fills the corresponding template heading):
+       story_header              → # Story {{epic_num}}.{{story_num}}: {{story_title}} (title + Status)
+       story_requirements        → ## Story + ## Acceptance Criteria
+       developer_context_section → ## Dev Notes (architecture patterns, source tree, testing standards)
+       technical_requirements    → ## Technical Tasks (tasks with AC references)
+       architecture_compliance   → sub-section of Dev Notes (architecture alignment)
+       library_framework_requirements → sub-section of Dev Notes (library versions, constraints)
+       file_structure_requirements   → sub-section of Dev Notes (file paths, naming conventions)
+       testing_requirements      → ## Definition of Done (test-related DoD items)
+       previous_story_intelligence   → sub-section of Dev Notes (prior story learnings)
+       git_intelligence_summary      → sub-section of Dev Notes (recent commit patterns)
+       latest_tech_information       → sub-section of Dev Notes (library versions, API changes)
+       project_context_reference    → sub-section of Dev Notes (project-context.md summary)
+       story_completion_status   → ## Dev Agent Record (completion metadata)
+  -->
+
   <template-output file="{default_output_file}">story_header</template-output>
 
   <!-- Story foundation from epics analysis -->
@@ -359,7 +320,9 @@ Before loading the first step file, check the chain for signals addressed to you
 
   <!-- Developer context section - MOST IMPORTANT PART -->
   <template-output file="{default_output_file}">
-  developer_context_section</template-output> **DEV AGENT GUARDRAILS:** <template-output file="{default_output_file}">
+  developer_context_section</template-output>
+
+  **DEV AGENT GUARDRAILS:** <template-output file="{default_output_file}">
   technical_requirements</template-output>
   <template-output file="{default_output_file}">architecture_compliance</template-output>
   <template-output
@@ -411,11 +374,22 @@ Before loading the first step file, check the chain for signals addressed to you
     <action>Verify current status is "backlog" (expected previous state)</action>
     <action>Update development_status[{{story_key}}] = "ready-for-dev"</action>
     <action>Update last_updated field to current date</action>
+
+    <!-- Epic completion check: if all stories in this epic are now done/in-progress/ready-for-dev, mark epic as done -->
+    <action>Check if all stories in epic {{epic_num}} have status != "backlog"</action>
+    <check if="all stories in epic {{epic_num}} are non-backlog">
+      <action>Check epic-{{epic_num}} status</action>
+      <check if="epic status is 'in-progress'">
+        <action>Update epic-{{epic_num}} status to "done"</action>
+        <output>🎉 Epic {{epic_num}} complete — all stories are non-backlog. Epic status updated to done.</output>
+      </check>
+    </check>
+
     <action>Save file, preserving ALL comments and structure including STATUS DEFINITIONS</action>
   </check>
 
   <!-- Chain hand-off: signal dev-story that this story is ready -->
-  <action>Bind the story on the blackboard and signal the developer run: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key story.{{story_key}} --value "context ready — story file final" --type state --project-root {project-root}`, then `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-dev-story --from-key story.{{story_key}} --note "story ready-for-dev — file: {{story_file}}" --project-root {project-root}` (the signal waits in `handoff.bmad-dev-story` until a dev run consumes it — that consumption completes the handshake). Queue the quality-record stage so its run opens knowing the story is pending: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-quality-record --from-key story.{{story_key}} --note "story {{story_key}} queued — create the QR record once the story reaches review/done (file: {{story_file}})" --project-root {project-root}` (waits in `handoff.bmad-quality-record` until a QR run consumes it — that consumption completes the handshake). Mirror completion onto the intent bridge: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key status --value complete --type state --project-root {project-root}` (stop skips story checks once progress is `complete`)</action>
+  <action>Bind the story on the blackboard and signal the developer run: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key story.{{story_key}} --value "context ready — story file final" --type state --project-root {project-root}`, then `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-dev-story --from-key story.{{story_key}} --note "story ready-for-dev — file: {{default_output_file}}" --project-root {project-root}` (the signal waits in `handoff.bmad-dev-story` until a dev run consumes it — that consumption completes the handshake). Queue the quality-record stage so its run opens knowing the story is pending: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoff --to bmad-quality-record --from-key story.{{story_key}} --note "story {{story_key}} queued — create the QR record once the story reaches review/done (file: {{default_output_file}})" --project-root {project-root}` (waits in `handoff.bmad-quality-record` until a QR run consumes it — that consumption completes the handshake). Mirror completion onto the intent bridge: `python3 {metodoloji-root}/bmad/scripts/blackboard.py write --key status --value complete --type state --project-root {project-root}` (stop skips story checks once progress is `complete`)</action>
 
   <action>Report completion</action>
   <output>**🎯 ULTIMATE BMad Method STORY CONTEXT CREATED, {user_name}!**
@@ -423,11 +397,11 @@ Before loading the first step file, check the chain for signals addressed to you
     **Story Details:**
     - Story ID: {{story_id}}
     - Story Key: {{story_key}}
-    - File: {{story_file}}
+    - File: {{default_output_file}}
     - Status: ready-for-dev
 
     **Next Steps:**
-    1. Review the comprehensive story in {{story_file}}
+    1. Review the comprehensive story in {{default_output_file}}
     2. Run dev agents `dev-story` for optimized implementation
     3. Run `code-review` when complete (auto-marks done)
     4. Optional: If Test Architect module installed, run `/bmad:tea:automate` after `dev-story` to generate guardrail tests

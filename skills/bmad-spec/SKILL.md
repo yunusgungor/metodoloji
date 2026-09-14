@@ -15,6 +15,7 @@ Multiple skills may call to update the same spec over time.
 
 - Bare paths (e.g. `assets/spec-template.md`) resolve from the skill root.
 - `{skill-root}` is this skill's install dir; `{project-root}` is the working dir.
+- `{metodoloji-root}` resolves to the plugin root directory (where this skill is installed).
 - `{workflow.<name>}` resolves to fields in `customize.toml`.
 
 ## On Activation
@@ -28,7 +29,7 @@ Run `{workflow.activation_steps_append}`.
 
 Activation is complete. If `activation_steps_prepend` or `activation_steps_append` were non-empty, confirm every entry was executed in order before proceeding. Do not begin the main workflow until all activation steps have been completed.
 
-**Chain handshake.** Before `## The Operation`, check the chain for signals addressed to you: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoffs --skill bmad-spec --project-root {project-root}` — an upstream run (architecture is the canonical sender) leaves a note naming what its artifact binds. Treat the named artifact as operation input first, then complete the handshake: `python3 {metodoloji-root}/bmad/scripts/blackboard.py consume --channel handoff.bmad-spec --project-root {project-root}` (consume only after `{slug}` is resolved and the spec folder bound — an unconsumed signal keeps the hand-off waiting, which is correct when the user routes elsewhere). Once `{slug}` is bound, focus the run on the board (`write --key spec.<slug> --value "<one-line state>" --type state --hot`) and mirror the session intent onto the bridge (`write --key purpose --value "<what is being specced>"` — the vocabulary the hook engine reads; `write --key scope --value "<path>"` when path-scoped) so guard/stop/audit attribute this run's tool traffic correctly.
+**Chain handshake.** Before `## The Operation`, check the chain for signals addressed to you: `python3 {metodoloji-root}/bmad/scripts/blackboard.py handoffs --skill bmad-spec --project-root {project-root}` — an upstream run (typically `bmad-prd` or `bmad-architecture`) leaves a note naming what its artifact binds. Treat the named artifact as operation input first, then complete the handshake: `python3 {metodoloji-root}/bmad/scripts/blackboard.py consume --channel handoff.bmad-spec --project-root {project-root}` (consume only after `{slug}` is resolved and the spec folder bound — an unconsumed signal keeps the hand-off waiting, which is correct when the user routes elsewhere). If the blackboard script fails, proceed without handshake — the skill still works, it just won't see upstream signals. Once `{slug}` is bound, focus the run on the board (`write --key spec.<slug> --value "<one-line state>" --type state --hot`) and mirror the session intent onto the bridge (`write --key purpose --value "<what is being specced>"` — the vocabulary the hook engine reads; `write --key scope --value "<path>"` when path-scoped) so guard/stop/audit attribute this run's tool traffic correctly.
 
 ## Workspace
 
@@ -63,7 +64,7 @@ Read the input and its ancillary linked materials. If there is no input, follow 
 
 When the input is structured and pre-sorted (a PRD with an addendum, a GDD, a brief produced by an upstream BMad skill), trust the authored separation: lift kernel-fitting content into SPEC.md, lift overflow into appropriately-named companions. When the input is mixed (a brain dump, a transcript, an RFC, a customer email), do the sorting yourself: walk each claim, apply the three-lens load-bearing test (Spec Law rule 7), and route to the kernel field or a companion.
 
-Distill the input into the five-field kernel using `{workflow.spec_template}` as the skeleton. When input is rich, extract directly — no elicitation. When input is sparse, choose: **express** (best-effort distill, every gap becomes an `open_questions[]` entry) or **guided** (walk the five fields with the user one at a time). Headless defaults to express and logs the choice. Interactive asks.
+Distill the input into the five-field kernel using `{workflow.spec_template}` as the skeleton. When input is rich (more than 3 substantive paragraphs or a structured document), extract directly — no elicitation. When input is sparse, choose: **express** (1-2 paragraphs of intent, best-effort distill, every gap becomes an `open_questions[]` entry) or **guided** (walk the five fields with the user one at a time). Headless defaults to express and logs the choice. Interactive asks. When input is fewer than 2 sentences and contains no structured fields, stop and suggest `bmad-prd` instead.
 
 A recognized domain implication the input leaves unaddressed *is* such a gap — name it as an `open_questions[]` entry (healthcare input silent on PHI/HIPAA, payments silent on PCI, control systems silent on fail-safe) and move on. Flag it; never invent the answer or coach toward it. If these dominate, the input is too thin — suggest `bmad-prd`.
 
