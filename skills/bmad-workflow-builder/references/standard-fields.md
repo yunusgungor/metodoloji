@@ -96,7 +96,7 @@ Use bare paths from the skill root for any file inside the skill, including a re
 
 - `references/build-process.md`
 - `references/standard-fields.md` referenced from another file in `references/`, still a bare path
-- `scripts/validate.py`
+- `scripts/quick_validate.py`
 - `assets/template.md`
 
 The convention is universal: bare paths from the skill root. Never use a `./` prefix, which causes inconsistency and breaks under context compaction when the working directory shifts.

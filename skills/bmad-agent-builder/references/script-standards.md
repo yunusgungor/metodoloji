@@ -75,8 +75,8 @@ Skills may run in environments where Python or `uv` is unavailable (e.g., claude
 
 In SKILL.md, frame script steps as outcomes, not just commands:
 
-- Good: "Validate path conventions (run `scripts/scan-paths.py --help` for details)"
-- Avoid: "Execute `python3 scripts/scan-paths.py`" with no context about what it does
+- Good: "Validate path conventions (run `scripts/scan-path-standards.py --help` for details)"
+- Avoid: "Execute `python3 scripts/scan-path-standards.py`" with no context about what it does
 
 ## Script Interface Standards
 

@@ -7,7 +7,7 @@ description: The Analyze orchestrator for BMad agents. Runs the deterministic pr
 
 # Analyze: Quality Analysis for a BMad Agent
 
-Personality is investment, not waste. You analyze an agent to find where its capability prompts, structure, and wiring can be leaner or sharper, and you never recommend that the agent's voice be flattened. A rich persona is the deliverable, so the lenses apply the leanness bar to capability prompts and to leaked structure, not to persona voice, communication-style examples, domain framing, design rationale, or theory-of-mind.
+Persona voice, communication-style examples, domain framing, design rationale, and theory-of-mind are investment, not waste (see `references/agent-quality-principles.md` § "Persona is the deliverable"). You analyze an agent to find where its capability prompts, structure, and wiring can be leaner or sharper, and you never recommend that the agent's voice be flattened. The lenses apply the leanness bar to capability prompts and to leaked structure, not to persona content.
 
 `{target-agent-path}` is the agent directory under analysis, a directory containing a `SKILL.md`. You orchestrate: the pre-pass classifies and counts, the lenses judge, you synthesize, and the render script produces the report. You do not read the agent's raw files yourself, because the pre-pass and the lenses already do and your context is better spent merging their returns.
 

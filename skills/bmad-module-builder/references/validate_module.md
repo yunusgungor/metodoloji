@@ -29,31 +29,36 @@ If the script cannot execute, perform equivalent checks by reading the files dir
 
 ### 3. Quality Assessment
 
-This is where LLM judgment matters. For 4 or fewer skills, read all SKILL.md files in a single parallel batch (one message, multiple Read calls). For 5+ skills, spawn parallel subagents — one per skill — each returning structured findings: `{ name, capabilities_found: [...], quality_notes: [...], issues: [...] }`. Then review each CSV entry against what you learned:
+This is where LLM judgment matters. For 4 or fewer skills, read all SKILL.md files in a single parallel batch (one message, multiple Read calls). For 5+ skills, spawn parallel subagents — one per skill — each returning structured findings: `{ name, capabilities_found: [...], quality_notes: [...], issues: [...] }`. Then review each CSV entry against what you learned.
 
-**Completeness** — Does every distinct capability of every skill have its own CSV row? A skill with multiple modes or actions should have multiple entries. Look for capabilities described in SKILL.md overviews that aren't registered.
+#### Quality Checklist
 
-**Accuracy** — Does each entry's description actually match what the skill does? Are the action names correct? Do the args match what the skill accepts?
+For each skill in the module, verify:
 
-**Description quality** — Each description should be:
+- [ ] **SKILL.md is lean** — no instructions a capable model would do without being told
+- [ ] **Outcome-driven** — overview states stance, outcome, and consumer
+- [ ] **Progressive disclosure** — SKILL.md routes, references load on demand
+- [ ] **Customization wired** — `customize.toml` exists with appropriate defaults
+- [ ] **No broken references** — every `references/X.md` path resolves to an existing file
+- [ ] **Persona consistent** — if the module has agents, persona voice is coherent across skills
 
-- Concise but informative — enough for a user to know what it does and for an LLM to route correctly
-- Action-oriented — starts with a verb (Create, Validate, Brainstorm, Scaffold)
-- Specific — avoids vague language ("helps with things", "manages stuff")
-- Not overly verbose — one sentence, no filler
+#### CSV Entry Checklist
 
-**Ordering and relationships** — Do the before/after references make sense given what the skills actually do? Are required flags set appropriately?
+For each entry in the help CSV, verify:
 
-**Menu codes** — Are they intuitive? Do they relate to the display name in a way users can remember?
+- [ ] **Completeness** — every distinct capability has its own row; multi-action skills have multiple entries
+- [ ] **Accuracy** — description matches what the skill actually does; action names and args are correct
+- [ ] **Description quality** — concise, action-oriented (starts with a verb), specific, no filler
+- [ ] **Ordering** — before/after references make sense; required flags set appropriately
+- [ ] **Menu codes** — intuitive and memorable relative to display name
 
-**Agent roster (if module.yaml has an `agents:` block)** — Verify each entry has:
+#### Agent Roster Checklist (if module.yaml has `agents:` block)
 
-- `code` matching a skill directory basename in the module folder
-- `title`, `icon`, `description` non-empty
-- `name` either populated or explicitly empty string (empty is valid for First-Breath-named agents whose name is filled post-activation via `bmad/custom/config.toml`)
-- A corresponding `customize.toml` in the agent's skill directory with an `[agent]` block whose fields agree with the roster entry
-
-Flag drift: if the roster says `icon: 🎨` but the agent's own `customize.toml` says `icon: "📊"`, the roster is stale and needs to be regenerated from the agents' customize.toml files.
+- [ ] `code` matches a skill directory basename in the module folder
+- [ ] `title`, `icon`, `description` non-empty
+- [ ] `name` either populated or explicitly empty string
+- [ ] Corresponding `customize.toml` exists with `[agent]` block matching roster entry
+- [ ] No icon drift between roster and customize.toml
 
 ### 4. Present Results
 

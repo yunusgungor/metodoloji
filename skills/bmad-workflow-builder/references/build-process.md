@@ -64,7 +64,13 @@ Two org gates apply before ship. Check SKILL.md against the token tiers in `refe
 
 ## Handoff
 
-Interactive: before handing off, run the lint gate over the built skill — `python3 scripts/quick_validate.py {target-skill-path}`, `python3 scripts/scan-path-standards.py {target-skill-path}`, and `python3 scripts/scan-scripts.py {target-skill-path}` — fix high or critical findings and re-run until clear (after three failed fix attempts, stop and surface it), and run unit tests if the built skill carries scripts. Then show what was built and the lint results, and **offer to run the full validation — the Analyze lenses in `references/scan-orchestration.md` — over the new skill** as the default next step, proactively rather than waiting to be asked. If the user accepts, run the Analyze flow and **open the resulting HTML report for them when it finishes** — that flow produces and opens the report, so do not stop at summarizing findings in chat. Then walk the decision audit so they confirm their reasoning was handled the way they intended. Once the skill is delivered and the user has been told it is ready, run `{workflow.on_complete}` if non-empty (a string scalar is one instruction, an array is a sequence run in order).
+Interactive: before handing off, run the lint gate over the built skill:
+
+1. **Lint gate** — run all three: `python3 scripts/quick_validate.py {target-skill-path}`, `python3 scripts/scan-path-standards.py {target-skill-path}`, `python3 scripts/scan-scripts.py {target-skill-path}`. Fix high or critical findings and re-run until clear (after three failed fix attempts, stop and surface it). Run unit tests if the built skill carries scripts.
+2. **Show results** — show what was built and the lint results.
+3. **Offer full validation** — proactively offer to run the Analyze lenses in `references/scan-orchestration.md` over the new skill. If the user accepts, run the Analyze flow and open the resulting HTML report for them when it finishes.
+4. **Decision audit** — walk the decision audit so they confirm their reasoning was handled the way they intended.
+5. **Complete** — once the skill is delivered and the user has been told it is ready, run `{workflow.on_complete}` if non-empty (a string scalar is one instruction, an array is a sequence run in order).
 
 Headless (`{headless_mode}=true`): emit JSON only.
 

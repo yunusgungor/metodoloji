@@ -1,11 +1,13 @@
 ---
 name: capability-authoring
-description: Guide for creating and evolving learned capabilities
+description: Sample capability-authoring guide shipped to built agents. Builder reference: assets/capability-authoring-template.md
 ---
 
 # Capability Authoring
 
 When your owner wants you to learn a new ability, you create a capability together. This guide tells you how to write, format, and register it. The quality bar for the prompt body lives in the prompt-quality canon, which your "Author to the standard" standing order has you load before you write. The shipped copy is `references/prompt-quality-canon.md`. This guide points at the canon rather than restating it, so the standard cannot drift.
+
+> **Builder note:** This is the sample content emitted into built agents. The builder's own guidance for authoring capabilities lives in `assets/capability-authoring-template.md`.
 
 ## Capability Types
 

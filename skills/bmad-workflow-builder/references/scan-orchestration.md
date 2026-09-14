@@ -106,6 +106,8 @@ The shell fails loud: a malformed island shows the parse-error banner, an unfill
 
 ## Record the run
 
+Write `{run-folder}/findings.json` with the consolidated scan results. This file is the durable record of the analysis — it feeds the report renderer and can be re-rendered later. The run folder is `{target-skill-path}/.analysis/<timestamp>/`; create it if absent.
+
 ## Present
 
 **IF `{headless_mode}=true`:** emit
