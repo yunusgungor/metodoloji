@@ -84,6 +84,6 @@ This workflow uses **tri-modal step-file architecture**:
 - **If C:** Load `{skill-root}/steps-c/step-01-load-context.md`
 - **If R:** Load `{skill-root}/steps-c/step-01b-resume.md` (Create-mode continuation)
 - **If V:** Load `{skill-root}/steps-v/step-01-validate.md`
-- **If E:** Load `{skill-root}/steps-e/step-01-assess.md`
+- **If E:** Load `{metodoloji-root}/skills/bmad-tea/steps-e/step-01-assess.md`
 
 Create mode resolves the coverage oracle automatically in this order: formal requirements, contract/spec artifacts, resolvable external pointers (when `allow_external_pointer_resolution` is enabled), then synthetic journeys/requirements inferred from source (when `allow_synthetic_oracle` is enabled and no formal oracle exists).
