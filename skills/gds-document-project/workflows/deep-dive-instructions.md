@@ -6,6 +6,16 @@
 <critical>Called by: ../document-project/instructions.md router</critical>
 <critical>Handles: deep_dive mode only</critical>
 
+<critical>STATE FILE WRITING RULE — applies to ALL Write calls for project-scan-report.json:
+The Write tool input must be valid JSON. The "content" field is a JSON STRING, not a JSON object.
+- Every `"` inside the content value MUST be escaped as `\"`
+- Every `\` inside the content value MUST be escaped as `\\`
+- Newlines inside the content value MUST be `\n`
+- Correct: {"file_path": "...", "content": "{\n  \"key\": \"value\"\n}"}
+- WRONG: {"file_path": "...", "content": {"key": "value"}} ← not a string
+- WRONG: {"file_path": "...", "content": "{ "key": "value" }"} ← unescaped quotes
+This applies to initial write AND every subsequent update. Always read-modify-write the state file: read current JSON, apply changes in memory, then write the full updated JSON as an escaped string.</critical>
+
 <step n="13" goal="Deep-dive documentation of specific area" if="workflow_mode == deep_dive">
 <critical>Deep-dive mode requires literal full-file review. Sampling, guessing, or relying solely on tooling output is FORBIDDEN.</critical>
 <action>Load existing project structure from index.md and project-parts.json (if exists)</action>

@@ -13,6 +13,16 @@
 - `{{root_path}}` = same as `{{project_root_path}}` — a part's root path when a project has multiple parts. In a single-part project it equals `{{project_root_path}}`.
 </critical>
 
+<critical>STATE FILE WRITING RULE — applies to ALL Write calls for project-scan-report.json:
+The Write tool input must be valid JSON. The "content" field is a JSON STRING, not a JSON object.
+- Every `"` inside the content value MUST be escaped as `\"`
+- Every `\` inside the content value MUST be escaped as `\\`
+- Newlines inside the content value MUST be `\n`
+- Correct: {"file_path": "...", "content": "{\n  \"key\": \"value\"\n}"}
+- WRONG: {"file_path": "...", "content": {"key": "value"}} ← not a string
+- WRONG: {"file_path": "...", "content": "{ "key": "value" }"} ← unescaped quotes
+This applies to initial write AND every subsequent update. Always read-modify-write the state file: read current JSON, apply changes in memory, then write the full updated JSON as an escaped string.</critical>
+
 <step n="0.5" goal="Load documentation requirements data for fresh starts (not needed for resume)" if="resume_mode == false">
 <critical>DATA LOADING STRATEGY - Understanding the Documentation Requirements System:</critical>
 
@@ -135,7 +145,10 @@ Your choice [1/2/3] (default: 1):
   </action>
 
 <action>Initialize state file: {project_knowledge}/project-scan-report.json</action>
-<critical>Every time you touch the state file, record: step id, human-readable summary (what you actually did), precise timestamp, and any outputs written. Vague phrases are unacceptable.</critical>
+<critical>Every time you touch the state file, record: step id, human-readable summary (what you did), precise timestamp, and any outputs written. Vague phrases are unacceptable.</critical>
+<critical>When writing the state file, you MUST call the Write tool with valid JSON. The "content" field is a JSON STRING — all inner double quotes and backslashes must be escaped. Correct format:
+Write tool input: {"file_path": "{{project_knowledge}}/project-scan-report.json", "content": "{\n  \"workflow_version\": \"1.2.0\",\n  \"timestamps\": {\"started\": \"{{current_timestamp}}\", \"last_updated\": \"{{current_timestamp}}\"},\n  \"mode\": \"{{workflow_mode}}\",\n  \"scan_level\": \"{{scan_level}}\",\n  \"project_root\": \"{{project_root_path}}\",\n  \"project_knowledge\": \"{{project_knowledge}}\",\n  \"completed_steps\": [],\n  \"current_step\": \"step_1\",\n  \"findings\": {},\n  \"outputs_generated\": [\"project-scan-report.json\"],\n  \"resume_instructions\": \"Starting from step 1\"\n}"}
+Common mistake: passing the JSON object directly as content instead of a properly escaped string. All " inside the content value must be \" and newlines must be \n.</critical>
 <action>Write initial state:
 {
 "workflow_version": "1.2.0",
