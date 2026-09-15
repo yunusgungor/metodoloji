@@ -569,9 +569,9 @@ Guarantees operational readiness before production deployment.
 
 ### 6.1. hooks.json Definition
 
-The plugin registers **6 hook points**; one unified `hooks/hooks.json` serves both
-runtimes. Matchers are regexes covering both tool vocabularies
-(`Write|Edit|MultiEdit|file_editor|terminal`, `Bash|terminal`). Hook commands
+The plugin registers **4 hook points**; one unified `hooks/hooks.json` serves both
+runtimes. The PreToolUse matcher is the union of both tool vocabularies
+(`Write|Edit|MultiEdit|Bash|file_editor|terminal`). Hook commands
 self-locate the plugin root:
 
 ```json
@@ -579,15 +579,23 @@ self-locate the plugin root:
   "hooks": {
     "SessionStart": [{ "hooks": [{ "type": "command", "command": "sh .../bootstrap.sh", "timeout": 30 }] }],
     "PreToolUse": [
-      { "matcher": "Write|Edit|MultiEdit|file_editor|terminal", "hooks": [{ "command": "sh .../hook-entry.sh ... guard", "timeout": 10 }] },
-      { "matcher": "Bash|terminal", "hooks": [{ "command": "sh .../hook-entry.sh ... quality", "timeout": 10 }] },
-      { "matcher": "Bash|terminal", "hooks": [{ "command": "sh .../hook-entry.sh ... deploy", "timeout": 10 }] }
+      { "matcher": "Write|Edit|MultiEdit|Bash|file_editor|terminal", "hooks": [{ "command": "sh .../hook-entry.sh ... pre", "timeout": 20 }] }
     ],
     "PostToolUse": [{ "matcher": "Write|Edit|MultiEdit|Bash|file_editor|terminal", "hooks": [{ "command": "sh .../hook-entry.sh ... audit", "timeout": 5 }] }],
     "Stop": [{ "hooks": [{ "type": "command", "command": "sh .../hook-entry.sh ... stop", "timeout": 15 }] }]
   }
 }
 ```
+
+The single `pre` entry runs **guard → quality → deploy in one engine process**
+(first deny short-circuits, soft-gate warnings accumulate). The three gates keep
+their own config keys, so only the process is shared: three dispatches + three
+python cold-starts per tool call became one. The union matcher also means a
+Claude Code `Bash` call reaches guard, closing a gap where a shell write
+(`echo x > src/a.py`) was only seen by quality/deploy. The 20s budget is the
+shared ceiling for all three gates (previously 10s per gate, up to 30s total);
+guard's own internal gate-verify ceiling is 30s, so a hung verify is still the
+one path that can outlive the hook timeout.
 
 Each command is a locator loop over `$CLAUDE_PLUGIN_ROOT`, `$METODOLOJI_PLUGIN_ROOT`,
 the Claude marketplace cache and the OpenHands install dir; the first path containing
@@ -601,6 +609,8 @@ verifies mechanically (byte-identical to the generator, roots resolvable by
 `run-hook.sh`), so an install-path change can never silently desync the hook dispatcher.
 
 ### 6.2. Guard (PreToolUse) — Fail-Closed
+
+*Runs first inside the merged `pre` gate.*
 
 **Scope:** `Write`/`Edit`/`MultiEdit` (Claude Code), `file_editor`/`terminal`/`notebook_editor` (OpenHands) — normalized internally to `file_editor`/`terminal`.
 
@@ -664,6 +674,8 @@ verifies mechanically (byte-identical to the generator, roots resolvable by
 
 ### 6.4. Quality (PreToolUse) — Config-Gated (soft default)
 
+*Runs second inside the merged `pre` gate (skipped when guard already denied).*
+
 **Scope:** `Bash`/`terminal` (only `git commit` commands)
 
 **Behavior:**
@@ -684,6 +696,8 @@ Stories: 1-2-user-auth. Create QR with: python3 scripts/create-qr-record.py ...
 ```
 
 ### 6.5. Deploy (PreToolUse) — Config-Gated (soft default)
+
+*Runs last inside the merged `pre` gate (skipped when guard or quality denied).*
 
 **Scope:** `Bash`/`terminal` (deploy commands)
 
@@ -709,17 +723,22 @@ The Stop output uses the loop-safe envelope: top-level `decision: "block"` + `re
 ### 6.7. hook-entry.sh — Single Dispatch Point
 
 ```
-hook-entry.sh guard    → guard mode (fail-closed)
-hook-entry.sh quality  → quality mode (config-gated soft/hard)
-hook-entry.sh deploy   → deploy mode (config-gated soft/hard)
+hook-entry.sh pre      → merged PreToolUse gate: guard → quality → deploy (fail-closed)
+hook-entry.sh guard    → guard mode only (fail-closed)
+hook-entry.sh quality  → quality mode only (config-gated soft/hard)
+hook-entry.sh deploy   → deploy mode only (config-gated soft/hard)
 hook-entry.sh audit    → audit mode (fail-open, sync)
 hook-entry.sh stop     → stop mode (fail-closed)
 ```
 
+`hooks.json` dispatches only the merged `pre`; the per-gate modes stay valid for
+direct invocation and are what `scripts/check-plugin.sh` §1 smoke-tests.
+
 - Runtime selection: 2nd CLI arg > `METODOLOJI_RUNTIME` env > default `openhands`
 - Python resolver: `python3` → `python` → `py`, then common Windows paths
 - If the engine is missing or Python is unavailable:
-  - guard/stop → `DENY` + exit 2 (fail-closed)
+  - pre/guard/stop → `DENY` + exit 2 (fail-closed; stop uses the loop-safe
+    `decision: block` + exit 0 envelope)
   - quality/deploy → pass silently (fail-open)
   - audit → pass silently (fail-open)
 
@@ -1263,7 +1282,7 @@ sh scripts/check-plugin.sh
 | Section | Content | On failure |
 |---------|---------|------------|
 | §0 | Gate key installed | `--init-secret` |
-| §1 | Gate + hook engine selfcheck (guard/quality/deploy smoke tests) | `--selfcheck` |
+| §1 | Gate + hook engine selfcheck (`pre` combined gate + guard/quality/deploy modes) | `--selfcheck` |
 | §2 | Manifesto + project-context wiring for every surface + consumption check | TOML parse + `resolve_customization` usage |
 | §2b | Bridge visible at runtime (30 workflow + 3 agent-principles surfaces) | `resolve_customization` deep_merge |
 | §2c | Bridge VERIFY instruction present (13 skills) | VERIFY marker search |

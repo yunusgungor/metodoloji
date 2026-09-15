@@ -67,27 +67,27 @@ def verify_record(rec: str) -> tuple[int, str]:
                 import fcntl
                 fcntl.flock(lock_file, fcntl.LOCK_SH)  # Shared lock
             except ImportError:
-                # Windows: msvcrt with exponential backoff (MEDIUM #10 / ISSUE #65)
+                # Windows: msvcrt locks a byte RANGE per file HANDLE, so a
+                # second lock on the same .lock file from THIS process cannot be
+                # granted — and find_approved() holds exactly that lock while it
+                # calls us. LK_LOCK blocks ~10s per attempt and the old loop
+                # retried 10x, so one code-target write could stall ~100s
+                # waiting on itself (measured: find_approved() >20s while the
+                # lock-free verify took 14ms). Take a NON-blocking lock with a
+                # short bounded retry and continue unguarded on failure — the
+                # documented fail-open intent above — so the gate stays fast and
+                # the hook never outlives its timeout.
                 try:
                     import msvcrt
-                    import time
-                    max_retries = 10
-                    retry_interval_ms = 10  # Start with 10ms
-                    max_interval_ms = 100   # Cap at 100ms
-                    
+                    max_retries = 3
                     for attempt in range(max_retries):
                         try:
                             lock_file.seek(0)
-                            msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)  # Blocking lock
+                            msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
                             break
                         except OSError:
                             if attempt < max_retries - 1:
-                                # Exponential backoff: 10ms * 2^attempt, capped at 100ms
-                                wait_ms = min(retry_interval_ms * (2 ** attempt), max_interval_ms)
-                                time.sleep(wait_ms / 1000.0)
-                            else:
-                                # Last attempt failed, continue without lock (fail-open)
-                                pass
+                                time.sleep(0.02 * (attempt + 1))  # 20ms, then 40ms
                 except (ImportError, OSError):
                     pass  # Lock failed, continue anyway (fail-open)
     except OSError:
@@ -901,11 +901,22 @@ def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> t
     key_missing = False
     best = None
     advisory = None
-    for rec in sorted(base.glob("*.md")):
-        if rec.name == "_template.md":
-            continue
-        
-        # NEW: Acquire advisory lock while verifying (HIGH #5 / ISSUE #57)
+    # rc=2 (ADVISORY-BLOCK) is genuine-but-locked: surface its reason instead
+    # of lumping it with forged/undecided rc=1.
+    advisory_msg = (f"record {{rec}} is ADVISORY-BLOCKED (genuine token, "
+                    f"code stays closed: small sample, n unknown, or metric "
+                    f"mismatch — re-measure in a new record)")
+
+    def _verify_one(rec):
+        """Verify one record under its advisory lock; returns (rc, scope).
+
+        Locking is fail-open (HIGH #5 / ISSUE #57): if the lock cannot be
+        taken we still read/verify. NOTE: verify_record() takes its own
+        NON-blocking lock on the same .lock file; Windows byte-range locks
+        are per HANDLE, so that inner lock simply fails here and proceeds
+        unguarded. (The old verify_record() used blocking LK_LOCK and
+        deadlocked against THIS lock for ~100s per code-target write.)
+        """
         lock_file = None
         try:
             lock_file = open(str(rec) + ".lock", "a+")
@@ -921,39 +932,9 @@ def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> t
                     pass  # Lock failed, continue anyway
         except OSError:
             pass
-        
+
         try:
-            rc, scope = _cached_verify(str(rec))
-            if rc == 3:
-                key_missing = True
-                continue
-            if rc == 2:
-                # Genuine token but locked (small sample / n unknown / metric
-                # mismatch) — remember why instead of reporting "no record".
-                if advisory is None:
-                    advisory = (f"record {rec} is ADVISORY-BLOCKED (genuine token, "
-                                f"code stays closed: small sample, n unknown, or metric "
-                                f"mismatch — re-measure in a new record)")
-                continue
-            if rc != 0:
-                continue
-            try:
-                matched = gate.scope_matches(scope, target_rel)
-            except (AttributeError, TypeError, ValueError):
-                # Specific exceptions from gate module (MEDIUM #7 / ISSUE #66)
-                continue
-            except Exception:
-                # Unknown exceptions: log to stderr but continue
-                try:
-                    import traceback
-                    sys.stderr.write(f"metodoloji: scope_matches error: {traceback.format_exc()[:200]}\n")
-                except Exception:
-                    pass
-                continue
-            if matched:
-                return True, f"record {rec} (scope matched)"
-            if best is None:
-                best = f"record {rec} scope not matched"
+            return _cached_verify(str(rec))
         finally:
             # Release lock
             if lock_file:
@@ -972,17 +953,66 @@ def find_approved(target: str, recs_dir: str | None = None, root: str = "") -> t
                         lock_file.close()
                     except OSError:
                         pass
-    
+
+    # gate.verify() is the expensive part (~15ms per record: HMAC check +
+    # full record parse), so records whose Code Scope cannot cover the
+    # target are DEFERRED, not verified, while hunting for an approval. A
+    # non-candidate can never approve (scope_matches is exactly what a
+    # verified record must pass), so the allow path verifies only real
+    # candidates. If none approves, the deferred records are verified too,
+    # reproducing the original deny diagnostics at unchanged cost.
+    deferred = []
+    scope_error = set()
+    for rec in sorted(base.glob("*.md")):
+        if rec.name == "_template.md":
+            continue
+        try:
+            # Cheap scope pre-filter: one file read, no gate key needed.
+            candidate = gate.scope_matches(gate.record_scope(str(rec)), target_rel)
+        except Exception:
+            candidate = False
+            scope_error.add(rec)
+        if not candidate:
+            deferred.append(rec)
+            continue
+        rc, _scope = _verify_one(rec)
+        if rc == 3:
+            key_missing = True
+        elif rc == 2:
+            if advisory is None:
+                advisory = advisory_msg.format(rec=rec)
+        elif rc == 0:
+            return True, f"record {rec} (scope matched)"
+
+    for rec in deferred:
+        rc, _scope = _verify_one(rec)
+        if rc == 3:
+            key_missing = True
+        elif rc == 2:
+            if advisory is None:
+                advisory = advisory_msg.format(rec=rec)
+        elif rc == 0 and rec not in scope_error and best is None:
+            best = f"record {rec} scope not matched"
+
     if key_missing:
         return False, "gate key not configured (python3 run_experiment.py --init-secret)"
     return False, advisory or best or "no approved experiment record"
 
 
 def _stamp_guard_to_blackboard(root: str, tool_name: str, tool_input: dict, decision: str) -> None:
-    """Write guard decision to blackboard for traceability."""
+    """Write guard decision to blackboard for traceability.
+
+    Hot-path cost control: on the allow fast-path this is called with
+    decision="deny" ONLY (stamp-on-deny). The unconditional
+    decision="allow" stamp at guard() entry was removed — every allowed
+    write paid a full board read + locked snapshot rewrite + event-log
+    scan, which dominated PreToolUse latency.
+    """
     try:
         from .config import blackboard_enabled
         if not blackboard_enabled():
+            return
+        if decision != "deny":
             return
         from . import blackboard as bb
         target = tool_input.get("path") or tool_input.get("file_path") or tool_name
@@ -993,8 +1023,7 @@ def _stamp_guard_to_blackboard(root: str, tool_name: str, tool_input: dict, deci
             if path and ("S-" in path or re.search(r"/\d+-\d+-[a-z]", path)):
                 bb.set_hot(root, path.split("/")[-1].replace(".md", ""))
         # Route alerts for guard decisions
-        if decision == "deny":
-            bb.post_alert(root, "guard", "warn", f"Guard denied: {tool_name} → {target}")
+        bb.post_alert(root, "guard", "warn", f"Guard denied: {tool_name} → {target}")
     except (ImportError, AttributeError, OSError):
         # Specific exceptions from blackboard (MEDIUM #7 / ISSUE #66)
         pass  # fail-open
@@ -1012,11 +1041,38 @@ def guard(json_in: dict) -> dict:
     norm = normalize_hook_input(json_in)
     tool_name = norm["tool_name"]
     tool_input = norm["tool_input"]
-    _soft_warnings: list[str] = []  # warn-only findings when quality_gate=soft
-
-    # Stamp to blackboard (fire-and-forget, fail-open)
     root = repo_root(json_in)
-    _stamp_guard_to_blackboard(root, tool_name, tool_input, "allow")
+    _soft_warnings: list[str] = []  # warn-only findings when code_guard=soft
+
+    # Hot-path fast exits FIRST (no blackboard / gate / filesystem-scan I/O):
+    # unknown tools need no target work, and empty tool calls (no path, no
+    # command) have nothing to gate.
+    if tool_name == "unknown":
+        # normalize_hook_input flagged a tool the gate doesn't understand —
+        # warn (visible) instead of silently allowing a write we can't judge.
+        return {
+            "decision": "allow",
+            "methodology_warnings": [
+                f"Unrecognized tool '{norm['raw_tool_name']}' — guard skipped; "
+                f"verify this write manually."
+            ],
+        }
+
+    if tool_name == "terminal":
+        _cmd = str(tool_input.get("command", "") or "")
+        if not _cmd.strip():
+            return {"decision": "allow"}
+    elif tool_name in ("file_editor", "notebook_editor"):
+        _p = str(tool_input.get("path", "") or "")
+        if not _p.strip():
+            return {"decision": "allow"}
+    elif tool_name not in ("terminal", "file_editor", "notebook_editor"):
+        # Non-gated tool (e.g. Stop/SessionStart payloads) — nothing to judge.
+        return {"decision": "allow"}
+
+    # Deferred blackboard stamp: allow-path writes no longer pay a board
+    # read + locked snapshot rewrite per call. Deny paths stamp below via
+    # _stamp_guard_to_blackboard(..., "deny") (stamp-on-deny).
 
     # Determine targets based on tool
     targets: list[str] = []
@@ -1043,19 +1099,13 @@ def guard(json_in: dict) -> dict:
         if path:
             targets = [path]
 
-    elif tool_name == "unknown":
-        # normalize_hook_input flagged a tool the gate doesn't understand —
-        # warn (visible) instead of silently allowing a write we can't judge.
-        return {
-            "decision": "allow",
-            "methodology_warnings": [
-                f"Unrecognized tool '{norm['raw_tool_name']}' — guard skipped; "
-                f"verify this write manually."
-            ],
-        }
+    # Fast exit: shell/file write with no resolvable targets (e.g. a pure
+    # read-only or output-redirect-free command) needs no further gating —
+    # skip story/free/code checks AND the scope/context blackboard reads.
+    if not targets:
+        return {"decision": "allow"}
 
     # Check each target
-    root = repo_root(json_in)
     for target in targets:
         rel = rel_to_root(root, target)
 
@@ -1252,39 +1302,45 @@ def guard(json_in: dict) -> dict:
     # scope --value src/auth), an out-of-scope write produces a warn-only
     # notice, never a deny. Experiment-approval deny always takes precedence.
     
-    # NEW: Check operator context (PHASE 3 #6)
+    # --- Intent scope + operator context (warn-only), ONE board read ---
+    # Three signals (scope, focus_story, critical tag) are derived from a
+    # single snapshot. The old code read the board three times per write:
+    # _active_scope() (board-first), _read_focus_key(focus_story), and
+    # compact_context() — which itself reads twice (directly, then inside
+    # neighbors()). Fail-open: no board ⇒ no scope/focus notices; the
+    # mechanical gates above are unaffected.
+    from .utils import _active_scope, _read_focus_key
+    board = None
     try:
         from .config import blackboard_enabled
         if blackboard_enabled():
             from . import blackboard as bb
-            ctx = bb.compact_context(root)
-            
-            # Check if write is to focused story
-            focus_story = ctx.get("focus", {}).get("focus_story", "")
-            if focus_story and targets:
-                for target in targets:
-                    if focus_story not in str(target):
+            board = bb.read_board(root)
+    except Exception:
+        board = None
+
+    scope = _active_scope(root, board=board)
+    intent_warnings = _intent_scope_warnings(scope=scope, targets=targets, root=root)
+
+    if board:
+        try:
+            focus_story = _read_focus_key(root, "focus_story", board=board)
+            if focus_story:
+                for _t in targets:
+                    if focus_story not in str(_t):
                         _soft_warnings.append(
-                            f"Writing to {target} but focus story is {focus_story}. "
+                            f"Writing to {_t} but focus story is {focus_story}. "
                             f"Refocus (blackboard.py write --key focus_story --value <new>) if needed."
                         )
-            
-            # Check if critical priority
-            priority = ctx.get("priority", "normal")
-            if priority == "critical" and targets:
-                # Additional scrutiny for critical path
-                for target in targets:
-                    if "critical" in str(target).lower():
+            if "critical" in (board.get("tags") or []):
+                for _t in targets:
+                    if "critical" in str(_t).lower():
                         _soft_warnings.append(
-                            f"CRITICAL PATH: Write to {target} under critical tag. "
+                            f"CRITICAL PATH: Write to {_t} under critical tag. "
                             f"Extra verification recommended."
                         )
-    except Exception:
-        pass  # fail-open: blackboard unavailable
-    
-    from .utils import _active_scope
-    scope = _active_scope(root)
-    intent_warnings = _intent_scope_warnings(scope=scope, targets=targets, root=root)
+        except Exception:
+            pass  # fail-open: a malformed board must not affect the decision
 
     all_warnings = intent_warnings + _soft_warnings
     if all_warnings:
@@ -1570,6 +1626,48 @@ def _check_gate_records(root: str, blocked_action: str, include_pr: bool = False
                 ),
             }
 
+    return {"decision": "allow"}
+
+
+def pre(json_in: dict) -> dict:
+    """Combined PreToolUse gate: guard + quality + deploy in ONE process.
+
+    hooks/hooks.json used to fire three separate hook processes per tool
+    call (guard for Write/Edit/terminal, quality + deploy for Bash/terminal
+    — a `terminal` call paid 3x sh-dispatch + 3x python cold-start). This
+    runs all three checks sequentially in a single interpreter:
+
+      1. guard()   — experiment approval for code writes (fail-closed)
+      2. quality() — git-commit record gate (soft/hard per config)
+      3. deploy()  — deploy-command record gate (soft/hard per config)
+
+    Deny wins: the first deny short-circuits (later gates add nothing
+    once the call is already blocked). Soft-gate warnings accumulate
+    across all three. Non-gated tools exit after guard()'s own fast
+    path, so quality()/deploy() only pay normalize() + a regex on the
+    hot path — and only git-commit/deploy-shaped commands reach the
+    record scans.
+    """
+    res = guard(json_in)
+    if res.get("decision") == "deny":
+        return res
+    warnings: list[str] = list(res.get("methodology_warnings") or [])
+
+    for gate_fn in (quality, deploy):
+        try:
+            r = gate_fn(json_in)
+        except Exception:
+            continue  # fail-open: one gate crashing must not wedge the call
+        if r.get("decision") == "deny":
+            out = dict(r)
+            if warnings:
+                prior = list(out.get("methodology_warnings") or [])
+                out["methodology_warnings"] = warnings + prior
+            return out
+        warnings.extend(r.get("methodology_warnings") or [])
+
+    if warnings:
+        return {"decision": "allow", "methodology_warnings": warnings}
     return {"decision": "allow"}
 
 

@@ -45,7 +45,11 @@ MAX_DUPLICATE_CHECK_RECORDS = 5000 # Max record files to scan for duplicate IDs
 
 # --- Timeout Values (MEDIUM #14 / ISSUE #73) --------------------------------
 # Prevent indefinite hangs on corrupted files or locked resources
-GATE_VERIFY_TIMEOUT_SECONDS = 30      # Max time for gate.verify() to complete
+# Max time for ONE gate.verify() call to complete. Must stay BELOW the
+# PreToolUse hook timeout in hooks.json (20s) so a hung verify fails open
+# inside the hook budget instead of being killed by the hook runner. Real
+# verifies take ~2ms/record; this is only a corrupted-record safety net.
+GATE_VERIFY_TIMEOUT_SECONDS = 15
 
 # --- Gate strictness ---------------------------------------------------------
 # custom/config.toml [hooks]: quality_gate / deploy_guard / code_guard /

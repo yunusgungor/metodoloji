@@ -10,7 +10,7 @@ Claude Code plugin for BMAD methodology enforcement.
 
 ## Hooks
 
-All hooks run via `hooks/scripts/hook-entry.sh` which dispatches to the Python engine at `hooks/engine/main.py`.
+All hooks run via `hooks/scripts/hook-entry.sh` which dispatches to the Python engine at `hooks/engine/main.py` (`pre`/`guard`/`quality`/`deploy`/`audit`/`stop`/`session_start` modes; `hooks.json` dispatches the merged `pre` for PreToolUse).
 
 One unified `hooks/hooks.json` serves both runtimes: Claude Code auto-discovers it from
 its default hooks location (`./hooks/hooks.json`), and OpenHands auto-discovers the same
@@ -20,17 +20,36 @@ plugin root and dispatch to the same `hooks/engine/` core.
 | Hook | Matcher | Policy | Timeout |
 |------|---------|--------|---------|
 | SessionStart | — | fail-open (context injection) | 30s |
-| PreToolUse guard | Write\|Edit\|MultiEdit\|file_editor\|terminal | fail-closed | 10s |
-| PreToolUse quality | Bash\|terminal | config-gated: soft (default) / hard | 10s |
-| PreToolUse deploy | Bash\|terminal | config-gated: soft (default) / hard | 10s |
-
-> quality and deploy share the `Bash|terminal` matcher by design: every Bash
-> call fires both, each returns in <10s, and they check disjoint conditions
-> (git-commit chain vs deploy-command chain). Merging them would couple two
-> independent gates (`quality_gate` vs `deploy_guard`) — see TD-013 for the
-> hardening track.
+| PreToolUse `pre` | Write\|Edit\|MultiEdit\|Bash\|file_editor\|terminal | fail-closed (guard inside) | 20s |
 | PostToolUse audit | Write\|Edit\|MultiEdit\|Bash\|file_editor\|terminal | fail-open (sync) | 5s |
 | Stop | — | fail-closed | 15s |
+
+> **One PreToolUse entry, three gates, one process.** `pre` runs
+> guard → quality → deploy in order inside a single engine invocation; the
+> first deny short-circuits and soft-gate warnings accumulate. Each gate keeps
+> its own config key (`code_guard` / `quality_gate` / `deploy_guard`), so they
+> remain independent policies — only the process is shared (it used to be
+> three hook dispatches + three python cold-starts per tool call).
+> The matcher is the union of both tool vocabularies, which also closes a gap:
+> a Claude Code `Bash` call now reaches guard, so a shell write such as
+> `echo x > src/a.py` can no longer sidestep the experiment gate (it previously
+> matched quality/deploy only). That union also means guard's secret
+> protection now applies to `Bash`: a command referencing the gate key
+> (e.g. `cat ~/.bmad/gate-key`) is denied where the old per-gate dispatch
+> allowed it to slip past guard.
+>
+> Measured engine latency (bench over direct `main.py` calls, Windows):
+> simple calls ~198 ms → ~62 ms per tool call with the merged entry; a
+> code-target write runs ~620 ms (dominated by HMAC verification of
+> experiment records, ~15 ms each — same cost as the old three-process
+> chain). Fixing that path also removed a Windows self-deadlock: guard's
+> record lock plus `verify_record`'s blocking `msvcrt.LK_LOCK` on the same
+> `.lock` file stalled code-target writes for ~100 s. Verify now takes a
+> bounded non-blocking lock (`GATE_VERIFY_TIMEOUT_SECONDS = 15` stays below
+> this hook's 20 s so a hung verify fails open inside the hook budget), and
+> `find_approved` defers gate verification of records whose Code Scope
+> cannot cover the target. Record `.lock` sidecars are runtime artifacts
+> (gitignored), never committed.
 
 ### Gate strictness (soft/hard)
 
@@ -59,7 +78,7 @@ stop_guard = "hard"     # "hard" (default) | "soft" (brownfield adoption)
   max, stale sprint-status ignored. Never duplicate the Stop registration
   (plugin manifest + manual `settings.json` entry = "Ran 2 stop hooks").
 - Two independent layers: the fail-open/fail-closed column above is what happens when
-  the **engine cannot run** (guard/stop deny + exit 2; quality/deploy/audit pass
+  the **engine cannot run** (pre/guard/stop deny + exit 2; quality/deploy/audit pass
   silently), while soft/hard is what happens when the engine runs but the **record
   chain is incomplete**.
 

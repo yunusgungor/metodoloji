@@ -24,11 +24,17 @@ def _load():
 
 mod = _load()
 
-HOOKS = ["bootstrap", "guard", "quality", "deploy", "audit", "stop"]
+HOOKS = ["bootstrap", "pre", "guard", "quality", "deploy", "audit", "stop"]
+
+# Hooks dispatched from hooks.json. PreToolUse is ONE merged entry ("pre");
+# guard/quality/deploy remain valid engine modes (hook-entry.sh + main.py)
+# for direct invocation, but are no longer dispatched from hooks.json.
+DISPATCHED = ["bootstrap", "pre", "audit", "stop"]
 
 
-def _canonical():
-    return {h: mod.hook_command(h) for h in HOOKS}
+def _canonical(dispatched_only: bool = False):
+    hooks = DISPATCHED if dispatched_only else HOOKS
+    return {h: mod.hook_command(h) for h in hooks}
 
 
 def _hook_entry(commands: dict, name: str, extra: dict | None = None) -> list:
@@ -49,15 +55,9 @@ def _write_manifest(path: Path, commands: dict) -> dict:
     A hook key missing from `commands` simply drops that node (used to test
     missing-dispatch-hook detection)."""
     pre = []
-    if "guard" in commands:
-        pre.append({"matcher": "Write|Edit|MultiEdit|file_editor|terminal",
-                    "hooks": _hook_entry(commands, "guard", {"timeout": 10})})
-    if "quality" in commands:
-        pre.append({"matcher": "Bash|terminal",
-                    "hooks": _hook_entry(commands, "quality", {"timeout": 10})})
-    if "deploy" in commands:
-        pre.append({"matcher": "Bash|terminal",
-                    "hooks": _hook_entry(commands, "deploy", {"timeout": 10})})
+    if "pre" in commands:
+        pre.append({"matcher": "Write|Edit|MultiEdit|Bash|file_editor|terminal",
+                    "hooks": _hook_entry(commands, "pre", {"timeout": 20})})
     # Unknown dispatch-shaped hooks (e.g. a hand-renamed "garud") still get a
     # node so check/regenerate see them.
     for extra in sorted(set(commands) - set(HOOKS)):
@@ -111,7 +111,7 @@ def test_hook_command_unknown_hook_raises():
 # --- check (byte-exact drift detection) --------------------------------------
 
 def test_check_passes_when_in_sync(tmp_path, capsys):
-    m = _write_manifest(tmp_path / "hooks.json", _canonical())
+    m = _write_manifest(tmp_path / "hooks.json", _canonical(dispatched_only=True))
     assert mod.check(tmp_path / "hooks.json") == 0
     out = capsys.readouterr().out
     assert "byte-identical" in out
@@ -119,16 +119,16 @@ def test_check_passes_when_in_sync(tmp_path, capsys):
 
 
 def test_check_catches_hand_edited_command(tmp_path, capsys):
-    cmds = _canonical()
-    cmds["guard"] = cmds["guard"].replace("$PWD", "$BOGUS_ROOT", 1)
+    cmds = _canonical(dispatched_only=True)
+    cmds["pre"] = cmds["pre"].replace("$PWD", "$BOGUS_ROOT", 1)
     _write_manifest(tmp_path / "hooks.json", cmds)
     assert mod.check(tmp_path / "hooks.json") == 1
     out = capsys.readouterr().out
-    assert "guard" in out and "drifted" in out
+    assert "pre" in out and "drifted" in out
 
 
 def test_check_catches_missing_dispatch_hook(tmp_path, capsys):
-    cmds = _canonical()
+    cmds = _canonical(dispatched_only=True)
     del cmds["stop"]
     _write_manifest(tmp_path / "hooks.json", cmds)
     assert mod.check(tmp_path / "hooks.json") == 1
@@ -137,19 +137,19 @@ def test_check_catches_missing_dispatch_hook(tmp_path, capsys):
 
 
 def test_check_catches_renamed_hook_without_crashing(tmp_path, capsys):
-    cmds = _canonical()
+    cmds = _canonical(dispatched_only=True)
     # Real rename: the command's dispatch target changes too.
-    cmds["garud"] = cmds.pop("guard").replace('run-hook.sh" guard ', 'run-hook.sh" garud ')
+    cmds["garud"] = cmds.pop("pre").replace('run-hook.sh" pre ', 'run-hook.sh" garud ')
     _write_manifest(tmp_path / "hooks.json", cmds)
     assert mod.check(tmp_path / "hooks.json") == 1  # graceful, no traceback
     out = capsys.readouterr().out
     assert "garud" in out  # the unknown name is named, not silently skipped
-    assert "guard" in out  # and the missing original is reported
+    assert "pre" in out  # and the missing original is reported
 
 
 def test_regenerate_refuses_unknown_hook_without_writing(tmp_path, capsys):
-    cmds = _canonical()
-    cmds["garud"] = cmds.pop("guard").replace('run-hook.sh" guard ', 'run-hook.sh" garud ')
+    cmds = _canonical(dispatched_only=True)
+    cmds["garud"] = cmds.pop("pre").replace('run-hook.sh" pre ', 'run-hook.sh" garud ')
     path = tmp_path / "hooks.json"
     _write_manifest(path, cmds)
     original = path.read_text(encoding="utf-8")
@@ -159,26 +159,26 @@ def test_regenerate_refuses_unknown_hook_without_writing(tmp_path, capsys):
 
 
 def test_check_reports_multiple_drifted_commands(tmp_path, capsys):
-    cmds = _canonical()
-    cmds["guard"] = cmds["guard"].replace("$PWD", "$A_ROOT", 1)
+    cmds = _canonical(dispatched_only=True)
+    cmds["pre"] = cmds["pre"].replace("$PWD", "$A_ROOT", 1)
     cmds["stop"] = cmds["stop"].replace("$PWD", "$B_ROOT", 1)
     _write_manifest(tmp_path / "hooks.json", cmds)
     assert mod.check(tmp_path / "hooks.json") == 1
     out = capsys.readouterr().out
-    assert "guard" in out and "stop" in out
+    assert "pre" in out and "stop" in out
 
 
 # --- regenerate (--write) -----------------------------------------------------
 
 def test_regenerate_repairs_drift(tmp_path):
-    cmds = _canonical()
+    cmds = _canonical(dispatched_only=True)
     cmds["audit"] = cmds["audit"].replace("$PWD", "$DRIFT_ROOT", 1)
     _write_manifest(tmp_path / "hooks.json", cmds)
     mod.regenerate(tmp_path / "hooks.json")
     data = json.loads((tmp_path / "hooks.json").read_text(encoding="utf-8"))
-    # Every dispatch command is exactly one of the six canonical commands.
+    # Every dispatch command is exactly one of the dispatched canonical commands.
     commands = [n["command"] for n in _walk(data)]
-    assert sorted(commands) == sorted(_canonical().values())
+    assert sorted(commands) == sorted(_canonical(dispatched_only=True).values())
     assert mod.check(tmp_path / "hooks.json") == 0
 
 
@@ -194,12 +194,12 @@ def _walk(obj):
 
 
 def test_regenerate_preserves_structure(tmp_path):
-    m = _write_manifest(tmp_path / "hooks.json", _canonical())
+    m = _write_manifest(tmp_path / "hooks.json", _canonical(dispatched_only=True))
     mod.regenerate(tmp_path / "hooks.json")
     data = json.loads((tmp_path / "hooks.json").read_text(encoding="utf-8"))
     # Extra keys (matcher/timeout/async) and event grouping must survive.
     assert data["hooks"]["PostToolUse"][0]["matcher"].startswith("Write")
-    assert data["hooks"]["PreToolUse"][1]["hooks"][0]["timeout"] == 10
+    assert data["hooks"]["PreToolUse"][0]["hooks"][0]["timeout"] == 20
     assert data["hooks"]["PostToolUse"][0]["hooks"][0]["async"] is True
     assert data["hooks"]["SessionStart"][0]["hooks"][0]["timeout"] == 30
     assert list(data["hooks"].keys()) == ["SessionStart", "PreToolUse",
@@ -208,7 +208,7 @@ def test_regenerate_preserves_structure(tmp_path):
 
 def test_regenerate_idempotent(tmp_path):
     path = tmp_path / "hooks.json"
-    _write_manifest(path, _canonical())
+    _write_manifest(path, _canonical(dispatched_only=True))
     mod.regenerate(path)
     first = path.read_bytes()
     mod.regenerate(path)
@@ -218,7 +218,7 @@ def test_regenerate_idempotent(tmp_path):
 # --- main() CLI wiring ---------------------------------------------------------
 
 def test_main_check_ok(tmp_path, monkeypatch, capsys):
-    _write_manifest(tmp_path / "hooks.json", _canonical())
+    _write_manifest(tmp_path / "hooks.json", _canonical(dispatched_only=True))
     monkeypatch.setattr(sys, "argv", ["sync-hooks-json.py", "--check",
                                       str(tmp_path / "hooks.json")])
     assert mod.main() == 0
@@ -226,8 +226,8 @@ def test_main_check_ok(tmp_path, monkeypatch, capsys):
 
 
 def test_main_check_drift_returns_1(tmp_path, monkeypatch):
-    cmds = _canonical()
-    cmds["deploy"] = cmds["deploy"].replace('"/workspace"', '"/bogus"', 1)
+    cmds = _canonical(dispatched_only=True)
+    cmds["pre"] = cmds["pre"].replace('"/workspace"', '"/bogus"', 1)
     _write_manifest(tmp_path / "hooks.json", cmds)
     monkeypatch.setattr(sys, "argv", ["sync-hooks-json.py", "--check",
                                       str(tmp_path / "hooks.json")])
@@ -235,8 +235,8 @@ def test_main_check_drift_returns_1(tmp_path, monkeypatch):
 
 
 def test_main_write_then_check(tmp_path, monkeypatch, capsys):
-    cmds = _canonical()
-    cmds["quality"] = cmds["quality"].replace("$PWD", "$OLD_ROOT", 1)
+    cmds = _canonical(dispatched_only=True)
+    cmds["pre"] = cmds["pre"].replace("$PWD", "$OLD_ROOT", 1)
     path = tmp_path / "hooks.json"
     _write_manifest(path, cmds)
     monkeypatch.setattr(sys, "argv", ["sync-hooks-json.py", "--write", str(path)])

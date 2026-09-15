@@ -240,7 +240,23 @@ else
     PROBLEMS=$((PROBLEMS + 1))
 fi
 rm -f /tmp/meth-hooks.$$.log
-# quality hook test (PreToolUse — terminalmatcher)
+# pre hook test (PreToolUse — combined guard+quality+deploy, single process)
+if echo '{}' | "$PY" "$PLUGIN_ROOT/hooks/engine/main.py" pre --runtime=openhands >/tmp/meth-pre.$$.log 2>&1; then
+    if grep -q -e '"permissionDecision"' -e '"decision"' /tmp/meth-pre.$$.log; then
+        echo "[OK]   hook engine running (main.py pre → returned a decision)"
+    else
+        echo "[ERROR] hook engine pre returned no decision:"
+        sed 's/^/       /' /tmp/meth-pre.$$.log
+        PROBLEMS=$((PROBLEMS + 1))
+    fi
+else
+    echo "[ERROR] hook engine pre test failed:"
+    sed 's/^/       /' /tmp/meth-pre.$$.log
+    PROBLEMS=$((PROBLEMS + 1))
+fi
+rm -f /tmp/meth-pre.$$.log
+# quality hook test (PreToolUse — direct gate invocation; hooks.json
+# dispatches the combined "pre" mode, these stay as engine self-checks)
 if echo '{}' | "$PY" "$PLUGIN_ROOT/hooks/engine/main.py" quality --runtime=openhands >/tmp/meth-quality.$$.log 2>&1; then
     if grep -q -e '"permissionDecision"' -e '"decision"' /tmp/meth-quality.$$.log; then
         echo "[OK]   hook engine running (main.py quality → returned a decision)"

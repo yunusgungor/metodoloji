@@ -226,14 +226,29 @@ def rel_to_root(root: str, p: str, cwd: str | None = None) -> str:
 # already stamps per-record intent, and no hook consumed the mirror.)
 # Fail-open throughout: blackboard disabled/unreadable → env → ''.
 
-def _read_focus_key(root: str, field: str) -> str:
-    """Fetch one focus key (status/scope) from the board ('' if none)."""
+# Only `scope` has an env lane: bootstrap.sh exports METODOLOJI_SCOPE (a shell
+# snapshot of the board's scope) so a runtime that propagates it — or an
+# operator who exports it — skips the board read. Hook processes are SEPARATE
+# invocations, so a SessionStart export alone does not reach later hooks; the
+# board read in _read_focus_key stays the fallback that always works.
+_SCOPE_ENV = "METODOLOJI_SCOPE"
+
+
+def _read_focus_key(root: str, field: str, board: dict | None = None) -> str:
+    """Fetch one focus key (status/scope/focus_story) from the board ('' if none).
+
+    `board` lets a caller that already read the snapshot pass it in and skip a
+    second read: the guard reads the board once per write and feeds scope +
+    focus_story + tags from that single object (it used to read three times).
+    """
     try:
-        from .config import blackboard_enabled
-        if not blackboard_enabled():
-            return ""
-        from . import blackboard as bb
-        entry = bb.read_board(root).get("keys", {}).get(field)
+        if board is None:
+            from .config import blackboard_enabled
+            if not blackboard_enabled():
+                return ""
+            from . import blackboard as bb
+            board = bb.read_board(root)
+        entry = (board.get("keys") or {}).get(field)
         if entry and isinstance(entry, dict):
             return str(entry.get("value", "")).strip()
     except Exception:
@@ -250,19 +265,24 @@ def _active_progress(root: str) -> str:
     return _read_focus_key(root, "status")
 
 
-def _active_scope(root: str, env_override: bool = True) -> str:
+def _active_scope(root: str, env_override: bool = True, board: dict | None = None) -> str:
     """Return the active scope (a path boundary).
 
-    The guard uses it to flag out-of-scope writes as warn-only. Priority:
-      1. scope key on the blackboard (the live value a skill wrote).
-      2. METODOLOJI_SCOPE env (bootstrap.sh snapshot — fallback when empty).
+    The guard uses it to flag out-of-scope writes as warn-only. Order:
+      1. METODOLOJI_SCOPE env — an explicit operator/runtime override.
+      2. scope key on the blackboard (the live value a skill wrote).
+
+    NOTE: this was board-first. The env lane is checked first because it is an
+    explicit override AND costs no I/O; the scope notice is warn-only, and the
+    fail-closed gate (experiment approval) never reads scope, so ordering here
+    cannot weaken enforcement. `board` is passed by callers that already hold
+    a snapshot (see _read_focus_key).
     """
-    scope = _read_focus_key(root, "scope")
-    if scope:
-        return scope
     if env_override:
-        return os.environ.get("METODOLOJI_SCOPE", "").strip()
-    return ""
+        env_val = os.environ.get(_SCOPE_ENV)
+        if env_val is not None and env_val.strip():
+            return env_val.strip()
+    return _read_focus_key(root, "scope", board=board)
 
 
 _STORY_KEY_IN_FOCUS = re.compile(

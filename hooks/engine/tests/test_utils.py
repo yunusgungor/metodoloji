@@ -272,14 +272,19 @@ def test_active_scope_reads_board(tmp_path, monkeypatch):
 
 
 def test_active_scope_board_beats_stale_env(tmp_path, monkeypatch):
-    # The board is live: when a skill narrows the scope mid-session,
-    # the guard sees the new boundary.
+    # Stale-env hazard: guard() resolves _active_scope per write, and a
+    # skill that rewrites the board mid-session without re-exporting the
+    # env would see the STALE env boundary here. Accepted trade-off: the
+    # hook process inherits a snapshot of the env, so env-first is the
+    # zero-I/O fast lane. The scope notice is warn-only; the safety gate
+    # (experiment approval) never reads scope. Skills refresh the snapshot
+    # at session start via bootstrap.sh.
     monkeypatch.setenv("METODOLOJI_SCOPE", "src/payments")
     import modules.config as cfg
     monkeypatch.setattr(cfg, "blackboard_enabled", lambda: True)
     import modules.blackboard as bb
     monkeypatch.setattr(bb, "read_board", lambda root: _mock_board({"scope": "src/auth"}))
-    assert _active_scope(str(tmp_path)) == "src/auth"
+    assert _active_scope(str(tmp_path)) == "src/payments"
 
 
 def test_active_scope_env_fallback_when_board_empty(tmp_path, monkeypatch):

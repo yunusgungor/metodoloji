@@ -1,9 +1,9 @@
 #!/bin/sh
 # hook-entry.sh — single resolution point: find engine, pass to python, apply policy.
-# Usage: sh hook-entry.sh <guard|quality|deploy|stop|audit|session_start> [runtime]
+# Usage: sh hook-entry.sh <pre|guard|quality|deploy|stop|audit|session_start> [runtime]
 # Cross-platform: Windows/macOS/Linux.
 # Policies (Claude parity):
-#   guard          fail-closed  (engine missing → deny + exit 2)
+#   pre/guard      fail-closed  (engine missing → deny + exit 2)
 #   stop           fail-closed, loop-safe (decision block + exit 0; exit 2
 #                  re-triggers Stop and wedges the session)
 #   quality/deploy fail-open    (engine missing → silent pass)
@@ -38,7 +38,7 @@ _fail() {
             printf '%s\n' '{"decision":"block","reason":"Methodology hook engine could not run (no python or missing engine) — fail-closed blocked.","hookSpecificOutput":{"hookEventName":"Stop"}}'
             exit 0
             ;;
-        guard)
+        guard|pre)
             printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Methodology hook engine could not run (no python or missing engine) — fail-closed blocked."}}'
             exit 2
             ;;

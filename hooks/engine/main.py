@@ -12,7 +12,7 @@ import sys
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from modules.guard import guard, quality, deploy
+from modules.guard import guard, quality, deploy, pre
 from modules.audit import audit, session_start
 from modules.stop import stop
 
@@ -29,21 +29,21 @@ def main():
         for arg in sys.argv[1:]:
             if not arg.startswith("-"):
                 hook_type = arg
-        if hook_type == "stop":
-            print(json.dumps({
-                "decision": "block",
-                "reason": "Methodology hook received no input — fail-closed blocked.",
-                "hookSpecificOutput": {"hookEventName": "Stop"},
-            }))
-            return
-        if hook_type == "guard":
-            print(json.dumps({
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": "Methodology hook received no input — fail-closed blocked.",
-                }
-            }))
+        if hook_type in ("stop", "guard", "pre"):
+            if hook_type == "stop":
+                print(json.dumps({
+                    "decision": "block",
+                    "reason": "Methodology hook received no input — fail-closed blocked.",
+                    "hookSpecificOutput": {"hookEventName": "Stop"},
+                }))
+            else:
+                print(json.dumps({
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": "Methodology hook received no input — fail-closed blocked.",
+                    }
+                }))
             return
         print(json.dumps({
             "hookSpecificOutput": {
@@ -65,7 +65,10 @@ def main():
             hook_type = arg
 
     # Execute appropriate handler
-    if hook_type == "guard":
+    if hook_type == "pre":
+        # Combined PreToolUse gate (guard+quality+deploy, one process).
+        result = pre(json_in)
+    elif hook_type == "guard":
         result = guard(json_in)
     elif hook_type == "quality":
         result = quality(json_in)
@@ -83,12 +86,12 @@ def main():
 
     # Output result — Claude Code v2 schema: hookSpecificOutput wrapper.
     # Schema differs per event type:
-    #   PreToolUse (guard/quality/deploy) → permissionDecision
+    #   PreToolUse (pre/guard/quality/deploy) → permissionDecision
     #   PostToolUse (audit)               → additionalContext
     #   Stop (stop)                       → decision block/reason (loop-safe)
     #   SessionStart                      → additionalContext
     event_name = hook_type or "PreToolUse"
-    if hook_type in ("guard", "quality", "deploy"):
+    if hook_type in ("guard", "quality", "deploy", "pre"):
         # PreToolUse: permissionDecision controls allow/deny/ask
         hso = {
             "hookEventName": "PreToolUse",

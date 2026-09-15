@@ -279,8 +279,10 @@ run on three planes:
   purpose --value "<one-line subject>"` at activation (plus `topic` / `goal`
   / `idea` in the skill's own vocabulary where the pre-memlog-removal text
   used those variants), `write --key scope --value "<path scope>"` when the
-  work is path-scoped (guard warns on out-of-scope writes; bootstrap exports
-  it as `METODOLOJI_SCOPE`), and `write --key status --value complete` at
+  work is path-scoped (guard warns on out-of-scope writes; the guard reads the
+  board's `scope` key, with `METODOLOJI_SCOPE` — exported by bootstrap for its
+  own child processes — honored as an explicit override when the runtime or
+  operator propagates it into hook processes), and `write --key status --value complete` at
   close (stop skips story checks and `bmad-help` routes to next steps once
   progress is `complete`). Last writer wins — concurrent runs overwrite each
   other, which is the correct semantic for "what is the session about now".

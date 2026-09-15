@@ -346,6 +346,30 @@ def test_main_dispatch_guard(tmp_path):
     assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
 
 
+def test_main_dispatch_pre(tmp_path):
+    """The merged PreToolUse mode returns one decision for a Bash/terminal call."""
+    r = _run_main(["pre"], {"tool_name": "terminal", "tool_input": {"command": "ls"}},
+                  project_root=tmp_path)
+    out = json.loads(r.stdout)
+    assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
+
+
+def test_main_bad_stdin_pre_denies(tmp_path):
+    """pre is fail-closed like guard: unparseable input must never allow."""
+    import subprocess
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = str(tmp_path)
+    env["HOOK_TYPE"] = "pre"
+    r = subprocess.run(
+        [sys.executable, str(MAIN_PY)],
+        input="not-json",
+        capture_output=True, text=True, encoding="utf-8", timeout=30,
+        env=env, cwd=str(_HOOKS.parent),
+    )
+    out = json.loads(r.stdout)
+    assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
 def test_main_dispatch_unknown_hook_allows(tmp_path):
     r = _run_main(["nonexistent-hook"], {"tool_name": "terminal"},
                   project_root=tmp_path)

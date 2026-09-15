@@ -4,6 +4,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 _HOOKS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_HOOKS))
 
@@ -309,6 +311,226 @@ def test_find_done_stories_without_qr_excludes_templates():
         assert "_template" not in missing
     finally:
         td.cleanup()
+
+
+def test_guard_focus_story_warns_on_other_target(tmp_path, monkeypatch):
+    """Operator context: a focus_story on the board warns on a write elsewhere.
+
+    Regression guard for the single-board-read tail (the warning used to come
+    from compact_context(); it must survive now that the tail reads once).
+    """
+    from modules.guard import guard
+    from modules import config
+    import modules.blackboard as bb
+
+    monkeypatch.setattr(config, "blackboard_enabled", lambda: True)
+    monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
+    monkeypatch.setattr(
+        bb, "read_board",
+        lambda root: {"keys": {"focus_story": {"value": "1-2-login",
+                                               "type": "state", "updated": 0.0}},
+                      "tags": [], "hot": None, "canvases": {}})
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "scratch/other.md", "content": "x"}})
+    assert res["decision"] == "allow"
+    assert any("focus story is 1-2-login" in w
+               for w in res.get("methodology_warnings", []))
+
+
+def test_guard_critical_tag_warns_on_critical_path(tmp_path, monkeypatch):
+    """Operator context: the board's `critical` tag warns on a matching path.
+
+    Regression guard for the removed METODOLOJI_TAGS env gate: the priority
+    check reads the board's tags directly (nothing exports that env var, so
+    env-gating it silently disabled the warning).
+    """
+    from modules.guard import guard
+    from modules import config
+    import modules.blackboard as bb
+
+    monkeypatch.setattr(config, "blackboard_enabled", lambda: True)
+    monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
+    monkeypatch.delenv("METODOLOJI_TAGS", raising=False)
+    monkeypatch.setattr(
+        bb, "read_board",
+        lambda root: {"keys": {}, "tags": ["critical"], "hot": None,
+                      "canvases": {}})
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "scratch/critical-path.md",
+                                "content": "x"}})
+    assert res["decision"] == "allow"
+    assert any("CRITICAL PATH" in w
+               for w in res.get("methodology_warnings", []))
+
+
+def test_guard_tail_reads_board_once(tmp_path, monkeypatch):
+    """Hot path: scope + focus_story + tags come from ONE board read.
+
+    The old tail read the board three times (board-first _active_scope,
+    _read_focus_key, then compact_context → read_board + neighbors()).
+    """
+    from modules.guard import guard
+    from modules import config
+    import modules.blackboard as bb
+
+    calls = []
+    monkeypatch.setattr(config, "blackboard_enabled", lambda: True)
+    monkeypatch.delenv("METODOLOJI_SCOPE", raising=False)
+
+    def _counting_read(root):
+        calls.append(root)
+        return {"keys": {}, "tags": [], "hot": None, "canvases": {}, "links": []}
+
+    monkeypatch.setattr(bb, "read_board", _counting_read)
+    monkeypatch.setattr(bb, "neighbors", lambda *a, **k: pytest.fail(
+        "neighbors() must not run on the write hot path"))
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+
+    res = guard({"tool_name": "file_editor",
+                 "tool_input": {"path": "scratch/one-read.md", "content": "x"}})
+    assert res["decision"] == "allow"
+    assert len(calls) == 1, f"expected 1 board read, got {len(calls)}"
+
+
+def test_guard_fast_exit_skips_board_entirely(tmp_path, monkeypatch):
+    """Hot path: a terminal call with no write targets makes no board read."""
+    from modules.guard import guard
+    from modules import config
+    import modules.blackboard as bb
+
+    monkeypatch.setattr(config, "blackboard_enabled", lambda: True)
+    monkeypatch.setattr(bb, "read_board", lambda root: pytest.fail(
+        "no board read is allowed on the no-target fast path"))
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+
+    # `cat` only reads: extract_bash_targets resolves no write target.
+    res = guard({"tool_name": "terminal",
+                 "tool_input": {"command": "cat src/app.py"}})
+    assert res["decision"] == "allow"
+
+
+def test_guard_unknown_tool_warns(tmp_path, monkeypatch):
+    """A tool the engine does not understand warns instead of passing silently."""
+    from modules.guard import guard
+    res = guard({"tool_name": "SomeFutureTool", "tool_input": {}})
+    assert res["decision"] == "allow"
+    assert any("Unrecognized tool" in w
+               for w in res.get("methodology_warnings", []))
+
+
+def test_guard_empty_command_allows_without_board(tmp_path, monkeypatch):
+    """An empty terminal command is a no-op, not a gate subject."""
+    from modules.guard import guard
+    from modules import config
+    import modules.blackboard as bb
+
+    monkeypatch.setattr(config, "blackboard_enabled", lambda: True)
+    monkeypatch.setattr(bb, "read_board", lambda root: pytest.fail(
+        "empty command must not touch the board"))
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    res = guard({"tool_name": "terminal", "tool_input": {"command": "  "}})
+    assert res["decision"] == "allow"
+
+
+# --- pre(): combined PreToolUse gate (one process) ---------------------------
+
+def test_pre_allows_when_every_gate_allows(tmp_path, monkeypatch):
+    """pre() runs guard + quality + deploy and returns ONE allow decision."""
+    from modules.guard import pre
+    from modules import config
+    import modules.blackboard as bb
+
+    monkeypatch.setattr(config, "blackboard_enabled", lambda: True)
+    monkeypatch.setattr(config, "hook_gate_mode", lambda key: "soft")
+    monkeypatch.setattr(bb, "read_board", lambda root: {"keys": {}, "tags": []})
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+
+    res = pre({"tool_name": "terminal", "tool_input": {"command": "ls"}})
+    assert res["decision"] == "allow"
+
+
+def test_pre_guard_deny_short_circuits_other_gates(tmp_path, monkeypatch):
+    """A guard deny wins: quality/deploy are never consulted afterwards."""
+    from modules.guard import pre
+    from modules import guard as guard_mod
+    import modules.blackboard as bb
+
+    monkeypatch.setattr(bb, "read_board", lambda root: {"keys": {}, "tags": []})
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+    monkeypatch.delenv("OPENHANDS_PROJECT_DIR", raising=False)
+    # Gate-key reference in the command → guard denies (fail-closed path).
+    monkeypatch.setattr(
+        guard_mod, "quality",
+        lambda payload: pytest.fail("quality() must not run after a guard deny"))
+    monkeypatch.setattr(
+        guard_mod, "deploy",
+        lambda payload: pytest.fail("deploy() must not run after a guard deny"))
+
+    res = pre({"tool_name": "terminal",
+               "tool_input": {"command": "cat ~/.bmad/gate-key"}})
+    assert res["decision"] == "deny"
+
+
+def test_pre_merges_gate_warnings(monkeypatch):
+    """Soft-gate warnings from guard and quality/deploy accumulate."""
+    from modules.guard import pre
+    from modules import guard as guard_mod
+
+    monkeypatch.setattr(guard_mod, "guard",
+                        lambda payload: {"decision": "allow",
+                                         "methodology_warnings": ["from-guard"]})
+    monkeypatch.setattr(guard_mod, "quality",
+                        lambda payload: {"decision": "allow",
+                                         "methodology_warnings": ["from-quality"]})
+    monkeypatch.setattr(guard_mod, "deploy", lambda payload: {"decision": "allow"})
+
+    res = pre({})
+    assert res["decision"] == "allow"
+    assert res["methodology_warnings"] == ["from-guard", "from-quality"]
+
+
+def test_pre_later_gate_deny_carries_earlier_warnings(monkeypatch):
+    """A deny from deploy still reports the warnings guard already produced."""
+    from modules.guard import pre
+    from modules import guard as guard_mod
+
+    monkeypatch.setattr(guard_mod, "guard",
+                        lambda payload: {"decision": "allow",
+                                         "methodology_warnings": ["from-guard"]})
+    monkeypatch.setattr(guard_mod, "quality", lambda payload: {"decision": "allow"})
+    monkeypatch.setattr(guard_mod, "deploy",
+                        lambda payload: {"decision": "deny",
+                                         "reason": "deploy blocked"})
+
+    res = pre({})
+    assert res["decision"] == "deny"
+    assert res["reason"] == "deploy blocked"
+    assert res["methodology_warnings"] == ["from-guard"]
+
+
+def test_pre_gate_crash_fails_open(monkeypatch):
+    """One gate raising must not wedge the call (fail-open, as before)."""
+    from modules.guard import pre
+    from modules import guard as guard_mod
+
+    monkeypatch.setattr(guard_mod, "guard", lambda payload: {"decision": "allow"})
+
+    def _boom(payload):
+        raise RuntimeError("gate exploded")
+
+    monkeypatch.setattr(guard_mod, "quality", _boom)
+    monkeypatch.setattr(guard_mod, "deploy", lambda payload: {"decision": "allow"})
+    assert pre({})["decision"] == "allow"
 
 
 def test_guard_soft_gate_warns_not_denies(tmp_path, monkeypatch):

@@ -44,12 +44,23 @@ _CANDIDATES = (
 # the tool name it was fired for (unused by hook-entry.sh, kept for parity).
 _HOOKS = {
     "bootstrap": False,
+    "pre": True,
     "guard": True,
     "quality": True,
     "deploy": True,
     "audit": True,
     "stop": True,
 }
+
+# Hooks dispatched from hooks.json (subset of _HOOKS). check()/regenerate()
+# validate exactly this set so the merged PreToolUse entry doesn't trip
+# "missing dispatch hook" errors for the retired per-gate entries.
+# NOTE: PreToolUse is served by ONE combined entry ("pre" → guard+quality+
+# deploy in a single python process) instead of three separate guard/quality/
+# deploy processes per tool call. guard/quality/deploy stay registered (and
+# in hook-entry.sh + main.py) as the engine's internal gate names and for
+# direct/manual invocation — but hooks.json no longer dispatches them.
+_DISPATCHED_HOOKS = ("bootstrap", "pre", "audit", "stop")
 
 _HOOK_RE = re.compile(r'run-hook\.sh"\s+([a-z_]+)')
 
@@ -115,7 +126,7 @@ def regenerate(manifest: Path) -> None:
             continue
         node["command"] = canonical
         seen.add(hook)
-    missing = sorted(set(_HOOKS) - seen)
+    missing = sorted(set(_DISPATCHED_HOOKS) - seen)
     if missing:
         print(f"  ERROR: dispatch commands for {missing} not found in hooks.json")
     if unknown:
@@ -147,7 +158,7 @@ def check(manifest: Path) -> int:
         problems += 1
         print(f"  MISS: hook command(s) {sorted(drifted)} drifted from the canonical locator")
         print("        run: python3 scripts/sync-hooks-json.py --write")
-    missing = sorted(set(_HOOKS) - seen)
+    missing = sorted(set(_DISPATCHED_HOOKS) - seen)
     if missing:
         problems += 1
         print(f"  MISS: dispatch commands for {missing} missing from hooks.json")

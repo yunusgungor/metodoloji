@@ -1,7 +1,9 @@
 #!/bin/sh
 # run-hook.sh — Central hook dispatcher across Claude Code, OpenHands Canvas/Local, and CI
 # Discovers the plugin root reliably and routes to bootstrap.sh or hook-entry.sh.
-# Usage: sh run-hook.sh <bootstrap|guard|quality|deploy|audit|stop> [args...]
+# Usage: sh run-hook.sh <bootstrap|pre|guard|quality|deploy|audit|stop> [args...]
+# NOTE: hooks.json dispatches the combined "pre" mode (guard+quality+deploy
+# in one python process); guard/quality/deploy stay valid for direct use.
 #
 # The candidate roots below are the authoritative plugin-root DISCOVERY list.
 # hooks/hooks.json cannot reference this file (neither runtime injects a
@@ -53,11 +55,11 @@ if [ -z "$PLUGIN_ROOT" ]; then
     [ -z "$PLUGIN_ROOT" ] && _try_candidate "$HOME/.openhands/plugins/installed/metodoloji"
 fi
 
-# Plugin root not located: guard/stop stay fail-closed (deny), everything
+# Plugin root not located: pre/guard/stop stay fail-closed (deny), everything
 # else fails open. Stop uses the loop-safe envelope (block + exit 0).
 if [ -z "$PLUGIN_ROOT" ]; then
     case "$TARGET_HOOK" in
-        guard)
+        guard|pre)
             printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Methodology plugin root not found — fail-closed blocked."}}'
             exit 2
             ;;

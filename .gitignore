@@ -13,6 +13,9 @@ __pycache__/
 **/.metodoloji/blackboard.json.lock
 **/.metodoloji/blackboard.json.*.tmp
 **/.metodoloji/canvas.json
+# Runtime lock sidecar files created while verifying experiment records
+# (fail-open advisory locks); never track them.
+docs/experiments/*.lock
 _generated_splits/
 .env
 
