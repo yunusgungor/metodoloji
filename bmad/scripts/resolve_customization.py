@@ -218,7 +218,20 @@ def main():
     skill_name = skill_dir.name
     defaults_path = skill_dir / "customize.toml"
 
-    defaults = load_toml(defaults_path, required=True)
+    # A missing skill-root customize.toml means "no defaults" ({}), not an
+    # error: minimal skills carry no customization surface, and the team/user
+    # layers still merge on top. 22 skills ship a byte-identical minimal stub
+    # with only these persistent_facts — keep them working by defaulting here
+    # instead of requiring the stub file on disk.
+    # ponytail: the stub files themselves are deleted; this default covers them.
+    if defaults_path.is_file():
+        defaults = load_toml(defaults_path, required=True)
+    else:
+        defaults = {"workflow": {"persistent_facts": [
+            "file:{project-root}/**/project-context.md",
+            "file:{metodoloji-root}/docs/bmad/research-methodology.md",
+            "file:{metodoloji-root}/docs/bmad/development-methodology.md",
+        ]}}
 
     # Prefer the project that contains this skill. Only fall back to cwd if
     # the skill isn't inside a recognizable project tree (unusual but possible

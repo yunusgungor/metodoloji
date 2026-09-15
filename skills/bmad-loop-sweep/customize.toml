@@ -1,9 +1,0 @@
-# Minimal customization root for the three-layer merge (defaults ← team ← user).
-# Team/user overrides live in custom/{name}.toml; without this file
-# resolve_customization.py refuses to merge them.
-[workflow]
-persistent_facts = [
-  "file:{project-root}/**/project-context.md",
-  "file:{metodoloji-root}/docs/bmad/research-methodology.md",
-  "file:{metodoloji-root}/docs/bmad/development-methodology.md",
-]
