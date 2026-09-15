@@ -4,7 +4,7 @@
 # Event resolution order (no payload content sniffing):
 #   1. $1 = explicit event name (SessionStart|UserPromptSubmit|PreToolUse|
 #      PostToolUse|Stop) — e.g. `claude-hook.sh PreToolUse`
-#   2. ORCA_HOOK_EVENT env (set by the dedicated claude-hook-<Event>.sh scripts)
+#   2. ORCA_HOOK_EVENT env (explicit override)
 #   3. a structured "hook_event_name" field inside the JSON payload
 #   4. empty stdin => SessionStart (SessionStart hooks run without stdin)
 #   5. anything else => fail-open PreToolUse allow

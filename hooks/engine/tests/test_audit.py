@@ -191,9 +191,6 @@ def test_audit_writes_warnings(tmp_path, monkeypatch):
 
 def test_redacted_input_truncates_long_input():
     """Test that _redacted_input respects length limits."""
-    # Import the config limit
-    from modules.config import ERROR_CODE_REGISTRY
-    
     # Create long input
     long_input = "x" * 1000
     

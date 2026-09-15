@@ -11,7 +11,6 @@ anything: every script emits the Claude Code v2 `hookSpecificOutput` schema
 |---|---|
 | `lib.sh` | Shared plumbing: single stdin read, v2 schema emission, endpoint config, forward transports (form-encoded + raw-json-v1), offline spool fallback. |
 | `claude-hook.sh` | Generic dispatcher — event from `$1`, `ORCA_HOOK_EVENT`, the payload's `hook_event_name` field, empty-stdin ⇒ SessionStart, else fail-open PreToolUse allow. |
-| `claude-hook-<Event>.sh` | Dedicated entry per event (`SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop`) — sets `ORCA_HOOK_EVENT` and sources `lib.sh`. |
 | `antigravity-hook.sh` | Antigravity runtime variant — event via `ORCA_ANTIGRAVITY_EVENT`, PreToolUse emits `ask`. |
 
 ## Activation
@@ -25,7 +24,7 @@ to call them explicitly, e.g. in Claude Code settings:
   "hooks": {
     "PreToolUse": [
       { "hooks": [ { "type": "command",
-        "command": "sh \"$CLAUDE_PROJECT_DIR/hooks/orca/claude-hook-PreToolUse.sh\"" } ] }
+        "command": "sh \"$CLAUDE_PROJECT_DIR/hooks/orca/claude-hook.sh\" PreToolUse" } ] }
     ]
   }
 }

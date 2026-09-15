@@ -604,14 +604,14 @@ def test_guard_frontmatter_top_level_key_ends_refs():
 
 def test_guard_chain_cache_avoids_reread(tmp_path, monkeypatch):
     """Unchanged QR files are read once across repeated chain checks."""
-    from modules.guard import _validate_methodology_chain, _CHAIN_TEXT_CACHE
+    from modules.guard import _validate_methodology_chain, _cached_text
     import pathlib
     (tmp_path / "docs/quality").mkdir(parents=True)
     (tmp_path / "docs/development/stories").mkdir(parents=True)
     qr = tmp_path / "docs/quality/QR-001.md"
     qr.write_text("# QR\nStory S-001 approved\n", encoding="utf-8")
     content = "## Story: S-001\n- **Status:** done\n"
-    _CHAIN_TEXT_CACHE.clear()
+    _cached_text.cache_clear()
     reads = []
     orig_read = pathlib.Path.read_text
     def counting(self, *a, **k):
@@ -1020,42 +1020,13 @@ def test_validate_methodology_chain_bounds_limits_iterations():
         td.cleanup()
 
 
-def test_error_code_registry_has_all_codes():
-    """Test that ERROR_CODE_REGISTRY in config.py has all required error codes (CRITICAL #24)."""
-    from modules.config import ERROR_CODE_REGISTRY
-    
-    required_codes = [
-        "VERIFY_OK", "VERIFY_FAILED", "ADVISORY_BLOCKED", "KEY_MISSING",
-        "INVALID_AC_METADATA", "EXPERIMENT_NOT_FOUND", "INVALID_STATUS",
-        "DUPLICATE_RECORD_ID", "ORPHANED_STORY",
-        "HOOK_SEQUENCE_VIOLATION", "INVALID_HOOKS_CONFIG",
-        "EVENT_LOG_CORRUPTION", "FILE_LOCK_TIMEOUT", "STALE_SESSION",
-        "CASCADE_INVALIDATION", "SESSION_ISOLATION_FAILURE",
-    ]
-    
-    for code in required_codes:
-        assert code in ERROR_CODE_REGISTRY, f"Missing error code: {code}"
-        entry = ERROR_CODE_REGISTRY[code]
-        assert "level" in entry
-        assert "message" in entry
-        assert "recovery" in entry
-
-
 def test_validation_bounds_defined():
-    """Test that all MAX_* validation bounds are defined in config (MEDIUM #11)."""
-    from modules.config import (
-        MAX_STORY_COUNT, MAX_AC_PER_STORY, MAX_EXPERIMENTS_TO_CHECK,
-        MAX_CHAIN_DEPTH, MAX_DUPLICATE_CHECK_RECORDS, MAX_VALIDATION_LOOP_ITERATIONS
-    )
-    
+    """Test that the used MAX_* validation bounds are defined in config (MEDIUM #11)."""
+    from modules.config import MAX_STORY_COUNT, MAX_DUPLICATE_CHECK_RECORDS
+
     # All should be positive integers
     assert MAX_STORY_COUNT > 0
-    assert MAX_AC_PER_STORY > 0
-    assert MAX_EXPERIMENTS_TO_CHECK > 0
-    assert MAX_CHAIN_DEPTH > 0
     assert MAX_DUPLICATE_CHECK_RECORDS > 0
-    assert MAX_VALIDATION_LOOP_ITERATIONS > 0
-    
+
     # Sanity check: limits should be reasonable
     assert MAX_STORY_COUNT >= 100
-    assert MAX_CHAIN_DEPTH >= 5

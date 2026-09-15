@@ -7,6 +7,7 @@ import pathlib
 import re
 import sys
 import time
+from functools import lru_cache
 
 from .config import GATE_DIR, _BMD_DIR, _KEY_ACCESS_IN_CONTENT, _DONE_RE
 from .utils import (is_code_target, is_free, norm_path, normalize_hook_input,
@@ -43,25 +44,6 @@ def _secret_ref(s: str) -> bool:
     if "gate-key" in low or "bmad_gate_key" in low:
         return True
     return bool(_BMD_DIR.search(s))
-
-
-def _notebook_content_to_text(content) -> str:
-    """Normalize notebook content to text for scanning."""
-    if isinstance(content, str):
-        return content
-    if not isinstance(content, list):
-        return str(content or "")
-    parts: list[str] = []
-    for cell in content:
-        if isinstance(cell, dict):
-            src = cell.get("source") or cell.get("code") or []
-            if isinstance(src, list):
-                parts.extend(src)
-            elif isinstance(src, str):
-                parts.append(src)
-        elif isinstance(cell, str):
-            parts.append(cell)
-    return "\n".join(parts)
 
 
 def verify_record(rec: str) -> tuple[int, str]:
@@ -647,27 +629,18 @@ def _validate_story_metadata(content: str) -> tuple[bool, str]:
 
 # --- Methodology Chain Validation ---
 
-# Chain text cache: methodology-chain checks read whole record dirs per story
-# write. Keyed (mtime_ns, size), bounded — unchanged records are not re-read.
-_CHAIN_TEXT_CACHE: dict[str, tuple[tuple[int, int], str]] = {}
-
-
-def _cached_text(path: "pathlib.Path") -> str:
+@lru_cache(maxsize=256)
+def _cached_text(path: str, mtime_ns: int, size: int) -> str:
     """Read a chain record, cached by (mtime_ns, size)."""
-    s = str(path)
+    return pathlib.Path(path).read_text(encoding="utf-8", errors="replace")
+
+
+def _chain_text(path: "pathlib.Path") -> str:
     try:
         st = path.stat()
-        key = (st.st_mtime_ns, st.st_size)
     except OSError:
         return path.read_text(encoding="utf-8", errors="replace")
-    hit = _CHAIN_TEXT_CACHE.get(s)
-    if hit is not None and hit[0] == key:
-        return hit[1]
-    text = path.read_text(encoding="utf-8", errors="replace")
-    if len(_CHAIN_TEXT_CACHE) >= 256:
-        _CHAIN_TEXT_CACHE.pop(next(iter(_CHAIN_TEXT_CACHE)))
-    _CHAIN_TEXT_CACHE[s] = (key, text)
-    return text
+    return _cached_text(str(path), st.st_mtime_ns, st.st_size)
 
 
 def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> tuple[bool, str]:
@@ -682,7 +655,7 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
 
     Returns (is_valid, reason).
     """
-    from .config import MAX_CHAIN_DEPTH, MAX_DUPLICATE_CHECK_RECORDS, MAX_EXPERIMENTS_TO_CHECK, MAX_STORY_COUNT
+    from .config import MAX_DUPLICATE_CHECK_RECORDS, MAX_STORY_COUNT
     
     issues = []
     if not root:
@@ -727,7 +700,7 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
                 if count > MAX_DUPLICATE_CHECK_RECORDS:  # Bounds check (MEDIUM #11)
                     break
                 try:
-                    qr_content = _cached_text(qr_file)
+                    qr_content = _chain_text(qr_file)
                     if story_key in qr_content:
                         found_qr = True
                         break
@@ -757,7 +730,7 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
                 if meth_file.name == target_name:
                     continue
                 try:
-                    meth_content = _cached_text(meth_file)
+                    meth_content = _chain_text(meth_file)
                     if story_key in meth_content:
                         found_meth = True
                         break
@@ -779,7 +752,7 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
             sp_file_found = None
             for sp_file in dev_dir.glob("SP-*.md"):
                 try:
-                    sp_content = _cached_text(sp_file)
+                    sp_content = _chain_text(sp_file)
                     if story_key in sp_content or sp_id in sp_content:
                         found_sp = True
                         sp_file_found = sp_file
@@ -795,7 +768,7 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
                 # NEW: Check backreference chain S→SP→IR→E (HIGH #4 / HIGH #8)
                 # SP must reference IR, IR must reference E
                 if sp_file_found:
-                    sp_content = _cached_text(sp_file_found)
+                    sp_content = _chain_text(sp_file_found)
                     # Look for IR-NNN reference in SP
                     ir_match = re.search(r"\bIR-(\d+)\b", sp_content, re.IGNORECASE)
                     if ir_match:
@@ -805,7 +778,7 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
                         ir_file_found = None
                         for ir_file in dev_dir.glob("IR-*.md"):
                             try:
-                                ir_content = _cached_text(ir_file)
+                                ir_content = _chain_text(ir_file)
                                 if ir_id in ir_content:
                                     found_ir = True
                                     ir_file_found = ir_file
@@ -820,7 +793,7 @@ def _validate_methodology_chain(content: str, rel_path: str, root: str = "") -> 
                         else:
                             # Check if IR references E
                             if ir_file_found:
-                                ir_content = _cached_text(ir_file_found)
+                                ir_content = _chain_text(ir_file_found)
                                 # Look for E-NNN reference in IR
                                 e_match = re.search(r"\bE-(\d+)\b", ir_content, re.IGNORECASE)
                                 if not e_match:
@@ -1227,11 +1200,7 @@ def guard(json_in: dict) -> dict:
         # Without this, free-zone files bypass _KEY_ACCESS_IN_CONTENT entirely.
         if tool_name in ("file_editor", "notebook_editor"):
             try:
-                content = ""
-                if tool_name == "file_editor":
-                    content = str(tool_input.get("content", ""))
-                elif tool_name == "notebook_editor":
-                    content = _notebook_content_to_text(tool_input.get("content", []))
+                content = str(tool_input.get("content", "") or "")
                 if content and _KEY_ACCESS_IN_CONTENT.search(content):
                     return {
                         "decision": "deny",
@@ -1436,70 +1405,6 @@ def _find_done_stories_without_sp(root: str) -> list[str]:
                                              require_sp_ref=True)
 
 
-def _check_methodology_chain_readiness(root: str) -> tuple[bool, str]:
-    """Verify that each stage in the methodology chain is ready.
-    
-    E → IR → SP → S → QR → PR chain validation.
-    Used by quality/deploy gates to ensure no stage is skipped.
-    """
-    issues = []
-    
-    # Check E (Experiment) records exist for done stories
-    exp_dir = pathlib.Path(root) / "docs" / "experiments"
-    if not exp_dir.is_dir():
-        issues.append("No docs/experiments/ directory — E stage setup incomplete")
-    
-    # Check IR (Implementation Readiness) records — same rule as the
-    # gate-level check (_find_done_stories_without_ir): done stories with no
-    # IR record anywhere in docs/development/ mean Gate 1 was bypassed. The
-    # earlier version only tested that the directory existed, so the IR gap
-    # surfaced as a bare "directory missing" message (or not at all) instead
-    # of the "Implementation Readiness" denial the gates promise.
-    missing_ir = _find_done_stories_without_ir(root)
-    if missing_ir:
-        issues.append(
-            f"{len(missing_ir)} done story(s) exist but no Implementation Readiness (IR) record: "
-            f"{', '.join(missing_ir)}"
-        )
-    ir_dir = pathlib.Path(root) / "docs" / "development"
-    if not ir_dir.is_dir():
-        issues.append("No docs/development/ directory — IR stage setup incomplete")
-    
-    # Check SP (Sprint Planning) records
-    sp_files = list((ir_dir / "SP-*.md" if ir_dir.is_dir() else pathlib.Path()).glob("SP-*.md"))
-    if not sp_files:
-        # Not critical, but warn if stories exist
-        story_dir = pathlib.Path(root) / "docs" / "development" / "stories"
-        if story_dir.is_dir() and list(story_dir.glob("S-*.md")):
-            issues.append("Stories exist but no SP (Sprint Planning) records found")
-    
-    # Check S (Story) and S→QR chain
-    story_dir = pathlib.Path(root) / "docs" / "development" / "stories"
-    qr_dir = pathlib.Path(root) / "docs" / "quality"
-    if story_dir.is_dir() and qr_dir.is_dir():
-        for story_file in story_dir.glob("S-*.md"):
-            try:
-                content = story_file.read_text(encoding="utf-8", errors="replace")
-                # Check if story is marked done
-                if re.search(r"status.*done", content, re.IGNORECASE):
-                    story_key = story_file.stem
-                    # Find corresponding QR
-                    qr_found = False
-                    for qr_file in qr_dir.glob("QR-*.md"):
-                        qr_content = qr_file.read_text(encoding="utf-8", errors="replace")
-                        if story_key in qr_content:
-                            qr_found = True
-                            break
-                    if not qr_found:
-                        issues.append(f"Story {story_key} done but no QR (Quality Record) found — QR stage skipped")
-            except OSError:
-                pass
-    
-    if issues:
-        return False, "; ".join(issues[:3])
-    return True, ""
-
-
 def _find_done_stories_without_ir(root: str) -> list[str]:
     """Find done stories when no IR record exists (Kapi 1 gate bypassed).
 
@@ -1575,12 +1480,8 @@ def quality(json_in: dict) -> dict:
     except Exception:
         pass
 
-    # Gate record checks (IR → QR → SP). The earlier chain pre-check
-    # (_check_methodology_chain_readiness) short-circuited these with vaguer
-    # messages (e.g. a directory-level SP note that was documented
-    # 'not critical' yet denied) — _check_gate_records carries the
-    # gate-specific, actionable messages the contract promises, in fixed
-    # IR → QR → SP order.
+    # Gate record checks (IR → QR → SP) with gate-specific, actionable
+    # messages, in fixed IR → QR → SP order.
     return _apply_gate_strictness(_check_gate_records(root, "git commit blocked"),
                                   "quality_gate")
 

@@ -28,7 +28,6 @@ Design invariants (docs/BLACKBOARD.md):
 from __future__ import annotations
 
 import fnmatch
-import itertools
 import json
 import os
 import pathlib
@@ -38,9 +37,6 @@ import threading
 import time
 from contextlib import contextmanager
 from enum import Enum  # NEW: For AlertKind (PHASE 4 #7)
-
-# Unique tmp-name sequence (per-call uniqueness across threads).
-_TMP_SEQ = itertools.count()
 
 # NEW: Structured alert taxonomy (PHASE 4 #7)
 class AlertKind(Enum):
@@ -251,8 +247,11 @@ def _read_snapshot(paths: dict) -> dict:
 
 
 def _write_snapshot_atomic(paths: dict, board: dict) -> None:
+    import tempfile
     os.makedirs(paths["dir"], exist_ok=True)
-    tmp = f'{paths["snapshot"]}.{os.getpid()}.{threading.get_ident()}.{next(_TMP_SEQ)}.tmp'
+    fd, tmp = tempfile.mkstemp(prefix=os.path.basename(paths["snapshot"]) + ".",
+                               dir=paths["dir"])
+    os.close(fd)
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(board, f, ensure_ascii=False, separators=(",", ":"))
         f.flush()

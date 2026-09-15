@@ -2,9 +2,8 @@
 # lib.sh — shared plumbing for hooks/orca/*-hook.sh event scripts.
 #
 # Design: the Claude Code event type is declared EXPLICITLY — via $1 to
-# orca_hook_lib_entry, the ORCA_HOOK_EVENT env (set by the dedicated
-# claude-hook-<Event>.sh scripts), or the structured "hook_event_name" JSON
-# field. No payload content sniffing.
+# orca_hook_lib_entry (e.g. `claude-hook.sh PreToolUse`), the ORCA_HOOK_EVENT
+# env, or the structured "hook_event_name" JSON field. No payload content sniffing.
 #
 # Sourced, not executed. Stdin is read EXACTLY ONCE per pipeline
 # (orca_hook_payload), which sets:
@@ -133,7 +132,7 @@ orca_hook_resolve() {
   case "$1" in
     SessionStart|UserPromptSubmit|PreToolUse|PostToolUse|Stop) printf %s "$1"; return ;;
   esac
-  # 2. ORCA_HOOK_EVENT env (set by the dedicated claude-hook-<Event>.sh scripts)
+  # 2. ORCA_HOOK_EVENT env (explicit override)
   case "${ORCA_HOOK_EVENT:-}" in
     SessionStart|UserPromptSubmit|PreToolUse|PostToolUse|Stop) printf %s "$ORCA_HOOK_EVENT"; return ;;
   esac

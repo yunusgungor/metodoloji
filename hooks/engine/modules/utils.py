@@ -28,14 +28,13 @@ def normalize_hook_input(json_in: dict) -> dict:
       tool_input={path,content,command,...}
 
     Returns a normalized dict with keys: tool_name, tool_input (with
-    file_path/content/command), raw_tool_name, raw_tool_input.
+    file_path/content/command), raw_tool_name.
     """
     runtime = os.environ.get("METODOLOJI_RUNTIME", "")
     tool_name = json_in.get("tool_name", "")
     tool_input = dict(json_in.get("tool_input", {}))
 
     raw_name = tool_name
-    raw_input = dict(tool_input)
 
     if runtime == "claude" or tool_name in ("Write", "Edit", "MultiEdit",
                                                   "NotebookEdit", "Bash"):
@@ -67,7 +66,6 @@ def normalize_hook_input(json_in: dict) -> dict:
         "tool_name": tool_name,
         "tool_input": tool_input,
         "raw_tool_name": raw_name,
-        "raw_tool_input": raw_input,
         **{k: v for k, v in json_in.items() if k not in ("tool_name", "tool_input")},
     }
 
